@@ -33,7 +33,7 @@ COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM\\}
 \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
 \textsc{ \textbf{\large Decentralized Patient Information system }}
 \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-\vspace{0.5in}
+\vspace{1cm}
 
 \textsc{\textbf{Prepared To:}}\\
 \vspace{0.5cm}
@@ -55,7 +55,7 @@ Dr. Haytham Azmi
 
         Salma Hisham Hassan Wagdy - 21P0124
     
-\vspace{2cm}
+\vspace{1.5cm}
 
 \textbf{\small GRADUATION PROJECT PROPOSAL} \\
 
@@ -67,16 +67,160 @@ Dr. Haytham Azmi
 
 \section{Introduction}
 
+
 \section{Objectives}
 
+The primary \textbf{security objectives} of this project are:
+
+\textbf{Authentication \& Access Control:}
+\begin{itemize}
+    \item Implement robust multi-factor authentication (MFA) using industry-standard protocols
+    \item Establish role-based access control (RBAC) for patients, doctors, and caregivers
+    \item Deploy OAuth 2.0 and OpenID Connect for secure authentication flows
+    \item Ensure secure session management and token handling
+\end{itemize}
+
+\textbf{Data Protection \& Encryption:}
+\begin{itemize}
+    \item Implement end-to-end encryption for all patient data transmissions
+    \item Deploy database-level encryption for data at rest
+    \item Establish field-level encryption for sensitive medical information
+    \item Implement secure key management and rotation policies
+\end{itemize}
+
+\textbf{API Security \& Network Protection:}
+\begin{itemize}
+    \item Deploy API gateway with rate limiting and input validation
+    \item Implement comprehensive firewall protection and network segmentation
+    \item Establish DDoS protection and traffic monitoring
+    \item Ensure secure communication protocols across all system components
+\end{itemize}
+
+\textbf{AI-Specific Security Measures:}
+\begin{itemize}
+    \item Develop prompt injection detection and prevention mechanisms
+    \item Implement query filtering and sanitization for AI interactions
+    \item Establish role-based limitations for AI system access
+    \item Deploy monitoring systems for AI security threats
+\end{itemize}
 
 \section{Methodology}
+
+\textbf{Security Implementation Methodology:}
+
+The security implementation follows a phased approach spanning three major milestones over 22-30 weeks:
+
+\textbf{Milestone 1: Core Security Foundation (8-12 weeks)}
+
+\textit{Authentication \& Authorization (Weeks 1-3):}
+\begin{itemize}
+    \item Configure separate realms for different user types (patients, doctors, caregivers)
+    \item Implement OAuth 2.0 and OpenID Connect protocols
+    \item Integrate Google Authenticator for multi-factor authentication
+    \item Develop and test authentication flows with web interfaces
+\end{itemize}
+
+\textit{Database Security \& Encryption (Weeks 4-6):}
+\begin{itemize}
+    \item Deploy PostgreSQL with built-in encryption capabilities
+    \item Configure database-level and field-level encryption
+    \item Establish secure backup and recovery procedures
+\end{itemize}
+
+\textit{API Security \& Network Protection (Weeks 7-9):}
+\begin{itemize}
+    \item Implement rate limiting and comprehensive input validation
+    \item Set up firewall rules using pfSense or OPNsense
+
+\end{itemize}
+
+\textit{Basic AI Security Implementation (Weeks 10-12):}
+\begin{itemize}
+    \item Develop custom Python filters for prompt validation
+    \item Implement query length limits and pattern matching
+    \item Create role-based query filtering mechanisms
+    \item Deploy basic security testing for AI components
+    \item Integrate OpenAI Moderation API for content filtering
+\end{itemize}
+
+\textbf{Security Technology Stack:}
 
 
 \subsection{Evaluation}
 
+\textbf{Security Evaluation Criteria:}
+
+The security implementation will be evaluated through multiple assessment criteria:
+
+\textbf{Security Testing \& Penetration Testing:}
+\begin{itemize}
+    \item Conduct automated security scans using OWASP tools
+    \item Perform manual penetration testing on authentication systems
+    \item Test API endpoints for common vulnerabilities (SQL injection, XSS, CSRF)
+    \item Evaluate AI components against prompt injection attacks
+\end{itemize}
+
+\textbf{Performance Impact Assessment:}
+\begin{itemize}
+    \item Measure authentication response times under various loads
+    \item Evaluate encryption/decryption performance impact
+    \item Test API gateway latency and throughput
+    \item Assess overall system performance with security measures enabled
+\end{itemize}
+
+\textbf{Compliance Verification:}
+\begin{itemize}
+    \item Validate HIPAA compliance requirements
+    \item Verify data protection regulations adherence
+    \item Document security controls and procedures
+    \item Conduct security audit trail reviews
+\end{itemize}
+
+\textbf{User Experience Evaluation:}
+\begin{itemize}
+    \item Test MFA implementation usability
+    \item Evaluate login/logout flow efficiency
+    \item Assess security measure transparency to end users
+    \item Measure user satisfaction with security features
+\end{itemize}
+
 \section{Expected Outcome}
 
+\textbf{Security Component Deliverables:}
+
+Upon completion of the security implementation phases, the project will deliver:
+
+\textbf{Comprehensive Security Framework:}
+\begin{itemize}
+    \item Fully functional multi-factor authentication system 
+    \item End-to-end encryption for all data transmissions and storage
+    \item Robust API security with rate limiting and comprehensive input validation
+    \item AI-specific security measures protecting against emerging threats
+\end{itemize}
+
+\textbf{Security Infrastructure:}
+\begin{itemize}
+    \item Encrypted PostgreSQL database with automated backup systems
+    \end{itemize}
+
+\textbf{Documentation \& Compliance:}
+\begin{itemize}
+    \item Complete security documentation and procedures
+    \item HIPAA compliance verification and audit trails
+    \item Security testing reports and vulnerability assessments
+    \item User guides for security features and best practices
+\end{itemize}
+
+\textbf{Performance Metrics:}
+\begin{itemize}
+    \item Authentication response times under 2 seconds for 95\% of requests
+    \item Less than 10\% performance overhead from encryption
+\end{itemize}
+
+The implemented security measures will establish a foundation for future enhancements, including advanced AI security features, compliance certifications, and production deployment security protocols. 
+
+
 \section{Conclusion}
+
 
 \end{document}
