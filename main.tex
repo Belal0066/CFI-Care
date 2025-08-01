@@ -76,7 +76,7 @@ The primary \textbf{security objectives} of this project are:
 \begin{itemize}
     \item Implement robust multi-factor authentication (MFA) using industry-standard protocols
     \item Establish role-based access control (RBAC) for patients, doctors, and caregivers
-    \item Deploy OAuth 2.0 and OpenID Connect for secure authentication flows
+    \item Deploy OAuth 2.0 and OpenID Connect for secure authorization and authentication flows respectively
     \item Ensure secure session management and token handling
 \end{itemize}
 
@@ -116,19 +116,24 @@ The security implementation follows a phased approach spanning three major miles
 \begin{itemize}
     \item Configure separate realms for different user types (patients, doctors, caregivers)
     \item Implement OAuth 2.0 and OpenID Connect protocols
-    \item Integrate Google Authenticator for multi-factor authentication
+    \item Deploy Keycloak as the primary Identity and Access Management (IAM) solution
+    \item Integrate Ente Auth for multi-factor authentication
     \item Develop and test authentication flows with web interfaces
 \end{itemize}
 
 \textit{Database Security \& Encryption (Weeks 4-6):}
 \begin{itemize}
     \item Deploy PostgreSQL with built-in encryption capabilities
+    \item Implement TLS encryption using Let's Encrypt certificates
+    \item Integrate HashiCorp Vault for secure key management
     \item Configure database-level and field-level encryption
     \item Establish secure backup and recovery procedures
 \end{itemize}
 
 \textit{API Security \& Network Protection (Weeks 7-9):}
 \begin{itemize}
+    \item Deploy Kong Gateway for API management and security
+    \item Configure Nginx as a reverse proxy with security modules
     \item Implement rate limiting and comprehensive input validation
     \item Set up firewall rules using pfSense or OPNsense
 
@@ -201,6 +206,8 @@ Upon completion of the security implementation phases, the project will deliver:
 \textbf{Security Infrastructure:}
 \begin{itemize}
     \item Encrypted PostgreSQL database with automated backup systems
+    \item Production-ready Keycloak deployment with configured realms
+    \item Kong Gateway with security policies and monitoring
     \end{itemize}
 
 \textbf{Documentation \& Compliance:}
