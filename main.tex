@@ -144,8 +144,14 @@ The security implementation follows a phased approach spanning three major miles
     \item Integrate OpenAI Moderation API for content filtering
 \end{itemize}
 
-\textbf{Milestone 2: Security Enhancement & Optimization (13-17 weeks)}
-
+\textbf{Milestone 2: Security Enhancement & Optimization (13-20 weeks)}
+\textit{Advanced Security Features:}
+\begin{itemize}
+    \item Integrate Cloudflare for basic DDoS protection
+    \item Establish secure backup and recovery procedures for database
+    \item Deploy basic security testing for AI components
+    \item Develop custom Python filters for prompt validation
+\end{itemize}
 
 \textbf{Security Technology Stack:}
 \begin{itemize}
@@ -164,6 +170,32 @@ The security implementation will be evaluated through multiple assessment criter
 
 \textbf{Security Testing \& Penetration Testing:}
 
+\begin{itemize}
+    \item Conduct automated security scans using OWASP tools
+    \item Perform manual penetration testing on authentication systems
+    \item Test API endpoints for common vulnerabilities (SQL injection, XSS, CSRF)
+    \item Evaluate AI components against prompt injection attacks
+\end{itemize}
+
+\textbf{Performance Impact Assessment:}
+\begin{itemize}
+    \item Evaluate encryption/decryption performance impact
+    \item Test API gateway latency and throughput
+    \item Assess overall system performance with security measures enabled
+\end{itemize}
+
+\textbf{Compliance Verification:}
+\begin{itemize}
+    \item Validate HIPAA compliance requirements
+    \item Document security controls and procedures
+\end{itemize}
+
+\textbf{User Experience Evaluation:}
+\begin{itemize}
+    \item Test MFA implementation usability
+    \item Evaluate user feedback on security features
+
+\end{itemize}
 
 \section{Expected Outcome}
 
@@ -181,9 +213,10 @@ Upon completion of the security phases, they will deliver:
 
 \textbf{Security Infrastructure:}
 \begin{itemize}
-    \item Encrypted PostgreSQL database with automated backup systems
+    \item Encrypted PostgreSQL database  
     \item Production-ready Keycloak deployment with configured realms
     \item Kong Gateway with security policies and monitoring
+    \item Network security implementation with firewall and DDoS protection
     \end{itemize}
 
 \textbf{Documentation \& Compliance:}
