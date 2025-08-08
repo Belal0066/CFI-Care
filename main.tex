@@ -108,9 +108,9 @@ The primary \textbf{security objectives} of this project are:
 
 \textbf{Security Implementation Methodology:}
 
-The security implementation follows a phased approach spanning three major milestones over 22-30 weeks:
+The security implementation follows a phased approach spanning three major milestones :
 
-\textbf{Milestone 1: Core Security Foundation (8-12 weeks)}
+\textbf{Milestone 1: Core Security Foundation (our estimation is 12 weeks/3 months of first semester)}
 
 \textit{Authentication \& Authorization (Weeks 1-3):}
 \begin{itemize}
@@ -127,29 +127,34 @@ The security implementation follows a phased approach spanning three major miles
     \item Implement TLS encryption using Let's Encrypt certificates
     \item Integrate HashiCorp Vault for secure key management
     \item Configure database-level and field-level encryption
-    \item Establish secure backup and recovery procedures
 \end{itemize}
 
 \textit{API Security \& Network Protection (Weeks 7-9):}
 \begin{itemize}
     \item Deploy Kong Gateway for API management and security
     \item Configure Nginx as a reverse proxy with security modules
-    \item Implement rate limiting and comprehensive input validation
     \item Set up firewall rules using pfSense or OPNsense
 
 \end{itemize}
 
 \textit{Basic AI Security Implementation (Weeks 10-12):}
 \begin{itemize}
-    \item Develop custom Python filters for prompt validation
     \item Implement query length limits and pattern matching
     \item Create role-based query filtering mechanisms
-    \item Deploy basic security testing for AI components
     \item Integrate OpenAI Moderation API for content filtering
 \end{itemize}
 
-\textbf{Security Technology Stack:}
+\textbf{Milestone 2: Security Enhancement & Optimization (13-17 weeks)}
 
+
+\textbf{Security Technology Stack:}
+\begin{itemize}
+    \item \textit{Authentication:} Keycloak, OAuth 2.0, OpenID Connect
+    \item \textit{Database:} PostgreSQL with encryption, HashiCorp Vault
+    \item \textit{API Security:} Kong Gateway, Nginx, Cloudflare
+    \item \textit{Network Security:} pfSense/OPNsense, Let's Encrypt
+    \item \textit{AI Security:} Custom Python filters, OpenAI Moderation API
+\end{itemize}
 
 \subsection{Evaluation}
 
@@ -164,7 +169,7 @@ The security implementation will be evaluated through multiple assessment criter
 
 \textbf{Security Component Deliverables:}
 
-Upon completion of the security implementation phases, the project will deliver:
+Upon completion of the security phases, they will deliver:
 
 \textbf{Comprehensive Security Framework:}
 \begin{itemize}
