@@ -1,25 +1,11 @@
-\documentclass[12pt]{article}
-\usepackage[margin=1in]{geometry}
+\documentclass[a4paper, 12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
 \usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{booktabs}
-\usepackage{enumitem}
-\usepackage{hyperref}
+ \usepackage{hyperref} 
+\usepackage{fancyhdr}
+\usepackage{amsmath} 
 
-
-\title{AI System}
-\author{}
-\date{}
-
-\begin{document}
-
-\maketitle
-
-\section{Introduction}
-
-\section{Objectives}
-
-% Page style
 \pagestyle{fancy}
 \fancyhf{}
 \lhead{\textit{CSE491 - Computer Engineering Graduation Project (1)}}
@@ -29,299 +15,172 @@
 
 \begin{document}
 
-% ---------- Title Page ----------
 \begin{titlepage}
 
-    \begin{center}
-        \includegraphics[scale=0.4]{Images/180207 ASU-Logo-400.png}
-    \end{center}
+\begin{center}
+   \includegraphics[scale=0.4]{Images/180207 ASU-Logo-400.png} 
+\end{center}
+   
+\thispagestyle{empty}
+
+\center
+\textsc{\small\large  AIN SHAMS UNIVERSITY\\
+FACULTY OF ENGINEERING I-CHEP\\
+COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM\\}
+\vspace{1cm}
+% \textsc{\large GRADUATION PROJECT PROPOSAL}
+
+
+
+\noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
+\textsc{ \textbf{\large MedFlow: A Decentralized Patient Information system }}
+\noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
+\vspace{1cm}
+
+\textsc{\textbf{Prepared To:}}\\
+\vspace{0.5cm}
+\centering
+Dr. Haytham Azmi
+\vspace{0.5cm}
+
+\textsc{\textbf{Prepared By:}}
+\vspace{0.5cm}
+\centering
+
+        Salma Mohamed Abdelmonem Mohamed Yousef - 21P0148 
+   
+        Belal Anas Awad - 21P0072
+
+        Mohamed Salah Fathy - 21P0117
+
+        Youssef Tamer Hossam Eldin Helmy - 21P0138
+
+        Salma Hisham Hassan Wagdy - 21P0124
     
-    \vspace{1cm}
-    \centering
-    \textsc{\small\large AIN SHAMS UNIVERSITY\\
-    FACULTY OF ENGINEERING I-CHEP\\
-    COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM}\\
-    
-    \vspace{1cm}
-    \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-    \textsc{\textbf{\large Decentralized Patient Information System}}
-    \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-    
-    \vspace{1cm}
-    \textbf{Prepared To:}\\
-    Dr. Haytham Azmi
-    
-    \vspace{1cm}
-    \textbf{Prepared By:}\\
-    Salma Mohamed Abdelmonem Mohamed Yousef - 21P0148\\
-    Belal Anas Awad - 21P0072\\
-    Mohamed Salah Fathy - 21P0117\\
-    Youssef Tamer Hossam Eldin Helmy - 21P0138\\
-    Salma Hisham Hassan Wagdy - 21P0124
-    
-    \vspace{2cm}
-    \textbf{\small GRADUATION PROJECT PROPOSAL}
+\vspace{1.5cm}
+
+\textbf{\small GRADUATION PROJECT PROPOSAL} \\
+
+\today
 
 \end{titlepage}
 
+\newpage
 
-% ---------- Content ----------
 \section{Introduction}
+Doctors today face overwhelming administrative burdens and often lack access to comprehensive, up-to-date patient information. This challenge is compounded by the fragmentation of healthcare systems, where hospitals and clinics operate in isolation. As a result, when patients—particularly those with chronic conditions—visit the same doctor at different locations, their medical history is frequently unavailable, leading to disjointed care and complications in diagnosis or treatment. This application aims to address these issues by centralizing all medical reports in one secure platform, enabling continuous patient monitoring and ensuring that healthcare providers have consistent access to critical data across institutions.
 
+There is a lack of a seamless, bi-directional system that facilitates:
 
 \begin{itemize}
-    \item \textbf{User-Facing:}
-    \begin{itemize}
-        \item \textbf{Basic health suggestions} from structured data (e.g., \textit{“You seem dehydrated. Consider drinking water.”})
 
-    \end{itemize}
-    \item \textbf{Doctor-Facing (Advanced):}
-    \begin{itemize}
-        \item {RAG (Retrieval-Augmented Generation)} using the patient’s records.
-        \item Summarizes health history and generate reports.
-        \item Generates potential diagnoses, flags anomalies, and suggests treatment paths.
-        \item Generates the best medicine and its alternatives for patients.
-    \end{itemize}
-    \item \textbf{Doctor Collaboration Tools}
-    \begin{itemize}
-        \item Enable Git-like version control of medical records through graph-based history modeling for transparent and auditable clinical decisions.
-    \end{itemize}
-    \item \textbf{Continuous Health Monitoring}
-    \begin{itemize}
-        \item Analyze real-time data streams (e.g., from IoT sensors) for anomaly detection and early warning systems.
-    \end{itemize}
+\item Real-time patient data collection and interpretation.
+\item Secure communication and record handling between patients and doctors.
+\item Patient and caregiver interaction and visibility.
+\item Actionable AI recommendations without overstepping into unauthorized diagnostics.
 \end{itemize}
 
-\end{itemize}
+\subsection{Solution Overview}
 
-\section{Methodology}
-
-The implementation of the AI system is structured in three iterative phases, each focusing on core capabilities and scalability.
-
-\subsection{Phase 1: Prototyping and Core AI Modules}
-
-\subsubsection*{Tools and Frameworks}
 \begin{itemize}
-    \item \textbf{Language Models}: GEMMA-Med, BioGPT, Mistral, or open LLaMA variants (3B–8B)
-    \item \textbf{RAG Systems}: LlamaIndex, LangChain, Haystack with vector DBs (FAISS, ChromaDB)
-    \item \textbf{Evaluation}: MLflow Evaluation, BERTScore, BLEURT, human-in-the-loop
+
+\item A cross-platform application (mobile/web) for patients, relatives, and doctors.
+\item Smart device integration for automated health data collection.
+\item Version-controlled medical records using a Git-like architecture.
+\item Lightweight, AI-generated recommendations and alerts.
+\item Multilingual support, natural language input, and speech-to-text transcription.
+\item Role-based access control to ensure privacy, consent, and data integrity.
 \end{itemize}
 
-\subsubsection*{Components}
+
+\subsection{Target Users}
+
 \begin{itemize}
-    \item \textbf{Medical Question Answering} \\
-    - Using Fine-tuned LLMs with domain-specific embeddings (e.g., PubMedBERT).
-    - Retrieval pipelines using patient data and context-aware augmentation.
-
-    \item \textbf{Symptom Checker / Triage} \\
-    Rule-based hybrid with language models trained on guideline-driven datasets.
-
-    \item \textbf{Graph RAG for Long-Term Records} \\
-    Use patient history as a versioned graph (GitMed). \\
-    $\rightarrow$ Traverse timelines with semantic search and dynamic context windows.
-\end{itemize}
-
-\subsection{Phase 2: Integration and Optimization}
-
-\subsubsection*{Goals}
-\begin{itemize}
-    \item Deploy lightweight LLMs with retrieval (RAG) to minimize compute costs.
-    \item Run AI workloads in scalable, secure containers (e.g., FastAPI + Uvicorn + Ray Serve).
-\end{itemize}
-
-\subsubsection*{Components}
-\begin{itemize}
-    \item \textbf{Event Detection (Streaming AI)} \\
-    Use threshold-based ML on IoT data streams for real-time alerts (SpO\textsubscript{2}, ECG, etc.)
-
-    \item \textbf{Multimodal Input Support} \\
-    OCR/ASR preprocessing pipelines (e.g., MarkItDown) for ingesting raw clinical notes, images, and audio into AI-friendly structured formats.
-
-    \item \textbf{Knowledge Graph Integration} \\
-    Structure medical history as a graph, annotated with AI metadata, linking symptoms $\rightarrow$ tests $\rightarrow$ diagnoses $\rightarrow$ treatments.
-\end{itemize}
-
-\subsection{Phase 3: Full-Scale Intelligent Platform}
-
-This platform will deliver secure, scalable, and efficient health monitoring with AI-assisted analysis, accessible via both web and mobile. The chosen stack enables rapid development, strong security, and consistent functionality across platforms through a shared backend.
-
-\section{Architecture Overview}
-Both the \textbf{web} and \textbf{mobile} apps will connect to a \textbf{shared Express.js backend} via secure REST + WebSocket APIs. This backend centralizes business logic, data processing, and AI integration, ensuring consistent results.  
-
-\noindent\textbf{Data Flow:}  
-\[
-\text{Frontend (Web/Mobile)} \rightarrow \text{API Gateway} \rightarrow \text{Backend (Express.js — flexible for NestJS)} \rightarrow \text{Database (PostgreSQL + Redis)}
-\]
-
-Mobile requests are optimized for smaller payloads, while the web app can fetch more detailed datasets.
-
-\section{Web Application Stack}
-\subsection*{Frontend}
-\begin{itemize}
-    \item \textbf{Angular} – Structured, TypeScript-based, and scalable for complex healthcare UIs.
-    \item \textbf{State Management:} NgRx for predictable handling of patient and real-time data.
-    \item \textbf{UI Library:} Angular Material for accessible, responsive components.
-\end{itemize}
-
-\subsection*{Backend (Shared)}
-\begin{itemize}
-    \item \textbf{Express.js} – Lightweight, flexible, widely supported.
-    \item \textbf{Possible Future Option:} NestJS if a more opinionated, enterprise-ready framework is required later.
-    \item \textbf{API:} REST for data operations; WebSockets for real-time vitals and alerts.
-    \item \textbf{Security:} JWT + OAuth 2.0 for role-based access, AES-256 encryption for sensitive data.
-\end{itemize}
-
-\subsection*{Database}
-\begin{itemize}
-    \item \textbf{PostgreSQL} – Reliable relational database for patient records.
-    \item \textbf{Redis} – High-speed caching for frequently accessed health data.
-\end{itemize}
-
-\subsection*{DevOps}
-\begin{itemize}
-    \item \textbf{Deployment:} Docker + Kubernetes on AWS/GCP for scaling.
-    \item \textbf{CI/CD:} GitHub Actions with automated testing and deployment.
-\end{itemize}
-
-\section{Mobile Application Stack}
-\subsection*{Frontend}
-\begin{itemize}
-    \item \textbf{Flutter} – Single codebase for iOS and Android, delivering native performance and smooth UI for health visualizations.
-    \item \textbf{State Management:} Riverpod or Bloc for predictable, testable state flow.
-    \item \textbf{UI Kit:} Flutter’s Material \& Cupertino widgets for platform-native experience.
-\end{itemize}
-
-\subsection*{Backend (Shared with Web)}
-\begin{itemize}
-    \item Connects to the same Express.js API with \textbf{mobile-optimized endpoints} for reduced payload size.
-    \item Real-time data via WebSockets, with throttling to save battery.
-\end{itemize}
-
-\subsection*{Local Database}
-\begin{itemize}
-    \item \textbf{SQLite (via Drift)} – Caches essential patient data for offline access.
-\end{itemize}
-
-\subsection*{Deployment}
-\begin{itemize}
-    \item Distributed on iOS App Store and Google Play; OTA updates using Flutter’s build tools.
-\end{itemize}
-
-\section{Shared Services \& Tools}
-\begin{itemize}
-    \item \textbf{Authentication:} Auth0 with MFA and biometric login for mobile.
-    \item \textbf{AI Processing:} Python (FastAPI) microservices for anomaly detection, recommendations, and medical text summarization.
-    \item \textbf{Data Integration:} Terra API for wearable device integration into patient health records.
-    \item \textbf{Monitoring:} Prometheus + Grafana for system performance; Sentry for error logging.
-    \item \textbf{API Gateway:} NGINX for load balancing and traffic shaping.
-\end{itemize}
-
-\section{Justification}
-This stack ensures:
-\begin{itemize}
-    \item \textbf{Security} – Encryption, RBAC, and compliance-ready architecture protect patient data.
-    \item \textbf{Scalability} – Modular backend leaves open the option to move from Express.js to NestJS if project complexity grows.
-    \item \textbf{Performance} – Optimized payloads ensure fast load times for mobile and detailed analytics for web.
-    \item \textbf{Cross-platform parity} – Shared backend guarantees identical AI results and business rules across devices.
-    \item \textbf{Developer efficiency} – Popular frameworks (Angular, Flutter, Express.js) enable rapid feature delivery and long-term maintainability.
+\item Patients (especially chronically ill or elderly individuals).
+\item Doctors (both in-network and visiting).
+\item Relatives/Caregivers (secondary users with patient authorization).
 \end{itemize}
 
 
 \section{Objectives}
+
+\subsection{AI System}
+\begin{itemize}
+    \item Design a scalable, secure infrastructure to support data ingestion, and real-time AI inference.
+    \item Enable reproducible and auditable version control of medical records and AI models.
+    \item Facilitate seamless integration of RAG and LLM components with vector databases and graph databases.
+    \item Implement robust monitoring, logging, and security mechanisms to ensure reliability and compliance.
+    \item Support collaborative workflows for clinicians with branching and merging capabilities in medical history records.
+\end{itemize}
+
+
+\subsection{Lab Reports Summarization Objectives}
 The primary \textbf{objective Pathalogy Reports Summarization} of this project is:\\
 Automate the extraction and summarization of laboratory reports, enabling doctors to quickly review key findings without manually reading lengthy documents, while maintaining data privacy and compliance with HIPAA and FHIR standards.
 
+\subsection{Security Objectives}
+The primary \textbf{security objectives} of this project are:
 
-\subsubsection*{Goals}
+\textbf{Authentication \& Access Control:}
 \begin{itemize}
-    \item Ensure fault-tolerant, low-latency operation under production loads.
-    \item Extend support for collaboration between multiple doctors via branching medical history.
+    \item Implement robust multi-factor authentication (MFA) using industry-standard protocols
+    \item Establish role-based access control (RBAC) for patients, doctors, and caregivers
+    \item Deploy OAuth 2.0 and OpenID Connect for secure authorization and authentication flows respectively
+    \item Ensure secure session management and token handling
 \end{itemize}
 
-
-\subsubsection*{Components}
+\textbf{Data Protection \& Encryption:}
 \begin{itemize}
-    \item \textbf{Collaborative Diagnosis via Git-Like Branching} \\
-    Let clinicians annotate, comment, branch, and merge differential diagnoses.
-
-    \item \textbf{Explainable AI (XAI)} \\
-    Use attention maps, SHAP values, or decision trees alongside LLM outputs for better interpretability.
+    \item Implement end-to-end encryption for all patient data transmissions
+    \item Deploy database-level encryption for data at rest
+    \item Establish field-level encryption for sensitive medical information
+    \item Implement secure key management and rotation policies
 \end{itemize}
 
-\subsection*{Security and Governance}
+\textbf{API Security \& Network Protection:}
 \begin{itemize}
-    \item Role-Based Access Control (RBAC)
-    \item On-device inference for privacy
-    \item Federated learning-compatible infrastructure (for future scaling)
+    \item Deploy API gateway with rate limiting and input validation
+    \item Implement comprehensive firewall protection and network segmentation
+    \item Establish DDoS protection and traffic monitoring
+    \item Ensure secure communication protocols across all system components
 \end{itemize}
 
-\section{Evaluation}
-
-\section{Health Connect}
-\subsection{What is Health Connect?}
+\textbf{AI-Specific Security Measures:}
 \begin{itemize}
-        \item A built-in Android 14 app (APK) that stores and manages health & fitness data on the device.
-        \item Apps can read, write, and share data after receiving explicit user permission.
-        \item Health Connect is packaged with Android 14 as part of the Android system, which means you cannot uninstall it from a device.
+    \item Develop prompt injection detection and prevention mechanisms
+    \item Implement query filtering and sanitization for AI interactions
+    \item Establish role-based limitations for AI system access
+    \item Deploy monitoring systems for AI security threats
 \end{itemize}
-
-\subsection*{Why Use Health Connect?}
-\begin{itemize}
-    \item Unified access to multiple types of health data.
-    \item Data remains on the device, ensuring privacy.
-    \item Permissions Management: Request only the data types required (e.g., READ_HEART_RATE, READ_STEPS).
-    \item Interoperability across multiple apps and devices.
-\end{itemize}
-
-\subsection{Core Components}
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Health Connect APK} -- Pre-installed on Android 14 devices; manages permissions \& data storage.
-    \item \textbf{Health Connect SDK} -- A library integrated into the app to communicate with the APK via IPC.
-    \item \textbf{Client Application} -- The developer’s application that uses the SDK to access approved data types.
-\end{enumerate}
-
-\subsection{Supported Data Categories}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Activity}: running, swimming, cycling, steps.
-    \item \textbf{Body Measurement}: weight, BMI, BMR.
-    \item \textbf{Cycle Tracking}: menstrual cycles, ovulation test results.
-    \item \textbf{Nutrition}: calories, sugar, hydration.
-    \item \textbf{Sleep}: sessions, duration.
-    \item \textbf{Vitals}: heart rate, blood pressure, oxygen saturation, body temperature.
-    \item For more info \href{https://developer.android.com/health-and-fitness/guides/health-connect/plan/data-types}{Health Connect Data Types}
-\end{itemize}
-\section{Evaluation}
-\subsection{Challenges and Solutions}
-\begin{itemize}
-\item \textbf{Device Fragmentation}: Numerous devices and OS variants can complicate consistent testing. Cloud platforms offer access to real devices and parallel testing to address this.
-
-\item \textbf{Frequent Updates}: Regular OS and app updates require continuous maintenance. AI-powered self-healing tools can automatically adjust tests.
-
-\item \textbf{Network Variability}: Testing under different network conditions is essential; simulation tools help mimic real-world networks.
-
-\item \textbf{Maintaining Test Scripts}: Breaking tests into modular components improves maintainability.
-
-\item \textbf{CI/CD Integration}: Integration challenges can be overcome by automating test executions within CI tools like Jenkins or GitHub Actions.
-
-\item \textbf{Limited Access to Real Devices}: Cloud device farms provide extensive real device access without physical inventory.
-
-\item \textbf{Setup Complexity}: Cloud testing services simplify environment setup and configuration.
-
-\item \textbf{Cross-Device Functionality}: Tools like Appium support uniform testing of gestures and interactions across platforms.
-\end{itemize}
-\subsection{Mobile test automation tools and frameworks}
-\begin{itemize}
-\item \textbf{Selenium and Appium}:are great for cross-platform testing. Selenium supports multiple browsers (Chrome, Firefox) and operating systems (Windows, macOS). It works well for web apps and allows parallel testing with Selenium Grid. Appium is perfect for mobile app testing and supports both Android and iOS.
-\item \textbf{For API testing}: Postman is a great option. It's free and allows you to send requests, automate tests, and inspect responses.
-\item \textbf{JMeter}: is another option for performance and load testing, simulating multiple users and measuring app performance under stress.
-\item \textbf{Playwright}: automates browser interactions and simulates real user behavior. It supports cross-browser testing (Chrome, Firefox, Safari) and provides control over browser contexts, network conditions, and user actions. It’s perfect for end-to-end testing of web apps.
-\end{itemize}
-\subsection{Evaluation}
 
 \section{Methodology}
+
+\subsection{AI System Methodology:}
+The implementation follows a two-phase approach to build, optimize, and secure the system architecture and MLOps pipelines:
+
+\subsubsection*{Phase 1: Data Management and Model Development}
+
+\begin{itemize}
+\item Use \textbf{Apache Kafka} or \textbf{AWS Kinesis} for real-time streaming ingestion of IoT and clinical data.
+\item Use lightweight fine-tuned LLMs (e.g., BioGPT, GEMMA-Med) integrated with RAG frameworks like \textbf{LangChain or LlamaIndex}.
+\item Track experiments, hyperparameters, and model versions using \textbf{MLflow} and orchestrate pipelines with \textbf{Kubeflow}.
+\end{itemize}
+
+\subsubsection*{Phase 2: Deployment, Collaboration, and Monitoring}
+
+\begin{itemize}
+\item Deploy vector search systems such as \textbf{FAISS} or \textbf{Pinecone} for efficient context retrieval.
+\item Host LLM inference using \textbf{Hugging Face Transformers} in containerized microservices orchestrated by \textbf{Kubernetes}.
+\item Implement database of Git-like version control for medical records and use graph databases like \textbf{Neo4j} or \textbf{AWS Neptune} for managing patient history workflows.
+\item Monitor system health and AI performance using \textbf{Prometheus} and \textbf{Grafana}, detect model drift with \textbf{Evidently AI}.
+\item Enforce security with \textbf{RBAC} (OAuth 2.0), secrets management via \textbf{HashiCorp Vault}, policy auditing with \textbf{Open Policy Agent}, and ensure data privacy with on-device inference and federated learning-ready infrastructure.
+\end{itemize}
+
+
+\subsection{Lab Reports Summarization Methodology:}
 \textbf{Milestone 1: OCR \& NLP Implementation-Testing}
 
-\subsection{Optical Character Recognition (OCR)}
+\subsubsection{Optical Character Recognition (OCR)}
 We will integrate an OCR pipeline to digitize lab reports in image or PDF format, ensuring compatibility with scanned documents and handwritten notes where applicable.
 
 \textbf{Planned Implementation:}
@@ -333,8 +192,192 @@ We will integrate an OCR pipeline to digitize lab reports in image or PDF format
 \item Store original scanned lab report images and extracted text securely in the database for reference and audit purposes.
 \end{itemize}
 
+\subsection{Health Connect}
+\subsubsection{What is Health Connect?}
+\begin{itemize}
+        \item A built-in Android 14 app (APK) that stores and manages health \& fitness data on the device.
+        \item Apps can read, write, and share data after receiving explicit user permission.
+        \item Health Connect is packaged with Android 14 as part of the Android system, which means you cannot uninstall it from a device.
+\end{itemize}
 
-\subsection{Testing Plan and Estimated Timeline}
+\subsubsection*{Why Use Health Connect?}
+\begin{itemize}
+    \item Unified access to multiple types of health data.
+    \item Data remains on the device, ensuring privacy.
+    \item Permissions Management: Request only the data types required (e.g., READ\_HEART\_RATE, READ\_STEPS).
+    \item Interoperability across multiple apps and devices.
+\end{itemize}
+
+\subsubsection{Core Components}
+\begin{enumerate}
+    \item \textbf{Health Connect APK} -- Pre-installed on Android 14 devices; manages permissions \& data storage.
+    \item \textbf{Health Connect SDK} -- A library integrated into the app to communicate with the APK via IPC.
+    \item \textbf{Client Application} -- The developer’s application that uses the SDK to access approved data types.
+\end{enumerate}
+
+\subsubsection{Supported Data Categories}
+\begin{itemize}
+    \item \textbf{Activity}: running, swimming, cycling, steps.
+    \item \textbf{Body Measurement}: weight, BMI, BMR.
+    \item \textbf{Cycle Tracking}: menstrual cycles, ovulation test results.
+    \item \textbf{Nutrition}: calories, sugar, hydration.
+    \item \textbf{Sleep}: sessions, duration.
+    \item \textbf{Vitals}: heart rate, blood pressure, oxygen saturation, body temperature.
+    \item For more info \href{https://developer.android.com/health-and-fitness/guides/health-connect/plan/data-types}{Health Connect Data Types}
+\end{itemize}
+
+\subsection{Security Implementation Methodology:}
+
+The security implementation follows a phased approach spanning three major milestones :
+
+\textbf{Milestone 1: Core Security Foundation (our estimation is 12 weeks/3 months of first semester)}
+
+\textit{Authentication \& Authorization (Weeks 1-3):}
+\begin{itemize}
+    \item Configure separate realms for different user types (patients, doctors, caregivers)
+    \item Implement OAuth 2.0 and OpenID Connect protocols
+    \item Deploy Keycloak as the primary Identity and Access Management (IAM) solution
+    \item Integrate Ente Auth for multi-factor authentication
+    \item Test authentication flows with web interfaces
+\end{itemize}
+
+\textit{Database Security \& Encryption (Weeks 4-6):}
+\begin{itemize}
+    \item Deploy PostgreSQL with built-in encryption capabilities
+    \item Integrate HashiCorp Vault for secure key management
+    \item Configure database-level and field-level encryption
+\end{itemize}
+
+\textit{API Security \& Network Protection (Weeks 7-9):}
+\begin{itemize}
+    \item Deploy Nginx with security modules for API gateway functionality and reverse proxy
+    \item Configure Traefik for automatic SSL certificate management and load balancing
+    \item Set up firewall rules using pfSense or OPNsense
+    \item Implement automatic TLS encryption using Let's Encrypt certificates
+\end{itemize}
+
+\textit{Basic AI Security Implementation (Weeks 10-12):}
+\begin{itemize}
+    \item Implement query length limits and pattern matching
+    \item Create role-based query filtering mechanisms
+    \item Integrate OpenAI Moderation API for content filtering
+\end{itemize}
+
+\textbf{Milestone 2: Security Enhancement \& Optimization (weeks 13-24)}\\
+\textit{Advanced Security Features:}
+\begin{itemize}
+    \item Integrate Cloudflare for advanced DDoS protection 
+    \item Configure HAProxy for advanced load balancing and SSL termination
+    \item Establish secure backup and recovery procedures for database
+    \item Deploy comprehensive security testing for AI components
+    \item Develop custom Python filters for prompt validation
+    \item Implement security monitoring and logging systems
+\end{itemize}
+
+\textbf{Security Technology Stack:}
+\begin{itemize}
+    \item \textit{Authentication:} Keycloak, OAuth 2.0, OpenID Connect
+    \item \textit{Database:} PostgreSQL with encryption, HashiCorp Vault
+    \item \textit{API Security:} Nginx with security modules, Traefik, Cloudflare
+    \item \textit{Network Security:} pfSense/OPNsense, Let's Encrypt, HAProxy
+    \item \textit{AI Security:} Custom Python filters, OpenAI Moderation API
+\end{itemize}
+
+
+
+
+\section{Architecture Overview}
+Both the \textbf{web} and \textbf{mobile} apps will connect to a \textbf{shared Express.js backend} via secure REST + WebSocket APIs. This backend centralizes business logic, data processing, and AI integration, ensuring consistent results.  
+
+\noindent\textbf{Data Flow:}  
+\[
+\text{Frontend (Web/Mobile)} \rightarrow \text{API Gateway} \rightarrow \text{Backend (Express.js — flexible for NestJS)} \] 
+\[
+\rightarrow   \text{Database (PostgreSQL + Redis)}
+\]
+
+
+Mobile requests are optimized for smaller payloads, while the web app can fetch more detailed datasets.
+
+\subsection{Web Application Stack}
+\subsubsection*{Frontend}
+\begin{itemize}
+    \item \textbf{Angular} – Structured, TypeScript-based, and scalable for complex healthcare UIs.
+    \item \textbf{State Management:} NgRx for predictable handling of patient and real-time data.
+    \item \textbf{UI Library:} Angular Material for accessible, responsive components.
+\end{itemize}
+
+\subsubsection*{Backend (Shared)}
+\begin{itemize}
+    \item \textbf{Express.js} – Lightweight, flexible, widely supported.
+    \item \textbf{Possible Future Option:} NestJS if a more opinionated, enterprise-ready framework is required later.
+    \item \textbf{API:} REST for data operations; WebSockets for real-time vitals and alerts.
+    \item \textbf{Security:} JWT + OAuth 2.0 for role-based access, AES-256 encryption for sensitive data.
+\end{itemize}
+
+\subsubsection*{Database}
+\begin{itemize}
+    \item \textbf{PostgreSQL} – Reliable relational database for patient records.
+    \item \textbf{Redis} – High-speed caching for frequently accessed health data.
+\end{itemize}
+
+\subsubsection*{DevOps}
+\begin{itemize}
+    \item \textbf{Deployment:} Docker + Kubernetes on AWS/GCP for scaling.
+    \item \textbf{CI/CD:} GitHub Actions with automated testing and deployment.
+\end{itemize}
+
+\subsection{Mobile Application Stack}
+\subsubsection*{Frontend}
+\begin{itemize}
+    \item \textbf{Flutter} – Single codebase for iOS and Android, delivering native performance and smooth UI for health visualizations.
+    \item \textbf{State Management:} Riverpod or Bloc for predictable, testable state flow.
+    \item \textbf{UI Kit:} Flutter’s Material \& Cupertino widgets for platform-native experience.
+\end{itemize}
+
+\subsubsection*{Backend (Shared with Web)}
+\begin{itemize}
+    \item Connects to the same Express.js API with \textbf{mobile-optimized endpoints} for reduced payload size.
+    \item Real-time data via WebSockets, with throttling to save battery.
+\end{itemize}
+
+\subsubsection*{Local Database}
+\begin{itemize}
+    \item \textbf{SQLite (via Drift)} – Caches essential patient data for offline access.
+\end{itemize}
+
+\subsubsection*{Deployment}
+\begin{itemize}
+    \item Distributed on iOS App Store and Google Play; OTA updates using Flutter’s build tools.
+\end{itemize}
+
+
+\subsection{Justification}
+This stack ensures:
+\begin{itemize}
+    \item \textbf{Security} – Encryption, RBAC, and compliance-ready architecture protect patient data.
+    \item \textbf{Scalability} – Modular backend leaves open the option to move from Express.js to NestJS if project complexity grows.
+    \item \textbf{Performance} – Optimized payloads ensure fast load times for mobile and detailed analytics for web.
+    \item \textbf{Cross-platform parity} – Shared backend guarantees identical AI results and business rules across devices.
+    \item \textbf{Developer efficiency} – Popular frameworks (Angular, Flutter, Express.js) enable rapid feature delivery and long-term maintainability.
+\end{itemize}
+
+
+
+\section{Evaluation}
+
+\subsection{AI System Evaluation Criteria:}
+\begin{itemize}
+    \item \textbf{System Scalability:} Measured by the number of concurrent users supported and latency benchmarks under load.
+    \item \textbf{Reliability:} Uptime and fault tolerance assessed via stress testing and failover simulations.
+    \item \textbf{Security Compliance:} Audits for adherence to healthcare data standards such as HIPAA or GDPR.
+    \item \textbf{Model Performance:} Monitored through drift detection and inference accuracy in live environments.
+    \item \textbf{Collaboration Efficiency:} User feedback on branching, merging, and version control usability.
+\end{itemize}
+
+
+\subsection{Lab Reports Summarization Evaluation Criteria:}
+\subsubsection{Testing Plan and Estimated Timeline}
 
 \textbf{OCR Testing:}
 \begin{itemize}
@@ -344,7 +387,7 @@ We will integrate an OCR pipeline to digitize lab reports in image or PDF format
 \item \textbf{Security Testing:} Confirm that data transfer to Google Cloud is encrypted and that processed data complies with HIPAA standards, ensuring no PHI leakage.
 \end{itemize}
 
-\subsection{Natural Language Processing (NLP) Summarization}
+\subsubsection{Natural Language Processing (NLP) Summarization}
 
 Once OCR extracts the textual content, an NLP module will summarize the results for quick review by medical staff.
 
@@ -386,7 +429,7 @@ Once OCR extracts the textual content, an NLP module will summarize the results 
 \end{enumerate}
 \textit{Total Estimated Time for NLP: 6.5 weeks}
 
-\subsection{Security and Compliance Considerations}
+\subsubsection{Security and Compliance Considerations}
 \begin{itemize}
     \item All OCR and NLP processing will occur within the secure cloud environment to prevent data leakage.
     \item Use role-based access to control who can upload, process, and view lab summaries.
@@ -394,7 +437,79 @@ Once OCR extracts the textual content, an NLP module will summarize the results 
     \item Store lab report images and summarized text in an encrypted database with access restricted to authorized medical personnel only.
 \end{itemize}
 
-\subsection{Expected Benefits}
+\subsection{Mobile App Testing:}
+\subsubsection{Challenges and Solutions}
+\begin{itemize}
+
+\item \textbf{Network Variability}: Testing under different network conditions is essential; simulation tools help mimic real-world networks.
+
+\item \textbf{Maintaining Test Scripts}: Breaking tests into modular components improves maintainability.
+
+\item \textbf{CI/CD Integration}: Integration challenges can be overcome by automating test executions within CI tools like Jenkins or GitHub Actions.
+
+\item \textbf{Limited Access to Real Devices}: Cloud device farms provide extensive real device access without physical inventory.
+
+\item \textbf{Setup Complexity}: Cloud testing services simplify environment setup and configuration.
+
+\item \textbf{Cross-Device Functionality}: Tools like Appium support uniform testing of gestures and interactions across platforms.
+\end{itemize}
+\subsubsection{Mobile test automation tools and frameworks}
+\begin{itemize}
+\item \textbf{Selenium and Appium}:are great for cross-platform testing. Selenium supports multiple browsers (Chrome, Firefox) and operating systems (Windows, macOS). It works well for web apps and allows parallel testing with Selenium Grid. Appium is perfect for mobile app testing and supports both Android and iOS.
+\item \textbf{For API testing}: Postman is a great option. It's free and allows you to send requests, automate tests, and inspect responses.
+\item \textbf{JMeter}: is another option for performance and load testing, simulating multiple users and measuring app performance under stress.
+\item \textbf{Playwright}: automates browser interactions and simulates real user behavior. It supports cross-browser testing (Chrome, Firefox, Safari) and provides control over browser contexts, network conditions, and user actions. It’s perfect for end-to-end testing of web apps.
+\end{itemize}
+
+
+\subsection{Security Evaluation Criteria:}
+
+The security implementation will be evaluated through multiple assessment criteria:
+
+\textbf{Security Testing \& Penetration Testing:}
+
+\begin{itemize}
+    \item Conduct automated security scans using OWASP tools
+    \item Perform manual penetration testing on authentication systems
+    \item Test API endpoints for common vulnerabilities (SQL injection, XSS, CSRF)
+    \item Evaluate AI components against prompt injection attacks
+\end{itemize}
+
+\textbf{Performance Impact Assessment:}
+\begin{itemize}
+    \item Evaluate encryption/decryption performance impact
+    \item Test API gateway latency and throughput
+    \item Assess overall system performance with security measures enabled
+\end{itemize}
+
+\textbf{Compliance Verification:}
+\begin{itemize}
+    \item Validate HIPAA compliance requirements
+    \item Document security controls and procedures
+\end{itemize}
+
+\textbf{User Experience Evaluation:}
+\begin{itemize}
+    \item Test MFA implementation usability
+    \item Evaluate user feedback on security features
+
+\end{itemize}
+
+\section{Expected Outcome}
+
+\subsection{AI System Deliverables:}
+\begin{itemize}
+    \item A robust and scalable AI infrastructure enabling real-time clinical decision support.
+    \item Seamless integration of advanced AI models with patient data and medical knowledge bases.
+    \item Transparent and auditable version control of patient histories supporting multi-clinician collaboration.
+    \item Comprehensive monitoring and security safeguards ensuring operational reliability and compliance.
+    \item Streamlined deployment pipelines facilitating continuous improvement and rapid iteration of AI components.
+\end{itemize}
+
+
+\subsection{Lab Reports Summarization Deliverables:}
+
+\subsubsection{Expected Benefits}
 \begin{itemize}
     \item Significant reduction in time required by doctors to review lab reports.
     \item Improved accessibility for historical lab data and trend analysis.
@@ -402,39 +517,43 @@ Once OCR extracts the textual content, an NLP module will summarize the results 
 \end{itemize}
 
 
+\subsection{Security Component Deliverables:}
 
+Upon completion of the security phases, they will deliver:
 
-
-
-To validate the AI system, both quantitative and qualitative metrics will be employed:
-
-\begin{table}[h!]
-\centering
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Aspect} & \textbf{Metric / Method} \\
-\midrule
-Contextual Accuracy & Top-k context retrieval precision/recall (RAG evaluation) \\
-Answer Quality & BLEURT, BERTScore, ROUGE-L with expert human review \\
-Triage Effectiveness & Comparison with gold-standard guidelines; F1 score for critical alerts \\
-System Latency & Avg. response time under simulated concurrent users \\
-Robustness & Performance under incomplete/missing data scenarios \\
-Usability & Clinician feedback surveys; Cognitive Load Index \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{Expected Outcomes}
-
-Upon completion, the AI system is expected to deliver the following:
-
+\textbf{Comprehensive Security Framework:}
 \begin{itemize}
-    \item A reliable, accurate medical assistant AI that supports doctors and patients in real time.
-    \item Graph-based patient history modeling to manage evolving, branching diagnoses transparently.
-    \item A robust, production-ready AI stack deployable in a secure and scalable cloud environment.
-    \item Clear documentation, evaluation benchmarks, and deployment workflows for future enhancements.
+    \item Fully functional multi-factor authentication system 
+    \item End-to-end encryption for all data transmissions and storage
+    \item Robust API security with rate limiting and comprehensive input validation
+    \item AI-specific security measures protecting against emerging threats
+\end{itemize}
+
+\textbf{Security Infrastructure:}
+\begin{itemize}
+    \item Encrypted PostgreSQL database  
+    \item Production-ready Keycloak deployment with configured realms
+    \item Nginx-based API gateway with security policies and monitoring
+    \item Network security implementation with firewall and DDoS protection
+    \end{itemize}
+
+\textbf{Documentation \& Compliance:}
+\begin{itemize}
+    \item Complete security documentation and procedures
+    \item HIPAA compliance verification and audit trails
+    \item Security testing reports and vulnerability assessments
+    \item User guides for security features and best practices
 \end{itemize}
 
 
+The implemented security measures will establish a foundation for future enhancements, including advanced AI security features, compliance certifications, and production deployment security protocols. 
+
+\section{Cost Analysis}
+
+\begin{center}
+   \includegraphics[scale=0.3]{Images/Cost Analysis.png} 
+\end{center}
+
+\href{https://1drv.ms/x/c/4b62177c237e89ef/EQgFg1gffqlJpMDUuy9SjcoBZgp47MtZNyoyPLk8XLepKQ?e=RfVIdn}{Cost Analysis Excel Sheet}
 
 \end{document}
