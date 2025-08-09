@@ -33,7 +33,7 @@ COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM\\}
 
 
 \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-\textsc{ \textbf{\large Decentralized Patient Information system }}
+\textsc{ \textbf{\large MedFlow: A Decentralized Patient Information system }}
 \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
 \vspace{1cm}
 
@@ -68,9 +68,51 @@ Dr. Haytham Azmi
 \newpage
 
 \section{Introduction}
+Doctors today face overwhelming administrative burdens and often lack access to comprehensive, up-to-date patient information. This challenge is compounded by the fragmentation of healthcare systems, where hospitals and clinics operate in isolation. As a result, when patients—particularly those with chronic conditions—visit the same doctor at different locations, their medical history is frequently unavailable, leading to disjointed care and complications in diagnosis or treatment. This application aims to address these issues by centralizing all medical reports in one secure platform, enabling continuous patient monitoring and ensuring that healthcare providers have consistent access to critical data across institutions.
+
+There is a lack of a seamless, bi-directional system that facilitates:
+
+\begin{itemize}
+
+\item Real-time patient data collection and interpretation.
+\item Secure communication and record handling between patients and doctors.
+\item Patient and caregiver interaction and visibility.
+\item Actionable AI recommendations without overstepping into unauthorized diagnostics.
+\end{itemize}
+
+\subsection{Solution Overview}
+
+\begin{itemize}
+
+\item A cross-platform application (mobile/web) for patients, relatives, and doctors.
+\item Smart device integration for automated health data collection.
+\item Version-controlled medical records using a Git-like architecture.
+\item Lightweight, AI-generated recommendations and alerts.
+\item Multilingual support, natural language input, and speech-to-text transcription.
+\item Role-based access control to ensure privacy, consent, and data integrity.
+\end{itemize}
+
+
+\subsection{Target Users}
+
+\begin{itemize}
+\item Patients (especially chronically ill or elderly individuals).
+\item Doctors (both in-network and visiting).
+\item Relatives/Caregivers (secondary users with patient authorization).
+\end{itemize}
 
 
 \section{Objectives}
+
+\subsection{AI System}
+\begin{itemize}
+    \item Design a scalable, secure infrastructure to support data ingestion, and real-time AI inference.
+    \item Enable reproducible and auditable version control of medical records and AI models.
+    \item Facilitate seamless integration of RAG and LLM components with vector databases and graph databases.
+    \item Implement robust monitoring, logging, and security mechanisms to ensure reliability and compliance.
+    \item Support collaborative workflows for clinicians with branching and merging capabilities in medical history records.
+\end{itemize}
+
 
 \subsection{Lab Reports Summarization Objectives}
 The primary \textbf{objective Pathalogy Reports Summarization} of this project is:\\
@@ -112,6 +154,28 @@ The primary \textbf{security objectives} of this project are:
 \end{itemize}
 
 \section{Methodology}
+
+\subsection{AI System Methodology:}
+The implementation follows a two-phase approach to build, optimize, and secure the system architecture and MLOps pipelines:
+
+\subsubsection*{Phase 1: Data Management and Model Development}
+
+\begin{itemize}
+\item Use \textbf{Apache Kafka} or \textbf{AWS Kinesis} for real-time streaming ingestion of IoT and clinical data.
+\item Use lightweight fine-tuned LLMs (e.g., BioGPT, GEMMA-Med) integrated with RAG frameworks like \textbf{LangChain or LlamaIndex}.
+\item Track experiments, hyperparameters, and model versions using \textbf{MLflow} and orchestrate pipelines with \textbf{Kubeflow}.
+\end{itemize}
+
+\subsubsection*{Phase 2: Deployment, Collaboration, and Monitoring}
+
+\begin{itemize}
+\item Deploy vector search systems such as \textbf{FAISS} or \textbf{Pinecone} for efficient context retrieval.
+\item Host LLM inference using \textbf{Hugging Face Transformers} in containerized microservices orchestrated by \textbf{Kubernetes}.
+\item Implement database of Git-like version control for medical records and use graph databases like \textbf{Neo4j} or \textbf{AWS Neptune} for managing patient history workflows.
+\item Monitor system health and AI performance using \textbf{Prometheus} and \textbf{Grafana}, detect model drift with \textbf{Evidently AI}.
+\item Enforce security with \textbf{RBAC} (OAuth 2.0), secrets management via \textbf{HashiCorp Vault}, policy auditing with \textbf{Open Policy Agent}, and ensure data privacy with on-device inference and federated learning-ready infrastructure.
+\end{itemize}
+
 
 \subsection{Lab Reports Summarization Methodology:}
 \textbf{Milestone 1: OCR \& NLP Implementation-Testing}
@@ -227,8 +291,11 @@ Both the \textbf{web} and \textbf{mobile} apps will connect to a \textbf{shared 
 
 \noindent\textbf{Data Flow:}  
 \[
-\text{Frontend (Web/Mobile)} \rightarrow \text{API Gateway} \rightarrow \text{Backend (Express.js — flexible for NestJS)} \rightarrow \text{Database (PostgreSQL + Redis)}
+\text{Frontend (Web/Mobile)} \rightarrow \text{API Gateway} \rightarrow \text{Backend (Express.js — flexible for NestJS)} \] 
+\[
+\rightarrow   \text{Database (PostgreSQL + Redis)}
 \]
+
 
 Mobile requests are optimized for smaller payloads, while the web app can fetch more detailed datasets.
 
@@ -297,10 +364,20 @@ This stack ensures:
 
 
 
-\subsection{Evaluation}
+\section{Evaluation}
+
+\subsection{AI System Evaluation Criteria:}
+\begin{itemize}
+    \item \textbf{System Scalability:} Measured by the number of concurrent users supported and latency benchmarks under load.
+    \item \textbf{Reliability:} Uptime and fault tolerance assessed via stress testing and failover simulations.
+    \item \textbf{Security Compliance:} Audits for adherence to healthcare data standards such as HIPAA or GDPR.
+    \item \textbf{Model Performance:} Monitored through drift detection and inference accuracy in live environments.
+    \item \textbf{Collaboration Efficiency:} User feedback on branching, merging, and version control usability.
+\end{itemize}
+
 
 \subsection{Lab Reports Summarization Evaluation Criteria:}
-\subsection{Testing Plan and Estimated Timeline}
+\subsubsection{Testing Plan and Estimated Timeline}
 
 \textbf{OCR Testing:}
 \begin{itemize}
@@ -310,7 +387,7 @@ This stack ensures:
 \item \textbf{Security Testing:} Confirm that data transfer to Google Cloud is encrypted and that processed data complies with HIPAA standards, ensuring no PHI leakage.
 \end{itemize}
 
-\subsection{Natural Language Processing (NLP) Summarization}
+\subsubsection{Natural Language Processing (NLP) Summarization}
 
 Once OCR extracts the textual content, an NLP module will summarize the results for quick review by medical staff.
 
@@ -352,13 +429,38 @@ Once OCR extracts the textual content, an NLP module will summarize the results 
 \end{enumerate}
 \textit{Total Estimated Time for NLP: 6.5 weeks}
 
-\subsection{Security and Compliance Considerations}
+\subsubsection{Security and Compliance Considerations}
 \begin{itemize}
     \item All OCR and NLP processing will occur within the secure cloud environment to prevent data leakage.
     \item Use role-based access to control who can upload, process, and view lab summaries.
     \item Maintain detailed audit logs for all processing actions.
     \item Store lab report images and summarized text in an encrypted database with access restricted to authorized medical personnel only.
 \end{itemize}
+
+\subsection{Mobile App Testing:}
+\subsubsection{Challenges and Solutions}
+\begin{itemize}
+
+\item \textbf{Network Variability}: Testing under different network conditions is essential; simulation tools help mimic real-world networks.
+
+\item \textbf{Maintaining Test Scripts}: Breaking tests into modular components improves maintainability.
+
+\item \textbf{CI/CD Integration}: Integration challenges can be overcome by automating test executions within CI tools like Jenkins or GitHub Actions.
+
+\item \textbf{Limited Access to Real Devices}: Cloud device farms provide extensive real device access without physical inventory.
+
+\item \textbf{Setup Complexity}: Cloud testing services simplify environment setup and configuration.
+
+\item \textbf{Cross-Device Functionality}: Tools like Appium support uniform testing of gestures and interactions across platforms.
+\end{itemize}
+\subsubsection{Mobile test automation tools and frameworks}
+\begin{itemize}
+\item \textbf{Selenium and Appium}:are great for cross-platform testing. Selenium supports multiple browsers (Chrome, Firefox) and operating systems (Windows, macOS). It works well for web apps and allows parallel testing with Selenium Grid. Appium is perfect for mobile app testing and supports both Android and iOS.
+\item \textbf{For API testing}: Postman is a great option. It's free and allows you to send requests, automate tests, and inspect responses.
+\item \textbf{JMeter}: is another option for performance and load testing, simulating multiple users and measuring app performance under stress.
+\item \textbf{Playwright}: automates browser interactions and simulates real user behavior. It supports cross-browser testing (Chrome, Firefox, Safari) and provides control over browser contexts, network conditions, and user actions. It’s perfect for end-to-end testing of web apps.
+\end{itemize}
+
 
 \subsection{Security Evaluation Criteria:}
 
@@ -395,9 +497,19 @@ The security implementation will be evaluated through multiple assessment criter
 
 \section{Expected Outcome}
 
+\subsection{AI System Deliverables:}
+\begin{itemize}
+    \item A robust and scalable AI infrastructure enabling real-time clinical decision support.
+    \item Seamless integration of advanced AI models with patient data and medical knowledge bases.
+    \item Transparent and auditable version control of patient histories supporting multi-clinician collaboration.
+    \item Comprehensive monitoring and security safeguards ensuring operational reliability and compliance.
+    \item Streamlined deployment pipelines facilitating continuous improvement and rapid iteration of AI components.
+\end{itemize}
+
+
 \subsection{Lab Reports Summarization Deliverables:}
 
-\subsection{Expected Benefits}
+\subsubsection{Expected Benefits}
 \begin{itemize}
     \item Significant reduction in time required by doctors to review lab reports.
     \item Improved accessibility for historical lab data and trend analysis.
@@ -436,8 +548,12 @@ Upon completion of the security phases, they will deliver:
 
 The implemented security measures will establish a foundation for future enhancements, including advanced AI security features, compliance certifications, and production deployment security protocols. 
 
+\section{Cost Analysis}
 
-\section{Conclusion}
+\begin{center}
+   \includegraphics[scale=0.3]{Images/Cost Analysis.png} 
+\end{center}
 
+\href{https://1drv.ms/x/c/4b62177c237e89ef/EQgFg1gffqlJpMDUuy9SjcoBZgp47MtZNyoyPLk8XLepKQ?e=RfVIdn}{Cost Analysis Excel Sheet}
 
 \end{document}
