@@ -1,8 +1,23 @@
-\documentclass[a4paper, 12pt]{article}
-\usepackage[english]{babel}
-\usepackage[utf8]{inputenc}
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
-\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+
+\title{AI System}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\section{Objectives}
 
 % Page style
 \pagestyle{fancy}
@@ -49,8 +64,84 @@
 
 \end{titlepage}
 
+
 % ---------- Content ----------
 \section{Introduction}
+
+
+\begin{itemize}
+    \item \textbf{User-Facing:}
+    \begin{itemize}
+        \item \textbf{Basic health suggestions} from structured data (e.g., \textit{“You seem dehydrated. Consider drinking water.”})
+
+    \end{itemize}
+    \item \textbf{Doctor-Facing (Advanced):}
+    \begin{itemize}
+        \item {RAG (Retrieval-Augmented Generation)} using the patient’s records.
+        \item Summarizes health history and generate reports.
+        \item Generates potential diagnoses, flags anomalies, and suggests treatment paths.
+        \item Generates the best medicine and its alternatives for patients.
+    \end{itemize}
+    \item \textbf{Doctor Collaboration Tools}
+    \begin{itemize}
+        \item Enable Git-like version control of medical records through graph-based history modeling for transparent and auditable clinical decisions.
+    \end{itemize}
+    \item \textbf{Continuous Health Monitoring}
+    \begin{itemize}
+        \item Analyze real-time data streams (e.g., from IoT sensors) for anomaly detection and early warning systems.
+    \end{itemize}
+\end{itemize}
+
+\end{itemize}
+
+\section{Methodology}
+
+The implementation of the AI system is structured in three iterative phases, each focusing on core capabilities and scalability.
+
+\subsection{Phase 1: Prototyping and Core AI Modules}
+
+\subsubsection*{Tools and Frameworks}
+\begin{itemize}
+    \item \textbf{Language Models}: GEMMA-Med, BioGPT, Mistral, or open LLaMA variants (3B–8B)
+    \item \textbf{RAG Systems}: LlamaIndex, LangChain, Haystack with vector DBs (FAISS, ChromaDB)
+    \item \textbf{Evaluation}: MLflow Evaluation, BERTScore, BLEURT, human-in-the-loop
+\end{itemize}
+
+\subsubsection*{Components}
+\begin{itemize}
+    \item \textbf{Medical Question Answering} \\
+    - Using Fine-tuned LLMs with domain-specific embeddings (e.g., PubMedBERT).
+    - Retrieval pipelines using patient data and context-aware augmentation.
+
+    \item \textbf{Symptom Checker / Triage} \\
+    Rule-based hybrid with language models trained on guideline-driven datasets.
+
+    \item \textbf{Graph RAG for Long-Term Records} \\
+    Use patient history as a versioned graph (GitMed). \\
+    $\rightarrow$ Traverse timelines with semantic search and dynamic context windows.
+\end{itemize}
+
+\subsection{Phase 2: Integration and Optimization}
+
+\subsubsection*{Goals}
+\begin{itemize}
+    \item Deploy lightweight LLMs with retrieval (RAG) to minimize compute costs.
+    \item Run AI workloads in scalable, secure containers (e.g., FastAPI + Uvicorn + Ray Serve).
+\end{itemize}
+
+\subsubsection*{Components}
+\begin{itemize}
+    \item \textbf{Event Detection (Streaming AI)} \\
+    Use threshold-based ML on IoT data streams for real-time alerts (SpO\textsubscript{2}, ECG, etc.)
+
+    \item \textbf{Multimodal Input Support} \\
+    OCR/ASR preprocessing pipelines (e.g., MarkItDown) for ingesting raw clinical notes, images, and audio into AI-friendly structured formats.
+
+    \item \textbf{Knowledge Graph Integration} \\
+    Structure medical history as a graph, annotated with AI metadata, linking symptoms $\rightarrow$ tests $\rightarrow$ diagnoses $\rightarrow$ treatments.
+\end{itemize}
+
+\subsection{Phase 3: Full-Scale Intelligent Platform}
 
 This platform will deliver secure, scalable, and efficient health monitoring with AI-assisted analysis, accessible via both web and mobile. The chosen stack enables rapid development, strong security, and consistent functionality across platforms through a shared backend.
 
@@ -140,6 +231,31 @@ This stack ensures:
 The primary \textbf{objective Pathalogy Reports Summarization} of this project is:\\
 Automate the extraction and summarization of laboratory reports, enabling doctors to quickly review key findings without manually reading lengthy documents, while maintaining data privacy and compliance with HIPAA and FHIR standards.
 
+
+\subsubsection*{Goals}
+\begin{itemize}
+    \item Ensure fault-tolerant, low-latency operation under production loads.
+    \item Extend support for collaboration between multiple doctors via branching medical history.
+\end{itemize}
+
+
+\subsubsection*{Components}
+\begin{itemize}
+    \item \textbf{Collaborative Diagnosis via Git-Like Branching} \\
+    Let clinicians annotate, comment, branch, and merge differential diagnoses.
+
+    \item \textbf{Explainable AI (XAI)} \\
+    Use attention maps, SHAP values, or decision trees alongside LLM outputs for better interpretability.
+\end{itemize}
+
+\subsection*{Security and Governance}
+\begin{itemize}
+    \item Role-Based Access Control (RBAC)
+    \item On-device inference for privacy
+    \item Federated learning-compatible infrastructure (for future scaling)
+\end{itemize}
+
+\section{Evaluation}
 
 \section{Health Connect}
 \subsection{What is Health Connect?}
@@ -289,7 +405,35 @@ Once OCR extracts the textual content, an NLP module will summarize the results 
 
 
 
-\section{Conclusion}
+
+To validate the AI system, both quantitative and qualitative metrics will be employed:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Aspect} & \textbf{Metric / Method} \\
+\midrule
+Contextual Accuracy & Top-k context retrieval precision/recall (RAG evaluation) \\
+Answer Quality & BLEURT, BERTScore, ROUGE-L with expert human review \\
+Triage Effectiveness & Comparison with gold-standard guidelines; F1 score for critical alerts \\
+System Latency & Avg. response time under simulated concurrent users \\
+Robustness & Performance under incomplete/missing data scenarios \\
+Usability & Clinician feedback surveys; Cognitive Load Index \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Expected Outcomes}
+
+Upon completion, the AI system is expected to deliver the following:
+
+\begin{itemize}
+    \item A reliable, accurate medical assistant AI that supports doctors and patients in real time.
+    \item Graph-based patient history modeling to manage evolving, branching diagnoses transparently.
+    \item A robust, production-ready AI stack deployable in a secure and scalable cloud environment.
+    \item Clear documentation, evaluation benchmarks, and deployment workflows for future enhancements.
+\end{itemize}
 
 
 
