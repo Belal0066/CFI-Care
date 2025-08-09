@@ -140,6 +140,68 @@ This stack ensures:
 The primary \textbf{objective Pathalogy Reports Summarization} of this project is:\\
 Automate the extraction and summarization of laboratory reports, enabling doctors to quickly review key findings without manually reading lengthy documents, while maintaining data privacy and compliance with HIPAA and FHIR standards.
 
+
+\section{Health Connect}
+\subsection{What is Health Connect?}
+\begin{itemize}
+        \item A built-in Android 14 app (APK) that stores and manages health & fitness data on the device.
+        \item Apps can read, write, and share data after receiving explicit user permission.
+        \item Health Connect is packaged with Android 14 as part of the Android system, which means you cannot uninstall it from a device.
+\end{itemize}
+
+\subsection*{Why Use Health Connect?}
+\begin{itemize}
+    \item Unified access to multiple types of health data.
+    \item Data remains on the device, ensuring privacy.
+    \item Permissions Management: Request only the data types required (e.g., READ_HEART_RATE, READ_STEPS).
+    \item Interoperability across multiple apps and devices.
+\end{itemize}
+
+\subsection{Core Components}
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Health Connect APK} -- Pre-installed on Android 14 devices; manages permissions \& data storage.
+    \item \textbf{Health Connect SDK} -- A library integrated into the app to communicate with the APK via IPC.
+    \item \textbf{Client Application} -- The developer’s application that uses the SDK to access approved data types.
+\end{enumerate}
+
+\subsection{Supported Data Categories}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Activity}: running, swimming, cycling, steps.
+    \item \textbf{Body Measurement}: weight, BMI, BMR.
+    \item \textbf{Cycle Tracking}: menstrual cycles, ovulation test results.
+    \item \textbf{Nutrition}: calories, sugar, hydration.
+    \item \textbf{Sleep}: sessions, duration.
+    \item \textbf{Vitals}: heart rate, blood pressure, oxygen saturation, body temperature.
+    \item For more info \href{https://developer.android.com/health-and-fitness/guides/health-connect/plan/data-types}{Health Connect Data Types}
+\end{itemize}
+\section{Evaluation}
+\subsection{Challenges and Solutions}
+\begin{itemize}
+\item \textbf{Device Fragmentation}: Numerous devices and OS variants can complicate consistent testing. Cloud platforms offer access to real devices and parallel testing to address this.
+
+\item \textbf{Frequent Updates}: Regular OS and app updates require continuous maintenance. AI-powered self-healing tools can automatically adjust tests.
+
+\item \textbf{Network Variability}: Testing under different network conditions is essential; simulation tools help mimic real-world networks.
+
+\item \textbf{Maintaining Test Scripts}: Breaking tests into modular components improves maintainability.
+
+\item \textbf{CI/CD Integration}: Integration challenges can be overcome by automating test executions within CI tools like Jenkins or GitHub Actions.
+
+\item \textbf{Limited Access to Real Devices}: Cloud device farms provide extensive real device access without physical inventory.
+
+\item \textbf{Setup Complexity}: Cloud testing services simplify environment setup and configuration.
+
+\item \textbf{Cross-Device Functionality}: Tools like Appium support uniform testing of gestures and interactions across platforms.
+\end{itemize}
+\subsection{Mobile test automation tools and frameworks}
+\begin{itemize}
+\item \textbf{Selenium and Appium}:are great for cross-platform testing. Selenium supports multiple browsers (Chrome, Firefox) and operating systems (Windows, macOS). It works well for web apps and allows parallel testing with Selenium Grid. Appium is perfect for mobile app testing and supports both Android and iOS.
+\item \textbf{For API testing}: Postman is a great option. It's free and allows you to send requests, automate tests, and inspect responses.
+\item \textbf{JMeter}: is another option for performance and load testing, simulating multiple users and measuring app performance under stress.
+\item \textbf{Playwright}: automates browser interactions and simulates real user behavior. It supports cross-browser testing (Chrome, Firefox, Safari) and provides control over browser contexts, network conditions, and user actions. It’s perfect for end-to-end testing of web apps.
+\end{itemize}
+\subsection{Evaluation}
+
 \section{Methodology}
 \textbf{Milestone 1: OCR \& NLP Implementation-Testing}
 
@@ -222,6 +284,7 @@ Once OCR extracts the textual content, an NLP module will summarize the results 
     \item Improved accessibility for historical lab data and trend analysis.
     \item Enhanced interoperability with other healthcare systems via FHIR-compliant structured data.
 \end{itemize}
+
 
 
 
