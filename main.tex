@@ -33,7 +33,7 @@ COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM\\}
 \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
 \textsc{ \textbf{\large Decentralized Patient Information system }}
 \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-\vspace{0.5in}
+\vspace{1cm}
 
 \textsc{\textbf{Prepared To:}}\\
 \vspace{0.5cm}
@@ -55,7 +55,7 @@ Dr. Haytham Azmi
 
         Salma Hisham Hassan Wagdy - 21P0124
     
-\vspace{2cm}
+\vspace{1.5cm}
 
 \textbf{\small GRADUATION PROJECT PROPOSAL} \\
 
@@ -68,15 +68,96 @@ Dr. Haytham Azmi
 \section{Introduction}
 
 \section{Objectives}
-
+The primary \textbf{objective Pathalogy Reports Summarization} of this project is:\\
+Automate the extraction and summarization of laboratory reports, enabling doctors to quickly review key findings without manually reading lengthy documents, while maintaining data privacy and compliance with HIPAA and FHIR standards.
 
 \section{Methodology}
+\textbf{Milestone 1: OCR \& NLP Implementation-Testing}
+
+\subsection{Optical Character Recognition (OCR)}
+We will integrate an OCR pipeline to digitize lab reports in image or PDF format, ensuring compatibility with scanned documents and handwritten notes where applicable.
+
+\textbf{Planned Implementation:}
+\begin{itemize}
+\item Use the \textbf{Google Cloud Vision OCR API} for high-accuracy text extraction, leveraging Google’s powerful pre-trained models optimized for printed and handwritten text.
+\item Enable multi-language recognition (Arabic and English) using Google OCR’s language hints feature for bilingual reports.
+\item Perform client-side pre-processing for image enhancement (e.g., noise reduction, skew correction) before sending to the API to improve OCR accuracy.
+\item Integrate Google OCR API calls within a secure backend environment, ensuring all data is encrypted in transit and at rest according to HIPAA compliance.
+\item Store original scanned lab report images and extracted text securely in the database for reference and audit purposes.
+\end{itemize}
 
 
-\subsection{Evaluation}
+\subsection{Testing Plan and Estimated Timeline}
 
-\section{Expected Outcome}
+\textbf{OCR Testing:}
+\begin{itemize}
+\item \textbf{Accuracy Testing:} Evaluate recognition accuracy by comparing Google OCR API output with ground truth text from diverse printed and handwritten lab reports.
+\item \textbf{Language Support Testing:} Verify correct extraction of bilingual content using Google OCR’s language hinting and multi-language support.
+\item \textbf{Pre-processing Effectiveness:} Assess the impact of client-side image enhancements on OCR accuracy and output quality.
+\item \textbf{Security Testing:} Confirm that data transfer to Google Cloud is encrypted and that processed data complies with HIPAA standards, ensuring no PHI leakage.
+\end{itemize}
+
+\subsection{Natural Language Processing (NLP) Summarization}
+
+Once OCR extracts the textual content, an NLP module will summarize the results for quick review by medical staff.
+
+\textbf{Planned Implementation:}
+\begin{itemize}
+    \item Use medical-domain NLP models (e.g., \textbf{BioBERT}, \textbf{MedGPT}) fine-tuned for laboratory and pathology data.
+    \item Apply Named Entity Recognition (NER) to detect and highlight important terms such as biomarkers, diagnosis results, and measurement values.
+    \item Generate concise summaries while preserving critical clinical details.
+    \item Provide a structured output compatible with the FHIR Observation resource format for interoperability.
+    \item Store generated summaries alongside the original OCR text in the database for future retrieval, search, and analysis.
+\end{itemize}
+\newpage
+\textbf{Estimated OCR Timeline:}
+\begin{enumerate}
+    \item Dataset preparation and labeling: \textbf{1 week}
+    \item OCR model integration (Tesseract \& ML Kit): \textbf{2 weeks}
+    \item Pre-processing and image quality optimization: \textbf{1 week}
+    \item Testing and accuracy evaluation: \textbf{1 week}
+    \item Security validation: \textbf{0.5 week}
+\end{enumerate}
+\textit{Total Estimated Time for OCR: 5.5 weeks}
+
+\textbf{NLP Testing:}
+\begin{itemize}
+    \item \textbf{Summarization Quality:} Compare generated summaries with manually written summaries by medical experts.
+    \item \textbf{NER Accuracy:} Validate correct extraction of medical entities (biomarkers, diagnosis terms, measurement values) against annotated datasets.
+    \item \textbf{Performance Testing:} Measure average processing time for summarizing reports of varying lengths.
+    \item \textbf{FHIR Output Compliance:} Ensure generated summaries match FHIR Observation resource specifications.
+    \item \textbf{Security Testing:} Confirm that NLP processing does not expose or leak PHI (Protected Health Information).
+\end{itemize}
+
+\textbf{Estimated NLP Timeline:}
+\begin{enumerate}
+    \item Dataset preparation and annotation: \textbf{1.5 weeks}
+    \item NLP model integration and fine-tuning (BioBERT / MedGPT): \textbf{2 weeks}
+    \item NER and summarization pipeline development: \textbf{1.5 weeks}
+    \item Testing and quality evaluation: \textbf{1 week}
+    \item FHIR compliance validation: \textbf{0.5 week}
+\end{enumerate}
+\textit{Total Estimated Time for NLP: 6.5 weeks}
+
+\subsection{Security and Compliance Considerations}
+\begin{itemize}
+    \item All OCR and NLP processing will occur within the secure cloud environment to prevent data leakage.
+    \item Use role-based access to control who can upload, process, and view lab summaries.
+    \item Maintain detailed audit logs for all processing actions.
+    \item Store lab report images and summarized text in an encrypted database with access restricted to authorized medical personnel only.
+\end{itemize}
+
+\subsection{Expected Benefits}
+\begin{itemize}
+    \item Significant reduction in time required by doctors to review lab reports.
+    \item Improved accessibility for historical lab data and trend analysis.
+    \item Enhanced interoperability with other healthcare systems via FHIR-compliant structured data.
+\end{itemize}
+
+
+
 
 \section{Conclusion}
+
 
 \end{document}
