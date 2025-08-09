@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \usepackage{fancyhdr}
 
+% Page style
 \pagestyle{fancy}
 \fancyhf{}
 \lhead{\textit{CSE491 - Computer Engineering Graduation Project (1)}}
@@ -13,70 +14,122 @@
 
 \begin{document}
 
+% ---------- Title Page ----------
 \begin{titlepage}
-
-\begin{center}
-   \includegraphics[scale=0.4]{Images/180207 ASU-Logo-400.png} 
-\end{center}
-   
-\thispagestyle{empty}
-
-\center
-\textsc{\small\large  AIN SHAMS UNIVERSITY\\
-FACULTY OF ENGINEERING I-CHEP\\
-COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM\\}
-\vspace{1cm}
-% \textsc{\large GRADUATION PROJECT PROPOSAL}
-
-
-
-\noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-\textsc{ \textbf{\large Decentralized Patient Information system }}
-\noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
-\vspace{0.5in}
-
-\textsc{\textbf{Prepared To:}}\\
-\vspace{0.5cm}
-\centering
-Dr. Haytham Azmi
-\vspace{0.5cm}
-
-\textsc{\textbf{Prepared By:}}
-\vspace{0.5cm}
-\centering
-
-        Salma Mohamed Abdelmonem Mohamed Yousef - 21P0148 
-   
-        Belal Anas Awad - 21P0072
-
-        Mohamed Salah Fathy - 21P0117
-
-        Youssef Tamer Hossam Eldin Helmy - 21P0138
-
-        Salma Hisham Hassan Wagdy - 21P0124
+    \begin{center}
+        \includegraphics[scale=0.4]{Images/180207 ASU-Logo-400.png}
+    \end{center}
     
-\vspace{2cm}
-
-\textbf{\small GRADUATION PROJECT PROPOSAL} \\
-
-\today
-
+    \vspace{1cm}
+    \centering
+    \textsc{\small\large AIN SHAMS UNIVERSITY\\
+    FACULTY OF ENGINEERING I-CHEP\\
+    COMPUTER ENGINEERING AND SOFTWARE SYSTEMS PROGRAM}\\
+    
+    \vspace{1cm}
+    \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
+    \textsc{\textbf{\large Decentralized Patient Information System}}
+    \noindent\makebox[\linewidth]{\rule{\linewidth}{1.2pt}}
+    
+    \vspace{1cm}
+    \textbf{Prepared To:}\\
+    Dr. Haytham Azmi
+    
+    \vspace{1cm}
+    \textbf{Prepared By:}\\
+    Salma Mohamed Abdelmonem Mohamed Yousef - 21P0148\\
+    Belal Anas Awad - 21P0072\\
+    Mohamed Salah Fathy - 21P0117\\
+    Youssef Tamer Hossam Eldin Helmy - 21P0138\\
+    Salma Hisham Hassan Wagdy - 21P0124
+    
+    \vspace{2cm}
+    \textbf{\small GRADUATION PROJECT PROPOSAL}
 \end{titlepage}
 
-\newpage
-
+% ---------- Content ----------
 \section{Introduction}
+This platform will deliver secure, scalable, and efficient health monitoring with AI-assisted analysis, accessible via both web and mobile. The chosen stack enables rapid development, strong security, and consistent functionality across platforms through a shared backend.
 
-\section{Objectives}
+\section{Architecture Overview}
+Both the \textbf{web} and \textbf{mobile} apps will connect to a \textbf{shared Express.js backend} via secure REST + WebSocket APIs. This backend centralizes business logic, data processing, and AI integration, ensuring consistent results.  
 
+\noindent\textbf{Data Flow:}  
+\[
+\text{Frontend (Web/Mobile)} \rightarrow \text{API Gateway} \rightarrow \text{Backend (Express.js — flexible for NestJS)} \rightarrow \text{Database (PostgreSQL + Redis)}
+\]
 
-\section{Methodology}
+Mobile requests are optimized for smaller payloads, while the web app can fetch more detailed datasets.
 
+\section{Web Application Stack}
+\subsection*{Frontend}
+\begin{itemize}
+    \item \textbf{Angular} – Structured, TypeScript-based, and scalable for complex healthcare UIs.
+    \item \textbf{State Management:} NgRx for predictable handling of patient and real-time data.
+    \item \textbf{UI Library:} Angular Material for accessible, responsive components.
+\end{itemize}
 
-\subsection{Evaluation}
+\subsection*{Backend (Shared)}
+\begin{itemize}
+    \item \textbf{Express.js} – Lightweight, flexible, widely supported.
+    \item \textbf{Possible Future Option:} NestJS if a more opinionated, enterprise-ready framework is required later.
+    \item \textbf{API:} REST for data operations; WebSockets for real-time vitals and alerts.
+    \item \textbf{Security:} JWT + OAuth 2.0 for role-based access, AES-256 encryption for sensitive data.
+\end{itemize}
 
-\section{Expected Outcome}
+\subsection*{Database}
+\begin{itemize}
+    \item \textbf{PostgreSQL} – Reliable relational database for patient records.
+    \item \textbf{Redis} – High-speed caching for frequently accessed health data.
+\end{itemize}
 
-\section{Conclusion}
+\subsection*{DevOps}
+\begin{itemize}
+    \item \textbf{Deployment:} Docker + Kubernetes on AWS/GCP for scaling.
+    \item \textbf{CI/CD:} GitHub Actions with automated testing and deployment.
+\end{itemize}
+
+\section{Mobile Application Stack}
+\subsection*{Frontend}
+\begin{itemize}
+    \item \textbf{Flutter} – Single codebase for iOS and Android, delivering native performance and smooth UI for health visualizations.
+    \item \textbf{State Management:} Riverpod or Bloc for predictable, testable state flow.
+    \item \textbf{UI Kit:} Flutter’s Material \& Cupertino widgets for platform-native experience.
+\end{itemize}
+
+\subsection*{Backend (Shared with Web)}
+\begin{itemize}
+    \item Connects to the same Express.js API with \textbf{mobile-optimized endpoints} for reduced payload size.
+    \item Real-time data via WebSockets, with throttling to save battery.
+\end{itemize}
+
+\subsection*{Local Database}
+\begin{itemize}
+    \item \textbf{SQLite (via Drift)} – Caches essential patient data for offline access.
+\end{itemize}
+
+\subsection*{Deployment}
+\begin{itemize}
+    \item Distributed on iOS App Store and Google Play; OTA updates using Flutter’s build tools.
+\end{itemize}
+
+\section{Shared Services \& Tools}
+\begin{itemize}
+    \item \textbf{Authentication:} Auth0 with MFA and biometric login for mobile.
+    \item \textbf{AI Processing:} Python (FastAPI) microservices for anomaly detection, recommendations, and medical text summarization.
+    \item \textbf{Data Integration:} Terra API for wearable device integration into patient health records.
+    \item \textbf{Monitoring:} Prometheus + Grafana for system performance; Sentry for error logging.
+    \item \textbf{API Gateway:} NGINX for load balancing and traffic shaping.
+\end{itemize}
+
+\section{Justification}
+This stack ensures:
+\begin{itemize}
+    \item \textbf{Security} – Encryption, RBAC, and compliance-ready architecture protect patient data.
+    \item \textbf{Scalability} – Modular backend leaves open the option to move from Express.js to NestJS if project complexity grows.
+    \item \textbf{Performance} – Optimized payloads ensure fast load times for mobile and detailed analytics for web.
+    \item \textbf{Cross-platform parity} – Shared backend guarantees identical AI results and business rules across devices.
+    \item \textbf{Developer efficiency} – Popular frameworks (Angular, Flutter, Express.js) enable rapid feature delivery and long-term maintainability.
+\end{itemize}
 
 \end{document}
