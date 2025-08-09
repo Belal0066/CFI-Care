@@ -70,7 +70,40 @@ Dr. Haytham Azmi
 \section{Objectives}
 
 
-\section{Methodology}
+\section{Features and Benefits}
+\subsection{Health Connect}
+\subsubsection{What is Health Connect?}
+\begin{itemize}
+        \item A built-in Android 14 app (APK) that stores and manages health & fitness data on the device.
+        \item Apps can read, write, and share data after receiving explicit user permission.
+        \item Health Connect is packaged with Android 14 as part of the Android system, which means you cannot uninstall it from a device.
+\end{itemize}
+
+\subsubsection*{Why Use Health Connect?}
+\begin{itemize}
+    \item Unified access to multiple types of health data.
+    \item Data remains on the device, ensuring privacy.
+    \item Permissions Management: Request only the data types required (e.g., READ_HEART_RATE, READ_STEPS).
+    \item Interoperability across multiple apps and devices.
+\end{itemize}
+
+\subsubsection{Core Components}
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Health Connect APK} -- Pre-installed on Android 14 devices; manages permissions \& data storage.
+    \item \textbf{Health Connect SDK} -- A library integrated into the app to communicate with the APK via IPC.
+    \item \textbf{Client Application} -- The developer’s application that uses the SDK to access approved data types.
+\end{enumerate}
+
+\subsubsection{Supported Data Categories}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Activity}: running, swimming, cycling, steps.
+    \item \textbf{Body Measurement}: weight, BMI, BMR.
+    \item \textbf{Cycle Tracking}: menstrual cycles, ovulation test results.
+    \item \textbf{Nutrition}: calories, sugar, hydration.
+    \item \textbf{Sleep}: sessions, duration.
+    \item \textbf{Vitals}: heart rate, blood pressure, oxygen saturation, body temperature.
+    \item For more info \href{https://developer.android.com/health-and-fitness/guides/health-connect/plan/data-types}{Health Connect Data Types}
+\end{itemize}
 
 
 \subsection{Evaluation}
