@@ -4,6 +4,10 @@ This directory contains a Vite + React + TypeScript demo for visualizing patient
 
 [Screencast from 2025-08-09 22-38-35.webm](https://github.com/user-attachments/assets/b277817d-fd43-407f-ba8c-75bf9c728bfa)
 
+Note: the vid shows only the stable version without the exp feature "Research Graph", which is added to the code base.
+<img width="1916" height="1044" alt="image" src="https://github.com/user-attachments/assets/1c99c9bd-62ee-4a8d-8f70-749cb532cb5b" />
+
+
 ## Contents
 
 Core entry + config:
