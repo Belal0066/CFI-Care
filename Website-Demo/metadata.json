@@ -1,0 +1,6 @@
+{
+  "name": "MedFlow",
+  "description": "An interactive Electronic Health Record (EHR) system, MedFlow, that visualizes a patient's medical history using a Git-like timeline, enabling clinicians to track complex clinical pathways, diagnoses, and treatments over time.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
