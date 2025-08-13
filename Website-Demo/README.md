@@ -2,6 +2,8 @@
 
 This directory contains a Vite + React + TypeScript demo for visualizing patient medical timelines, vitals, events, and collaborative history/version data.
 
+[Screencast from 2025-08-09 22-38-35.webm](https://github.com/user-attachments/assets/b277817d-fd43-407f-ba8c-75bf9c728bfa)
+
 ## Contents
 
 Core entry + config:
