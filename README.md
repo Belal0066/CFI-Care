@@ -1,7 +1,19 @@
-# CFI-Care: Collaborative Flow of Intelligence for Care
+<h1 align="center" style="border-bottom: none">
 
-CFI-Care is an **AI-powered, patient-centric health record platform** designed to streamline healthcare workflows, reduce administrative burden, and empower both patients and providers.  
-It unifies fragmented medical data into a secure, collaborative, and version-controlled environment, enabling real-time monitoring, interoperability, and intelligent clinical decision support.  
+<img width="344" height="256" alt="cfiLogo" src="https://github.com/user-attachments/assets/f22a5774-9554-49c3-83e6-8a788124ede6" />
+
+
+  
+  <br>
+  🇨 🇫 🇮➖ 🇨 🇦 🇷 🇪
+</h1>
+<h2 align="center" style="border-bottom: none">🇨ollaborative 🇫low of 🇮ntelligence for 🇨are</h2>
+<p align="center">
+CFI-Care is an <b>AI-powered, patient-centric health record platform</b> designed to streamline healthcare workflows, reduce administrative burden, and empower both patients and providers.  
+It unifies fragmented medical data into a secure, collaborative, and version-controlled environment, enabling real-time monitoring, interoperability, and intelligent clinical decision support. 
+</p>
+
+
 
 ---
 
@@ -26,7 +38,7 @@ CFI-Care/
 ├── docs/           # Technical documentation
 ├── scripts/        # Developer helper scripts
 ├── security/       # Policies, access control
-├── tests/           # Integration tests
+├── tests/          # Integration tests
 └── .github/        # GitHub Actions workflows
 ````
 
@@ -38,4 +50,5 @@ CFI-Care is developed as a graduation project at **Ain Shams University, Faculty
 Supervised by **Dr. Haytham Azmi**.
 
 ---
+
 
