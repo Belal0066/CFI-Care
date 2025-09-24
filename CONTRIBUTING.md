@@ -21,14 +21,15 @@ Enable sparse checkout:
 git sparse-checkout init --cone
 git sparse-checkout set backend     # or ai, frontend, mobile, infra
 ```
-now your have backend only, not the whole repo files
+now you have only backend, not the whole repo files
+
 
 To add more folders:
 
 ```bash
 git sparse-checkout add fronend
 ```
-now your have have backend and forntend
+now you have have backend and forntend :D
 
 ```bash
 CFI-Care/
