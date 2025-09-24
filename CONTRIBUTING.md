@@ -1,12 +1,19 @@
+# Contributing Guid
+
+This document explains how we should work with the repo.
+
+---
+
 ## 🔹 Repo Setup (Sparse Checkout)
 
-We use a monorepo, but you only need the folders relevant to your work.
+We use a **monorepo**, but you only need the folders relevant to your work.
 
 Clone with partial history:
+
 ```bash
-git clone --filter=blob:none https://github.com/your-org/medflow.git
-cd medflow
-````
+git clone --filter=blob:none https://github.com/Belal0066/CFI-Care
+cd cfi-care
+```
 
 Enable sparse checkout:
 
@@ -14,23 +21,64 @@ Enable sparse checkout:
 git sparse-checkout init --cone
 git sparse-checkout set backend     # or ai, frontend, mobile, infra
 ```
+now your have backend only, not the whole repo files
 
-To add more folders later:
+To add more folders:
 
 ```bash
-git sparse-checkout add ai
+git sparse-checkout add fronend
 ```
+now your have have backend and forntend
 
+```bash
+CFI-Care/
+├── frontend/
+└── backend/
+```
 ---
 
 ## 🔹 Branching Strategy
 
 * `main` → stable, production-ready
-* `dev` → integration branch for active development
-* `milestone-#` → milestone-specific branches
+* `milestone-#` → milestone integration branches (e.g. `milestone-1`)
 * `feature/*` → feature branches (e.g. `feature/auth-login`)
 
-Always branch from `dev` unless doing a hotfix.
+Always branch from the **latest milestone branch**, not directly from `main`.
+
+---
+
+## 🔹 Workflow
+
+1. **Feature Branch Development**
+
+   * Create your branch:
+
+     ```bash
+     git checkout -b feature/auth-login milestone-1
+     ```
+   * Work inside your module folder (`backend/`, `frontend/`, etc.).
+   * Run **unit tests** in your dir.
+
+2. **Merge into Milestone Branch (Integration Testing)**
+
+   * Open a PR from `feature/*` → `milestone-#`.
+   * CI will run **integration tests** across services.
+   * If it fails:
+
+     * Fix the issue in your feature branch.
+     * Re-run tests until it passes.
+
+3. **Regression Testing (Milestone → Main)**
+
+   * Once integration is stable, milestone branches are tested with **regression & performance tests**.
+   * If they fail:
+
+     * Roll back the merge or hotfix in the milestone branch.
+     * Create a fix branch (`fix/*`) and repeat step 2.
+
+4. **Promotion to Main**
+
+   * Only after a milestone branch passes regression testing, it can be merged into `main`.
 
 ---
 
@@ -57,18 +105,36 @@ feat(auth): add Keycloak-based RBAC
 1. Create a feature branch:
 
    ```bash
-   git checkout -b feature/my-task
+   git checkout -b feature/my-task milestone-#
    ```
-2. Push and open a PR against `dev`.
-3. Ensure **all checks pass** (CI, tests, lint).
-4. At least **1 code review approval** required.
+2. Push and open a PR against the correct **milestone branch**.
+3. Ensure **all checks pass** (unit, integration, lint).
+
+---
+
+## 🔹 If a Test Fails
+
+* **Unit tests fail (feature branch):** fix locally, don’t merge until green.
+* **Integration tests fail (milestone branch):**
+
+  * Diagnose the failing module.
+  * Fix in a `fix/*` branch and PR back into the milestone.
+* **Regression tests fail (pre-main):**
+
+  * Revert the milestone merge if necessary.
+  * Open a fix branch and re-run regression.
+
+**Never merge red builds into `main`.**
 
 ---
 
 ## 🔹 Best Practices
 
-- don't push keys, use env var
-- git secrets for scanning
-- billing alerts and qoutas in aws
+* Do **not** commit keys or secrets. Use `.env` files + Keycloak/Vault.
+* Run `git secrets` or scanning tools before pushing.
+* Configure billing alerts and quotas for cloud resources.
+* Keep PRs small and focused (1 feature/bug per PR).
 
 
+
+👉 Do you want me to also create a **visual diagram (workflow chart)** of this process (Feature → Milestone → Regression → Main), so you can drop it into your README or internal wiki?
