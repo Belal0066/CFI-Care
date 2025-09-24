@@ -130,11 +130,9 @@ feat(auth): add Keycloak-based RBAC
 
 ## 🔹 Best Practices
 
-* Do **not** commit keys or secrets. Use `.env` files + Keycloak/Vault.
+* Do **not** commit keys or secrets. Use `.env` files.
 * Run `git secrets` or scanning tools before pushing.
 * Configure billing alerts and quotas for cloud resources.
 * Keep PRs small and focused (1 feature/bug per PR).
 
 
-
-👉 Do you want me to also create a **visual diagram (workflow chart)** of this process (Feature → Milestone → Regression → Main), so you can drop it into your README or internal wiki?
