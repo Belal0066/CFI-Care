@@ -1,4 +1,4 @@
-# Contributing Guid
+# Contributing Guide
 
 This document explains how we should work with the repo.
 
