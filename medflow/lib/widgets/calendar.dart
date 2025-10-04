@@ -22,7 +22,7 @@ class _CalendarState extends State<Calendar> {
   Widget build(BuildContext context) {
     return TableCalendar(
       eventLoader: widget.getEventsForDay,
-      rowHeight: 90,
+      // rowHeight: 90,
       headerStyle: const HeaderStyle(
         formatButtonVisible: false,
         titleCentered: true,

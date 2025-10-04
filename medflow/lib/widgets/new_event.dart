@@ -20,8 +20,8 @@ class _NewEventState extends State<NewEvent> {
   final _titleController = TextEditingController();
   final _detailsController = TextEditingController();
   TimeOfDay? _selectedTime;
-  EventCategoryEnum? _selectedEventCategory;
-  SpecialityCategoryEnum? _selectedSpecialityCategory;
+  TypeOfEventEnum _selectedEventCategory = TypeOfEventEnum.other;
+  SpecialityEventEnum _selectedSpecialityCategory = SpecialityEventEnum.other;
   void _timePicker() async {
     final pickedTime = await showTimePicker(
       context: context,
@@ -42,7 +42,7 @@ class _NewEventState extends State<NewEvent> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsetsGeometry.all(16),
+      padding: EdgeInsetsGeometry.fromLTRB(16, 48, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -75,7 +75,7 @@ class _NewEventState extends State<NewEvent> {
                 menuMaxHeight: 150,
                 hint: Text("Type of Event"),
                 value: _selectedEventCategory,
-                items: EventCategoryEnum.values
+                items: TypeOfEventEnum.values
                     .map(
                       (category) => DropdownMenuItem(
                         value: category,
@@ -99,7 +99,7 @@ class _NewEventState extends State<NewEvent> {
             menuMaxHeight: 150,
             hint: Text("Speciality"),
             value: _selectedSpecialityCategory,
-            items: SpecialityCategoryEnum.values
+            items: SpecialityEventEnum.values
                 .map(
                   (category) => DropdownMenuItem(
                     value: category,
@@ -129,12 +129,40 @@ class _NewEventState extends State<NewEvent> {
               SizedBox(width: 10),
               ElevatedButton(
                 onPressed: () {
-                  final newEvent = Event(_titleController.text);
-
+                  final newEvent = Event(
+                    title: _titleController.text,
+                    details: _detailsController.text,
+                    selectedTypeOfEventEnum: _selectedEventCategory,
+                    selectedSpecialityEnum: _selectedSpecialityCategory,
+                    time: _selectedTime ??= TimeOfDay(hour: 00, minute: 00),
+                  );
+                  if (_titleController.text.trim().isEmpty) {
+                    // _selectedTime = TimeOfDay(hour: 00, minute: 00);
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: Text("Error"),
+                          content: Text("Title cannot be empty"),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text("OK"),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    return;
+                  }
                   if (events[widget.selectedDate] != null) {
-                    events[widget.selectedDate]!.add(newEvent);
+                    events[widget.selectedDate]!.value.add(newEvent);
                   } else {
-                    events[widget.selectedDate] = [newEvent];
+                    events[widget.selectedDate] = ValueNotifier<List<Event>>([
+                      newEvent,
+                    ]);
                   }
 
                   selectedEvents.value = List.from(
