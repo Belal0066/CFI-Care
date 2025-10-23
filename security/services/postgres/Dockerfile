@@ -1,6 +1,8 @@
-FROM percona/percona-distribution-postgresql:latest
 
-# FROM postgres:17.5-alpine
+# FROM postgres:18.0-alpine
+
+FROM postgres@sha256:0ce0d1fa5bf54b7b338e09829ab76b479dbd0702da50bf0cdf5c258208e47f40
+
 
 # https://hub.docker.com/_/postgres
 # 70 is the standard uid/gid for "postgres" in Alpine as per the postgres:17.2-alpine Docker file:
