@@ -14,5 +14,7 @@ router.post(
 
 router.get("/:id", patientController.getPatientById);
 router.get("/:id/related-data", patientController.getPatientAllRelatedData);
+router.get("/:id/observations", patientController.getPatientObservations);
+router.get("/:id/encounters", patientController.getPatientEncounters);
 
 module.exports = router;
