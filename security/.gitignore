@@ -1,0 +1,8 @@
+# security files
+
+*/certs/
+*/.secrets/
+development-realm.json
+realms.json
+.env
+Plan.md
