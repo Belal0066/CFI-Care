@@ -4,8 +4,3 @@
 
 
 
-# security files
-
-*/certs*/
-*/.secrets/
-development-realm.json
