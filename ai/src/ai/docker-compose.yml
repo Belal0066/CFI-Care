@@ -1,0 +1,75 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. HAPI FHIR (Clinical Data Source)
+  # ---------------------------------------------------------------------------
+  hapi-fhir:
+    image: hapiproject/hapi:v6.6.0
+    container_name: clinical_fhir
+    ports:
+      - "8080:8080"
+    environment:
+      - spring.datasource.url=jdbc:postgresql://fhir-db:5432/hapi
+      - spring.datasource.username=hapi
+      - spring.datasource.password=hapi
+      - spring.datasource.driver-class-name=org.postgresql.Driver
+      - spring.jpa.hibernate.ddl-auto=update
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+      - hapi.fhir.fhir_version=R4
+    depends_on:
+      - fhir-db
+    networks:
+      - clinical_net
+
+  fhir-db:
+    image: postgres:15-alpine
+    container_name: clinical_fhir_db
+    environment:
+      - POSTGRES_DB=hapi
+      - POSTGRES_USER=hapi
+      - POSTGRES_PASSWORD=hapi
+    volumes:
+      - fhir_data:/var/lib/postgresql/data
+    networks:
+      - clinical_net
+
+  # ---------------------------------------------------------------------------
+  # 2. Qdrant (Vector Engine)
+  # ---------------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: clinical_vector
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - clinical_net
+
+  # ---------------------------------------------------------------------------
+  # 3. FalkorDB (Graph Engine)
+  # ---------------------------------------------------------------------------
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: clinical_graph
+    ports:
+      - "6379:6379"
+      # - "4000:4000" # Optional UI port if enabled
+    volumes:
+      - falkor_data:/data
+    networks:
+      - clinical_net
+
+  # ---------------------------------------------------------------------------
+  # Note: MedGemma is served via Ollama (locally installed, not dockerized)
+  # See README.md for Ollama setup instructions
+  # ---------------------------------------------------------------------------
+
+networks:
+  clinical_net:
+    driver: bridge
+
+volumes:
+  fhir_data:
+  qdrant_data:
+  falkor_data:
