@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const jwksRsa = require('jwks-rsa');
 
-const KEYCLOAK_BASE_URL = `${process.env.KC_HOSTNAME}/auth/realms/${process.env.KEYCLOAK_REALM}`;
+const KEYCLOAK_BASE_URL =process.env.KC_HOSTNAME;
 const REALM = process.env.KEYCLOAK_REALM;
 const ISSUER = `${KEYCLOAK_BASE_URL}/realms/${REALM}`;
 const JWKS_URI = `${ISSUER}/protocol/openid-connect/certs`;

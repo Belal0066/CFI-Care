@@ -50,23 +50,24 @@ async function introspectToken(token) {
 
 // tok exchange law neghyr token ma5sos l fhir
 
-// async function exchangeToken(Token , audience) {
-//     const body = new URLSearchParams({
-//         grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
-//         client_id: client_id,
-//         subject_token: Token,
-//         subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-//         audience: audience
-//     }).toString();
+async function exchangeToken(Token , audience) {
+    const body = new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        client_id: client_id,
+        subject_token: Token,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        audience: audience
+    }).toString();
 
-//     return (await axios.post(KEYCLOAK_TOKEN_URL, body, {
-//         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-//     })).data;
+    return (await axios.post(KEYCLOAK_TOKEN_URL, body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })).data;
     
-// }
+}
 
 module.exports = {
     exchangeToken,
     refreshToken,
-    introspectToken
+    introspectToken,
+    exchangeToken
 };
