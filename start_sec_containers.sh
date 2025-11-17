@@ -18,5 +18,5 @@ log_message "Docker is running. Starting containers..."
 #docker start container3
 # Or use docker-compose if you have a docker-compose.yml file
  cd ./security/Containers/
- sudo docker compose -f docker-compose-nginx.yml up
+ docker compose -f docker-compose-nginx.yml up
 log_message "Containers started successfully"

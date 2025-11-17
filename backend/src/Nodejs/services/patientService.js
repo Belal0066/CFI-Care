@@ -11,7 +11,22 @@ const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
 });
 
-async function createPatient(patientData) {
+function getfhirApi(accessToken) {
+  const https = require('https');
+  const fs = require('fs');
+  const instanceOptions = {
+    baseURL: process.env.FHIR_SERVER_URL,
+    headers: {
+      Accept: 'application/fhir+json'
+    }
+  };
+  if (accessToken) {
+    instanceOptions.headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  return axios.create(instanceOptions);
+}
+
+async function createPatient(patientData, accessToken) {
   const fhirPatientResource = {
     resourceType: "Patient",
     name: [
@@ -32,7 +47,8 @@ async function createPatient(patientData) {
   };
 
   try {
-    const response = await fhirApi.post("/Patient", fhirPatientResource);
+    const fhirApiInstance = getfhirApi(accessToken);
+    const response = await fhirApiInstance.post("/Patient", fhirPatientResource);
 
     return response.data;
   } catch (error) {
@@ -49,9 +65,10 @@ async function createPatient(patientData) {
   }
 }
 
-async function getPatientById(patientId) {
+async function getPatientById(patientId, accessToken) {
   try {
-    const response = await fhirApi.get(`/Patient/${patientId}`);
+    const fhirApiInstance = getfhirApi(accessToken);
+    const response = await fhirApiInstance.get(`/Patient/${patientId}`);
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 404) {
@@ -63,9 +80,10 @@ async function getPatientById(patientId) {
   }
 }
 
-async function getPatientAllRelatedData(patientId) {
+async function getPatientAllRelatedData(patientId, accessToken) {
   try {
-    const response = await fhirApi.get(`/Patient/${patientId}/$everything`);
+    const fhirApiInstance = getfhirApi(accessToken);
+    const response = await fhirApiInstance.get(`/Patient/${patientId}/$everything`);
     const bundle = response.data;
 
     if (!bundle || bundle.resourceType !== "Bundle" || !bundle.entry) {
@@ -105,9 +123,10 @@ async function getPatientAllRelatedData(patientId) {
   }
 }
 
-async function getPatientObservations(patientId) {
+async function getPatientObservations(patientId, accessToken) {
   try {
-    const response = await fhirApi.get(`/Observation?patient=${patientId}`);
+    const fhirApiInstance = getfhirApi(accessToken);
+    const response = await fhirApiInstance.get(`/Observation?patient=${patientId}`);
     const bundle = response.data;
 
     if (!bundle || bundle.resourceType !== "Bundle" || !bundle.entry) {
@@ -125,9 +144,10 @@ async function getPatientObservations(patientId) {
   }
 }
 
-async function getPatientEncounters(patientId) {
+async function getPatientEncounters(patientId, accessToken) {
   try {
-    const response = await fhirApi.get(`/Encounter?patient=${patientId}`);
+    const fhirApiInstance = getfhirApi(accessToken);
+    const response = await fhirApiInstance.get(`/Encounter?patient=${patientId}`);
     const bundle = response.data;
 
     if (!bundle || bundle.resourceType !== "Bundle" || !bundle.entry) {

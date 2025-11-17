@@ -20,7 +20,7 @@ done
 # Or use docker-compose if you have a docker-compose.yml file
 cd backend/src/Nodejs/
  export NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"
- gnome-terminal -- bash -c " sudo docker compose -f docker-compose-redisStore.yml up; exec bash"
+ gnome-terminal -x bash -c "docker compose -f docker-compose-redisStore.yml up ; exec bash"
  node index.js
 
 # docker-compose up -d
