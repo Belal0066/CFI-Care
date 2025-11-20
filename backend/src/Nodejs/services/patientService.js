@@ -12,8 +12,8 @@ const fhirApi = axios.create({
 });
 
 function getfhirApi(accessToken) {
-  const https = require('https');
-  const fs = require('fs');
+  // const https = require('https');
+  // const fs = require('fs');
   const instanceOptions = {
     baseURL: process.env.FHIR_SERVER_URL,
     headers: {

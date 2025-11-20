@@ -6,13 +6,16 @@ const patientController = require("../controllers/patientController");
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
 
-//Authz tokens , scopes 
-const { verifyToken } = require('../middleware/keycloakJWT');
+//Authz tokens 
+// const { verifyToken } = require('../middleware/keycloakJWT');
+// router.use(verifyToken(process.env.EXPECTED_AUDIENCE));
+
+//scopes
 const requireScopes = require('../middleware/validateScopes');
 // const requireOwnership = require('../middleware/requireOwnership');
 
 
-router.use(verifyToken(process.env.EXPECTED_AUDIENCE));
+
 
 
 
