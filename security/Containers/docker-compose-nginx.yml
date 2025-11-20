@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - 80:80
+      # - 80:80
       - 443:443
 
       #dev only?
@@ -22,6 +22,8 @@ services:
       - '${PWD}/certs:/etc/nginx/certs'
     depends_on:
       - oauth2-proxy
+    
+
     networks:
       - nginx-network
 
@@ -210,6 +212,7 @@ services:
       OAUTH2_PROXY_COOKIE_SAMESITE: lax
       OAUTH2_PROXY_COOKIE_SECRET: ${COOKIE_SECRET}
       OAUTH2_PROXY_COOKIE_SECURE: true
+      
 
       # Header options
       OAUTH2_PROXY_PASS_ACCESS_TOKEN: true
@@ -259,6 +262,8 @@ services:
       # Upstreams configuration
       OAUTH2_PROXY_SSL_UPSTREAM_INSECURE_SKIP_VERIFY: true
       # OAUTH2_PROXY_UPSTREAMS: http://hapi-fhir:8080/
+
+      TRUST_X_AUTH_HEADERS: true
 
     env_file:
       - ./.env

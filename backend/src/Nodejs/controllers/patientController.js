@@ -1,19 +1,20 @@
 const patientService = require("../services/patientService");
 const jwt = require('jsonwebtoken');
-const keycloakService = require("../services/keycloakService");
+// const keycloakService = require("../services/keycloakService");
 
 
 const checkToken = async (req, res) => {
+  const forwardedToken = req.headers['x-access-token'] || null;
   const bearer = req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
-  const sessionToken = req.session && req.session.tokenSet && req.session.tokenSet.access_token;
-  const accessToken = bearer || sessionToken;
   const expectedAudience = process.env.EXPECTED_AUDIENCE;
+  const accessToken = forwardedToken || bearer;
 
   if (!accessToken) return null;
 
   try {
     const decoded = jwt.decode(accessToken);
-    if (decoded && decoded.aud === expectedAudience) {
+    const aud = decoded ? decoded.aud : null;
+    if (aud === expectedAudience) {
       return accessToken;
     }
     // if (Array.isArray(decoded.aud)&& decoded.aud.includes(expectedAudience) ) return accessToken;
@@ -22,21 +23,17 @@ const checkToken = async (req, res) => {
     // return null;
   }
 
-  if (req.session && req.session.tokenSet && Date.now() < req.session.tokenSet.expires_at) {
-    return req.session.tokenSet.access_token;
-  }
-  try {
-    const exchangeToken = await keycloakService.exchangeToken(accessToken, expectedAudience);
-    exchangeToken.expires_at = Date.now() + (exchangeToken.expires_in * 1000);
-    if (req.session) req.session.tokenSet = exchangeToken;
-    return exchangeToken.access_token;
-  } catch (error) {
-    console.error("Error exchanging token:", error.message);
-    if (error.response) {
-      console.error("Keycloak response data:", error.response.data);
-    }
-    throw new Error("Could not exchange token for FHIR access.");
-  }
+ 
+  // try {
+  //   const exchangeToken = await keycloakService.exchangeToken(accessToken, expectedAudience);
+  //   return exchangeToken.access_token;
+  // } catch (error) {
+  //   console.error("Error exchanging token:", error.message);
+  //   if (error.response) {
+  //     console.error("Keycloak response data:", error.response.data);
+  //   }
+  //   throw new Error("Could not exchange token for FHIR access.");
+  // }
 }
 
 

@@ -1,16 +1,19 @@
-server {
-
-  server_name fhir.localhost;
-  listen 80;
-  include /etc/nginx/conf/ssl.conf;
-
-  return 301 https://$host$request_uri;
-
+upstream backend_node{
+  server host.docker.internal:3000;
 }
 
 server {
 
-  server_name fhir.localhost;
+  server_name localhost;
+  listen 80;
+
+  return 301 https://$host$request_uri;
+
+}
+#fhir server
+server {
+
+  server_name localhost;
   listen 443 ssl default_server;
   include /etc/nginx/conf/ssl.conf;
 
@@ -21,6 +24,11 @@ server {
 
   location /oauth2/ {
     proxy_pass             http://oauth2-proxy:4180;
+
+    proxy_pass_request_body off;
+
+    proxy_set_header  Content-Length "";
+
     proxy_set_header       Host                    $host;
     proxy_set_header       X-Real-IP               $remote_addr;
     proxy_set_header       X-Auth-Request-Redirect $request_uri;
@@ -57,8 +65,13 @@ server {
     # Pass information via X-User and X-Email headers to backend, requires running with --set-xauthrequest flag
     auth_request_set $user   $upstream_http_x_auth_request_user;
     auth_request_set $email  $upstream_http_x_auth_request_email;
-    proxy_set_header X-User  $user;
-    proxy_set_header X-Email $email;
+    #santize headers
+    proxy_set_header X-User  "";
+    proxy_set_header X-Email "";
+
+    
+    proxy_set_header X-User  $upstream_http_x_auth_request_user;
+    proxy_set_header X-Email $upstream_http_x_auth_request_email;
 
     # If you enabled --pass-access-token, this will pass the token to the backend
     auth_request_set $token  $upstream_http_x_auth_request_access_token;
@@ -66,7 +79,7 @@ server {
 
     # If you enabled --cookie-refresh, this is needed for it to work with auth_request
     auth_request_set $auth_cookie $upstream_http_set_cookie;
-    add_header Set-Cookie $auth_cookie;
+    add_header Set-Cookie $auth_cookie always;
 
     # When using the --set-authorization-header flag, some provider's cookies can exceed the 4kb
     # limit and so the OAuth2 Proxy splits these into multiple parts.
@@ -87,7 +100,7 @@ server {
         add_header Set-Cookie $auth_cookie_name_1;
     }
 
-    proxy_pass http://hapi-fhir:8080/;
+    proxy_pass http://backend_node/;
   }
 
   location = /oauth2/sign_out {
@@ -101,6 +114,27 @@ server {
     proxy_set_header        Host                   $host;
     proxy_set_header        X-Real-IP              $remote_addr;
   }
+
+  location /api/ {
+  auth_request /oauth2/auth;
+
+  proxy_set_header X-User  "";
+  proxy_set_header X-Email "";
+
+  
+  proxy_set_header X-User  $upstream_http_x_auth_request_user;
+  proxy_set_header X-Email $upstream_http_x_auth_request_email;
+
+  auth_request_set $token $upstream_http_x_auth_request_access_token;
+  proxy_set_header Authorization "Bearer $token";
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+
+  proxy_pass http://backend_node;
+}
 
 }
 
@@ -133,6 +167,9 @@ server {
   }
 
 }
+
+
+
 
   # location / {
   #   proxy_set_header  Host               $host;
