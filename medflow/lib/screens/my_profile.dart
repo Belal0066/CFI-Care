@@ -1,0 +1,330 @@
+import 'package:flutter/material.dart';
+import 'package:medflow/widgets/build_section_profile.dart'; // Keep your existing import
+import 'package:medflow/screens/sign_in_up.dart';
+import 'package:shared_preferences/shared_preferences.dart'; 
+import '../database/db_helper.dart'; 
+
+class MyProfile extends StatefulWidget {
+  const MyProfile({super.key});
+
+  @override
+  State<MyProfile> createState() => _MyProfileState();
+}
+
+class _MyProfileState extends State<MyProfile> {
+  bool isLoading = true;
+  
+  // Header Data
+  String firstName = "";
+  String lastName = "";
+  String email = "";
+
+  // Section visibility
+  bool showPersonal = false;
+  bool showMedical = false;
+  bool showEmergency = false;
+  bool showSharedAccess = false; // <--- NEW TOGGLE
+
+  // Editing states
+  bool editPersonal = false;
+  bool editMedical = false;
+  bool editEmergency = false;
+
+  // Data Maps
+  Map<String, String> personalInfo = {};
+  Map<String, String> medicalInfo = {};
+  Map<String, String> emergencyInfo = {};
+
+  // Track the current user's ID
+  String? currentUserId;
+
+  // --- NEW: Dummy Data for Shared Access (Replace with DB fetch later) ---
+  final List<Map<String, String>> sharedAccounts = [
+    {
+      'name': 'Martha Doe',
+      'relation': 'Mother',
+      'id': 'user_002',
+      'access': 'Read Only'
+    },
+    {
+      'name': 'Timmy Doe',
+      'relation': 'Son',
+      'id': 'user_003',
+      'access': 'Full Access'
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    currentUserId = prefs.getString('currentUserId');
+    
+    if (currentUserId == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
+    Map<String, dynamic>? data = await DBHelper.getUserProfile(currentUserId!);
+
+    if (data != null) {
+      setState(() {
+        firstName = data['firstName'] ?? 'User';
+        lastName = data['lastName'] ?? '';
+        email = data['email'] ?? '';
+
+        personalInfo = {
+          'Phone': data['phone'] ?? '',
+          'Address': data['address'] ?? '',
+          'Date of Birth': data['dob'] ?? '',
+          'Gender': data['gender'] ?? '',
+        };
+
+        medicalInfo = {
+          'Blood Type': data['bloodType'] ?? '',
+          'Height (cm)': data['height'] ?? '',
+          'Weight (kg)': data['weight'] ?? '',
+          'Allergies': data['allergies'] ?? '',
+          'Medical Conditions': data['conditions'] ?? '',
+          'Medications': data['medications'] ?? '',
+          'Genetic Conditions': data['geneticConditions'] ?? '',
+          'Chronic Diseases': data['chronicDiseases'] ?? '',
+        };
+
+        emergencyInfo = {
+          'Emergency Contact': data['emergencyContact'] ?? '',
+          'Insurance Provider': data['insuranceProvider'] ?? '',
+          'Policy Number': data['policyNumber'] ?? '',
+        };
+        isLoading = false;
+      });
+    } else {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (currentUserId == null) return;
+
+    final Map<String, dynamic> updateData = {
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'phone': personalInfo['Phone'],
+      'address': personalInfo['Address'],
+      'dob': personalInfo['Date of Birth'],
+      'gender': personalInfo['Gender'],
+      'bloodType': medicalInfo['Blood Type'],
+      'height': medicalInfo['Height (cm)'],
+      'weight': medicalInfo['Weight (kg)'],
+      'allergies': medicalInfo['Allergies'],
+      'conditions': medicalInfo['Medical Conditions'],
+      'medications': medicalInfo['Medications'],
+      'geneticConditions': medicalInfo['Genetic Conditions'],
+      'chronicDiseases': medicalInfo['Chronic Diseases'],
+      'emergencyContact': emergencyInfo['Emergency Contact'],
+      'insuranceProvider': emergencyInfo['Insurance Provider'],
+      'policyNumber': emergencyInfo['Policy Number'],
+    };
+
+    await DBHelper.upsertProfile(currentUserId!, updateData);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Profile')),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          // --- Profile Header ---
+          Column(
+            children: [
+              const CircleAvatar(
+                radius: 50,
+                child: Icon(Icons.person, size: 50),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '$firstName $lastName',
+                style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                email,
+                style: textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Divider(),
+
+          // --- Personal Info Section ---
+          BuildSectionProfile(
+            leading: Icons.person_outline_outlined,
+            title: 'Personal Information',
+            show: showPersonal,
+            onToggle: () => setState(() => showPersonal = !showPersonal),
+            onEditToggle: () async {
+              setState(() {
+                editPersonal = !editPersonal;
+                if (editPersonal) showPersonal = true;
+              });
+              if (!editPersonal) await _saveChanges();
+            },
+            isEditing: editPersonal,
+            data: personalInfo,
+          ),
+
+          const Divider(),
+
+          // --- Medical Details Section ---
+          BuildSectionProfile(
+            leading: Icons.medical_services_outlined,
+            title: 'Medical Details',
+            show: showMedical,
+            onToggle: () => setState(() => showMedical = !showMedical),
+            onEditToggle: () async {
+              setState(() {
+                editMedical = !editMedical;
+                if (editMedical) showMedical = true;
+              });
+              if (!editMedical) await _saveChanges();
+            },
+            isEditing: editMedical,
+            data: medicalInfo,
+          ),
+
+          const Divider(),
+
+          // --- Emergency Section ---
+          BuildSectionProfile(
+            leading: Icons.emergency_outlined,
+            title: 'Emergency & Insurance',
+            show: showEmergency,
+            onToggle: () => setState(() => showEmergency = !showEmergency),
+            onEditToggle: () async {
+              setState(() {
+                editEmergency = !editEmergency;
+                if (editEmergency) showEmergency = true;
+              });
+              if (!editEmergency) await _saveChanges();
+            },
+            isEditing: editEmergency,
+            data: emergencyInfo,
+          ),
+
+          const Divider(),
+
+          // --- NEW: SHARED ACCESS SECTION ---
+          _buildSharedAccessSection(textTheme),
+
+          const Divider(),
+
+          // --- Logout ---
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.orange),
+            title: Text('Logout', style: textTheme.titleMedium?.copyWith(color: Colors.orange)),
+            onTap: () async {
+               final prefs = await SharedPreferences.getInstance();
+               await prefs.clear(); 
+               if (context.mounted) {
+                 Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const SignInUp()), (r) => false);
+               }
+            },
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // --- DEBUG BUTTON ---
+          ElevatedButton(
+            onPressed: () async {
+              await DBHelper.debugPrintAllTables();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[800],
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("PRINT DB ROWS (DEBUG)"),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  // --- NEW WIDGET BUILDER FOR SHARED ACCESS ---
+  Widget _buildSharedAccessSection(TextTheme textTheme) {
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.people_outline, color: Colors.blueAccent),
+          title: Text(
+            "Shared Access",
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          trailing: IconButton(
+            icon: Icon(showSharedAccess ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+            onPressed: () => setState(() => showSharedAccess = !showSharedAccess),
+          ),
+        ),
+        if (showSharedAccess) ...[
+          // Render list of cards
+          ListView.builder(
+            shrinkWrap: true, // Vital when nesting ListViews
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: sharedAccounts.length,
+            itemBuilder: (context, index) {
+              final account = sharedAccounts[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                    child: Text(
+                      account['name']![0], // First Initial
+                      style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  title: Text(account['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("${account['relation']} • ${account['access']}"),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                  onTap: () {
+                    // TODO: Navigate to this user's specific dashboard/profile
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Switching to ${account['name']}'s profile...")),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          // Add Button (Optional)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                // TODO: Logic to add/request new access
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Request Access to New Account"),
+            ),
+          )
+        ]
+      ],
+    );
+  }
+}

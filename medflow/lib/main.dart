@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:medflow/screens/schedule_screen.dart';
+import 'package:medflow/widgets/theme.dart';
+import './screens/splash_screen.dart';
 
-void main() {
-  runApp(MaterialApp(home :ScheduleScreen()));
+
+void main() async{
+  
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  runApp(MaterialApp(home :SplashScreen(),
+  debugShowCheckedModeBanner: false,
+  theme: patientTheme,));
 }
 
