@@ -16,6 +16,11 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "fhirpath": "^4.6.0",
-    "joi": "^18.0.1"
+    "graphviz": "^0.0.9",
+    "joi": "^18.0.1",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "dox": "^1.0.0"
   }
 }
