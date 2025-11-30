@@ -27,132 +27,6 @@ services:
     networks:
       - nginx-network
 
-  postgres:
-    container_name: postgres
-    build:
-      context: ./services/postgres
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      start_period: 10s
-      interval: 30s
-      retries: 5
-      timeout: 5s
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-     
-    env_file:
-      - ./.env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - nginx-network
-
-
-
-
-  kc.localhost:
-    container_name: kc.localhost
-    build:
-      context: ./services/keycloak
-      dockerfile: Dockerfile
-    # image: 
-
-    # 'start-dev',
-    # 'start',
-    # '-Dauto-build',
-    # '--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE',
-
-    # '-Dkeycloak.migration.action=import',
-    # '-Dkeycloak.migration.provider=singleFile',
-    # '-Dkeycloak.migration.realmName=hapi-fhir-dev',
-    # '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
-    # '-Dkeycloak.migration.file=/import/development-realm.json',
-
-    command:
-      [
-        # 'start',
-        'start-dev',
-        '-Dkeycloak.migration.action=import',
-        '-Dkeycloak.migration.provider=singleFile',
-        '-Dkeycloak.migration.realmName=CFI-Care',
-        '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
-        '-Dkeycloak.migration.file=/import/realms.json',
-        '--https-key-store-file=conf/server.keystore',
-        '--https-key-store-password=password',
-        '--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE',
-      ]
-
-    restart: on-failure:3
-
-    #dev
-    ports:
-      - 8443:8443
-      # - 9000:9000
-
-    # healthcheck:
-    #   test: ["CMD-SHELL", "/opt/keycloak/health-check.sh"]
-    #   start_period: 10s
-    #   interval: 30s
-    #   retries: 5
-    #   timeout: 5s
-
-    environment:
-      KC_HOSTNAME: ${KC_HOSTNAME}
-
-      KC_HTTPS_CERTIFICATE_FILE: /etc/keycloak/certs/cert.pem
-      KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/keycloak/certs/key.pem
-
-      KC_PROXY_HEADERS: forwarded
-
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-
-      # KC_HEALTH_ENABLED: true
-
-      
-    # read_only: true
-
-
-    # tmpfs:
-    #   - /opt/keycloak/data
-    security_opt:
-      - no-new-privileges:true
-    # cap_drop:
-    # - ALL
-
-    
-    env_file:
-      - ./.env
-   
-    # Make sure the certificate and the key (the *.pem files) have the correct permissions -> e.g., sudo chmod 655 *.pem
-    volumes:
-      - '${PWD}/certs/keycloak-cert.pem:/etc/keycloak/certs/cert.pem:ro'
-      - '${PWD}/certs/keycloak-key.pem:/etc/keycloak/certs/key.pem:ro'
-      - '${PWD}/certs:/opt/keycloak/conf/truststores:ro'
-      # - '${PWD}/import/development-realm.json:/import/development-realm.json:ro'
-      - '${PWD}/import:/import:ro'
-      - '${PWD}/export:/export:rw'
-      # - '${PWD}/services/keycloak/scripts/health-check.sh:/opt/keycloak/health-check.sh:ro'
-
-      
-      # - '${PWD}/import:/import'
-
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - nginx-network
-
   redis:
     container_name: redis
     build:
@@ -181,6 +55,8 @@ services:
 
     command:
       [
+        'signin-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_in',
+        '--skip-provider-button=true',
         '--standard-logging=true',
         '--auth-logging=true',
         '--request-logging=true',
@@ -281,8 +157,8 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
-    driver: local
+  # postgres_data:
+  #   driver: local
   cache:
     driver: local
 

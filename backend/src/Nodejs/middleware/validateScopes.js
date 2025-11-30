@@ -51,6 +51,9 @@ function requireScopes(requiredScopes = []) {
     return function (req, res, next) {
         try {
             const payload = req.kauth && req.kauth.token && req.kauth.token.grant;
+            if (!payload) {
+                return res.status(401).json({ error: 'Unauthorized: missing payload' });
+            }
             const tokenScopes = parseScopes(payload);
             const realmRoles = (payload.realm_access && Array.isArray(payload.realm_access.roles)) ? new Set(payload.realm_access.roles) : new Set();
 

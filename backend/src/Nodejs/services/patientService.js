@@ -23,6 +23,11 @@ function getfhirApi(accessToken) {
   if (accessToken) {
     instanceOptions.headers['Authorization'] = `Bearer ${accessToken}`;
   }
+  if (instanceOptions.headers['Authorization']) {
+    console.log('getfhirApi: outgoing Authorization header set for FHIR requests (first 64 chars):', instanceOptions.headers['Authorization'].slice(0,64));
+  } else {
+    console.log('getfhirApi: no Authorization header set for FHIR requests');
+  }
   return axios.create(instanceOptions);
 }
 
@@ -74,7 +79,11 @@ async function getPatientById(patientId, accessToken) {
     if (error.response && error.response.status === 404) {
       throw new Error("Patient not found");
     } else {
-      console.error("FHIR Server Error:", error.message);
+      if (error.response) {
+        console.error('FHIR Server Error: status=', error.response.status, 'data=', JSON.stringify(error.response.data));
+      } else {
+        console.error("FHIR Server Error:", error.message);
+      }
       throw new Error("Could not connect to the FHIR server.");
     }
   }

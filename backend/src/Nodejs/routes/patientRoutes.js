@@ -12,6 +12,7 @@ const { createPatientSchema } = require("../models/patientValidation");
 
 //scopes
 const requireScopes = require('../middleware/validateScopes');
+const attachForwardedToken = require('../middleware/attachForwardedToken');
 // const requireOwnership = require('../middleware/requireOwnership');
 
 
@@ -27,7 +28,7 @@ router.post(
 
 
 
-router.get("/:id", requireScopes(['patient/*.read']), patientController.getPatientById);
+router.get("/:id", attachForwardedToken, requireScopes(['patient/*.rs']), patientController.getPatientById);
 
 //still need to add these scopes :/
 router.get("/:id/related-data", patientController.getPatientAllRelatedData);
