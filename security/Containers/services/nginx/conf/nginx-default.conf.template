@@ -31,6 +31,8 @@ server {
 
     proxy_set_header       Host                    $host;
     proxy_set_header       X-Real-IP               $remote_addr;
+    proxy_set_header       Cookie                  $http_cookie;
+    proxy_set_header       Authorization           $http_authorization;
     proxy_set_header       X-Auth-Request-Redirect $request_uri;
   }
 
@@ -48,6 +50,8 @@ server {
 
     proxy_set_header        Host                   $host;
     proxy_set_header        X-Real-IP              $remote_addr;
+    proxy_set_header        Cookie                 $http_cookie;
+    proxy_set_header        Authorization          $http_authorization;
   }
 
   location / {
@@ -126,7 +130,9 @@ server {
   proxy_set_header X-Email $upstream_http_x_auth_request_email;
 
   auth_request_set $token $upstream_http_x_auth_request_access_token;
+  proxy_set_header Authorization "";
   proxy_set_header Authorization "Bearer $token";
+  proxy_set_header X-Access-Token $token;
 
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;

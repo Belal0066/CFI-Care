@@ -7,18 +7,31 @@ const checkToken = async (req, res) => {
   const forwardedToken = req.headers['x-access-token'] || null;
   const bearer = req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
   const expectedAudience = process.env.EXPECTED_AUDIENCE;
-  const accessToken = forwardedToken || bearer;
+  const accessToken = forwardedToken //|| bearer;
 
-  if (!accessToken) return null;
+  if (!accessToken) 
+    return res.status(401).json({ error: "Access token is missing" });
 
   try {
-    const decoded = jwt.decode(accessToken);
+    let decoded;
+    
+    decoded = jwt.decode(accessToken);
     const aud = decoded ? decoded.aud : null;
-    if (aud === expectedAudience) {
-      return accessToken;
-    }
+    const typ = decoded ? decoded.typ : null;
+    const sub = decoded ? decoded.sub : null;
+    const exp = decoded ? decoded.exp : null;
+    console.log("checkToken summary:", {
+      aud,
+      typ,
+      sub,
+      exp
+    });
+
+    // short-circuit: return token to caller (controller) for downstream FHIR calls
+    return accessToken;
     // if (Array.isArray(decoded.aud)&& decoded.aud.includes(expectedAudience) ) return accessToken;
   } catch (error) {
+    return res.status(401).json({ error: "Invalid access token" });
     // console.error("Error in checkToken:", error.message);
     // return null;
   }
