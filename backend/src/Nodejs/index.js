@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-const patientRoutes = require("./routes/patientRoutes");
+const patientRoutes = require("./patient/patientRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;

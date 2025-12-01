@@ -1,4 +1,24 @@
-const patientService = require("../services/patientService");
+const patientService = require("./patientService");
+
+const createPatientWithSpecificId = async (req, res) => {
+  try {
+    const patientData = req.body;
+    const { id } = req.params;
+    const newPatientResource = await patientService.createPatientWithSpecificId(
+      patientData,
+      id
+    );
+    console.log("New patient created with ID:", id);
+    console.log(JSON.stringify(patientData, null, 2));
+    res.status(201).json(newPatientResource);
+  } catch (error) {
+    console.error(
+      "Error in createPatientWithSpecificId controller:",
+      error.message
+    );
+    res.status(500).json({ error: error.message });
+  }
+};
 
 const createPatient = async (req, res) => {
   try {
@@ -79,6 +99,7 @@ const getPatientEncounters = async (req, res) => {
 };
 
 module.exports = {
+  createPatientWithSpecificId,
   createPatient,
   getPatientById,
   getPatientAllRelatedData,

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const patientController = require("../controllers/patientController");
+const patientController = require("./patientController");
 
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
@@ -10,6 +10,12 @@ router.post(
   "/",
   validateRequest(createPatientSchema),
   patientController.createPatient
+);
+
+router.put(
+  "/:id",
+  // validateRequest(createPatientSchema),
+  patientController.createPatientWithSpecificId
 );
 
 router.get("/:id", patientController.getPatientById);
