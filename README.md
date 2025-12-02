@@ -1,7 +1,5 @@
 <h1 align="center" style="border-bottom: none">
 
-<img width="344" height="256" alt="cfiLogo" src="https://github.com/user-attachments/assets/f22a5774-9554-49c3-83e6-8a788124ede6" />
-
 
   
   <br>
@@ -50,5 +48,6 @@ CFI-Care is developed as a graduation project at **Ain Shams University, Faculty
 Supervised by **Dr. Haytham Azmi**.
 
 ---
+
 
 
