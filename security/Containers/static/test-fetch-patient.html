@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .table-container {
+            max-width: 1000px;
+            margin: auto;
+            padding: 10px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+
+        td {
+            background-color: #fafafa;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f1f1f1;
+        }
+
+        tr:hover {
+            background-color: #e9f5ef;
+            transform: scale(1.01);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+
+        td:hover {
+            background-color: #e0f7fa;
+            color: #00796b;
+            cursor: default;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-left: auto;
+            color: #333;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <div class="controls">
+            <!-- <div>Patient ID: <strong id="patientIdDisplay">1</strong></div> -->
+            <div id="status">Idle</div>
+        </div>
+
+        <table id="patients" class="interactive-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Gender</th>
+                    <th>Birth Date</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function formatName(nameArray) {
+            if (!Array.isArray(nameArray) || nameArray.length === 0) return '';
+            const n = nameArray[0];
+            const given = Array.isArray(n.given) ? n.given.join(' ') : (n.given || '');
+            const family = n.family || '';
+            return (given + ' ' + family).trim();
+        }
+
+        function getAddressField(resource, field) {
+            if (!resource || !Array.isArray(resource.address) || resource.address.length === 0) return '';
+            return resource.address[0][field] || '';
+        }
+
+        function renderPatient(resource) {
+            const tbody = document.querySelector('#patients tbody');
+            tbody.innerHTML = '';
+            if (!resource) return;
+
+            const id = resource.id || '';
+            const name = formatName(resource.name);
+            const gender = resource.gender || '';
+            const birthDate = resource.birthDate || '';
+
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${id}</td>
+                <td>${name}</td>
+                <td>${gender}</td>
+                <td>${birthDate}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        async function fetchAndRenderPatient(id) {
+            const status = document.getElementById('status');
+            status.textContent = 'Loading...';
+            try {
+                if (!localStorage.getItem('flowStart')) {
+                    localStorage.setItem('flowStart', Date.now());
+                }
+                const res = await fetch(`/api/patients/${encodeURIComponent(id)}`, { credentials: 'include' });
+                if (res.status === 401) {
+                    status.textContent = 'Not authorized. Redirecting to sign-in...';
+                    try { localStorage.setItem('flowRedirect', Date.now()); } catch (e) {}
+                    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.location.href = '/auth/login?returnTo=' + returnTo;
+                    return;
+                }
+                if (!res.ok) {
+                    status.textContent = 'Error fetching patient: ' + res.status;
+                    return;
+                }
+                const data = await res.json();
+                console.debug('Fetched patient data:', data);
+
+                let resource = null;
+               
+                    resource = data;
+
+                if (!resource) {
+                    status.textContent = 'No Patient resource found in response :(';
+                    renderPatient(null);
+                    return;
+                }
+
+                renderPatient(resource);
+                status.textContent = 'Loaded';
+                try {
+                    const start = Number(localStorage.getItem('flowStart')) || 0;
+                    if (start > 0) {
+                        const totalMs = Date.now() - start;
+                        console.info('Full auth+fetch+display duration (ms):', totalMs);
+                        fetch('/timing', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ flow: 'auth+fetch+display', durationMs: totalMs, patientId: id, userAgent: navigator.userAgent })
+                        }).catch(() => {});
+                        // cleanup
+                        localStorage.removeItem('flowStart');
+                        localStorage.removeItem('flowRedirect');
+                    }
+                } catch (err) {
+                    console.warn('Failed to compute/send flow timing', err && err.message);
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').textContent = 'Fetch error: ' + err.message;
+            }
+        }
+
+        const PATIENT_ID = '1';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const display = document.getElementById('patientIdDisplay');
+            if (display) display.textContent = PATIENT_ID;
+            fetchAndRenderPatient(PATIENT_ID);
+        });
+    </script>
+</body>
+</html>

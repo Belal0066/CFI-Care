@@ -1,0 +1,49 @@
+@startuml Mobile Token Flow <<Seqence Diagram>>
+
+actor User
+participant MobileApplication 
+
+participant nginx
+participant oauth2Proxy
+participant Keycloak
+
+participant NodeJS
+participant Redis
+participant FHIR
+
+
+== User Login Flow ==
+User -> MobileApplication : Login request on login page
+MobileApplication -> Keycloak : Redirect to auth endpoint (PKCE challenge)
+Keycloak -> MobileApplication : Authorization code (Authz code Flow)
+MobileApplication -> Keycloak : exchange code for tokens (with PKCE verifier)
+Keycloak -> MobileApplication : Access token , Refresh token , ID token
+MobileApplication -> MobileApplication : store tokens securely 
+MobileApplication -> User : display main page
+
+== User Action Requiring Data (API Call) ==
+User -> MobileApplication : Action that needs Data
+MobileApplication -> nginx : API call with token
+
+alt Access token valid
+nginx -> nginx : validate JWT (cached JWKS)
+nginx -> NodeJS : forward request with access token
+    alt resource available in cache
+        NodeJS -> Redis : get resource from cache
+        Redis -> NodeJS : resource
+    else resource not in cache
+        NodeJS -> FHIR : request resource with Access token
+        FHIR -> NodeJS : resource
+        NodeJS -> Redis : store resource in cache
+        Redis -> NodeJS : ack
+    end
+    NodeJS -> nginx : response containing data
+    nginx -> MobileApplication : response
+    MobileApplication -> User : display data
+else Access token expired
+MobileApplication -> Keycloak : use refresh token to obtain new tokens
+Keycloak -> MobileApplication : new Access token , new Refresh token , new ID token
+MobileApplication -> nginx : API call with new Access token
+
+end
+@enduml
