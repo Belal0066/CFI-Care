@@ -6,7 +6,7 @@ const { randomUUID } = require('crypto');
 
 
 //pateint , auth
-const patientRoutes = require("./routes/patientRoutes")
+const patientRoutes = require("./patient/patientRoutes");
 
 const authRoutes = require("./patient/authRoutes")
 
