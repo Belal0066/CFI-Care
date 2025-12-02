@@ -6,9 +6,9 @@ const { randomUUID } = require('crypto');
 
 
 //pateint , auth
-const patientRoutes = require("./routes/patientRoutes")
+const patientRoutes = require("./patient/patientRoutes");
 
-const authRoutes = require("./routes/authRoutes")
+const authRoutes = require("./patient/authRoutes")
 
 const app = express();
 const PORT = process.env.PORT || 3000;
