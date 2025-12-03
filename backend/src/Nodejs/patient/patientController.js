@@ -47,7 +47,6 @@ const checkToken = async (req, res) => {
       exp
     });
 
-    // short-circuit: return token to caller (controller) for downstream FHIR calls
     return accessToken;
     // if (Array.isArray(decoded.aud)&& decoded.aud.includes(expectedAudience) ) return accessToken;
   } catch (error) {
@@ -91,6 +90,8 @@ const getPatientById = async (req, res) => {
 
     const patientResource = await patientService.getPatientById(id, accessToken);
 
+    console.log(`fetched resource for id=${id}:`, JSON.stringify(patientResource, null, 2));
+
     res.status(200).json(patientResource);
   } catch (error) {
     console.error("Error in getPatientById controller:", error.message);
@@ -99,6 +100,41 @@ const getPatientById = async (req, res) => {
       res.status(404).json({ error: error.message });
     } else {
       res.status(500).json({ error: "Internal server error" });
+    }
+  }
+};
+
+const getCurrentPatient = async (req, res) => {
+  try {
+    let sub = null;
+    if (req.kauth && req.kauth.token && req.kauth.token.grant && req.kauth.token.grant.sub) {
+      sub = req.kauth.token.grant.sub;
+    }
+
+    //fallback , probs not needed :/
+
+    // if (!sub) {
+    //   const forwarded = req.headers['x-auth-request-access-token'] || req.headers['x-access-token'] ||
+    //     (req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    //   if (!forwarded) return res.status(401).json({ error: 'Access token is missing' });
+    //   try {
+    //     const decoded = jwt.decode(forwarded);
+    //     sub = decoded ? decoded.sub : null;
+    //   } catch (err) {
+    //     return res.status(401).json({ error: 'Invalid access token' });
+    //   }
+    // }
+
+    if (!sub) return res.status(401).json({ error: 'no subject in token' });
+
+    const patientResource = await patientService.getPatientById(sub);
+    res.status(200).json(patientResource);
+  } catch (error) {
+    console.error('error in getCurrentPatient controller:', error.message);
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Internal srvr error' });
     }
   }
 };
@@ -159,6 +195,7 @@ module.exports = {
   createPatientWithSpecificId,
   createPatient,
   getPatientById,
+  getCurrentPatient,
   getPatientAllRelatedData,
   getPatientObservations,
   getPatientEncounters,

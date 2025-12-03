@@ -6,9 +6,58 @@ const express = require('express');
 // const axios = require('axios');
 
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+
+router.get('/whoami', (req, res) => {
+      try {
+            const forwarded =  req.headers['x-access-token'] ;
+            if (!forwarded) return res.status(401).json({ error: 'Access token missing' });
+            const decoded = jwt.decode(forwarded);
+            if (!decoded) return res.status(401).json({ error: 'Invalid token' });
+            const { sub, email } = decoded;
+            return res.json({ sub, email });
+      } catch (err) {
+            console.error('whoami error:', err && err.message);
+            return res.status(500).json({ error: 'Server error' });
+      }
+});
+
+router.get('/logout', (req, res) => {
+//       try {
+//             res.status(302).redirect('oauth2/sign_out');
+//       } catch (err) {
+//             console.error('logout error:', err && err.message);
+//             return res.redirect('/');
+//       }
+
+       try {
+            const kcHost = process.env.KC_HOSTNAME ;
+            const realm = process.env.KEYCLOAK_REALM;
+            const frontendReturn = process.env.FRONTEND_HOST ;
+
+            const kcLogout = `${kcHost}/realms/${realm}/protocol/openid-connect/logout?redirect_uri=${encodeURIComponent(frontendReturn)}`;
+            const fulllogoutURL = `${process.env.OAUTH2_PROXY_SIGNOUT_URL}?rd=${encodeURIComponent(kcLogout)}`;
+            res.status(302).redirect(fulllogoutURL);
+
+
+            // const returnTo = kcLogout;
+
+            // const html = `<!doctype html><html><head><meta charset="utf-8"><title>Signing out</title></head><body>
+            //                   <form id="logoutForm" method="POST" action="/oauth2/sign_out?returnTo=${encodeURIComponent(returnTo)}">
+            //                   </form>
+            //                   <script>document.getElementById('logoutForm').submit();</script>
+            //                   </body></html>`;
+
+            // res.set('Content-Type', 'text/html');
+            // return res.send(html);
+      } catch (err) {
+            console.error('logout error:', err && err.message);
+            return res.redirect('/');
+      }
+});
 
 router.get('/login', async (req, res) => {
-      res.status(302).redirect('oauth/start');
+      res.status(302).redirect('oauth2/start');
 //     let code_challenge, code_verifier;
 //     try{
 //     ({code_challenge, code_verifier }= await generatePkce());
