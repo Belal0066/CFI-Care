@@ -12,11 +12,7 @@ while ! docker info >/dev/null 2>&1; do
     sleep 5
 done
 log_message "Docker is running. Starting containers..."
-# Start your containers here
-#docker start container1
-#docker start container2
-#docker start container3
-# Or use docker-compose if you have a docker-compose.yml file
+
  cd ./security/Containers/
  docker compose -f docker-compose-nginx.yml up
 log_message "Containers started successfully"
