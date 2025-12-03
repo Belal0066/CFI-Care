@@ -26,17 +26,14 @@ router.post(
   patientController.createPatient
 );
 
-router.put(
-  "/:id",
-  // validateRequest(createPatientSchema),
-  patientController.createPatientWithSpecificId
-);
+router.get('/', attachForwardedToken, patientController.getCurrentPatient);
 
 router.put(
   "/:id",
   // validateRequest(createPatientSchema),
   patientController.createPatientWithSpecificId
 );
+
 
 
 

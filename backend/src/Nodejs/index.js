@@ -14,7 +14,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+
+app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
 
 app.use((req, res, next) => {
   try {
@@ -65,6 +66,7 @@ app.post('/timing', (req, res) => {
 
 
 app.use("/auth", authRoutes);
+
 
 app.use("/api/patients", patientRoutes);
 
