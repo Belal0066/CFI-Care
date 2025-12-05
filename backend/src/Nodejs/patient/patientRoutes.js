@@ -14,6 +14,7 @@ router.post(
 
 router.put("/", patientController.createPatientWithSpecificId);
 
+router.get("/toon-everything/:id", patientController.toonPatientEverything);
 router.get("/:id", patientController.getPatientById);
 router.get("/:id/related-data", patientController.getPatientAllRelatedData);
 router.get("/:id/observations", patientController.getPatientObservations);

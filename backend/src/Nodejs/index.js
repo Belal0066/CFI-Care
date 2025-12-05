@@ -28,7 +28,6 @@ app.get("/CreatePatient", (req, res) => {
 app.get("/GetPatient", (req, res) => {
   res.send("GetPatient endpoint is under construction.");
 });
-
 app.get("/CreatePractitioner", (req, res) => {
   res.sendFile(pagesDirectory + "createPractitioner.html");
 });
