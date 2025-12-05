@@ -97,7 +97,7 @@ spring:
     driverClassName: org.postgresql.Driver
     # max-active: 15     # (ignored with HikariCP; use hikari.maximum-pool-size)
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 20
   jpa:
     hibernate:
       ddl-auto: update
@@ -205,9 +205,9 @@ hapi:
           # compatibility_level: "1.5"
           error_level: Info
           signature_level: All
-          # analyze_data_requirements: false
-          # collapse_data_requirements: false
-          # translator_format: JSON
+          analyze_data_requirements: true
+          collapse_data_requirements: true
+          translator_format: JSON
           # enable_date_range_optimization: true
           enable_annotations: true
           enable_locators: true
@@ -334,7 +334,9 @@ hapi:
     cors:
       allow_Credentials: true
       allowed_origin:
-        - "*"
+        # - "*"
+        - "http://localhost:3000"
+        - "http://localhost:8080"
 
     # -------------------------------------------------------------------------------
     # L. Search Orchestration
@@ -388,7 +390,7 @@ hapi:
 
     # Allow fetching up to 500 items in one request.
     # Vital for your "Medical History Graph" so Node.js can get all data in 1-2 calls.
-    max_page_size: 500
+    max_page_size: 1000
 
     # Keep search results in memory for 10 minutes to speed up repeated graph loads
     retain_cached_searches_mins: 10
@@ -405,9 +407,9 @@ hapi:
     # ---------------------------------------------------------------------------
     # Moves large files (images/PDFs) out of the Database and onto the Hard Drive.
     # This keeps PostgreSQL fast and lean.
-    # binary_storage_enabled: true
-    # binary_storage_mode: FILESYSTEM
-    # binary_storage_filesystem_base_directory: /target/binstore
+    binary_storage_enabled: true
+    binary_storage_mode: FILESYSTEM
+    binary_storage_filesystem_base_directory: /target/binstore
 
     # Files smaller than 4KB (like text notes) stay in the DB for speed.
     # Files larger than 4KB go to the /binstore folder.

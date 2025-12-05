@@ -19,42 +19,74 @@ async function getPatientById(patientId) {
     }
   }
 }
-// Create patient with specific ID
-async function createPatientWithSpecificId(patientData, patientId) {
+// Create patient with Specific ID
+async function createPatientWithSpecificId(patientData) {
+  const patientId = patientData.id;
+
+  if (!patientId) {
+    throw new Error(
+      "The JSON body is missing the required 'id' field for this operation."
+    );
+  }
   const fhirPatientResource = {
-    ...patientData, // Spread the incoming data
     resourceType: "Patient",
-    id: patientId,
+    ...patientData,
   };
+
+  console.log(`Attempting to PUT patient to /Patient/${patientId}`);
 
   try {
     const response = await fhirApi.put(
       `/Patient/${patientId}`,
       fhirPatientResource
     );
-    return response.data; // Return raw response (or transform if you want consistency)
+    return response.data;
   } catch (error) {
-    if (error.response && error.response.status === 400) {
+    if (error.response) {
+      console.error("FHIR Server Error Status:", error.response.status);
       console.error(
-        "HAPI FHIR Validation Error:",
+        "FHIR Validation Details:",
         JSON.stringify(error.response.data, null, 2)
       );
-      throw new Error("FHIR server rejected the patient resource. Check data.");
+
+      const issueText = error.response.data.issue
+        ? error.response.data.issue
+            .map((i) => `${i.diagnostics || i.code}`)
+            .join(", ")
+        : error.response.statusText;
+
+      throw new Error(`FHIR Validation Failed: ${issueText}`);
     } else {
-      console.error("FHIR Server Error:", error.message);
+      console.error("Network/Server Error:", error.message);
       throw new Error("Could not connect to the FHIR server.");
     }
   }
 }
+
 // Create patient (Server assigns ID)
 async function createPatient(patientData) {
   const fhirPatientResource = {
-    ...patientData,
     resourceType: "Patient",
+    name: [
+      {
+        use: "official",
+        family: patientData.lastName,
+        given: [patientData.firstName],
+      },
+    ],
+    telecom: [
+      {
+        system: "email",
+        value: patientData.email,
+        use: "home",
+      },
+    ],
+    birthDate: patientData.birthDate,
   };
 
   try {
     const response = await fhirApi.post("/Patient", fhirPatientResource);
+
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 400) {
@@ -69,6 +101,7 @@ async function createPatient(patientData) {
     }
   }
 }
+
 // Delete patient by ID
 async function deletePatientById(patientId) {
   try {
