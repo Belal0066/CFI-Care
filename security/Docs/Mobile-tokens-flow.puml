@@ -46,4 +46,23 @@ Keycloak -> MobileApplication : new Access token , new Refresh token , new ID to
 MobileApplication -> nginx : API call with new Access token
 
 end
+
+== Logout Flow (Mobile — Per-session) ==
+User -> MobileApplication : Tap "Sign out"
+MobileApplication -> API (nginx) : POST /auth/logout { sessionId or accessToken }
+nginx -> NodeJS : /auth/logout -> call RevocationService
+RevocationService -> Redis : DEL oauth2_proxy:session:<id>
+RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token) 
+NodeJS -> MobileApplication : 200 OK
+MobileApplication -> User : Signed out (this device)
+
+== Logout Flow (Mobile — Global across mobile devices) ==
+User -> MobileApplication : Tap "Sign out of all mobile devices"
+MobileApplication -> API (nginx) : POST /auth/logout?scope=global
+nginx -> NodeJS : /auth/logout -> call RevocationService { userId, deviceType=mobile }
+RevocationService -> Redis : DEL keys matching userId and deviceType=mobile
+RevocationService -> Keycloak Admin API : POST /admin/realms/{realm}/users/{id}/logout 
+RevocationService -> NodeJS : 200 OK
+NodeJS -> MobileApplication : redirect or success
+MobileApplication -> User : all mobile sessions signed out
 @enduml

@@ -14,5 +14,5 @@ done
 log_message "Docker is running. Starting containers..."
 
  cd ./security/Containers/
- docker compose -f docker-compose-nginx.yml up
+ docker compose -f docker-compose-nginx.yml up 
 log_message "Containers started successfully"

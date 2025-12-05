@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { randomUUID } = require('crypto');
+// const cookieParser = require('cookie-parser');
 
 
 //pateint , auth
@@ -17,6 +18,8 @@ app.use(cors());
 
 app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
 
+
+//timing middleware
 app.use((req, res, next) => {
   try {
     req._id = (typeof randomUUID === 'function') ? randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
@@ -40,19 +43,20 @@ const path = require('path');
 
 app.use(express.static(path.join(__dirname, '../../../security/Containers/static')));
 
+
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../../security/Containers/static', 'test-fetch-patient.html'));
 });
 
 //logging for auth :/
-app.use((req, res, next) => {
-  console.log(`[req ${req._id}] Incoming auth headers:`, {
-    authorization: req.headers.authorization,
-    x_access_token: req.headers['x-access-token'],
-    x_auth_request_access_token: req.headers['x-auth-request-access-token'],
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log(`[req ${req._id}] Incoming auth headers:`, {
+//     authorization: req.headers.authorization,
+//     x_access_token: req.headers['x-access-token'],
+//   });
+//   next();
+// });
 
 app.post('/timing', (req, res) => {
   try {
@@ -64,7 +68,7 @@ app.post('/timing', (req, res) => {
   return res.sendStatus(204);
 });
 
-
+// app.use(cookieParser());
 app.use("/auth", authRoutes);
 
 

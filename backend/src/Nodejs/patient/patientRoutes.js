@@ -7,8 +7,7 @@ const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
 
 //Authz tokens 
-// const { verifyToken } = require('../middleware/keycloakJWT');
-// router.use(verifyToken(process.env.EXPECTED_AUDIENCE));
+const { verifyToken } = require('../middleware/keycloakJWT');
 
 //scopes
 const requireScopes = require('../middleware/validateScopes');
@@ -31,17 +30,18 @@ router.get('/', attachForwardedToken, patientController.getCurrentPatient);
 router.put(
   "/:id",
   // validateRequest(createPatientSchema),
+  attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rw']),
   patientController.createPatientWithSpecificId
 );
 
 
 
 
-router.get("/:id", attachForwardedToken, requireScopes(['patient/*.rs']), patientController.getPatientById);
+router.get("/:id", attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rs']), patientController.getPatientById);
 
-//still need to add these scopes :/
-router.get("/:id/related-data", patientController.getPatientAllRelatedData);
-router.get("/:id/observations", patientController.getPatientObservations);
-router.get("/:id/encounters", patientController.getPatientEncounters);
+//still need to add scopes :/
+router.get("/:id/related-data",attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientAllRelatedData);
+router.get("/:id/observations", attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientObservations);
+router.get("/:id/encounters", attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientEncounters);
 
 module.exports = router;
