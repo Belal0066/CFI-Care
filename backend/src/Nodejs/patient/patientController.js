@@ -14,6 +14,7 @@ const createPatientWithSpecificId = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 const createPatient = async (req, res) => {
   try {
     const patientData = req.body;

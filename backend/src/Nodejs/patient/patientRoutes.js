@@ -12,7 +12,7 @@ router.post(
   patientController.createPatient
 );
 
-router.put("/:id", patientController.createPatientWithSpecificId);
+router.put("/", patientController.createPatientWithSpecificId);
 
 router.get("/:id", patientController.getPatientById);
 router.get("/:id/related-data", patientController.getPatientAllRelatedData);
