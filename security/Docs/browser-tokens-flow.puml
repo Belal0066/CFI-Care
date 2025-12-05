@@ -74,6 +74,30 @@ nginx -> Browser : 401 Unauthorized
 Browser -> User : prompt to login again (User Login Flow)
 end
 
+== Logout Flow (Per-session) ==
+User -> Browser : Click "Sign out"
+Browser -> nginx : POST /auth/logout (or navigate to /auth/logout)
+nginx -> NodeJS : /auth/logout handler (optional) OR proxy to /oauth2/sign_out
+alt using revocation microservice
+    NodeJS -> RevocationService : POST /revoke-session { sessionId/cookie }
+    RevocationService -> Redis : DEL oauth2proxy:session:<id>
+    RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token)
+    RevocationService -> NodeJS : 200 OK
+end
+nginx -> oauth2Proxy : POST /oauth2/sign_out (clears cookie)
+oauth2Proxy -> Browser : Set-Cookie (expire), redirect to frontend (/)
+Browser -> User : Signed out (current device)
+
+== Logout Flow (Global) ==
+User -> Browser : Click "Sign out of all devices"
+Browser -> nginx : POST /auth/logout?global=true
+nginx -> NodeJS : /auth/logout -> call RevocationService (global)
+NodeJS -> RevocationService : POST /revoke-user { userId, global: true }
+RevocationService -> Keycloak Admin API : POST /admin/realms/{realm}/users/{id}/logout
+RevocationService -> Redis : DEL keys matching user sessions (pattern)
+RevocationService -> NodeJS : 200 OK
+NodeJS -> Browser : redirect to '/'
+Browser -> oauth2Proxy : (old cookies invalid) /oauth2/auth -> requires login
 @enduml
 
 ' alt access token expired

@@ -1,5 +1,5 @@
 upstream backend_node{
-  server host.docker.internal:3000;
+  server nodejs:3000;
 }
 
 server {
@@ -108,7 +108,8 @@ server {
   }
 
   location = /oauth2/sign_out {
-    if ($request_method != POST) {
+    
+    if ($request_method !~ ^(GET|POST)$) {
         return 405;
     }
 

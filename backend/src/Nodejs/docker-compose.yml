@@ -18,6 +18,7 @@ services:
     volumes:
     
     - ../../../security/Containers/static:/security/Containers/static:ro
+    - ../../../security/Containers/certs/rootCA.pem:/etc/ssl/certs/rootCA.pem:ro
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
