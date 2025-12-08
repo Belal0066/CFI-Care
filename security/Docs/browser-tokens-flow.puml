@@ -11,6 +11,28 @@ participant NodeJS
 participant Redis
 participant FHIR
 
+participant RevocationService
+
+
+
+
+==User Registration Flow==
+User -> Browser : Registration request 
+Browser -> Keycloak : Registration request from sign in page
+Keycloak -> Browser : Redirect to registration page
+Browser -> Keycloak : Submit registration details
+Keycloak -> Keycloak : Create user account
+Keycloak -> Browser : Registration successful, redirect to main page
+Browser -> User : Display form to complete profile data
+== Complete Profile Data ==
+User -> Browser : Fill in profile data form
+Browser -> nginx : Submit profile data
+nginx -> NodeJS : Forward profile data
+NodeJS -> FHIR : Create user profile resource
+FHIR -> NodeJS : Acknowledge profile creation
+NodeJS -> nginx : Acknowledge profile data saved
+nginx -> Browser : Redirect to main page
+Browser -> User : Display main page
 
 
 == User Login Flow ==
@@ -76,24 +98,23 @@ end
 
 == Logout Flow (Per-session) ==
 User -> Browser : Click "Sign out"
-Browser -> nginx : POST /auth/logout (or navigate to /auth/logout)
-nginx -> NodeJS : /auth/logout handler (optional) OR proxy to /oauth2/sign_out
-alt using revocation microservice
-    NodeJS -> RevocationService : POST /revoke-session { sessionId/cookie }
-    RevocationService -> Redis : DEL oauth2proxy:session:<id>
-    RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token)
-    RevocationService -> NodeJS : 200 OK
-end
-nginx -> oauth2Proxy : POST /oauth2/sign_out (clears cookie)
-oauth2Proxy -> Browser : Set-Cookie (expire), redirect to frontend (/)
-Browser -> User : Signed out (current device)
+Browser -> nginx : POST /auth/logout 
+nginx -> NodeJS : /auth/logout handler 
+NodeJS -> NodeJS : POST oauth2/sign_out { sessionId }
+oauth2 -> oauth2 : remove session
+oauth2 -> Keycloak : revoke tokens
+Keycloak-> Browser : display logout page
+Browser -> User : display confirmation
+User -> Browser : Confirm logout
+Browser -> Browser : redirect to login page
+
 
 == Logout Flow (Global) ==
 User -> Browser : Click "Sign out of all devices"
-Browser -> nginx : POST /auth/logout?global=true
+Browser -> nginx : POST /auth/logout-global
 nginx -> NodeJS : /auth/logout -> call RevocationService (global)
-NodeJS -> RevocationService : POST /revoke-user { userId, global: true }
-RevocationService -> Keycloak Admin API : POST /admin/realms/{realm}/users/{id}/logout
+NodeJS -> RevocationService : POST /revoke-user { userId}
+RevocationService -> Keycloak : POST /admin/realms/{realm}/users/{id}/logout
 RevocationService -> Redis : DEL keys matching user sessions (pattern)
 RevocationService -> NodeJS : 200 OK
 NodeJS -> Browser : redirect to '/'
