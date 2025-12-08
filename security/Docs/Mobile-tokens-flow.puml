@@ -10,6 +10,21 @@ participant Keycloak
 participant NodeJS
 participant Redis
 participant FHIR
+participant RevocationService
+==User Registration Flow==
+User -> MobileApplication : Registration request 
+MobileApplication -> Keycloak : Registration request
+Keycloak -> MobileApplication : Accept registration request
+MobileApplication -> Keycloak : Submit registration details
+Keycloak -> Keycloak : Create user account
+MobileApplication -> nginx : Patient profile data form
+nginx -> NodeJS : Forward profile data
+NodeJS -> FHIR : Create user profile resource
+FHIR -> NodeJS : Acknowledge profile creation
+NodeJS -> nginx : Acknowledge profile data saved
+nginx -> MobileApplication : Registration successful, redirect to main page
+MobileApplication -> User : Display main page
+
 
 
 == User Login Flow ==
@@ -49,7 +64,7 @@ end
 
 == Logout Flow (Mobile — Per-session) ==
 User -> MobileApplication : Tap "Sign out"
-MobileApplication -> API (nginx) : POST /auth/logout { sessionId or accessToken }
+MobileApplication -> nginx : POST /auth/logout { sessionId or accessToken }
 nginx -> NodeJS : /auth/logout -> call RevocationService
 RevocationService -> Redis : DEL oauth2_proxy:session:<id>
 RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token) 
@@ -58,10 +73,10 @@ MobileApplication -> User : Signed out (this device)
 
 == Logout Flow (Mobile — Global across mobile devices) ==
 User -> MobileApplication : Tap "Sign out of all mobile devices"
-MobileApplication -> API (nginx) : POST /auth/logout?scope=global
+MobileApplication -> nginx : POST /auth/logout?scope=global
 nginx -> NodeJS : /auth/logout -> call RevocationService { userId, deviceType=mobile }
 RevocationService -> Redis : DEL keys matching userId and deviceType=mobile
-RevocationService -> Keycloak Admin API : POST /admin/realms/{realm}/users/{id}/logout 
+RevocationService -> Keycloak : POST /admin/realms/{realm}/users/{id}/logout 
 RevocationService -> NodeJS : 200 OK
 NodeJS -> MobileApplication : redirect or success
 MobileApplication -> User : all mobile sessions signed out
