@@ -35,6 +35,8 @@ jobs:
         fi
     
     - name: Compile LaTeX document
+      id: latex_compile
+      continue-on-error: true
       uses: xu-cheng/latex-action@v3
       with:
         root_file: bachelor.tex
@@ -43,6 +45,15 @@ jobs:
         extra_system_packages: "py-pygments"
         latexmk_use_lualatex: false
         latexmk_use_xelatex: false
+    
+    - name: Verify PDF was created
+      run: |
+        if [ ! -f docs/Thesis/CFI_Care_Thesis/bachelor.pdf ]; then
+          echo "❌ Error: PDF file was not generated!"
+          exit 1
+        fi
+        echo "✅ PDF generated successfully ($(stat -c%s docs/Thesis/CFI_Care_Thesis/bachelor.pdf) bytes)"
+        ls -lh docs/Thesis/CFI_Care_Thesis/bachelor.pdf
     
     - name: Create ZIP archive of thesis sources
       run: |
