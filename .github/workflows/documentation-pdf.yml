@@ -1,5 +1,5 @@
 # .github/workflows/documentation-pdf.yml
-name: PDF Document Finalizer (PDF haha) v2.1 (v1 was IoT)
+name: PDF Document Finalizer (PDF) v2.1
 
 on:
   push:
