@@ -1,0 +1,168 @@
+@startuml Doctor Patient Access Granting
+actor Doctor
+participant Browser
+
+participant RAG
+
+
+participant nginx
+' participant oauth2Proxy
+
+' participant Keycloak
+
+participant NodeJS as NJS
+
+participant PatientDataRedis as PDR
+
+participant FHIR
+
+participant AccessRedis as AR
+
+participant RAGRedis as RR
+
+participant AuditLog
+
+participant Application as App
+actor Patient
+
+==Access Granting Flow==
+Patient -> App : Grant access to Dr (search by doctor ID)
+App -> nginx : access grant creation req{doctorId, scopes, expiresIn}
+nginx -> NJS : forward request with patient's access token
+
+NJS -> NJS : validate patient token & extract id
+' NJS -> FHIR : Verify patient owns their data (Patient resource)
+' FHIR -> NJS : Patient resource confirmed
+
+' NJS -> NJS : Validate requested scopes against patient's rights
+
+' NJS -> FHIR : Create Consent resource (FHIR R4)
+' FHIR -> NJS : Consent resource created with ID
+
+' access:grant:{patientId}:{doctorId}\nValue: {grantId, scopes, expiresAt}\nTTL: patient-specified duration
+' grantId : specific value for currently active session
+NJS -> AR : Store access grant Key 
+AR -> NJS : Grant stored successfully
+
+' event\n{patientId, doctorId, timestamp, scopes} , hal me7tagen keda tho?
+' NJS -> AuditLog : Log consent grant 
+' AuditLog -> NJS : Logged
+
+NJS -> nginx : Creation Confirmation
+nginx -> App : Grant created successfully
+App -> Patient : Display confirmation
+
+==Registered Doctor requesting access to patient data==
+Doctor -> Browser : search for patient (by id)
+Browser -> nginx : req to access patient data 
+nginx-> NJS: forward req
+
+NJS -> NJS : Extract doctorId from token
+NJS->AR : search access grants using dr id
+' NJS -> NJS : Filter search results
+alt Doctor has access to patient data
+
+' wala redis by3rf y search? 
+
+AR->NJS: return access grant 
+'needed??? check id pattren or ttl?
+NJS->NJS : verify grant's validity , validate scopes
+
+' active Id =001 for example
+NJS->AR : set grantId to active session Id
+' for now get all ptient dta for the rag
+NJS->FHIR: call everything API (by id)
+FHIR->NJS: all patient's data
+NJS-> PDR : cache data
+NJS->NJS: preprocess data as needed for rag
+NJS->RR: preprocessed data
+ 
+
+
+
+' NJS->PDR : check for cached Patient Data (by id)
+'     alt Patient Data already cached
+'     PDR-> NJS : return Main Data
+'     else Patient Data not cached
+'     PDR->NJS: return null
+'     NJS -> FHIR : fetch needed data (by id)
+'     FHIR-> NJS: return fetched data 
+'     NJS-> PDR : cache data
+'     end
+' NJS -> AuditLog : Log access
+NJS->nginx: forward OK response (requested patient data)
+nginx-> Browser: forward resp
+Browser-> Doctor: display requested patient data 
+
+
+' redis auto deletes expired data , double check :/
+
+' else Access Grant expired 
+' AR->NJS: 
+
+
+else Doctor has no access to this pateint's data
+AR->NJS: return null
+
+' NJs->AuditLog : Log unauthorized access attempt
+' NJS->nginx: return unauthorized response
+NJS->nginx: return OK resp (mask patinet's existence)
+nginx->Browser: forawrd resp (empty)
+' Browser-> Doctor: display unauthorized errro message
+Browser-> Doctor : display empty results (e.g no patient found)
+
+end
+
+' ==Doctor chose patient card to display full data==
+' Doctor->Browser: click patient card
+' Browser->nginx:request to full patient data
+' nginx->NJS : forward req (has access tokens)
+
+' NJS->AR : verify access (in case ttl has ended)
+
+
+==Doctor chooses report node==
+
+==LLM queries (after dr opens patient graph , start llm session?)==
+' Browser->RAG: start session (attach access token)
+' RAG->nginx : req access to data
+' nginx->NJS : forward req
+' NJS -> AR: verify access
+
+' alt valid access grant 
+' AR->NJS : return grant 
+' NJS-> RR : get patient data
+' RR-> NJS : return patient data
+' NJS-> nginx : forward patient data
+' nginx-> RAG : forward patient data
+
+' else invalid/expired grant (shouldn't happen , extra security)
+' AR->NJS : return null
+' NJS->nginx: return unauthorized response 
+' nginx-> RAG : forward unauthorized response
+' RAG->Browser: display access denied message
+
+
+' end
+
+RAG->RR : get data 
+
+==Patient Revokes access==
+' drs with access are listed??
+Patient -> App : revoke dr access 
+
+App->nginx: request deletion of access grant
+nginx->NJS : forward deletion request
+NJS -> AR : delete access grant 
+AR->NJS : deletion confirmation
+
+' NJS ->FHIR: update consent resourse to inactive
+' FHIR -> NJS : consent resource updated
+
+' NJS ->AuditLog : Log access revocation
+
+NJS-> nginx: return OK 
+nginx-> App: forward OK response
+App-> Patient: display revocation confirmation
+
+
