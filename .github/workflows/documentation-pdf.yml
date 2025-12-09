@@ -1,5 +1,5 @@
 # .github/workflows/documentation-pdf.yml
-name: Documentation PDF Builder
+name: PDF Document Finalizer (PDF haha) v2.1 (v1 was IoT)
 
 on:
   push:
@@ -60,7 +60,7 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git add docs/CFI_Care_Thesis_Latest.pdf docs/CFI_Care_Thesis_Source.zip
-        git diff --staged --quiet || git commit -m "docs: auto-update latest PDF and source ZIP [skip ci]"
+        git diff --staged --quiet || git commit -m "docs: auto-update PDF and ZIP by ${{ steps.info.outputs.committer }} [skip ci]"
         git push
     
     - name: Upload PDF as artifact (always)
@@ -107,7 +107,7 @@ jobs:
           body += `📦 Source ZIP updated at \`docs/CFI_Care_Thesis_Source.zip\`\n\n`;
           
           if (createRelease) {
-            body += `🎉 [Release created](${releaseUrl})`;
+            body += `🚀 [Release created](${releaseUrl})`;
           } else {
             body += `ℹ️ No release created (add \`[rel]\` to commit message to create one)`;
           }
@@ -139,7 +139,7 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: `❌ Documentation PDF build failed - ${context.sha.substring(0, 7)}`,
-            body: `## LaTeX Compilation Failed
+            body: `## LaTeX Compilation Failed: HATTFADA7 NOW!...
             
             **Branch:** \`Documentation\`
             **Commit:** ${context.sha}
@@ -151,13 +151,13 @@ jobs:
             ${{ github.event.head_commit.message }}
             \`\`\`
             
-            ### Action Required
-            Please review and fix the LaTeX errors, then push a correction.
+            ### Action Required HELPPPPPP!
+            Review and fix the LaTeX errors, then push a correction.
             
             **Build logs:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
             
             ---
-            💡 *This issue was automatically created. It will not prevent further pushes, but please fix the errors promptly.*`,
+            💡 *This issue was automatically created. It will not prevent further pushes, but please fix the errors :(*`,
             labels: ['documentation', 'build-failure', 'needs-fix']
           });
           
