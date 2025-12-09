@@ -39,8 +39,9 @@ jobs:
       with:
         root_file: bachelor.tex
         working_directory: docs/Thesis/CFI_Care_Thesis
-        args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
+        args: -pdf -file-line-error -interaction=nonstopmode -bibtex
         extra_system_packages: "py-pygments"
+        latexmk_use_lualatex: false
         latexmk_use_xelatex: false
     
     - name: Create ZIP archive of thesis sources
