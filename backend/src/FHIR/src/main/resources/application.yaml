@@ -91,12 +91,12 @@ spring:
     fail-on-missing-locations: false
 
   datasource:
-    url: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/fhir_db?sslmode=require
-    username: neondb_owner
-    password: npg_WlFfbh7akAz0
-    # url: jdbc:postgresql://localhost:5432/fhir_db
-    # username: adminuser
-    # password: 1174
+    # url: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/fhir_db?sslmode=require
+    # username: neondb_owner
+    # password: npg_WlFfbh7akAz0
+    url: jdbc:postgresql://localhost:5432/fhir_db
+    username: adminuser
+    password: 1174
     driverClassName: org.postgresql.Driver
     # max-active: 15     # (ignored with HikariCP; use hikari.maximum-pool-size)
     hikari:
@@ -414,9 +414,9 @@ hapi:
     binary_storage_mode: FILESYSTEM
     binary_storage_filesystem_base_directory: /target/binstore
 
-    # Files smaller than 4KB (like text notes) stay in the DB for speed.
-    # Files larger than 4KB go to the /binstore folder.
-    inline_resource_storage_below_size: 4000
+    # Files smaller than 10MB (like text notes) stay in the DB for speed.
+    # Files larger than 10MB go to the /binstore folder.
+    inline_resource_storage_below_size: 10000000
 
     # -------------------------------------------------------------------------------
     # P. Remote Terminology Service (disabled by default)

@@ -1,5 +1,19 @@
 const EOCService = require("./eocService");
 
+const getEncountersByEpisodeOfCareId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const encounters = await EOCService.getEncountersByEpisodeOfCareId(id);
+    res.status(200).json(encounters);
+  } catch (error) {
+    console.error(
+      "Error in getEncountersByEpisodeOfCareId controller:",
+      error.message
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const createEpisodeOfCareWithSpecificId = async (req, res) => {
   try {
     const eocData = req.body;
@@ -32,4 +46,5 @@ const getEpisodeOfCareById = async (req, res) => {
 module.exports = {
   createEpisodeOfCareWithSpecificId,
   getEpisodeOfCareById,
+  getEncountersByEpisodeOfCareId,
 };

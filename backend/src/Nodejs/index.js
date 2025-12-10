@@ -9,6 +9,7 @@ const patientRoutes = require("./patient/patientRoutes");
 const practitonerRoutes = require("./practioner/practionerRoutes");
 const eocRoutes = require("./episodeOfCare/eocRoutes");
 const conditionRoutes = require("./condition/conditionRoutes");
+const binaryRoutes = require("./binary/binaryRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/practitioners", practitonerRoutes);
 app.use("/api/episodeOfCare", eocRoutes);
 app.use("/api/conditions", conditionRoutes);
+app.use("/api/binary", binaryRoutes);
 
 app.get("/CreatePatient", (req, res) => {
   res.sendFile(pagesDirectory + "createPatient.html");

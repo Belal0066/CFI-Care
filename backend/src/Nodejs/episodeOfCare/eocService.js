@@ -6,6 +6,24 @@ const fhirApi = axios.create({
   },
 });
 
+// Get Encounters related to an EpisodeOfCare
+async function getEncountersByEpisodeOfCareId(eocId) {
+  try {
+    const response = await fhirApi.get(`/Encounter`, {
+      params: {
+        // CORRECTION: Use 'episode-of-care' instead of 'episodeofcare'
+        "episode-of-care": eocId,
+      },
+    });
+    return response.data.entry
+      ? response.data.entry.map((e) => e.resource)
+      : [];
+  } catch (error) {
+    console.error("FHIR Server Error:", error.message);
+    throw new Error("Could not connect to the FHIR server.");
+  }
+}
+
 // Fetch EpisodeOfCare by ID
 async function getEpisodeOfCareById(eocId) {
   try {
@@ -62,4 +80,5 @@ async function createEpisodeOfCareWithSpecificId(eocData) {
 module.exports = {
   getEpisodeOfCareById,
   createEpisodeOfCareWithSpecificId,
+  getEncountersByEpisodeOfCareId,
 };
