@@ -11,7 +11,6 @@ async function getEncountersByEpisodeOfCareId(eocId) {
   try {
     const response = await fhirApi.get(`/Encounter`, {
       params: {
-        // CORRECTION: Use 'episode-of-care' instead of 'episodeofcare'
         "episode-of-care": eocId,
       },
     });
@@ -41,21 +40,33 @@ async function getEpisodeOfCareById(eocId) {
 
 // Create EpisodeOfCare with Specific ID
 async function createEpisodeOfCareWithSpecificId(eocData) {
-  const eocId = eocData.id;
-  if (!eocId) {
-    throw new Error("EpisodeOfCare ID is required");
+  // FIX: Guard clause to prevent "Cannot read properties of undefined"
+  if (!eocData) {
+    throw new Error(
+      "createEpisodeOfCareWithSpecificId Error: 'eocData' argument is missing or undefined."
+    );
   }
+
+  const eocId = eocData.id;
+
+  if (!eocId) {
+    throw new Error("EpisodeOfCare ID is required inside the data object");
+  }
+
   const fhirEOCResource = {
     resourceType: "EpisodeOfCare",
     ...eocData,
   };
+
   console.log(`Attempting to PUT EpisodeOfCare to /EpisodeOfCare/${eocId}`);
+
   try {
     const response = await fhirApi.put(
       `/EpisodeOfCare/${eocId}`,
       fhirEOCResource
     );
-    return response.data;
+    // return { data: response.data, id: response.data.id };
+    return { data: response.data, id: response.data.id };
   } catch (error) {
     if (error.response) {
       console.error("FHIR Server Error Status:", error.response.status);
