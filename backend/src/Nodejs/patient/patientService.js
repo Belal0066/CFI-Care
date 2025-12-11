@@ -143,6 +143,7 @@ async function getPatientAllRelatedData(patientId) {
     throw new Error("Could not fetch patient related data.");
   }
 }
+
 // Fetch the resource change history for all resources of patient
 async function getPatientHistory(patientId) {
   try {
