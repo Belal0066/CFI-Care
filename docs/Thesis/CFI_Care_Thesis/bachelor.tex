@@ -1,43 +1,36 @@
-\documentclass[12pt, a4paper]{book}%, oneside
-
+\documentclass[12pt, a4paper, oneside]{book}
 \usepackage[headings]{fullpage}
-\usepackage{setspace}
-
-% \usepackage[top=1.5cm,right=1.5cm,bottom=1.5cm,left=1.5cm]{geometry}
-% \usepackage{fancyhdr}
-% \setlength{\headheight}{20pt} 
-% \usepackage{graphics}
+\usepackage{graphics}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{subfig}
 \usepackage{array}
-% \usepackage{xtab}
 \usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{appendix}
 \usepackage[pdfborder={0 0 0}, colorlinks=true, linkcolor=black, citecolor=blue]{hyperref}
-\usepackage[printonlyused]{acronym}
+\usepackage{acronym}
 \usepackage{algorithmic}
 \usepackage{algorithm}
 \usepackage{ifpdf}
-% \setlength{\parindent}{0pt}
+\usepackage{caption}
+\nocite{*}
 
-\newcommand{\submissionDay}{XX}
-\newcommand{\submissionMonth}{July}
-\newcommand{\submissionYear}{20XX}
+\newcommand{\submissionDay}{04}
+\newcommand{\submissionMonth}{April}
+\newcommand{\submissionYear}{2025}
 \newcommand{\submissionDate}{\submissionDay~\submissionMonth,~\submissionYear}
-\newcommand{\typeOfThesis}{Bachelor Thesis}
+\newcommand{\typeOfThesis}{Graduation Project Thesis}
 
-\newcommand{\titleOfThesisOne}{Collaborative Flow of Intelligence for Care }
+\newcommand{\titleOfThesisOne}{CFI - Care: Collaborative Flow of Intelligence for Care}
 
-\newcommand{\authorOfThesis}{Mo Salah}
-\newcommand{\authorOfThesis}{Joe Tamer}
-\newcommand{\authorOfThesis}{Salma Y}
-\newcommand{\authorOfThesis}{Salma W}
-\newcommand{\authorOfThesis}{Belal Anas}
-\newcommand{\supervisorOne}{Sup 1}
-\newcommand{\supervisorTwo}{Sup 2}
-\newcommand{\supervisorThree}{Sup 3}
+\newcommand{\authorOfThesis}{Mohamed Salah Fathy 21P0117}
+\newcommand{\authorOfThesisTwo}{Youssef Tamer Hossam 21P0138}
+\newcommand{\authorOfThesisThree}{Salma Hisham Hassan Wagdy 21P0124}
+\newcommand{\authorOfThesisFour}{Salma Mohamed Abdelmonem 21P0148}
+\newcommand{\authorOfThesisFive}{Belal Anas Awad 21P0072}
+
+\newcommand{\supervisorOne}{Dr Haitham Azmi}
 
 \newcommand{\includefig}[4]{
     \begin{figure}[ht]
@@ -65,7 +58,6 @@
 \includefigWSC{#1}{#2.eps}{#3}{#4}{#5}
 }
 
-
 \ifpdf
 \pdfinfo {
 	/Author (\authorOfThesis)
@@ -77,39 +69,49 @@
 \fi
 
 \begin{document}
-% \overfullrule=5pt
 \pagestyle{plain}
 \pagenumbering{Roman}
 
-\include{GUC_TitlePage}
-
-\include{acknowledgments}
-
+\include{ASU_TitlePage}
 \include{abstract}
 \tableofcontents
-% \addcontentsline{toc}{chapter}{Contents}
 \clearpage 
 
 \pagestyle{headings}
 \pagenumbering{arabic}
-
-% \setlength\parskip{15pt}
-\setlength\parskip{.5\baselineskip plus .2\baselineskip
-	minus .4\baselineskip}
-% \setlength\parskip{.5\baselineskip \@plus .1\baselineskip \@minus ..1\baselineskip}
-
+\setlength\parskip{.5\baselineskip plus .2\baselineskip minus .4\baselineskip}
 
 \include{introduction}
-\include{background}
-
-% add more chapters here
-
+\include{security}
 \include{conclusion}
-\include{future_work}
 \include{appendix}
 
-\bibliographystyle{plain}
-\bibliography{bachelor}
-\addcontentsline{toc}{chapter}{References}
+% Change "Bibliography" to "References"
+\renewcommand{\bibname}{References}
+
+% Manually adding references
+% \addcontentsline{toc}{chapter}{References}
+% \begin{thebibliography}{9}
+
+% \bibitem{gns3doc}
+% GNS3, \textit{GNS3 Documentation}, GNS3, \url{https://docs.gns3.com/docs/using-gns3/advanced/connect-gns3-internet/}, Accessed: 2025-04-04.
+
+% \bibitem{microsoftKMTest}
+% Microsoft, \textit{Microsoft KM Test Loopback Adapter Doesn't Recognize}, \url{https://learn.microsoft.com/en-us/answers/questions/1279010/microsoft-km-test-loopback-adapter-doesnt-recogniz}, Accessed: 2025-04-04.
+
+% \bibitem{gns3loopback}
+% Network Engineering Stack Exchange, \textit{How to Connect GNS3 to Loopback Adapter on Windows 10}, \url{https://networkengineering.stackexchange.com/questions/80167/how-to-connect-gns3-to-loopback-adapter-on-windows-10}, Accessed: 2025-04-04.
+
+% \bibitem{gns3reddit}
+% Reddit, \textit{GNS3 Cisco Router via Cloud Can't Ping to Loopback}, \url{https://www.reddit.com/r/gns3/comments/1cnpnvt/gns3_cisco_router_via_cloud_cant_ping_to_loopback/?rdt=54255}, Accessed: 2025-04-04.
+
+% \bibitem{sysnettechsolutions}
+% Sysnettech Solutions, \textit{Cisco IOS Download for GNS3}, \url{https://www.sysnettechsolutions.com/en/cisco-ios-download-for-gns3/}, Accessed: 2025-04-04.
+
+% \bibitem{gns3youtube}
+% YouTube, \textit{GNS3 Tutorial}, \url{https://www.youtube.com/watch?v=ErzQ_Lcx9uo}, Accessed: 2025-04-04.
+
+
+% \end{thebibliography}
 
 \end{document}

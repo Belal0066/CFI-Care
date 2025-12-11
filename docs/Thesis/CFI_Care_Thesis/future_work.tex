@@ -1,3 +1,23 @@
 \chapter{Future Work}
 \label{chap:todo}
-Text
+
+This project demonstrated the successful setup and configuration of SNMP (Simple Network Management Protocol) using a simulated Cisco router environment. While the core objectives were achieved, there are several directions for future development and improvement that can enhance both the functionality and the depth of network management capabilities.
+
+\begin{itemize}
+    \item \textbf{Implementing SNMPv3:} The current configuration focused on SNMPv1 and SNMPv2, which lack encryption and authentication features. Future work could include configuring SNMPv3 to enhance security through message integrity, authentication, and privacy.
+
+    \item \textbf{Automated Monitoring and Notifications:} Instead of manually monitoring SNMP traps, future implementations could use Python scripts (e.g., using the \texttt{pysnmp} library) to automatically detect and respond to specific trap messages, such as generating real-time alerts for link status changes.
+
+    \item \textbf{Testing with Real Devices:} Although the setup used GNS3 for simulation, testing the SNMP configurations on physical Cisco routers or switches would provide more realistic insights and uncover practical challenges in a live network environment.
+
+    \item \textbf{Scalable Multi-Agent Topologies:} Expanding the simulation to include multiple SNMP agents and managers would allow testing scalability and observing SNMP traffic behavior in larger, more complex networks.
+
+    \item \textbf{Custom MIB Implementation:} Future enhancements could involve developing and integrating custom MIBs (Management Information Bases) to monitor specific metrics not covered by default system MIBs, allowing for tailored network management solutions.
+
+    \item \textbf{Performance Analysis and Comparison:} Using tools like Wireshark, further studies can compare SNMP performance (e.g., latency, packet size, reliability) across SNMP versions under different network conditions.
+
+
+
+\end{itemize}
+
+
