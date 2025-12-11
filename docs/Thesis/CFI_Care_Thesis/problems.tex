@@ -1,67 +1,67 @@
 \chapter{Problems \& Solutions}
 \section{Problems Faced During the Project}
 
-Initially, we encountered connectivity issues between the router and the cloud.
+% Initially, we encountered connectivity issues between the router and the cloud.
 
-The router was unable to ping the cloud, and similarly, the cloud could not ping the router.
+% The router was unable to ping the cloud, and similarly, the cloud could not ping the router.
 
-To investigate, we monitored ARP activity. The cloud was repeatedly sending ARP requests in an attempt to discover the router's MAC address. Although the router responded with ARP replies, these replies did not reach the cloud. As a result, the cloud failed to learn the router’s MAC address. This led us to suspect that the problem was with the cloud’s interface.
+% To investigate, we monitored ARP activity. The cloud was repeatedly sending ARP requests in an attempt to discover the router's MAC address. Although the router responded with ARP replies, these replies did not reach the cloud. As a result, the cloud failed to learn the router’s MAC address. This led us to suspect that the problem was with the cloud’s interface.
 
-To confirm this, we added a second router (R2) to the topology and tested connectivity between R1 and R2. The ping test between the two routers succeeded, confirming that the issue was isolated to the cloud interface.
+% To confirm this, we added a second router (R2) to the topology and tested connectivity between R1 and R2. The ping test between the two routers succeeded, confirming that the issue was isolated to the cloud interface.
 
-We then focused on the Microsoft Loopback Adapter, which was the interface connected to the cloud in GNS3.
+% We then focused on the Microsoft Loopback Adapter, which was the interface connected to the cloud in GNS3.
 
-To resolve the issue, we took the following steps:
+% To resolve the issue, we took the following steps:
 
-\begin{itemize}
-    \item Temporarily disabled the Windows Defender Firewall.
-    \item Uninstalled \texttt{Npcap}, which had been installed by default.
-    \item Installed \texttt{WinPcap}, known for more stable integration with the GNS3 cloud.
-\end{itemize}
+% \begin{itemize}
+%     \item Temporarily disabled the Windows Defender Firewall.
+%     \item Uninstalled \texttt{Npcap}, which had been installed by default.
+%     \item Installed \texttt{WinPcap}, known for more stable integration with the GNS3 cloud.
+% \end{itemize}
 
-After these changes, connectivity was successfully restored. Both the router and the cloud were able to ping each other.
+% After these changes, connectivity was successfully restored. Both the router and the cloud were able to ping each other.
 
-\textbf{Note:} The cloud was connected via \texttt{Loop1}, which corresponds to the Microsoft Loopback Adapter on our host system.
+% \textbf{Note:} The cloud was connected via \texttt{Loop1}, which corresponds to the Microsoft Loopback Adapter on our host system.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\linewidth]{bachelor_thesis_template/Problems/Picture1.jpg}
-    \caption{Cloud Pinging Router, Showing Failure to Connect}
-    \label{fig:enter-label}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.8\linewidth]{bachelor_thesis_template/Problems/Picture1.jpg}
+%     \caption{Cloud Pinging Router, Showing Failure to Connect}
+%     \label{fig:enter-label}
+% \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\linewidth]{bachelor_thesis_template/Problems/Picture2.jpg}
-    \caption{Failure of Router to Ping Cloud}
-    \label{fig:enter-label}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.8\linewidth]{bachelor_thesis_template/Problems/Picture2.jpg}
+%     \caption{Failure of Router to Ping Cloud}
+%     \label{fig:enter-label}
+% \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\linewidth]{bachelor_thesis_template/Problems/Picture3.jpg}
-    \caption{Cloud Broadcasting IP Address of Router to Connect, But }
-    \label{fig:enter-label}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.7\linewidth]{bachelor_thesis_template/Problems/Picture3.jpg}
+%     \caption{Cloud Broadcasting IP Address of Router to Connect, But }
+%     \label{fig:enter-label}
+% \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Problems/Picture4.jpg}
-    \caption{Testing Ping between two Routers in GNS3}
-    \label{fig:enter-label}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Problems/Picture4.jpg}
+%     \caption{Testing Ping between two Routers in GNS3}
+%     \label{fig:enter-label}
+% \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Problems/Picture5.jpg}
-    \caption{Network Topology to Test Connection}
-    \label{fig:enter-label}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Problems/Picture5.jpg}
+%     \caption{Network Topology to Test Connection}
+%     \label{fig:enter-label}
+% \end{figure}
 
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Problems/Picture6.png}
-    \caption{After Uninstalling Npcap, Connection Successful between Router and Adapter}
-    \label{fig:enter-label}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Problems/Picture6.png}
+%     \caption{After Uninstalling Npcap, Connection Successful between Router and Adapter}
+%     \label{fig:enter-label}
+% \end{figure}
