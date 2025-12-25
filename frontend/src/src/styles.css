@@ -1,0 +1,195 @@
+:root {
+    --primary: #2D5BFF;      /* MedFlow Blue */
+    --danger: #FF4D4F;       /* Red */
+    --text-dark: #1F2937;
+    --text-gray: #6B7280;
+    --bg-light: #F3F4F6;
+    --border-color: #E5E7EB;
+    --white: #ffffff;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-light);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+body.dark-mode {
+    --primary: #3B82F6;
+    --danger: #EF4444;
+    --text-dark: #F9FAFB;
+    --text-gray: #D1D5DB;
+    --bg-light: #111827;
+    --border-color: #374151;
+    --white: #1F2937;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode specific overrides */
+body.dark-mode {
+  background: #0F172A;
+}
+
+body.dark-mode header {
+  background: #1E293B;
+  border-bottom-color: #334155;
+}
+
+body.dark-mode #tree {
+  background: #1E293B;
+}
+
+body.dark-mode .toggle-group {
+  background: #334155;
+}
+
+body.dark-mode .toggle-btn.active {
+  background: #475569;
+  color: #60A5FA;
+}
+
+body.dark-mode #filtersPanel {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+body.dark-mode #legend {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: #334155;
+}
+
+body.dark-mode #nodeDetailsSidebar {
+  background: #1E293B;
+  border-left-color: #334155;
+}
+
+body.dark-mode .sidebar-header {
+  border-bottom-color: #334155;
+}
+
+body.dark-mode #editForm {
+  background: #1E293B;
+}
+
+body.dark-mode .modal-header {
+  background: #334155;
+  border-bottom-color: #475569;
+}
+
+body.dark-mode #editForm input,
+body.dark-mode #editForm select,
+body.dark-mode #editForm textarea {
+  background: #334155;
+  border-color: #475569;
+  color: #F9FAFB;
+}
+
+body.dark-mode #cancelEditBtn {
+  background: #334155;
+  color: #F9FAFB;
+}
+
+body.dark-mode .btn-secondary {
+  background: #334155;
+  border-color: #475569;
+  color: #F9FAFB;
+}
+
+body.dark-mode .btn-secondary:hover {
+  background: #475569;
+}
+
+body.dark-mode .detail-value {
+  color: #F9FAFB;
+}
+
+body.dark-mode .sidebar-header h3 {
+  color: #F9FAFB;
+}
+
+body.dark-mode .detail-label {
+  color: #9CA3AF;
+}
+
+body.dark-mode .tag {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tag[style*="background:#f3f4f6"] {
+  background: #374151 !important;
+  color: #D1D5DB !important;
+}
+
+body.dark-mode .detail-value[style*="background:#f9fafb"] {
+  background: #1F2937 !important;
+  color: #E5E7EB !important;
+  border: 1px solid #374151;
+}
+
+body.dark-mode .tag-normal {
+  background: #1E3A8A;
+  color: #BFDBFE;
+}
+
+body.dark-mode .tag-abnormal {
+  background: #78350F;
+  color: #FDE68A;
+}
+
+body.dark-mode .tag-critical {
+  background: #7F1D1D;
+  color: #FECACA;
+}
+
+/* Dark mode for SVG timeline */
+body.dark-mode svg {
+  background: #1E293B !important;
+}
+
+body.dark-mode .timeline-node-details {
+  color: #F9FAFB;
+}
+
+body.dark-mode path {
+  stroke: #475569 !important;
+}
+
+/* Add this after the existing button styles */
+.dark-mode-toggle {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 999;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.dark-mode-toggle:hover {
+  transform: scale(1.1);
+  background: var(--bg-light);
+}
+
+body.dark-mode .dark-mode-toggle {
+  background: #334155;
+  border-color: #475569;
+  color: #FCD34D;
+}

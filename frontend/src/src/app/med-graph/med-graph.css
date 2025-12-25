@@ -1,0 +1,398 @@
+/* --- Header --- */
+header {
+    /* Critical Fixes for Fixed Positioning */
+    position: fixed; /* Lock header to the viewport */
+    top: 0;
+    left: 0;
+    width: 100%; /* Ensure it spans the full viewport width */
+
+    /* Original Styles */
+    height: 64px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    justify-content: space-between;
+    z-index: 100; /* Keep it on top */
+}
+
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border-color);
+}
+
+.page-title {
+    font-size: 14px;
+    color: var(--text-gray);
+}
+
+.controls-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Button Styles to match Image */
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+.btn-primary:hover { background: #1a45e6; }
+
+.btn-danger-outline {
+    background: white;
+    border: 1px solid #fee2e2;
+    color: var(--danger);
+}
+.btn-danger-outline:hover { background: #fef2f2; border-color: var(--danger); }
+
+.btn-secondary {
+    background: white;
+    border: 1px solid var(--border-color);
+    color: var(--text-dark);
+}
+.btn-secondary:hover { background: #f9fafb; }
+
+.toggle-group {
+    display: flex;
+    background: #F3F4F6;
+    padding: 2px;
+    border-radius: 6px;
+    margin-left: 12px;
+}
+.toggle-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    color: var(--text-gray);
+    background: transparent;
+}
+.toggle-btn.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    font-weight: 500;
+}
+
+/* --- Main Canvas --- */
+.main-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+}
+
+#tree {
+    flex: 1;
+    background: var(--white); /* Clean white background as per image */
+    overflow: hidden; /* Treeviz handles scrolling usually */
+}
+
+/* --- Filters Panel (Replacing the floating text) --- */
+    #filtersPanel {
+    position: absolute;
+    top: 60px;
+    left: 24px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    width: 280px;
+    z-index: 90;
+    display: none; /* Hidden by default, toggled by button */
+    }
+#filtersPanel.show { display: block; }
+
+.filter-group h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-gray);
+    margin: 12px 0 8px 0;
+    letter-spacing: 0.5px;
+}
+.filter-group h4:first-child { margin-top: 0; }
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-dark);
+}
+.filter-row input { margin-right: 8px; }
+
+/* --- Node Styling (The "Dot" look) --- */
+.tree-node-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    /* Hitbox size */
+    width: 140px; 
+    position:relative;
+}
+
+    
+/* sibling badge base */
+.sibling-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.06);
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+/* color variants */
+.badge-single { background: #10B981; color: #fff; }  /* green = single */
+.badge-sibling { background: #3B82F6; color: #fff; } /* blue = has siblings */
+
+.node-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.8); /* White halo to separate from line */
+    position: relative;
+    z-index: 2;
+    transition: transform 0.2s;
+}
+
+.tree-node-wrapper:hover .node-dot {
+    transform: scale(1.3);
+}
+
+.node-content {
+    margin-top: 8px;
+    text-align: center;
+    z-index: 2;
+}
+
+.node-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.node-date {
+    font-size: 10px;
+    color: var(--text-gray);
+}
+
+/* High priority indicator on the dot */
+.priority-ring {
+    position: absolute;
+    top: -3px; left: -3px; right: -3px; bottom: -3px;
+    border-radius: 50%;
+    border: 2px solid var(--danger);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* Expand Button (Mini +/_) */
+.expand-trigger {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    width: 16px; 
+    height: 16px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center; 
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-gray);
+    z-index: 10;
+}
+.expand-trigger:hover { background: white; color: var(--primary); }
+
+/* --- Right Sidebar (Node Details) --- */
+#nodeDetailsSidebar {
+    width: 320px;
+    background: white;
+    border-left: 1px solid var(--border-color);
+    position: fixed;
+    right: -320px; /* Hidden initially */
+    top: 64px; /* Below header */
+    bottom: 0;
+    transition: right 0.3s ease;
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 12px rgba(0,0,0,0.05);
+}
+
+#nodeDetailsSidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.sidebar-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.close-sidebar { cursor: pointer; color: var(--text-gray); }
+
+.sidebar-content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.detail-item { margin-bottom: 16px; }
+.detail-label { font-size: 11px; color: var(--text-gray); text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+.detail-value { font-size: 14px; color: var(--text-dark); line-height: 1.4; }
+
+.tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+.tag-normal { background: #DBEAFE; color: #1E40AF; }
+.tag-abnormal { background: #FEF3C7; color: #92400E; }
+.tag-critical { background: #FEE2E2; color: #991B1B; }
+
+/* Edit Form Overrides */
+#editForm {
+    min-width: 360px;
+    max-width: 500px;
+    resize: both;
+    overflow: auto;
+    border-radius: 8px;
+}
+
+.modal-header {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #E5E7EB;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+#closeEditForm {
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#closeEditForm:hover {
+    background-color: #e81123;
+    color: white;
+}
+
+.modal-body {
+    padding: 16px;
+}
+
+
+#editForm input, #editForm select, #editForm textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+}
+#editForm button {
+    margin-right: 8px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+}
+#saveEditBtn { background: var(--primary); color: white; }
+#cancelEditBtn { background: #e5e7eb; color: var(--text-dark); }
+
+/* SVG Path Styles */
+path {
+    stroke: #E5E7EB !important; /* Light gray lines */
+    stroke-width: 1.5px !important;
+    fill: none !important;
+}
+
+/* Selection States for Add/Delete */
+.selectable-add .node-dot { box-shadow: 0 0 0 4px #4CAF50 !important; }
+.selectable-delete .node-dot { box-shadow: 0 0 0 4px #F44336 !important; }
+
+
+#tree svg path[stroke] {
+    stroke: #444 !important;
+    stroke-width: 3px !important;
+}
+
+
+
+/* Add this CSS if you don't have it */
+.chronological-node-simple {
+    /* Ensures the div is invisible and the text is centered */
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: #333; /* Dark text color */
+}
+
+.chronological-node-simple div {
+    /* Style for the text lines */
+    line-height: 1.2;
+}
+
+

@@ -1,0 +1,19 @@
+<div class="list-group" style="flex-shrink: 1; min-width: 0; width: 400px;
+  max-width: 100%; box-sizing: border-box; margin-left: 35px;
+  margin-top: 25px; overflow-y: auto; height: calc(80vh - 120px);">
+  
+  <ul class="list-group">
+    
+    <li class="list-group-item d-flex justify-content-between align-items-start" 
+        *ngFor="let patient of patients" 
+        (click)="onPatientClick(patient)"> 
+        
+      <div class="ms-2 me-auto">
+        <div class="fw-bold mt-1 mb-2">{{ patient.name }}</div>
+        <div class="mb-1" style="color: rgb(120, 117, 112);">Updated {{ patient.updated }}</div> 
+      </div>
+      <span class="fw-semibold" style="font-size: smaller; color: rgb(100, 107, 106);">{{ patient.age }}</span>
+    </li>
+    
+  </ul>
+</div>

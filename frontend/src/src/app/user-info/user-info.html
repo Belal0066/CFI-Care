@@ -1,0 +1,136 @@
+<div *ngIf="!selectedPatient" style="
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    height: 100%;
+    display: flex;           
+    justify-content: center; 
+    align-items: center;     
+    text-align: center;      
+    flex-direction: column;  
+">
+    <i class="bi bi-person"></i>
+    <p>Select a patient to view details</p>
+
+</div>
+
+<div *ngIf="selectedPatient" style="border: 1px solid #ccc;
+    border-radius: 10px;
+    display: flex;                
+    flex-direction: column; margin-bottom: 10px;">
+
+    <div class="card" style="margin-left: 20px; margin-top: 4px; margin-right: 20px; border: none;">
+        <div class="card-body mt-2" style="border-bottom: #ccc 1px solid;">
+
+            <div class="d-flex justify-content-between align-items-start">
+            <h4 id="patient-name" class="mb-0">
+                {{ selectedPatient.name }}
+            </h4>
+
+            <a href="#" class="btn btn-primary btn-md">
+                Open MedFlow Graph <i class="bi bi-box-arrow-up-right " style="margin-left: 7px;"></i>
+            </a>
+            </div>
+
+            <p class="card-title fs-6 mt-1" style="margin-bottom: 10px;">
+            Age <i class="bi bi-dot"></i> Gender
+            <span class="ms-3">ID</span>
+            </p>
+
+            <p class="card-text" style="margin-bottom: 10px;">
+            Last updated: insert date
+            </p>
+
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;
+        margin-left: 20px;
+        margin-right: 20px;">
+        <h6 class="" style="margin-bottom: 10px;"><i class="bi bi-activity"></i> Primary Diagnosis</h6>
+        <div style="
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        display: flex;           
+        padding: 12px;">
+        <p class="mb-0 mt-0">Insert Diagnosis</p>
+
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;
+        margin-left: 20px;
+        margin-right: 20px;">
+        <h6 class="" style="margin-bottom: 10px;"><i class="bi bi-clipboard2-pulse-fill" style="margin-right: 3px;"></i>Active Conditions</h6>
+        <div style="
+        border: none;
+        border-radius: 10px;
+        display: flex;           
+        ">
+        <span class="badge text-bg-info " style="padding: 7px; font-weight: normal; width: 100px;">cond1</span>
+        <span class="badge text-bg-info" style="padding: 7px; font-weight: normal; width: 100px; margin-left: 15px;">cond2</span>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;
+        margin-left: 20px;
+        margin-right: 20px;">
+        <h6 class="" style="margin-bottom: 10px;"><i class="bi bi-prescription2"></i> Current Medications</h6>
+        <div style="
+        border: 1px solid #ccc;
+        border-radius: 10px;           
+        padding: 12px;">
+        <p class="mb-1 mt-1">Medication1</p>
+        <p class="mb-1 mt-1">Medication2</p>
+        <p class="mb-1 mt-1">Medication3</p>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;
+        margin-left: 20px;
+        margin-right: 20px;">
+        <h6 class="" style="margin-bottom: 10px;"><i class="bi bi-flask-fill"></i> Recent Lab Results</h6>
+        <div style="
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        display: flex;           
+        padding: 12px;">
+            <div class="accordion accordion-flush" id="accordionFlushExample" style="width: 100%;">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+                        Lab Report #1
+                    </button>
+                    </h2>
+                    <div id="flush-collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+                    <div class="accordion-body">Placeholder content for this accordion, which is intended to demonstrate the <code>.accordion-flush</code> class. This is the first item’s accordion body.</div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+                        Lab Report #2
+                    </button>
+                    </h2>
+                    <div id="flush-collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+                    <div class="accordion-body">Placeholder content for this accordion, which is intended to demonstrate the <code>.accordion-flush</code> class. This is the second item’s accordion body. Let’s imagine this being filled with some actual content.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;
+        margin-left: 20px;
+        margin-right: 20px; margin-bottom: 20px;">
+        <h6 class="" style="margin-bottom: 10px;"> Recent Procedures</h6>
+        <div style="
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        display: flex;           
+        padding: 12px;">
+        <p class="mb-0 mt-0">Insert procedure</p>
+
+        </div>
+    </div>
+
+</div>
