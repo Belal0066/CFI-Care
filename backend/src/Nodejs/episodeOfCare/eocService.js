@@ -40,7 +40,6 @@ async function getEpisodeOfCareById(eocId) {
 
 // Create EpisodeOfCare with Specific ID
 async function createEpisodeOfCareWithSpecificId(eocData) {
-  // FIX: Guard clause to prevent "Cannot read properties of undefined"
   if (!eocData) {
     throw new Error(
       "createEpisodeOfCareWithSpecificId Error: 'eocData' argument is missing or undefined."
@@ -53,10 +52,34 @@ async function createEpisodeOfCareWithSpecificId(eocData) {
     throw new Error("EpisodeOfCare ID is required inside the data object");
   }
 
+  // We initialize with only the strictly required/guaranteed fields
   const fhirEOCResource = {
     resourceType: "EpisodeOfCare",
-    ...eocData,
+    id: eocId,
+    status: eocData.status || "active",
+    patient: eocData.patient, // Required reference
   };
+
+  // Only add optional fields if they exist and are valid (not empty/null)
+  if (eocData.type && Array.isArray(eocData.type) && eocData.type.length > 0) {
+    fhirEOCResource.type = eocData.type;
+  }
+
+  if (
+    eocData.diagnosis &&
+    Array.isArray(eocData.diagnosis) &&
+    eocData.diagnosis.length > 0
+  ) {
+    fhirEOCResource.diagnosis = eocData.diagnosis;
+  }
+
+  if (eocData.period && Object.keys(eocData.period).length > 0) {
+    fhirEOCResource.period = eocData.period;
+  }
+
+  if (eocData.careManager && Object.keys(eocData.careManager).length > 0) {
+    fhirEOCResource.careManager = eocData.careManager;
+  }
 
   console.log(`Attempting to PUT EpisodeOfCare to /EpisodeOfCare/${eocId}`);
 
@@ -66,7 +89,7 @@ async function createEpisodeOfCareWithSpecificId(eocData) {
       fhirEOCResource
     );
     // return { data: response.data, id: response.data.id };
-    return { data: response.data, id: response.data.id };
+    return { data: response.data, eocVersion: response.headers.etag };
   } catch (error) {
     if (error.response) {
       console.error("FHIR Server Error Status:", error.response.status);
