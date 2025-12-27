@@ -1,5 +1,15 @@
 const patientService = require("./patientService");
-const toon = require("@toon-format/toon");
+// const toon = require("@toon-format/toon");
+// const toon = (...args) =>
+//   import('@toon-format/toon').then(({ default: toon }) => toon(...args));
+
+let toon;
+const loadToon = async () => {
+  if (!toon) {
+    toon = await import("@toon-format/toon");
+  }
+  return toon;
+};
 
 //Bad Performance version (Buffering entire response before sending)
 // const toonPatientEverything = async (req, res) => {
@@ -43,7 +53,8 @@ const toonPatientEverything = async (req, res) => {
 
     res.setHeader("Content-Type", "text/plain");
 
-    const linesIterable = toon.encodeLines(relatedData, {
+    const toonModule = await loadToon();
+    const linesIterable = toonModule.encodeLines(relatedData, {
       indent: 1,
       delimiter: ",",
     });
@@ -151,7 +162,8 @@ const getCurrentPatient = async (req, res) => {
 
     if (!sub) return res.status(401).json({ error: 'no subject in token' });
 
-    const patientResource = await patientService.getPatientById(sub);
+    const accessToken = getAccessTokenFromRequest(req, res);
+    const patientResource = await patientService.getPatientById(sub, accessToken);
     res.status(200).json(patientResource);
   } catch (error) {
     console.error('error in getCurrentPatient controller:', error.message);

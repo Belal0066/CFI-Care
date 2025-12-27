@@ -33,7 +33,7 @@ router.get('/', attachForwardedToken, patientController.getCurrentPatient);
 router.put(
   "/:id",
   // validateRequest(createPatientSchema),
-  attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rw']),
+  attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rs']),
   patientController.createPatientWithSpecificId
 );
 

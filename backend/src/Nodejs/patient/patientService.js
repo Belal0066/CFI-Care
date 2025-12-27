@@ -6,9 +6,15 @@ const fhirApi = axios.create({
   },
 });
 // Fetch patient by ID
-async function getPatientById(patientId) {
+async function getPatientById(patientId, accessToken) {
   try {
-    const response = await fhirApi.get(`/Patient/${patientId}`);
+    const config = {};
+    if (accessToken) {
+      config.headers = {
+        Authorization: `Bearer ${accessToken}`,
+      };
+    }
+    const response = await fhirApi.get(`/Patient/${patientId}`, config);
     return response.data; // Return raw data without transformation
   } catch (error) {
     if (error.response && error.response.status === 404) {
