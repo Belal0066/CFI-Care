@@ -1,0 +1,64 @@
+/* .list-group{
+    background-color: #1E6ED3;
+}  */
+
+
+
+.patient-list {
+  width: 420px; /* keep the width you want */
+  margin-left: 35px;
+  margin-top: 10px;
+  max-height: 60vh; /* or calc(whatever you need) */
+  overflow-y: auto;  /* vertical scroll only */
+  overflow-x: hidden; /* prevent horizontal scroll */
+  box-sizing: border-box;
+  border-radius: 12px; /* optional, to match cards */
+  padding-right: 5px; /* optional, avoid scrollbar overlapping content */
+}
+
+
+.patient-list ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.patient-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1E6ED3;             /* main color */
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.patient-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.patient-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-name {
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.patient-updated {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.patient-age {
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
