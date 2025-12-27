@@ -1,21 +1,84 @@
 const patientService = require("./patientService");
+const toon = require("@toon-format/toon");
+
+//Bad Performance version (Buffering entire response before sending)
+// const toonPatientEverything = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const relatedData = await patientService.getPatientAllRelatedData(id);
+
+//     const linesIterable = toon.encodeLines(relatedData, {
+//       indent: 1,
+//       delimiter: ",",
+//     });
+
+//     const linesArray = Array.from(linesIterable);
+//     const plainTextData = linesArray.join("\n");
+
+//     // console.log(
+//     //   "Toon Encoded Data Preview:",
+//     //   plainTextData.substring(0, 100) + "..."
+//     // );
+
+//     res.setHeader("Content-Type", "text/plain");
+//     res.status(200).send(plainTextData);
+//   } catch (error) {
+//     console.error("Error in toonPatientEverything controller:", error.message);
+//     if (error.message.includes("not found")) {
+//       res.status(404).json({ error: error.message });
+//     } else {
+//       res.status(500).json({ error: "Internal server error" });
+//     }
+//   }
+// };
+
+
+// Streaming version (Sends data as it's encoded)
+const toonPatientEverything = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const relatedData = await patientService.getPatientAllRelatedData(id);
+
+    res.setHeader("Content-Type", "text/plain");
+
+    const linesIterable = toon.encodeLines(relatedData, {
+      indent: 1,
+      delimiter: ",",
+    });
+
+    for (const line of linesIterable) {
+      res.write(line + "\n");
+    }
+
+    res.end();
+  } catch (error) {
+    console.error("Error in toonPatientEverything controller:", error.message);
+
+    if (!res.headersSent) {
+      if (error.message.includes("not found")) {
+        res.status(404).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    } else {
+      res.end();
+    }
+  }
+};
 
 const createPatientWithSpecificId = async (req, res) => {
   try {
     const patientData = req.body;
-    const { id } = req.params;
     const newPatientResource = await patientService.createPatientWithSpecificId(
-      patientData,
-      id
+      patientData
     );
-    console.log("New patient created with ID:", id);
-    console.log(JSON.stringify(patientData, null, 2));
+
+    console.log("New patient created successfully.");
     res.status(201).json(newPatientResource);
   } catch (error) {
-    console.error(
-      "Error in createPatientWithSpecificId controller:",
-      error.message
-    );
+    console.error("Controller Error:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -160,4 +223,5 @@ module.exports = {
   getPatientAllRelatedData,
   getPatientObservations,
   getPatientEncounters,
+  toonPatientEverything,
 };
