@@ -94,7 +94,7 @@
 
                 const res = await fetch('/api/patients/' + encodeURIComponent(sub), { credentials: 'include' });
                 if (res.status === 404) {
-                    const target = '/patient-form.html?email=' + encodeURIComponent(email || '') + '&sub=' + encodeURIComponent(sub);
+                    const target = '/test-fhir-form.html?email=' + encodeURIComponent(email || '') + '&sub=' + encodeURIComponent(sub);
                     window.location.href = target;
                     return;
                 }

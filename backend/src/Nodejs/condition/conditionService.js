@@ -6,42 +6,37 @@ const fhirApi = axios.create({
   },
 });
 
-// Fetch Practitioner by ID
-async function getPractitionerById(practitionerId) {
+// Fetch condition by ID
+async function getConditionById(conditionId) {
   try {
-    const response = await fhirApi.get(`/Practitioner/${practitionerId}`);
+    const response = await fhirApi.get(`/Condition/${conditionId}`);
     return response.data; // Return raw data without transformation
   } catch (error) {
     if (error.response && error.response.status === 404) {
-      throw new Error("Practitioner not found");
+      throw new Error("Condition not found");
     } else {
       console.error("FHIR Server Error:", error.message);
       throw new Error("Could not connect to the FHIR server.");
     }
   }
 }
-
-// Create Practitioner With Specific ID
-async function createPractitionerWithSpecificId(practitionerData) {
-  const practitionerId = practitionerData.id;
-  if (!practitionerId) {
+// Create condition with Specific ID
+async function createConditionWithSpecificId(conditionData) {
+  const conditionId = conditionData.id;
+  if (!conditionId) {
     throw new Error(
       "The JSON body is missing the required 'id' field for this operation."
     );
   }
-
-  const fhirPractitionerResource = {
-    resourceType: "Practitioner",
-    ...practitionerData,
+  const fhirConditionResource = {
+    resourceType: "Condition",
+    ...conditionData,
   };
-
-  console.log(
-    `Attempting to PUT practitioner to /Practitioner/${practitionerId}`
-  );
+  console.log(`Attempting to PUT condition to /Condition/${conditionId}`);
   try {
     const response = await fhirApi.put(
-      `/Practitioner/${practitionerId}`,
-      fhirPractitionerResource
+      `/Condition/${conditionId}`,
+      fhirConditionResource
     );
     return response.data;
   } catch (error) {
@@ -51,19 +46,19 @@ async function createPractitionerWithSpecificId(practitionerData) {
         "FHIR Validation Details:",
         JSON.stringify(error.response.data, null, 2)
       );
-
       const issueText = error.response.data.issue
         ? error.response.data.issue
             .map((i) => `${i.diagnostics || i.code}`)
             .join(", ")
         : error.response.statusText;
-
       throw new Error(`FHIR Validation Failed: ${issueText}`);
     } else {
-      console.error("FHIR Server Error:", error.message);
+      console.error("Network/Server Error:", error.message);
       throw new Error("Could not connect to the FHIR server.");
     }
   }
 }
-
-module.exports = { getPractitionerById, createPractitionerWithSpecificId };
+module.exports = {
+  getConditionById,
+  createConditionWithSpecificId,
+};

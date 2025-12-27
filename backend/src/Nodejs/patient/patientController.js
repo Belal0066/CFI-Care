@@ -1,21 +1,95 @@
 const patientService = require("./patientService");
+// const toon = require("@toon-format/toon");
+// const toon = (...args) =>
+//   import('@toon-format/toon').then(({ default: toon }) => toon(...args));
+
+let toon;
+const loadToon = async () => {
+  if (!toon) {
+    toon = await import("@toon-format/toon");
+  }
+  return toon;
+};
+
+//Bad Performance version (Buffering entire response before sending)
+// const toonPatientEverything = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const relatedData = await patientService.getPatientAllRelatedData(id);
+
+//     const linesIterable = toon.encodeLines(relatedData, {
+//       indent: 1,
+//       delimiter: ",",
+//     });
+
+//     const linesArray = Array.from(linesIterable);
+//     const plainTextData = linesArray.join("\n");
+
+//     // console.log(
+//     //   "Toon Encoded Data Preview:",
+//     //   plainTextData.substring(0, 100) + "..."
+//     // );
+
+//     res.setHeader("Content-Type", "text/plain");
+//     res.status(200).send(plainTextData);
+//   } catch (error) {
+//     console.error("Error in toonPatientEverything controller:", error.message);
+//     if (error.message.includes("not found")) {
+//       res.status(404).json({ error: error.message });
+//     } else {
+//       res.status(500).json({ error: "Internal server error" });
+//     }
+//   }
+// };
+
+
+// Streaming version (Sends data as it's encoded)
+const toonPatientEverything = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const relatedData = await patientService.getPatientAllRelatedData(id);
+
+    res.setHeader("Content-Type", "text/plain");
+
+    const toonModule = await loadToon();
+    const linesIterable = toonModule.encodeLines(relatedData, {
+      indent: 1,
+      delimiter: ",",
+    });
+
+    for (const line of linesIterable) {
+      res.write(line + "\n");
+    }
+
+    res.end();
+  } catch (error) {
+    console.error("Error in toonPatientEverything controller:", error.message);
+
+    if (!res.headersSent) {
+      if (error.message.includes("not found")) {
+        res.status(404).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    } else {
+      res.end();
+    }
+  }
+};
 
 const createPatientWithSpecificId = async (req, res) => {
   try {
     const patientData = req.body;
-    const { id } = req.params;
     const newPatientResource = await patientService.createPatientWithSpecificId(
-      patientData,
-      id
+      patientData
     );
-    console.log("New patient created with ID:", id);
-    console.log(JSON.stringify(patientData, null, 2));
+
+    console.log("New patient created successfully.");
     res.status(201).json(newPatientResource);
   } catch (error) {
-    console.error(
-      "Error in createPatientWithSpecificId controller:",
-      error.message
-    );
+    console.error("Controller Error:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -88,7 +162,8 @@ const getCurrentPatient = async (req, res) => {
 
     if (!sub) return res.status(401).json({ error: 'no subject in token' });
 
-    const patientResource = await patientService.getPatientById(sub);
+    const accessToken = getAccessTokenFromRequest(req, res);
+    const patientResource = await patientService.getPatientById(sub, accessToken);
     res.status(200).json(patientResource);
   } catch (error) {
     console.error('error in getCurrentPatient controller:', error.message);
@@ -160,4 +235,5 @@ module.exports = {
   getPatientAllRelatedData,
   getPatientObservations,
   getPatientEncounters,
+  toonPatientEverything,
 };
