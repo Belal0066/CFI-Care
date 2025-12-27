@@ -27,16 +27,15 @@
   },
   "devDependencies": {
     "@toon-format/toon": "^2.1.0",
+    "axios-mock-adapter": "^2.1.0",
     "dotenv": "^17.2.3",
     "dox": "^1.0.0",
     "jest": "^30.2.0",
-    "toon": "^0.0.1"
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "pg": "^8.16.3",
     "redis": "^5.10.0",
-     "axios-mock-adapter": "^2.1.0",
-    "jest": "^30.2.0",
-    "supertest": "^7.1.4"
+    "supertest": "^7.1.4",
+    "toon": "^0.0.1"
   }
 }
