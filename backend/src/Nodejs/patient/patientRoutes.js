@@ -25,6 +25,9 @@ router.post(
   patientController.createPatient
 );
 
+router.put("/", patientController.createPatientWithSpecificId);
+
+router.get("/toon-everything/:id", patientController.toonPatientEverything);
 router.get('/', attachForwardedToken, patientController.getCurrentPatient);
 
 router.put(

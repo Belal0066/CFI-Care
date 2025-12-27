@@ -5,9 +5,17 @@ const cors = require("cors");
 const { randomUUID } = require('crypto');
 // const cookieParser = require('cookie-parser');
 
+const pagesDirectory = __dirname + "/TestPages/";
+
 
 //pateint , auth
 const patientRoutes = require("./patient/patientRoutes");
+const practitonerRoutes = require("./practioner/practionerRoutes");
+const eocRoutes = require("./episodeOfCare/eocRoutes");
+const conditionRoutes = require("./condition/conditionRoutes");
+const binaryRoutes = require("./binary/binaryRoutes");
+const encounterRoutes = require("./encounter/encounterRoutes");
+const historyGraphRoutes = require("./historyGraph/historyGraphRoutes");
 
 const authRoutes = require("./patient/authRoutes")
 
@@ -46,7 +54,7 @@ app.use(express.static(path.join(__dirname, '../../../security/Containers/static
 
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../../security/Containers/static', 'test-fetch-patient.html'));
+  res.sendFile(path.join(__dirname, '../../../security/Containers/static', 'test-fetch-fhir-data.html'));
 });
 
 //logging for auth :/
@@ -73,9 +81,30 @@ app.use("/auth", authRoutes);
 
 
 app.use("/api/patients", patientRoutes);
+app.use("/api/practitioners", practitonerRoutes);
+app.use("/api/episodeOfCare", eocRoutes);
+app.use("/api/conditions", conditionRoutes);
+app.use("/api/binary", binaryRoutes);
+app.use("/api/encounters", encounterRoutes);
+app.use("/api/historyGraph", historyGraphRoutes);
+
+app.get("/CreatePatient", (req, res) => {
+  res.sendFile(pagesDirectory + "createPatient.html");
+});
+
+app.get("/GetPatient", (req, res) => {
+  res.send("GetPatient endpoint is under construction.");
+});
+app.get("/CreatePractitioner", (req, res) => {
+  res.sendFile(pagesDirectory + "createPractitioner.html");
+});
+
+app.get("/EOC", (req, res) => {
+  res.sendFile(pagesDirectory + "EpisodeOfCare.html");
+});
 
 if(process.env.NODE_ENV !== 'test') {
-
+app.get;
 app.listen(PORT, () => {
   console.log(`Node.js server listening on port ${PORT} , Process ID: ${process.pid}`);
   console.log(`Connecting to FHIR server at ${process.env.FHIR_SERVER_URL}`);
