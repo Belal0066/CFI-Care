@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch"
   },
   "keywords": [],
   "author": "",
@@ -13,10 +14,13 @@
   "dependencies": {
     "axios": "^1.13.1",
     "base64topdf": "^1.1.8",
+    "cookie": "^1.1.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "fhirpath": "^4.6.0",
     "graphviz": "^0.0.9",
+    "ioredis": "^5.8.2",
     "joi": "^18.0.1",
     "pdf-to-base64": "^1.0.3",
     "pg": "^8.16.3"
@@ -27,5 +31,12 @@
     "dox": "^1.0.0",
     "jest": "^30.2.0",
     "toon": "^0.0.1"
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
+    "pg": "^8.16.3",
+    "redis": "^5.10.0",
+     "axios-mock-adapter": "^2.1.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   }
 }

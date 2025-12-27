@@ -1,0 +1,30 @@
+services:
+  backend:
+    container_name: nodejs
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: cfi-backend
+    env_file:
+      - ./.env
+    restart: unless-stopped
+    
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
+    networks:
+      - nginx-network
+
+    volumes:
+    
+    - ../../../security/Containers/static:/security/Containers/static:ro
+    - ../../../security/Containers/certs/rootCA.pem:/etc/ssl/certs/rootCA.pem:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+
+networks:
+  nginx-network:
+      
+    name: containers_nginx-network
+    external: true
