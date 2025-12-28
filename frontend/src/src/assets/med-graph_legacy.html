@@ -1,0 +1,2600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedFlow Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/treeviz@2.3.0/dist/index.min.js"></script>
+  <!-- <script src="https://unpkg.com/treeviz/dist/treeviz.js"></script> -->
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #2D5BFF;      /* MedFlow Blue */
+      --danger: #FF4D4F;       /* Red */
+      --text-dark: #1F2937;
+      --text-gray: #6B7280;
+      --bg-light: #F3F4F6;
+      --border-color: #E5E7EB;
+      --white: #ffffff;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-light);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* --- Header --- */
+header {
+    /* Critical Fixes for Fixed Positioning */
+    position: fixed; /* Lock header to the viewport */
+    top: 0;
+    left: 0;
+    width: 100%; /* Ensure it spans the full viewport width */
+
+    /* Original Styles */
+    height: 64px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    justify-content: space-between;
+    z-index: 100; /* Keep it on top */
+}
+
+
+/* Add these dark mode variables after the existing :root block */
+
+/* Dark mode variables */
+body.dark-mode {
+  --primary: #3B82F6;
+  --danger: #EF4444;
+  --text-dark: #F9FAFB;
+  --text-gray: #D1D5DB;
+  --bg-light: #111827;
+  --border-color: #374151;
+  --white: #1F2937;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode specific overrides */
+body.dark-mode {
+  background: #0F172A;
+}
+
+body.dark-mode header {
+  background: #1E293B;
+  border-bottom-color: #334155;
+}
+
+body.dark-mode #tree {
+  background: #1E293B;
+}
+
+body.dark-mode .toggle-group {
+  background: #334155;
+}
+
+body.dark-mode .toggle-btn.active {
+  background: #475569;
+  color: #60A5FA;
+}
+
+body.dark-mode #filtersPanel {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+body.dark-mode #legend {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: #334155;
+}
+
+body.dark-mode #nodeDetailsSidebar {
+  background: #1E293B;
+  border-left-color: #334155;
+}
+
+body.dark-mode .sidebar-header {
+  border-bottom-color: #334155;
+}
+
+body.dark-mode #editForm {
+  background: #1E293B;
+}
+
+body.dark-mode .modal-header {
+  background: #334155;
+  border-bottom-color: #475569;
+}
+
+body.dark-mode #editForm input,
+body.dark-mode #editForm select,
+body.dark-mode #editForm textarea {
+  background: #334155;
+  border-color: #475569;
+  color: #F9FAFB;
+}
+
+body.dark-mode #cancelEditBtn {
+  background: #334155;
+  color: #F9FAFB;
+}
+
+body.dark-mode .btn-secondary {
+  background: #334155;
+  border-color: #475569;
+  color: #F9FAFB;
+}
+
+body.dark-mode .btn-secondary:hover {
+  background: #475569;
+}
+
+body.dark-mode .detail-value {
+  color: #F9FAFB;
+}
+
+body.dark-mode .sidebar-header h3 {
+  color: #F9FAFB;
+}
+
+body.dark-mode .detail-label {
+  color: #9CA3AF;
+}
+
+body.dark-mode .tag {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tag[style*="background:#f3f4f6"] {
+  background: #374151 !important;
+  color: #D1D5DB !important;
+}
+
+body.dark-mode .detail-value[style*="background:#f9fafb"] {
+  background: #1F2937 !important;
+  color: #E5E7EB !important;
+  border: 1px solid #374151;
+}
+
+body.dark-mode .tag-normal {
+  background: #1E3A8A;
+  color: #BFDBFE;
+}
+
+body.dark-mode .tag-abnormal {
+  background: #78350F;
+  color: #FDE68A;
+}
+
+body.dark-mode .tag-critical {
+  background: #7F1D1D;
+  color: #FECACA;
+}
+
+/* Dark mode for SVG timeline */
+body.dark-mode svg {
+  background: #1E293B !important;
+}
+
+body.dark-mode .timeline-node-details {
+  color: #F9FAFB;
+}
+
+body.dark-mode path {
+  stroke: #475569 !important;
+}
+
+/* Add this after the existing button styles */
+.dark-mode-toggle {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 999;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.dark-mode-toggle:hover {
+  transform: scale(1.1);
+  background: var(--bg-light);
+}
+
+body.dark-mode .dark-mode-toggle {
+  background: #334155;
+  border-color: #475569;
+  color: #FCD34D;
+}
+
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border-color);
+    }
+
+    .page-title {
+      font-size: 14px;
+      color: var(--text-gray);
+    }
+
+    .controls-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Button Styles to match Image */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: #1a45e6; }
+
+    .btn-danger-outline {
+      background: white;
+      border: 1px solid #fee2e2;
+      color: var(--danger);
+    }
+    .btn-danger-outline:hover { background: #fef2f2; border-color: var(--danger); }
+
+    .btn-secondary {
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-dark);
+    }
+    .btn-secondary:hover { background: #f9fafb; }
+
+    .toggle-group {
+      display: flex;
+      background: #F3F4F6;
+      padding: 2px;
+      border-radius: 6px;
+      margin-left: 12px;
+    }
+    .toggle-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      color: var(--text-gray);
+      background: transparent;
+    }
+    .toggle-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      font-weight: 500;
+    }
+
+    /* --- Main Canvas --- */
+    .main-container {
+      flex: 1;
+      position: relative;
+      display: flex;
+    }
+
+    #tree {
+      flex: 1;
+      background: var(--white); /* Clean white background as per image */
+      overflow: hidden; /* Treeviz handles scrolling usually */
+    }
+
+    /* --- Filters Panel (Replacing the floating text) --- */
+      #filtersPanel {
+        position: absolute;
+        top: 60px;
+        left: 24px;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+        width: 280px;
+        z-index: 90;
+        display: none; /* Hidden by default, toggled by button */
+      }
+    #filtersPanel.show { display: block; }
+    
+    .filter-group h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--text-gray);
+      margin: 12px 0 8px 0;
+      letter-spacing: 0.5px;
+    }
+    .filter-group h4:first-child { margin-top: 0; }
+    
+    .filter-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--text-dark);
+    }
+    .filter-row input { margin-right: 8px; }
+
+    /* --- Node Styling (The "Dot" look) --- */
+    .tree-node-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      /* Hitbox size */
+      width: 140px; 
+      position:relative;
+    }
+
+    
+/* sibling badge base */
+.sibling-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.06);
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+/* color variants */
+.badge-single { background: #10B981; color: #fff; }  /* green = single */
+.badge-sibling { background: #3B82F6; color: #fff; } /* blue = has siblings */
+
+    .node-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.8); /* White halo to separate from line */
+      position: relative;
+      z-index: 2;
+      transition: transform 0.2s;
+    }
+
+    .tree-node-wrapper:hover .node-dot {
+      transform: scale(1.3);
+    }
+
+    .node-content {
+      margin-top: 8px;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .node-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    .node-date {
+      font-size: 10px;
+      color: var(--text-gray);
+    }
+
+    /* High priority indicator on the dot */
+    .priority-ring {
+      position: absolute;
+      top: -3px; left: -3px; right: -3px; bottom: -3px;
+      border-radius: 50%;
+      border: 2px solid var(--danger);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.5); }
+    }
+
+    /* Expand Button (Mini +/_) */
+    .expand-trigger {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      background: var(--bg-light);
+      border: 1px solid var(--border-color);
+      width: 16px; 
+      height: 16px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center; 
+      justify-content: center;
+      font-size: 10px;
+      color: var(--text-gray);
+      z-index: 10;
+    }
+    .expand-trigger:hover { background: white; color: var(--primary); }
+
+    /* --- Right Sidebar (Node Details) --- */
+    #nodeDetailsSidebar {
+      width: 320px;
+      background: white;
+      border-left: 1px solid var(--border-color);
+      position: fixed;
+      right: -320px; /* Hidden initially */
+      top: 64px; /* Below header */
+      bottom: 0;
+      transition: right 0.3s ease;
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -4px 0 12px rgba(0,0,0,0.05);
+    }
+
+    #nodeDetailsSidebar.open {
+      right: 0;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .close-sidebar { cursor: pointer; color: var(--text-gray); }
+
+    .sidebar-content {
+      padding: 20px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .detail-item { margin-bottom: 16px; }
+    .detail-label { font-size: 11px; color: var(--text-gray); text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+    .detail-value { font-size: 14px; color: var(--text-dark); line-height: 1.4; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .tag-normal { background: #DBEAFE; color: #1E40AF; }
+    .tag-abnormal { background: #FEF3C7; color: #92400E; }
+    .tag-critical { background: #FEE2E2; color: #991B1B; }
+
+    /* Edit Form Overrides */
+    #editForm {
+    min-width: 360px;
+    max-width: 500px;
+    resize: both;
+    overflow: auto;
+    border-radius: 8px;
+}
+
+.modal-header {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #E5E7EB;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+#closeEditForm {
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#closeEditForm:hover {
+    background-color: #e81123;
+    color: white;
+}
+
+.modal-body {
+    padding: 16px;
+}
+
+
+    #editForm input, #editForm select, #editForm textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+    }
+    #editForm button {
+      margin-right: 8px;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+    }
+    #saveEditBtn { background: var(--primary); color: white; }
+    #cancelEditBtn { background: #e5e7eb; color: var(--text-dark); }
+
+    /* SVG Path Styles */
+    path {
+      stroke: #E5E7EB !important; /* Light gray lines */
+      stroke-width: 1.5px !important;
+      fill: none !important;
+    }
+
+    /* Selection States for Add/Delete */
+    .selectable-add .node-dot { box-shadow: 0 0 0 4px #4CAF50 !important; }
+    .selectable-delete .node-dot { box-shadow: 0 0 0 4px #F44336 !important; }
+
+
+  #tree svg path[stroke] {
+    stroke: #444 !important;
+    stroke-width: 3px !important;
+}
+
+
+
+/* Add this CSS if you don't have it */
+.chronological-node-simple {
+    /* Ensures the div is invisible and the text is centered */
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: #333; /* Dark text color */
+}
+
+.chronological-node-simple div {
+    /* Style for the text lines */
+    line-height: 1.2;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-section">
+      <div class="logo">MedFlow</div>
+      <div class="divider"></div>
+      <div class="page-title">Patient Journey Dashboard</div>
+    </div>
+
+    <div class="controls-section">
+      <button class="btn btn-secondary" id="filterToggleBtn">
+        <i class="fa-solid fa-filter"></i> Filters
+      </button>
+      
+      <div class="divider" style="height: 16px;"></div>
+
+      <button class="btn btn-primary" id="addNodeBtn">
+        <i class="fa-solid fa-plus"></i> Add Node
+      </button>
+      <button class="btn btn-danger-outline" id="deleteNodeBtn">
+        <i class="fa-solid fa-trash"></i> Delete Node
+      </button>
+
+      <div class="toggle-group">
+        <button class="toggle-btn active">Categorical</button>
+        <button class="toggle-btn">Chronological</button>
+      </div>
+    </div>
+  </header>
+
+<button id="darkModeToggle" class="dark-mode-toggle" title="Toggle Dark Mode">
+  <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="5" fill="#FCD34D" stroke="#F59E0B" stroke-width="2"/>
+    <path d="M12 1V3M12 21V23M23 12H21M3 12H1M20.5 20.5L19 19M5 5L3.5 3.5M20.5 3.5L19 5M5 19L3.5 20.5" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <i id="moonIcon" class="fa-solid fa-moon" style="display: none;"></i>
+</button>
+
+  <div class="main-container">
+    
+    <div id="filtersPanel">
+      <div class="filter-group">
+        <h4>Category</h4>
+        <div id="filterOptions"></div>
+      </div>
+      <div class="filter-row">
+        <input type="checkbox" id="diagnosisFilter" checked> Diagnosis
+        </div>
+      <div class="filter-group">
+        <h4>Priority</h4>
+        <div id="priorityFilters"></div>
+      </div>
+      <div class="filter-group">
+        <h4>Normality</h4>
+        <div id="normalityFilters"></div>
+      </div>
+      <div class="filter-group">
+        <h4>Date Range</h4>
+        <div class="filter-row">
+          From: <input type="date" id="startDate" style="border:1px solid #ccc; padding:2px; width: 100px;">
+        </div>
+        <div class="filter-row">
+          To: <input type="date" id="endDate" style="border:1px solid #ccc; padding:2px; width: 100px; margin-left: 16px;">
+        </div>
+      </div>
+    </div>
+
+    <div id="tree"></div>
+
+    <div id="legend" style="position: fixed; bottom: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; border: 1px solid #eee; font-size: 11px;">
+    <h4 style="margin: 0 0 5px 0; font-size: 12px;">Categories</h4>
+    <ul style="list-style:none; padding:0; margin:0;"></ul>
+</div>
+
+  </div>
+
+  <div id="nodeDetailsSidebar">
+    <div class="sidebar-header">
+      <h3>Node Details</h3>
+      <i class="fa-solid fa-xmark close-sidebar" id="closeSidebarBtn"></i>
+    </div>
+    <div class="sidebar-content" id="sidebarBody">
+      <div style="color: #999; text-align: center; margin-top: 40px;">
+        Select a node to view details.
+      </div>
+    </div>
+    <div style="padding: 16px; border-top: 1px solid var(--border-color);">
+       <button id="editNodeBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+         <i class="fa-solid fa-pen"></i> Edit Node
+       </button>
+    </div>
+  </div>
+
+<div id="editForm" style="display:none; position:absolute; background:white; z-index:1600;">
+  <div id="editFormHeader" class="modal-header">
+    <h3>Edit Node</h3>
+    <span id="closeEditForm" style="cursor:pointer; font-size:18px;">&times;</span>
+  </div>
+  <div class="modal-body">
+    <div id="editCategoryContainer" style="display:none; margin-bottom:10px;">
+      Category: 
+      <select id="editCategory"></select>
+    </div>
+
+    <div id="editDiagnosisContainer" style="display:none; margin-bottom:10px;">
+        <label>
+            <input type="checkbox" id="editIsDiagnosis"> 
+            Start New Branch (Diagnosis Node)
+        </label>
+    </div>
+
+    <label>Title:<br><input type="text" id="editTitle"></label><br>
+    <label>Date:<br><input type="date" id="editDate"></label><br>
+
+    <label>Priority:<br>
+      <select id="editPriority">
+        <option>Low</option>
+        <option>Medium</option>
+        <option>High</option>
+      </select>
+    </label><br>
+
+    <label>Normality:<br>
+      <select id="editNormality">
+        <option>Normal</option>
+        <option>Abnormal</option>
+        <option>Pending</option>
+      </select>
+    </label><br>
+
+    <label>Details:<br><textarea id="editDetails" rows="3"></textarea></label><br>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
+      <button id="saveEditBtn" class="btn btn-primary">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+
+  <div id="tooltip" style="position: absolute; display: none; background: rgba(0,0,0,0.8); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; z-index: 1000;"></div>
+
+  <script>
+    // === 1. Configuration & Data ===
+    
+    // Updated Colors to be softer/more dashboard-like
+    const CATEGORY_COLORS = {
+        Consultation: "#3B82F6", // Blue
+        Lab: "#10B981",          // Emerald
+        Imaging: "#8B5CF6",      // Violet
+        Prescription: "#F59E0B", // Amber
+        AISuggestion: "#EC4899", // Pink
+        FollowUp: "#06B6D4",     // Cyan
+        Allergy: "#EF4444",      // Red
+        Historical: "#6B7280"    // Gray
+    };
+
+    const PRIORITY_COLORS = {
+        High: "#EF4444"
+    };
+
+    // Map normality to specific styles (handled in render)
+    const BORDER_COLORS = {
+        Normal: "#3B82F6",
+        Abnormal: "#F59E0B",
+        Pending: "#9CA3AF"
+    };
+
+    let selectedPriorities = ["Low", "Medium", "High"];
+    let selectedNormalities = ["Normal", "Abnormal", "Pending"];
+    let startDate = null;
+    let endDate = null;
+    let selectedCategories = Object.keys(CATEGORY_COLORS);
+
+
+// const data = [
+//     // ROOT CONSULTATION
+//     { id: 1, text_1: "Initial Consultation: Epigastric Pain",
+//       father: null, category: "Consultation", priority: "Low",
+//       normality: "Normal", dateIssued: "2025-10-05",
+//       details: "Patient reports epigastric pain, nausea, and early satiety.",
+//       isDiagnosis: false },
+
+//     // --------------------------------------
+//     // STEP 1 — PRIMARY INVESTIGATIONS (Labs)
+//     // --------------------------------------
+//     { id: 2, text_1: "Order Baseline Labs",
+//       father: 1, category: "Lab", priority: "Medium",
+//       normality: "Pending", dateIssued: "2025-10-06",
+//       details: "CBC, liver panel, H. pylori stool antigen.",
+//       isDiagnosis: false },
+
+//     { id: 3, text_1: "CBC Result",
+//       father: 2, category: "Lab", priority: "Low",
+//       normality: "Normal", dateIssued: "2025-10-07",
+//       details: "CBC normal; no signs of anemia.",
+//       isDiagnosis: false },
+
+//     { id: 4, text_1: "Liver Enzymes",
+//       father: 2, category: "Lab", priority: "High",
+//       normality: "Abnormal", dateIssued: "2025-10-07",
+//       details: "ALT mildly elevated.",
+//       isDiagnosis: false },
+
+//     { id: 5, text_1: "H. Pylori Antigen",
+//       father: 2, category: "Lab", priority: "High",
+//       normality: "Abnormal", dateIssued: "2025-10-08",
+//       details: "H. pylori antigen positive.",
+//       isDiagnosis: false },
+
+//     // --------------------------------------
+//     // STEP 2 — IMAGING
+//     // --------------------------------------
+//     { id: 6, text_1: "Ultrasound Request",
+//       father: 1, category: "Imaging", priority: "Medium",
+//       normality: "Pending", dateIssued: "2025-10-08",
+//       details: "Requested to evaluate liver and upper abdomen.",
+//       isDiagnosis: false },
+
+//     { id: 7, text_1: "Ultrasound Imaging",
+//       father: 6, category: "Imaging", priority: "Low",
+//       normality: "Normal", dateIssued: "2025-10-09",
+//       details: "Normal ultrasound; no structural abnormalities.",
+//       isDiagnosis: false },
+
+//     // --------------------------------------
+//     // STEP 3 — AI / CLINICAL DIFFERENTIAL
+//     // --------------------------------------
+//     { id: 8, text_1: "AI Clinical Suggestion",
+//       father: 1, category: "AISuggestion", priority: "Medium",
+//       normality: "Pending", dateIssued: "2025-10-09",
+//       details: "AI suggests gastritis vs peptic ulcer disease.",
+//       isDiagnosis: false },
+
+//     { id: 9, text_1: "Differential Assessment",
+//       father: 8, category: "AISuggestion", priority: "High",
+//       normality: "Abnormal", dateIssued: "2025-10-10",
+//       details: "Symptoms consistent with H. pylori-associated gastritis.",
+//       isDiagnosis: false },
+
+//     // ---- Additional Clinical Differentials (NON-DIAGNOSIS) ----
+//     {
+//       id: 16,
+//       father: 9,
+//       category: "AISuggestion",
+//       text_1: "Rule-Out: Gallbladder Disease",
+//       priority: "Medium",
+//       normality: "Normal",
+//       dateIssued: "2025-10-10",
+//       details: "No RUQ pain; ultrasound normal—unlikely biliary cause.",
+//       isDiagnosis: false
+//     },
+
+//     {
+//       id: 17,
+//       father: 9,
+//       category: "AISuggestion",
+//       text_1: "Rule-Out: GERD",
+//       priority: "Low",
+//       normality: "Normal",
+//       dateIssued: "2025-10-10",
+//       details: "No heartburn or regurgitation—GERD not primary.",
+//       isDiagnosis: false
+//     },
+
+//     {
+//       id: 18,
+//       father: 9,
+//       category: "AISuggestion",
+//       text_1: "Symptom Pattern Correlation",
+//       priority: "Low",
+//       normality: "Normal",
+//       dateIssued: "2025-10-11",
+//       details: "Pain after meals suggests gastritis/ulcer pattern.",
+//       isDiagnosis: false
+//     },
+
+//     // --------------------------------------
+//     // STEP 4 — CONFIRMATORY DIAGNOSIS (Original Path)
+//     // --------------------------------------
+//     { id: 10, text_1: "Final Diagnosis: H. Pylori Gastritis",
+//       father: 9, category: "AISuggestion", priority: "High",
+//       normality: "Abnormal", dateIssued: "2025-10-11",
+//       details: "Positive stool antigen + symptom correlation.",
+//       isDiagnosis: true },
+
+//     // -----------------------------------------------------
+//     // NEW DIAGNOSIS NODE — must be under a branch that has
+//     // *zero* ancestors with isDiagnosis = true.
+//     // → We attach it under father: 18 (no diagnosis above)
+//     // -----------------------------------------------------
+//     {
+//       id: 19,
+//       father: 18,
+//       category: "AISuggestion",
+//       text_1: "Diagnosis: Functional Dyspepsia",
+//       priority: "Medium",
+//       normality: "Abnormal",
+//       dateIssued: "2025-10-11",
+//       details: "Symptoms persist despite H. pylori pattern; functional disorder possible.",
+//       isDiagnosis: true
+//     },
+
+//     // --------------------------------------
+//     // STEP 5 — TREATMENT PLAN
+//     // --------------------------------------
+//     { id: 11, text_1: "Triple Therapy Prescription",
+//       father: 10, category: "Prescription", priority: "Medium",
+//       normality: "Normal", dateIssued: "2025-10-12",
+//       details: "PPI + Clarithromycin + Amoxicillin (14 days).",
+//       isDiagnosis: false },
+
+//     { id: 12, text_1: "Pain Management",
+//       father: 11, category: "Prescription", priority: "Low",
+//       normality: "Normal", dateIssued: "2025-10-12",
+//       details: "Avoid NSAIDs; antacids PRN.",
+//       isDiagnosis: false },
+
+//     // --------------------------------------
+//     // STEP 6 — FOLLOW-UP & RESPONSE
+//     // --------------------------------------
+//     { id: 13, text_1: "Follow-Up Visit",
+//       father: 10, category: "Consultation", priority: "Low",
+//       normality: "Normal", dateIssued: "2025-10-26",
+//       details: "Symptoms improved; patient tolerating therapy.",
+//       isDiagnosis: false },
+
+//     { id: 14, text_1: "Post-Treatment H. Pylori Test",
+//       father: 13, category: "Lab", priority: "Medium",
+//       normality: "Pending", dateIssued: "2025-10-27",
+//       details: "Test for eradication after therapy.",
+//       isDiagnosis: false },
+
+//     { id: 15, text_1: "Eradication Confirmed",
+//       father: 14, category: "Lab", priority: "Normal",
+//       normality: "Normal", dateIssued: "2025-11-02",
+//       details: "H. pylori eradicated successfully.",
+//       isDiagnosis: false },
+
+//     // -------------------------------------------------
+//     // FINAL CONSULTATION — original diagnosis was false
+//     // -------------------------------------------------
+//     {
+//       id: 20,
+//       father: 19,
+//       category: "Consultation",
+//       text_1: "Re-Evaluation: Initial Diagnosis Incorrect",
+//       priority: "High",
+//       normality: "Abnormal",
+//       dateIssued: "2025-11-05",
+//       details: "Persistent symptoms revealed that H. pylori was not the primary cause.",
+//       isDiagnosis: false
+//     }
+// ];
+
+    
+    let data = []; //global data variable to work with iframe integration
+
+    //Handlers for communication with angular components 
+    
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "INIT_GRAPH") {
+        data = event.data.nodes;
+        console.log('Iframe received node list:', data);
+      }
+      //send node updates to angular
+      function postNodeUpdate(action, node) {
+        window.parent.postMessage({
+            type: "NODE_UPDATE",
+            action, // "add" | "edit" | "delete"
+            node
+        }, "*");
+      }
+
+
+
+      let expandedNodes = new Set();
+      let expansionOrder = []; // Track the order of first-level expansions only
+      const MAX_EXPANDED = 2; // Maximum number of expanded first-level nodes
+
+      const rootNode = data.find(d => d.father === null);
+      // ALWAYS add the Root ID to expandedNodes
+      if (rootNode) {
+          expandedNodes.add(rootNode.id);
+      }
+
+      // Start with all first-level children collapsed (don't add them to expandedNodes)
+
+
+      // === 2. Graph Rendering Logic (Treeviz) ===
+      
+      // Helper: Check for children
+      function dataHasChildren(nodeId) {
+        return data.some(d => d.father === nodeId);
+      }
+
+      // Helper: Add all descendants of a node to expandedNodes
+      function addAllDescendants(nodeId) {
+        const children = data.filter(d => d.father === nodeId);
+        children.forEach(child => {
+          expandedNodes.add(child.id);
+          addAllDescendants(child.id); // Recursively add all descendants
+        });
+      }
+
+      // Helper: Remove all descendants of a node from expandedNodes
+      function removeAllDescendants(nodeId) {
+        const children = data.filter(d => d.father === nodeId);
+        children.forEach(child => {
+          expandedNodes.delete(child.id);
+          removeAllDescendants(child.id); // Recursively remove all descendants
+        });
+      }
+
+      // Helper: Check for hidden high priority
+      function hasHiddenHighPriorityChild(nodeId) {
+        const children = data.filter(d => d.father === nodeId);
+        for (const child of children) {
+          if (child.priority === "High" && !expandedNodes.has(nodeId)) return true;
+          if (hasHiddenHighPriorityChild(child.id)) return true;
+        }
+        return false;
+      }
+
+
+      
+
+      let myTree = Treeviz.create({
+        htmlId: "tree",
+        idKey: "id",
+        hasFlatData: true,
+        relationnalField: "father",
+        // Visual tweaks: Wider spacing, shorter height to fit the "dot + text" look
+        nodeWidth: 160,
+        nodeHeight: 100,
+        mainAxisNodeSpacing: 1.5,
+        direction: "LR",
+        linkShape: "quadraticBeziers",
+        
+        renderNode: ({ data: node }) => {
+        let color = CATEGORY_COLORS[node.category] || "#999";
+        let borderStyle = '';
+
+        if (node.isDiagnosis) {
+          color = "#ffffff";
+          borderStyle = "4px solid var(--danger)";
+        }
+
+        // priority ring
+        const showPriorityRing = (node.priority === "High") || (node.father !== null && hasHiddenHighPriorityChild(node.id));
+        const priorityHtml = (!node.isDiagnosis && showPriorityRing) ? `<div class="priority-ring"></div>` : '';
+
+        // expansion button (only for first-level children as you had it)
+        const isParent = dataHasChildren(node.id);
+        const isExpanded = expandedNodes.has(node.id);
+        const expandBtnHtml = (!node.isDiagnosis && node.father === 1 && isParent) ? `
+          <div class="expand-trigger" data-expand-btn="${node.id}">
+            <i class="fa-solid fa-${isExpanded ? 'minus' : 'plus'}"></i>
+          </div>` : '';
+
+          // --- Sibling badge (use global `data` array to compute siblings) ---
+          let siblingBadgeHtml = '';
+          if (node.father !== null) {
+            const siblings = data.filter(d => d.father === node.father); // `data` is the global array here
+            const isSibling = siblings.length > 1;
+            const badgeClass = isSibling ? 'badge-sibling' : 'badge-single';
+            const badgeText = isSibling ? 'SIBLING' : 'SINGLE';
+            siblingBadgeHtml = `<div class="sibling-badge ${badgeClass}">${badgeText}</div>`;
+          }
+
+          return `
+            <div class="tree-node-wrapper" data-id="${node.id}">
+              <div class="node-dot" style="background-color:${color}; border:${borderStyle};">
+                ${priorityHtml}
+                ${expandBtnHtml}
+              </div>
+              ${siblingBadgeHtml}
+              <div class="node-content">
+                <div class="node-title" title="${node.text_1}">${node.text_1}</div>
+                <div class="node-date">${node.dateIssued}</div>
+              </div>
+            </div>
+          `;
+        }
+
+      });
+
+
+      // === Branch categories ===
+
+      function countChildren(nodeId, data) {
+        return data.filter(n => n.father === nodeId).length;
+      }
+
+      function hasMultipleChildren(nodeId, data) {
+          return countChildren(nodeId, data) >= 2;
+      }
+
+
+      // === 3. Interaction & State Management ===
+      
+      
+      let selectedDiagnosis = true; // true = show diagnosis, false = hide
+      
+      // === FIX 2: Cleaner Visibility Logic ===
+      // === FIX 2: Cleaner Visibility Logic ===
+      function refreshGraph() {
+      
+        // Step A: Which nodes match the "Content Filters"? (Category, Date, etc.)
+        const matchesFilter = new Set();
+        
+        data.forEach(node => {
+            const nodeDate = new Date(node.dateIssued);
+            const matches = 
+                selectedCategories.includes(node.category) &&
+                selectedPriorities.includes(node.priority) &&
+                selectedNormalities.includes(node.normality) &&
+                (!startDate || nodeDate >= startDate) &&
+                (!endDate || nodeDate <= endDate) &&
+                (selectedDiagnosis || !node.isDiagnosis);
+
+            if (matches) matchesFilter.add(node.id);
+        });
+
+        // Step B: Ensure parents of matching nodes are also "matching"
+        let changed = true;
+        while (changed) {
+          changed = false;
+          data.forEach(node => {
+              if (matchesFilter.has(node.id) && node.father !== null) {
+                  if (!matchesFilter.has(node.father)) {
+                      matchesFilter.add(node.father);
+                      changed = true;
+                  }
+              }
+          });
+        }
+
+      // Step C: Calculate Final Visibility based on Expansion
+      const visibleNodes = data.filter(node => {
+          // 1. Must match filters (or be a parent of a match)
+          if (!matchesFilter.has(node.id)) return false;
+
+          // 2. Root is always visible
+          if (node.father === null) return true;
+
+          // 3. Check if ALL ancestors in the path to root are expanded
+          let currentNode = node;
+          while (currentNode.father !== null) {
+              const parentNode = data.find(d => d.id === currentNode.father);
+              if (!parentNode) break;
+              
+              // If parent is not expanded, this node should not be visible
+              if (!expandedNodes.has(parentNode.id)) {
+                  return false;
+              }
+              
+              currentNode = parentNode;
+          }
+          
+          return true;
+        });
+
+        myTree.refresh(visibleNodes);
+      }
+
+      // Initial Load
+      refreshGraph();
+
+      // Event: Expansion Clicks
+      document.getElementById("tree").addEventListener("click", e => {
+      const btn = e.target.closest(".expand-trigger");
+      if (btn) {
+        e.stopPropagation(); // Prevent opening details
+        const nodeId = parseInt(btn.dataset.expandBtn);
+        
+        // Check if this is a first-level child (direct child of root)
+        const node = data.find(d => d.id === nodeId);
+        const isFirstLevel = node && node.father === rootNode.id;
+        
+        if (expandedNodes.has(nodeId)) {
+          // Collapsing: remove from set and order array, plus all descendants
+          expandedNodes.delete(nodeId);
+          removeAllDescendants(nodeId);
+          
+          if (isFirstLevel) {
+            const orderIndex = expansionOrder.indexOf(nodeId);
+            if (orderIndex > -1) {
+              expansionOrder.splice(orderIndex, 1);
+            }
+          }
+        }
+        else {
+          // Expanding
+          if (isFirstLevel) {
+            // Only apply the 3-node limit to first-level children
+            if (expansionOrder.length >= MAX_EXPANDED) {
+              // Remove the oldest expanded first-level node
+              const oldestNodeId = expansionOrder.shift();
+              expandedNodes.delete(oldestNodeId);
+              removeAllDescendants(oldestNodeId);
+            }
+            expansionOrder.push(nodeId);
+          }
+          expandedNodes.add(nodeId);
+          addAllDescendants(nodeId); // Add all descendants to expandedNodes
+        }
+        refreshGraph();
+        return;
+      }
+    
+        // Event: Node Selection (Open Sidebar)
+        const wrapper = e.target.closest(".tree-node-wrapper");
+        if (wrapper) {
+          const nodeId = wrapper.dataset.id;
+          const nodeData = data.find(d => d.id == nodeId);
+          openNodeDetails(nodeData);
+        }
+      });
+
+      // === 4. UI Controls & Sidebar Logic ===
+
+      // Filter Toggle
+      document.getElementById("filterToggleBtn").onclick = () => {
+        document.getElementById("filtersPanel").classList.toggle("show");
+      };
+
+      // Sidebar Logic
+      const sidebar = document.getElementById("nodeDetailsSidebar");
+      const sidebarBody = document.getElementById("sidebarBody");
+      let currentNodeData = null; // Store currently selected node for editing
+
+      function openNodeDetails(node) {
+        currentNodeData = node;
+        sidebar.classList.add("open");
+        document.getElementById('darkModeToggle').style.display = 'none';
+        
+        // Tag styling
+        let normalityClass = "tag-normal";
+        if(node.normality === "Abnormal") normalityClass = "tag-abnormal";
+        if(node.normality === "Pending") normalityClass = "tag-critical";
+
+        sidebarBody.innerHTML = `
+          <div class="detail-item">
+            <div class="detail-label">Title</div>
+            <div class="detail-value" style="font-weight:600; font-size:16px;">${node.text_1}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <span class="tag ${normalityClass}">${node.normality}</span>
+            <span class="tag" style="background:#f3f4f6; color:#333;">${node.priority} Priority</span>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Date Issued</div>
+            <div class="detail-value">${node.dateIssued}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Category</div>
+            <div class="detail-value" style="display:flex; align-items:center; gap:6px;">
+              <div style="width:10px; height:10px; border-radius:50%; background:${CATEGORY_COLORS[node.category]}"></div>
+              ${node.category}
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Details</div>
+            <div class="detail-value" style="background:#f9fafb; padding:10px; border-radius:4px;">${node.details}</div>
+          </div>
+        `;
+      }
+
+      document.getElementById("closeSidebarBtn").onclick = () => {
+        sidebar.classList.remove("open");
+      document.getElementById('darkModeToggle').style.display = 'flex';
+      };
+
+      // Edit Button Logic
+      document.getElementById("editNodeBtn").onclick = () => {
+        if(!currentNodeData) return;
+        const wrapper = document.querySelector(`.tree-node-wrapper[data-id="${currentNodeData.id}"]`);
+        if(wrapper) {
+          openEditForm(currentNodeData, wrapper.getBoundingClientRect());
+        }
+      };
+
+      // Edit Form Logic
+      function openEditForm(nodeData, wrapperRect) {
+
+        
+        editForm.style.width = "auto";
+        editForm.style.height = "auto";
+
+        // Populate form
+        document.getElementById("editTitle").value = nodeData.text_1;
+        document.getElementById("editDate").value = nodeData.dateIssued;
+        document.getElementById("editPriority").value = nodeData.priority;
+        document.getElementById("editNormality").value = nodeData.normality;
+        document.getElementById("editDetails").value = nodeData.details;
+
+        const form = document.getElementById("editForm");
+        
+        // Position Modal near the node but safely within screen
+        let top = wrapperRect.bottom + window.scrollY + 10;
+        let left = wrapperRect.left + window.scrollX;
+        
+        // Simple boundary check
+        if (left + 300 > window.innerWidth) left = window.innerWidth - 320;
+        if (top + 400 > window.innerHeight) top = window.innerHeight - 420;
+
+        form.style.top = top + "px";
+        form.style.left = left + "px";
+        form.style.display = "block";
+
+        // Handlers
+        document.getElementById("saveEditBtn").onclick = () => {
+          nodeData.text_1 = document.getElementById("editTitle").value;
+          nodeData.dateIssued = document.getElementById("editDate").value;
+          nodeData.priority = document.getElementById("editPriority").value;
+          nodeData.normality = document.getElementById("editNormality").value;
+          nodeData.details = document.getElementById("editDetails").value;
+          
+          refreshGraph();
+          openNodeDetails(nodeData); // Update sidebar
+          form.style.display = "none";
+        };
+      }
+      
+      document.getElementById("cancelEditBtn").onclick = () => {
+        document.getElementById("editForm").style.display = "none";
+      };
+
+      // === 5. Adding / Deleting Nodes Logic ===
+
+      let addMode = false;
+      let deleteMode = false;
+
+      function resetModes() {
+        addMode = false;
+        deleteMode = false;
+        document.getElementById("addNodeBtn").classList.remove("active");
+        // Reset visual cues
+        document.querySelectorAll(".tree-node-wrapper").forEach(w => {
+          w.style.outline = "";
+          w.classList.remove("selectable-add", "selectable-delete");
+          
+          // Re-bind standard click listener for details
+          w.onclick = null; // Clear specific mode listeners
+        });
+        document.getElementById("tree").style.cursor = "default";
+      }
+
+      // Wrapper helper to apply standard behavior
+      function applyStandardClickBehavior() {
+        // Treeviz handles rendering, we rely on bubbling click listener on #tree
+      }
+
+      // Add Node
+      document.getElementById("addNodeBtn").onclick = (e) => {
+        e.stopPropagation();
+        resetModes();
+        addMode = true;
+        document.getElementById("tree").style.cursor = "crosshair";
+        
+        // Highlight nodes to indicate they are parents
+        document.querySelectorAll(".tree-node-wrapper").forEach(w => {
+          w.classList.add("selectable-add");
+          w.onclick = (evt) => {
+            evt.stopPropagation();
+            const parentId = parseInt(w.dataset.id);
+            const parentNode = data.find(d => d.id === parentId);
+            openAddForm(parentNode, w.getBoundingClientRect());
+          }
+        });
+      };
+
+      function openAddForm(parentNode, rect) {
+        resetModes(); // Exit add mode
+        
+        // Prepare form
+        document.getElementById("editTitle").value = "";
+        document.getElementById("editDate").value = "";
+        document.getElementById("editDetails").value = "";
+        
+        const catContainer = document.getElementById("editCategoryContainer");
+        const catSelect = document.getElementById("editCategory");
+        
+        // if (parentNode.father === null) {
+          catContainer.style.display = "block";
+          catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+        // } else {
+          // catContainer.style.display = "none";
+        // }
+
+        const form = document.getElementById("editForm");
+        form.style.top = (rect.bottom + 10) + "px";
+        form.style.left = rect.left + "px";
+        form.style.display = "block";
+
+        document.getElementById("saveEditBtn").onclick = () => {
+          const newId = Math.max(...data.map(d => d.id)) + 1;
+          const newNode = {
+            id: newId,
+            text_1: document.getElementById("editTitle").value || "New Node",
+            father: parentNode.id,
+            // category: parentNode.father === null ? catSelect.value : parentNode.category,
+            category: catSelect.value,
+            priority: document.getElementById("editPriority").value,
+            normality: document.getElementById("editNormality").value,
+            dateIssued: document.getElementById("editDate").value,
+            details: document.getElementById("editDetails").value
+          };
+          
+          data.push(newNode);
+          expandedNodes.add(parentNode.id);
+          refreshGraph();
+          form.style.display = "none";
+
+          postNodeUpdate("add", newNode); // Notify Angular
+        };
+      }
+
+      // Delete Node
+      document.getElementById("deleteNodeBtn").onclick = (e) => {
+        e.stopPropagation();
+        resetModes();
+        deleteMode = true;
+        document.getElementById("tree").style.cursor = "not-allowed";
+        
+        document.querySelectorAll(".tree-node-wrapper").forEach(w => {
+          const id = parseInt(w.dataset.id);
+          // Root protection
+          if(data.find(d => d.id === id).father === null) return; 
+          
+          w.classList.add("selectable-delete");
+          w.onclick = (evt) => {
+            evt.stopPropagation();
+            const node = data.find(d => d.id === id);
+            if(confirm(`Delete node "${node.text_1}" and all children?`)) {
+              deleteRecursive(id);
+              refreshGraph();
+              resetModes();
+              sidebar.classList.remove("open");
+
+              // Notify Angular
+              postNodeUpdate("delete", { id });
+            }
+          }
+        });
+      };
+
+      function deleteRecursive(id) {
+        const children = data.filter(d => d.father === id);
+        children.forEach(c => deleteRecursive(c.id));
+        const idx = data.findIndex(d => d.id === id);
+        if (idx !== -1) data.splice(idx, 1);
+      }
+
+      // Cancel modes on background click
+      document.body.addEventListener("click", (e) => {
+        if (!e.target.closest(".tree-node-wrapper") && !e.target.closest(".btn")) {
+          if (addMode || deleteMode) resetModes();
+        }
+      });
+
+      // === 6. Initialization of Filters ===
+      
+      // Render Filter Checkboxes
+      const filterContainer = document.getElementById("filterOptions");
+      Object.keys(CATEGORY_COLORS).forEach(category => {
+          const div = document.createElement("div");
+          div.className = "filter-row";
+          div.innerHTML = `<input type="checkbox" class="category-filter" value="${category}" checked> ${category}`;
+          filterContainer.appendChild(div);
+      });
+
+      // Render Priority Filters
+      ["Low", "Medium", "High"].forEach(p => {
+        const div = document.createElement("div");
+        div.className = "filter-row";
+        div.innerHTML = `<input type="checkbox" class="priority-filter" value="${p}" checked> ${p}`;
+        document.getElementById("priorityFilters").appendChild(div);
+      });
+
+      // Render Normality Filters
+      ["Normal", "Abnormal", "Pending"].forEach(n => {
+        const div = document.createElement("div");
+        div.className = "filter-row";
+        div.innerHTML = `<input type="checkbox" class="normality-filter" value="${n}" checked> ${n}`;
+        document.getElementById("normalityFilters").appendChild(div);
+      });
+      
+      // Legend Generation
+      const legendUl = document.querySelector("#legend ul");
+      Object.keys(CATEGORY_COLORS).forEach(cat => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${CATEGORY_COLORS[cat]};margin-right:6px;"></span>${cat}`;
+        li.style.marginBottom = "4px";
+        legendUl.appendChild(li);
+      });
+
+      // Bind Filter Events
+      const bindFilterListeners = (selector, updateFn) => {
+        document.querySelectorAll(selector).forEach(cb => {
+          cb.addEventListener("change", () => {
+            updateFn();
+            refreshGraph();
+          });
+        });
+      };
+
+      bindFilterListeners(".category-filter", () => {
+        selectedCategories = Array.from(document.querySelectorAll(".category-filter:checked")).map(cb => cb.value);
+      });
+      bindFilterListeners(".priority-filter", () => {
+        selectedPriorities = Array.from(document.querySelectorAll(".priority-filter:checked")).map(cb => cb.value);
+      });
+      bindFilterListeners(".normality-filter", () => {
+        selectedNormalities = Array.from(document.querySelectorAll(".normality-filter:checked")).map(cb => cb.value);
+      });
+      
+      document.getElementById("startDate").addEventListener("change", e => {
+        startDate = e.target.value ? new Date(e.target.value) : null;
+        refreshGraph();
+      });
+      document.getElementById("endDate").addEventListener("change", e => {
+        endDate = e.target.value ? new Date(e.target.value) : null;
+        refreshGraph();
+      });
+
+
+      const diagnosisCheckbox = document.getElementById("diagnosisFilter");
+      diagnosisCheckbox.addEventListener("change", () => {
+          selectedDiagnosis = diagnosisCheckbox.checked;
+          refreshGraph();
+      });
+
+
+      // Tooltip hover
+      const tooltip = document.getElementById("tooltip");
+      document.getElementById("tree").addEventListener("mouseover", e => {
+        const wrapper = e.target.closest(".tree-node-wrapper");
+        if(!wrapper) return;
+        const d = data.find(x => x.id == wrapper.dataset.id);
+        tooltip.innerText = d.text_1;
+        tooltip.style.display = "block";
+      });
+      document.getElementById("tree").addEventListener("mousemove", e => {
+        tooltip.style.top = (e.pageY + 10) + "px";
+        tooltip.style.left = (e.pageX + 10) + "px";
+      });
+      document.getElementById("tree").addEventListener("mouseout", () => {
+        tooltip.style.display = "none";
+      });
+
+
+
+      //Draggable and resizable edit form
+      const editForm = document.getElementById("editForm");
+      const editHeader = document.getElementById("editFormHeader");
+      let isDragging = false, startX, startY, initialLeft, initialTop;
+
+      editHeader.addEventListener("mousedown", (e) => {
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          const rect = editForm.getBoundingClientRect();
+          initialLeft = rect.left;
+          initialTop = rect.top;
+          e.preventDefault();
+      });
+
+      document.addEventListener("mousemove", (e) => {
+          if (!isDragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          editForm.style.left = Math.max(0, Math.min(initialLeft + dx, window.innerWidth - editForm.offsetWidth)) + "px";
+          editForm.style.top = Math.max(0, Math.min(initialTop + dy, window.innerHeight - editForm.offsetHeight)) + "px";
+      });
+
+      document.addEventListener("mouseup", () => { isDragging = false; });
+
+      // Close button
+      document.getElementById("closeEditForm").onclick = () => { editForm.style.display = "none"; };
+
+      // Cancel button
+      document.getElementById("cancelEditBtn").onclick = () => { editForm.style.display = "none"; };
+
+      // Example: Populate & open form for editing a node
+      function openEditForm(nodeData, rect) {
+          document.getElementById("editTitle").value = nodeData.text_1;
+          document.getElementById("editDate").value = nodeData.dateIssued;
+          document.getElementById("editPriority").value = nodeData.priority;
+          document.getElementById("editNormality").value = nodeData.normality;
+          document.getElementById("editDetails").value = nodeData.details;
+
+          const catContainer = document.getElementById("editCategoryContainer");
+          const catSelect = document.getElementById("editCategory");
+
+          // if (nodeData.father === null) {
+              catContainer.style.display = "block";
+              catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+              catSelect.value = nodeData.category;
+          // } else {
+              // catContainer.style.display = "none";
+          // }
+
+          // Position form near the node
+          let top = rect.bottom + window.scrollY + 10;
+          let left = rect.left + window.scrollX;
+
+          if (left + 300 > window.innerWidth) left = window.innerWidth - 320;
+          if (top + 400 > window.innerHeight) top = window.innerHeight - 420;
+
+          editForm.style.top = top + "px";
+          editForm.style.left = left + "px";
+          editForm.style.display = "block";
+
+          document.getElementById("saveEditBtn").onclick = () => {
+              nodeData.text_1 = document.getElementById("editTitle").value;
+              nodeData.dateIssued = document.getElementById("editDate").value;
+              nodeData.priority = document.getElementById("editPriority").value;
+              nodeData.normality = document.getElementById("editNormality").value;
+              nodeData.details = document.getElementById("editDetails").value;
+              nodeData.category = catSelect.value;
+
+              // if(nodeData.father === null) nodeData.category = catSelect.value;
+
+              refreshGraph();
+              openNodeDetails(nodeData); // update sidebar
+              editForm.style.display = "none";
+
+              postNodeUpdate("edit", nodeData); // Notify Angular
+          };
+      }
+    
+
+/* =========================================== PROFESSIONAL CHRONOLOGICAL TIMELINE ===========================================
+   -------------------------------------------------------------------------------------------------------------------------- */
+
+    // --- GLOBAL STATE VARIABLES ---
+    let currentMode = 'categorical';
+    let chronologicalGraph = null;
+    let manualBranches = new Map(); // Track manually created branches: nodeId -> branchId
+    let createBranchMode = false; // Track branch creation mode
+    let nextManualBranchId = 1000; // Start manual branch IDs from 1000 to avoid conflicts
+
+    // --- TIMELINE CONSTANTS ---
+    const TIMELINE_CONFIG = {
+        NODE_WIDTH: 200,      // Wider for better text fit
+        NODE_HEIGHT: 140,     // Taller to prevent overlap with text below (increased)
+        LANE_HEIGHT: 350,     // MORE vertical space between branches
+        DATE_SCALE: 450,      // MORE horizontal space between dates
+        MAIN_LANE_Y: 150,     // Initial Y offset
+        PADDING: 100,
+        VERTICAL_STACK_GAP: 210,  // *** Gap between vertically stacked nodes (INCREASED) ***
+        VERTICAL_STACK_MIN_MARGIN: 150, // *** Minimum margin between node details (INCREASED) ***
+        BRANCH_VERTICAL_GAP: 200, // *** Gap between main branch and sub-branches ***
+        MAIN_BRANCH_THICKNESS: 6, // *** Thickness of main branch line ***
+        SUB_BRANCH_THICKNESS: 10,  // *** Thickness of sub-branch lines (MADE BOLDER) ***
+        MAIN_BRANCH_COLOR: "#475569", // *** Dark gray for main branch ***
+        SUB_BRANCH_COLOR: "#94A3B8"   // *** Gray for sub-branches ***
+    };
+
+    /**
+     * Enhanced data preparation with branch detection
+     */
+    function getChronologicalData(originalData) {
+      // 1. Apply Content Filters
+      const filteredData = originalData.filter(node => {
+          const nodeDate = new Date(node.dateIssued);
+          return selectedCategories.includes(node.category) &&
+              selectedPriorities.includes(node.priority) &&
+              selectedNormalities.includes(node.normality) &&
+              (!startDate || nodeDate >= startDate) &&
+              (!endDate || nodeDate <= endDate) &&
+              (selectedDiagnosis || !node.isDiagnosis);
+      });
+
+      // 2. Identify branches - diagnosis nodes AND manually created branch nodes
+      const branches = new Map();
+      let nextLaneId = 1;
+
+      // Find all diagnosis nodes and manually created branches
+      const branchStarters = new Set();
+      filteredData.forEach(node => {
+          if (node.isDiagnosis || node.isManualBranch) {
+              branchStarters.add(node.id);
+          }
+      });
+
+      // Assign lanes to branch starters and their descendants
+      branchStarters.forEach(startId => {
+          const members = new Set();
+          members.add(startId);
+          
+          const findDescendants = (nodeId) => {
+              filteredData.forEach(node => {
+                  if (node.father === nodeId && !members.has(node.id)) {
+                      members.add(node.id);
+                      findDescendants(node.id);
+                  }
+              });
+          };
+          
+          findDescendants(startId);
+          
+          branches.set(startId, {
+              laneId: nextLaneId++,
+              members: members,
+              startId: startId
+          });
+      });
+
+      // 3. Assign lane IDs to all nodes
+      const processedNodes = filteredData.map(node => {
+          let laneId = 0; // Default: main timeline
+          let branchStartId = null;
+          
+          for (const [startId, branchInfo] of branches) {
+              if (branchInfo.members.has(node.id)) {
+                  laneId = branchInfo.laneId;
+                  branchStartId = startId;
+                  break;
+              }
+          }
+          
+          return { 
+              ...node, 
+              laneId,
+              branchStartId, // Track which branch this node belongs to
+              originalFather: node.father,
+              isBranchStart: node.isDiagnosis || node.isManualBranch
+          };
+      });
+
+      // 4. Sort chronologically
+      return processedNodes.sort((a, b) => {
+          const dateA = new Date(a.dateIssued).getTime();
+          const dateB = new Date(b.dateIssued).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          if (a.laneId !== b.laneId) return a.laneId - b.laneId;
+          return a.id - b.id;
+      });
+    }
+
+/**
+ * Main rendering function for chronological timeline
+ */
+    function renderChronologicalGraph() {
+      currentMode = 'chronological';
+    
+      // 1. Prepare data
+      const chronologicalData = getChronologicalData(data);
+      
+      // 2. Setup container
+      const treeContainer = document.getElementById("tree");
+      treeContainer.innerHTML = '';
+      
+      // 3. Calculate dimensions
+      const datesSorted = Array.from(new Set(chronologicalData.map(d => d.dateIssued))).sort();
+      const maxLaneId = Math.max(...chronologicalData.map(d => d.laneId), 0);
+      
+      const canvasWidth = Math.max(
+          treeContainer.clientWidth,
+          datesSorted.length * TIMELINE_CONFIG.DATE_SCALE + 400
+      );
+      const canvasHeight = TIMELINE_CONFIG.MAIN_LANE_Y + 
+          (maxLaneId + 1) * TIMELINE_CONFIG.BRANCH_VERTICAL_GAP + 
+          TIMELINE_CONFIG.PADDING * 3;
+      
+      // 4. Create SVG with zoom
+      const svg = d3.select("#tree")
+          .append("svg")
+          .attr("width", canvasWidth)
+          .attr("height", canvasHeight)
+          .style("background", document.body.classList.contains('dark-mode') ? "#1E293B" : "#f8fafc");
+      
+      const zoom = d3.zoom()
+          .scaleExtent([0.3, 3])
+          .on("zoom", (event) => {
+              contentGroup.attr("transform", event.transform);
+          });
+      
+      svg.call(zoom)
+          .on("dblclick.zoom", null)
+          .on("click", (event) => {
+              // Exit branch mode if clicking on empty space (not a node)
+              if (createBranchMode && !event.target.closest('.node-circle')) {
+                  resetModes();
+              }
+          });
+      
+      const contentGroup = svg.append("g")
+          .attr("class", "timeline-content")
+          .attr("transform", `translate(${TIMELINE_CONFIG.PADDING}, 0)`);
+      
+      chronologicalGraph = contentGroup;
+      
+      // 5. Draw timeline lanes (only main branch with date markers)
+      const mainLaneY = TIMELINE_CONFIG.MAIN_LANE_Y;
+      
+      contentGroup.append("line")
+          .attr("class", "timeline-lane")
+          .attr("x1", 0)
+          .attr("x2", canvasWidth - TIMELINE_CONFIG.PADDING * 2)
+          .attr("y1", mainLaneY)
+          .attr("y2", mainLaneY)
+          .style("stroke", TIMELINE_CONFIG.MAIN_BRANCH_COLOR)
+          .style("stroke-width", TIMELINE_CONFIG.MAIN_BRANCH_THICKNESS)
+          .style("stroke-dasharray", "none");
+      
+      // 6. Calculate positions (handle multiple nodes on same date)
+      const dateToIndexMap = new Map(datesSorted.map((d, i) => [d, i]));
+      const nodePositions = calculateNodePositions(chronologicalData, dateToIndexMap);
+      
+      // 7. Draw links FIRST (divergence curves)
+      drawLinks(contentGroup, chronologicalData, nodePositions);
+
+      // 8. Draw branch horizontal lines AFTER (so they don't cover the curves)
+      drawBranchLines(contentGroup, chronologicalData, nodePositions);
+          
+      // 9. Draw nodes
+      drawNodes(contentGroup, chronologicalData, nodePositions);
+      
+      // 10. Add date markers
+      drawDateMarkers(contentGroup, datesSorted, dateToIndexMap);
+      
+      // 11. Re-bind event listeners
+      setTimeout(() => {
+          bindChronologicalNodeInteractions();
+          bindManualBranchControls();
+      }, 50);
+    }
+
+    /**
+     * Calculate positions for all nodes - handle stacking for same date/lane
+     */
+    function calculateNodePositions(chronologicalData, dateToIndexMap) {
+        const positions = new Map();
+        const dateLaneStack = new Map(); // Track how many nodes at each date-lane combo
+        
+        chronologicalData.forEach(node => {
+            const dateIndex = dateToIndexMap.get(node.dateIssued);
+            const x = dateIndex * TIMELINE_CONFIG.DATE_SCALE;
+            const baseY = TIMELINE_CONFIG.MAIN_LANE_Y + (node.laneId * TIMELINE_CONFIG.BRANCH_VERTICAL_GAP);
+            
+            // Handle multiple nodes on same date/lane - stack them
+            const stackKey = `${node.dateIssued}-${node.laneId}`;
+            if (!dateLaneStack.has(stackKey)) {
+                dateLaneStack.set(stackKey, 0);
+            }
+            const stackIndex = dateLaneStack.get(stackKey);
+            dateLaneStack.set(stackKey, stackIndex + 1);
+            
+            // Vertical offset for stacking (alternate above/below)
+            let yOffset = 0;
+            if (stackIndex > 0) {
+                const totalGap = TIMELINE_CONFIG.VERTICAL_STACK_GAP + TIMELINE_CONFIG.VERTICAL_STACK_MIN_MARGIN;
+                yOffset = (stackIndex % 2 === 1 ? 1 : -1) * Math.ceil(stackIndex / 2) * totalGap;
+            }
+            
+            positions.set(node.id, { 
+                x, 
+                y: baseY + yOffset, 
+                laneId: node.laneId,
+                branchStartId: node.branchStartId
+            });
+        });
+        
+        return positions;
+    }
+
+    /**
+     * Draw horizontal branch lines for each branch
+     */
+    function drawBranchLines(container, chronologicalData, nodePositions) {
+        // Group nodes by their branch
+        const branchGroups = new Map();
+        
+        chronologicalData.forEach(node => {
+            if (node.laneId > 0) { // Only for branches (not main timeline)
+                if (!branchGroups.has(node.branchStartId)) {
+                    branchGroups.set(node.branchStartId, []);
+                }
+                branchGroups.get(node.branchStartId).push(node);
+            }
+        });
+        
+        // Draw horizontal line for each branch
+        branchGroups.forEach((nodes, branchStartId) => {
+            if (nodes.length === 0) return;
+            
+            const positions = nodes.map(n => nodePositions.get(n.id)).filter(p => p);
+            if (positions.length === 0) return;
+            
+            // Find leftmost and rightmost x positions
+            const minX = Math.min(...positions.map(p => p.x));
+            const maxX = Math.max(...positions.map(p => p.x));
+            
+            // Use the Y position from the first node's lane
+            const branchY = positions[0].y;
+            
+            // Draw the horizontal branch line
+            container.append("line")
+                .attr("class", "branch-horizontal-line")
+                .attr("x1", minX)
+                .attr("x2", maxX)
+                .attr("y1", branchY)
+                .attr("y2", branchY)
+                .style("stroke", TIMELINE_CONFIG.SUB_BRANCH_COLOR)
+                .style("stroke-width", TIMELINE_CONFIG.SUB_BRANCH_THICKNESS)
+                .style("opacity", 0.9);
+        });
+    }
+
+    /**
+     * Draw links between nodes - SIMPLIFIED: Only branch divergence lines (NO vertical stack lines)
+     */
+    function drawLinks(container, chronologicalData, nodePositions) {
+        const links = chronologicalData
+            .filter(d => d.originalFather !== null)
+            .map(d => {
+                const sourcePos = nodePositions.get(d.originalFather);
+                const targetPos = nodePositions.get(d.id);
+                
+                if (!sourcePos || !targetPos) return null;
+                
+                // Determine if this is a branch link
+                const isBranchLink = sourcePos.laneId !== targetPos.laneId;
+                const isVerticalStack = sourcePos.x === targetPos.x && sourcePos.laneId === targetPos.laneId;
+                
+                // SKIP vertical stack connections entirely
+                if (isVerticalStack) {
+                    return null;
+                }
+                
+                let linkColor, strokeWidth, shouldDraw = true;
+                
+                if (isBranchLink) {
+                    // This is a DIVERGENCE link (main branch to sub-branch)
+                    linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
+                    strokeWidth = TIMELINE_CONFIG.SUB_BRANCH_THICKNESS + 3; // Make divergence link BOLDER
+                    shouldDraw = true; // Always draw divergence links
+                } else {
+                    // Skip horizontal same-lane connections
+                    shouldDraw = false;
+                }
+                
+                if (!shouldDraw) return null;
+                
+                return { 
+                    source: sourcePos, 
+                    target: targetPos, 
+                    color: linkColor,
+                    width: strokeWidth,
+                    isBranch: isBranchLink
+                };
+            })
+            .filter(l => l !== null);
+        
+        container.selectAll(".timeline-link")
+            .data(links)
+            .enter().append("path")
+            .attr("class", d => d.isBranch ? "timeline-link divergence-link" : "timeline-link")
+            .attr("d", d => generateLinkPath(d))
+            .style("fill", "none")
+            .style("stroke", d => d.color)
+            .style("stroke-width", d => d.width)
+            .style("opacity", 0.9);
+    }
+
+    /**
+     * Generate smooth path for links
+     */
+    function generateLinkPath(link) {
+        const { source, target } = link;
+        const sourceY = source.y;
+        const targetY = target.y;
+        const sourceLane = source.laneId;
+        const targetLane = target.laneId;
+        
+        // Branch divergence (diagnosis or manual branch)
+        if (sourceLane !== targetLane) {
+            const midX = (source.x + target.x) / 2;
+            return `M${source.x} ${sourceY} 
+                    C${midX} ${sourceY}, ${midX} ${targetY}, ${target.x} ${targetY}`;
+        }
+        
+        // Default: curved path
+        const midX = (source.x + target.x) / 2;
+        return `M${source.x} ${sourceY} 
+                C${midX} ${sourceY}, ${midX} ${targetY}, ${target.x} ${targetY}`;
+    }
+
+    /**
+     * Draw individual nodes with details below
+     */
+    function drawNodes(container, chronologicalData, nodePositions) {
+        const nodeGroups = container.selectAll(".timeline-node")
+            .data(chronologicalData)
+            .enter().append("g")
+            .attr("class", "timeline-node")
+            .attr("transform", d => {
+                const pos = nodePositions.get(d.id);
+                return `translate(${pos.x}, ${pos.y})`;
+            });
+        
+        // Node circle (clickable)
+        nodeGroups.append("circle")
+            .attr("class", "node-circle")
+            .attr("r", 12)
+            .style("fill", d => {
+                if (d.isDiagnosis) {  // Remove "|| d.isManualBranch"
+                    return d.isFinalized ? CATEGORY_COLORS.Lab : "#ffffff";
+                }
+                return CATEGORY_COLORS[d.category] || "#3B82F6";
+            })
+            .style("stroke", d => {
+                if (d.isDiagnosis && !d.isFinalized) return CATEGORY_COLORS.Allergy;  // Remove "|| d.isManualBranch"
+                if (d.isTerminated) return CATEGORY_COLORS.Allergy;
+                if (d.isDiagnosis && d.isFinalized) return CATEGORY_COLORS.Lab;  // Remove "|| d.isManualBranch"
+                return CATEGORY_COLORS[d.category] || "#3B82F6";
+            })
+            .style("stroke-width", 3)
+            .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.15))")
+            .style("cursor", "pointer")
+            .attr("data-node-id", d => d.id);
+        
+        // Node details below circle
+        nodeGroups.append("foreignObject")
+            .attr("width", TIMELINE_CONFIG.NODE_WIDTH)
+            .attr("height", TIMELINE_CONFIG.NODE_HEIGHT)
+            .attr("x", -TIMELINE_CONFIG.NODE_WIDTH / 2)
+            .attr("y", 20)
+            .append("xhtml:div")
+            .attr("class", "timeline-node-details")
+            .attr("data-id", d => d.id)
+            .style("pointer-events", "none")
+            .html(d => createNodeDetails(d));
+    }
+
+    /**
+    * Create node details HTML (title, date, priority banner)
+    */
+    function createNodeDetails(node) {
+        const priorityBanner = node.priority === "High" ? 
+            `<div class="chrono-priority-banner">⚠ HIGH PRIORITY</div>` : '';
+        
+        return `
+            <div style="text-align: center;">
+                <div class="chrono-node-title" title="${node.text_1}">
+                    ${node.text_1}
+                </div>
+                <div class="chrono-node-date">
+                    ${node.dateIssued}
+                </div>
+                ${priorityBanner}
+            </div>
+        `;
+    }
+
+    /**
+    * Draw date markers along timeline
+    */
+    function drawDateMarkers(container, datesSorted, dateToIndexMap) {
+        const markerGroup = container.append("g").attr("class", "date-markers");
+        
+        datesSorted.forEach((date, index) => {
+            const x = index * TIMELINE_CONFIG.DATE_SCALE;
+            
+            // Draw ALL date markers to make it look like an x-axis scale
+            markerGroup.append("line")
+                .attr("x1", x)
+                .attr("x2", x)
+                .attr("y1", TIMELINE_CONFIG.MAIN_LANE_Y - 15)
+                .attr("y2", TIMELINE_CONFIG.MAIN_LANE_Y + 15)
+                .style("stroke", document.body.classList.contains('dark-mode') ? "#475569" : "#CBD5E1")
+                .style("stroke-width", 1);
+            
+            markerGroup.append("text")
+                .attr("x", x)
+                .attr("y", TIMELINE_CONFIG.MAIN_LANE_Y - 25)
+                .attr("text-anchor", "middle")
+                .style("fill", document.body.classList.contains('dark-mode') ? "#94A3B8" : "#64748b")
+                .style("font-size", "11px")
+                .style("font-weight", "500")
+                .text(date);
+        });
+    }
+
+    /**
+    * Bind manual branch creation controls
+    */
+    function bindManualBranchControls() {
+        // Show/hide the floating branch button based on mode
+        const branchBtn = document.getElementById('createBranchBtn');
+        if (branchBtn) {
+            branchBtn.style.display = currentMode === 'chronological' ? 'flex' : 'none';
+        }
+    }
+
+    /**
+    * Open branch creation form - creates a NEW branch in a new horizontal line
+    */
+    function openBranchCreationForm(parentNode, rect) {
+        createBranchMode = false;
+        document.getElementById('createBranchBtn').classList.remove('active');
+        document.getElementById('tree').classList.remove('branch-mode-active');
+        
+        // Open the add form for creating a node
+        const catContainer = document.getElementById("editCategoryContainer");
+        const catSelect = document.getElementById("editCategory");
+        
+        // Always allow category selection for branch creation
+        catContainer.style.display = "block";
+        catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+        
+        document.getElementById("editTitle").value = "";
+        document.getElementById("editDate").value = "";
+        document.getElementById("editDetails").value = "";
+        
+        // SHOW the isDiagnosis checkbox for branch creation
+        const diagnosisCheckboxContainer = document.getElementById("editDiagnosisContainer");
+        const diagnosisCheckbox = document.getElementById("editIsDiagnosis");
+        if (diagnosisCheckboxContainer && diagnosisCheckbox) {
+            diagnosisCheckboxContainer.style.display = "block";
+            diagnosisCheckbox.checked = false; // Default to unchecked
+        }
+        
+        const form = document.getElementById("editForm");
+        form.style.top = (rect.bottom + window.scrollY + 10) + "px";
+        form.style.left = (rect.left + window.scrollX) + "px";
+        form.style.display = "block";
+        
+        document.getElementById("saveEditBtn").onclick = () => {
+        const newId = Math.max(...data.map(d => d.id)) + 1;
+        
+        // FIXED: Get the checkbox value at save time
+        const diagnosisCheckboxAtSave = document.getElementById("editIsDiagnosis");
+        const isDiagnosisChecked = diagnosisCheckboxAtSave ? diagnosisCheckboxAtSave.checked : false;
+        
+        const newNode = {
+            id: newId,
+            text_1: document.getElementById("editTitle").value || "New Branch Node",
+            father: parentNode.id,
+            category: catSelect.value,
+            priority: document.getElementById("editPriority").value,
+            normality: document.getElementById("editNormality").value,
+            dateIssued: document.getElementById("editDate").value,
+            details: document.getElementById("editDetails").value,
+            isDiagnosis: isDiagnosisChecked, // Checkbox controls diagnosis status
+            isManualBranch: true // ALWAYS true for manually created branches
+        };
+        
+        data.push(newNode);
+        expandedNodes.add(parentNode.id);
+        refreshGraph();
+        form.style.display = "none";
+    };
+    }
+
+
+    /**
+    * Bind node interactions for chronological view
+    */
+    function bindChronologicalNodeInteractions() {
+        // Bind clicks to circles
+        d3.selectAll('.node-circle').on('click', (event, d) => {
+            event.stopPropagation();
+            
+            const nodeData = data.find(x => x.id === d.id);
+            if (!nodeData) return;
+            
+            // Branch creation mode
+            if (createBranchMode) {
+                openBranchCreationForm(nodeData, event.target.getBoundingClientRect());
+                return;
+            }
+            
+            // Add mode
+            if (addMode) {
+                openAddForm(nodeData, event.target.getBoundingClientRect());
+                resetModes();
+                return;
+            }
+            
+            // Delete mode
+            if (deleteMode) {
+                if (nodeData.father === null) return;
+                if (confirm(`Delete node "${nodeData.text_1}" and all children?`)) {
+                    deleteRecursive(nodeData.id);
+                    refreshGraph();
+                    resetModes();
+                    sidebar.classList.remove("open");
+
+                    // Notify Angular
+                    postNodeUpdate("delete", { id: nodeData.id });
+                }
+                return;
+            }
+            
+            // Standard: open details
+            openNodeDetails(nodeData);
+        });
+        
+        // Hover tooltips for add/delete/branch modes
+        d3.selectAll('.node-circle')
+            .on('mouseenter', function(event, d) {
+                const nodeData = data.find(x => x.id === d.id);
+                if (!nodeData) return;
+                
+                const tooltip = document.getElementById('tooltip');
+                
+                if (createBranchMode) {
+                    tooltip.innerText = 'Create Branch Here';
+                    tooltip.style.display = 'block';
+                    tooltip.style.background = '#3B82F6';
+                } else if (addMode) {
+                    tooltip.innerText = 'Add Child Node';
+                    tooltip.style.display = 'block';
+                    tooltip.style.background = '#10B981';
+                } else if (deleteMode && nodeData.father !== null) {
+                    tooltip.innerText = 'Delete Node';
+                    tooltip.style.display = 'block';
+                    tooltip.style.background = '#EF4444';
+                }
+            })
+            .on('mousemove', function(event) {
+                if (createBranchMode || addMode || deleteMode) {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.style.top = (event.pageY + 10) + 'px';
+                    tooltip.style.left = (event.pageX + 10) + 'px';
+                }
+            })
+            .on('mouseleave', function() {
+                if (createBranchMode || addMode || deleteMode) {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.style.display = 'none';
+                }
+            });
+    }
+
+    // === CATEGORICAL RENDERING (Keep as is) ===
+    function renderCategoricalGraph() {
+        const treeContainer = document.getElementById("tree");
+        treeContainer.innerHTML = '';
+        
+        myTree = Treeviz.create({
+            htmlId: "tree",
+            idKey: "id",
+            hasFlatData: true,
+            relationnalField: "father",
+            nodeWidth: 160,
+            nodeHeight: 100,
+            mainAxisNodeSpacing: 1.5,
+            direction: "top",
+            linkShape: "quadraticBeziers",
+            renderNode: ({ data: node }) => {
+                let color = CATEGORY_COLORS[node.category] || "#999";
+                let borderStyle = '';
+                
+                if (node.isDiagnosis) {
+                    color = "#ffffff";
+                    borderStyle = "4px solid var(--danger)";
+                }
+                
+                const showPriorityRing = (node.priority === "High") || 
+                    (node.father !== null && hasHiddenHighPriorityChild(node.id));
+                const priorityHtml = (!node.isDiagnosis && showPriorityRing) ? 
+                    `<div class="priority-ring"></div>` : '';
+                
+                const isParent = dataHasChildren(node.id);
+                const isExpanded = expandedNodes.has(node.id);
+                const expandBtnHtml = (!node.isDiagnosis && node.father === rootNode.id && isParent) ? `
+        <div class="expand-trigger" data-expand-btn="${node.id}">
+          <i class="fa-solid fa-${isExpanded ? 'minus' : 'plus'}"></i>
+        </div>` : '';
+                
+                let siblingBadgeHtml = '';
+                if (node.father !== null) {
+                    const siblings = data.filter(d => d.father === node.father);
+                    const isSibling = siblings.length > 1;
+                    const badgeClass = isSibling ? 'badge-sibling' : 'badge-single';
+                    const badgeText = isSibling ? 'SIBLING' : 'SINGLE';
+                    siblingBadgeHtml = `<div class="sibling-badge ${badgeClass}">${badgeText}</div>`;
+                }
+                
+                return `
+                    <div class="tree-node-wrapper" data-id="${node.id}">
+                        <div class="node-dot" style="background-color:${color}; border:${borderStyle};">
+                            ${priorityHtml}
+                            ${expandBtnHtml}
+                        </div>
+                        ${siblingBadgeHtml}
+                        <div class="node-content">
+                            <div class="node-title" title="${node.text_1}">${node.text_1}</div>
+                            <div class="node-date">${node.dateIssued}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        applyCategoricalFilters();
+        currentMode = 'categorical';
+        setTimeout(applyStandardClickBehavior, 50);
+    }
+
+    function applyCategoricalFilters() {
+        const matchesFilter = new Set();
+        
+        data.forEach(node => {
+            const nodeDate = new Date(node.dateIssued);
+            const matches = 
+                selectedCategories.includes(node.category) &&
+                selectedPriorities.includes(node.priority) &&
+                selectedNormalities.includes(node.normality) &&
+                (!startDate || nodeDate >= startDate) &&
+                (!endDate || nodeDate <= endDate) &&
+                (selectedDiagnosis || !node.isDiagnosis);
+            
+            if (matches) matchesFilter.add(node.id);
+        });
+        
+        let changed = true;
+        while (changed) {
+            changed = false;
+            data.forEach(node => {
+                if (matchesFilter.has(node.id) && node.father !== null) {
+                    if (!matchesFilter.has(node.father)) {
+                        matchesFilter.add(node.father);
+                        changed = true;
+                    }
+                }
+            });
+        }
+        
+        const visibleNodes = data.filter(node => {
+            if (!matchesFilter.has(node.id)) return false;
+            if (node.father === null) return true;
+            
+            let currentParentId = node.father;
+            while (currentParentId !== null) {
+                if (!expandedNodes.has(currentParentId)) return false;
+                const parentNode = data.find(d => d.id === currentParentId);
+                currentParentId = parentNode ? parentNode.father : null;
+            }
+            
+            return true;
+        });
+        
+        myTree.refresh(visibleNodes);
+    }
+
+    // === GLOBAL REFRESH ===
+    refreshGraph = function() {
+        if (currentMode === 'categorical') {
+            applyCategoricalFilters();
+        } else {
+            renderChronologicalGraph();
+        }
+    }
+
+    // === TOGGLE BUTTONS ===
+    document.querySelector(".toggle-group").addEventListener("click", (e) => {
+        const target = e.target.closest(".toggle-btn");
+        if (!target) return;
+        
+        document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
+        target.classList.add("active");
+        
+        resetModes();
+        
+        if (target.innerText.includes("Chronological")) {
+            renderChronologicalGraph();
+        } else {
+            renderCategoricalGraph();
+        }
+    });
+
+    // === INITIAL LOAD ===
+    function initialLoad() {
+        refreshGraph();
+        setTimeout(applyStandardClickBehavior, 100);
+    }
+
+    initialLoad();
+
+    // === HELPER CSS ===
+    const style = document.createElement('style');
+    style.textContent = `
+      .timeline-node-details {
+          pointer-events: none;
+          text-align: center;
+      }
+      
+      /* --- UPDATED CSS FOR INTERACTIVITY & SPACING --- */
+      /* Default state: pointer cursor, NO hover effect */
+      .node-circle {
+          cursor: pointer; 
+          transition: transform 0.2s ease, filter 0.2s ease;
+      }
+
+      /* 3D Hover effect - enlarge and add shadow */
+      .node-circle:hover {
+          transform: scale(1.3);
+          filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
+      }
+
+      /* --- CURSOR MODES (Applied to #tree container) --- */
+      /* Add Mode: Crosshair cursor with + sign */
+      #tree.add-mode-active .node-circle {
+          cursor: copy !important;
+      }
+
+      /* Delete Mode: Not-allowed cursor */
+      #tree.delete-mode-active .node-circle {
+          cursor: no-drop !important;
+      }
+
+      /* Branch Mode: Pointer */
+      #tree.branch-mode-active .node-circle {
+          cursor: pointer !important;
+      }
+
+      /* Add this to your style section */
+      .divergence-link {
+          stroke-width: 4px !important;
+          opacity: 1 !important;
+      }
+
+      /* --- TOOLTIP --- */
+      #tooltip {
+          position: absolute;
+          display: none;
+          background: #1f2937;
+          color: white;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          pointer-events: none;
+          z-index: 1000;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      /* --- FLOATING ACTION BUTTON --- */
+      #createBranchBtn {
+          position: fixed;
+          bottom: 30px;
+          right: 30px;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: #3B82F6;
+          color: white;
+          border: none;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          z-index: 900;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #createBranchBtn:hover {
+          transform: scale(1.05);
+          background: #2563EB;
+      }
+
+      #createBranchBtn.active {
+          background: #10B981; /* Green when active */
+          transform: rotate(45deg);
+      }
+      
+      @keyframes pulse {
+          0%, 100% { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }
+          50% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6); }
+      }
+
+      /* Chronological node text styling */
+      .chrono-node-title {
+          font-weight: 600;
+          font-size: 12px;
+          color: #1e293b;
+          margin-bottom: 4px;
+          line-height: 1.3;
+      }
+
+      .chrono-node-date {
+          font-size: 10px;
+          color: #64748b;
+      }
+
+      .chrono-priority-banner {
+          background: #FEE2E2;
+          color: #991B1B;
+          font-size: 9px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 4px;
+          display: inline-block;
+          margin-top: 4px;
+      }
+
+      /* Dark mode overrides for chronological nodes */
+      body.dark-mode .chrono-node-title {
+          color: #F9FAFB;
+      }
+
+      body.dark-mode .chrono-node-date {
+          color: #94A3B8;
+      }
+
+      body.dark-mode .chrono-priority-banner {
+          background: #7F1D1D;
+          color: #FECACA;
+      }
+      `;
+    document.head.appendChild(style);
+
+    // Add the floating button to the DOM
+    const branchBtn = document.createElement('button');
+    branchBtn.id = 'createBranchBtn';
+    branchBtn.innerHTML = '<i class="fa-solid fa-code-branch"></i>';
+    branchBtn.title = 'Create New Branch';
+    document.body.appendChild(branchBtn);
+
+    // Branch button click handler
+    branchBtn.addEventListener('click', () => {
+        // Toggle branch mode on/off with each click
+        if (createBranchMode) {
+            resetModes();
+            createBranchMode = false;
+            branchBtn.classList.remove('active');
+            document.getElementById('tree').classList.remove('branch-mode-active');
+        } else {
+            resetModes();
+            createBranchMode = true;
+            branchBtn.classList.add('active');
+            document.getElementById('tree').classList.add('branch-mode-active');
+        }
+    });
+
+
+    // === DARK MODE TOGGLE ===
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.body;
+    const darkModeIcon = darkModeToggle.querySelector('i');
+
+    // Check for saved preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      body.classList.add('dark-mode');
+      document.getElementById('sunIcon').style.display = 'none';
+      document.getElementById('moonIcon').style.display = 'block';
+    }
+
+    // Toggle dark mode
+    darkModeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark-mode');
+      
+      const sunIcon = document.getElementById('sunIcon');
+    const moonIcon = document.getElementById('moonIcon');
+
+    if (body.classList.contains('dark-mode')) {
+      sunIcon.style.display = 'none';
+      moonIcon.style.display = 'block';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      sunIcon.style.display = 'block';
+      moonIcon.style.display = 'none';
+      localStorage.setItem('theme', 'light');
+    }
+      
+      // Refresh graph to apply dark mode to SVG elements
+      if (currentMode === 'chronological') {
+        renderChronologicalGraph();
+      }
+    });
+
+});
+  </script>
+</body>
+</html>
