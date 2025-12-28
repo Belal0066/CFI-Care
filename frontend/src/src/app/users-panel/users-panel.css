@@ -1,0 +1,46 @@
+.search-input {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 42px;
+  background: #fff;
+}
+
+.search-input input {
+  border: none;
+  outline: none;
+  flex: 1;
+  height: 100%;
+  font-size: 14px;
+}
+
+.search-icon {
+  color: #6c757d;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.search{
+  background-color: #1E6ED3;
+}
+
+.add-user{
+  background-color: white;
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-container label {
+    position: absolute;
+    left: 48px;
+    top: 16px;
+    transition: all 0.3s ease;
+}
+
+.search-container input:focus + label,
+.search-container input:valid + label {
+    transform: translateY(-10px) scale(0);
+    opacity: 0;
+}

@@ -1,0 +1,62 @@
+<!-- <div class="list-group" style="flex-shrink: 1; min-width: 0; width: 420px;
+  max-width: 100%; box-sizing: border-box; margin-left: 35px;
+margin-top: 25px; overflow-y: auto; height: calc(80vh - 120px);"> -->
+<!-- <div class="list-group" style="flex-shrink: 1; min-width: 0; width: 420px;
+  max-width: 100%; box-sizing: border-box; margin-left: 35px;
+  margin-top: 25px; overflow-y: auto; max-height: calc(80vh - 120px);">
+  <ul class="list-group">
+    
+    <li class="list-group-item d-flex justify-content-between align-items-start" 
+        *ngFor="let patient of patients" 
+        (click)="onPatientClick(patient)"
+        style=" background-color: #1E6ED3; border-width: 1px;"> 
+        
+      <div class="ms-2 me-auto">
+        <div class="fw-bold mt-1 mb-2" style="color: white;">{{ patient.name }}</div>
+        <div class="mb-1" style="color: rgb(231, 229, 226);">Updated {{ patient.updated }}</div> 
+      </div>
+      <span class="fw-semibold" style="font-size: smaller; color: rgb(216, 212, 205);">{{ patient.age }}</span>
+    </li>
+    
+  </ul>
+</div> -->
+
+
+<!-- FRONTEND
+<div style="margin-left: 35px; margin-top: 10px; border: 1px solid #ccc; width: 420px; "></div>
+<div class="patient-list">
+  <ul>
+    <li *ngFor="let patient of patients" (click)="onPatientClick(patient)" class="patient-item">
+      <div class="patient-info">
+        <div class="patient-name">{{ patient.name }}</div>
+        <div class="patient-updated">Updated {{ patient.updated }}</div>
+      </div>
+      <span class="patient-age">{{ patient.age }}</span>
+    </li>
+  </ul>
+</div> -->
+
+
+<!-- BACKEND -->
+<div class="patient-list">
+  <ul>
+    <li *ngFor="let patient of patients"
+        (click)="onPatientClick(patient)"
+        class="patient-item">
+
+      <div class="patient-info">
+        <div class="patient-name">
+          {{ patient.name }}
+        </div>
+
+        <div class="patient-updated">
+          Updated {{ patient.lastUpdated | date:'mediumDate' }}
+        </div>
+      </div>
+
+      <span class="patient-age">
+        {{ patient.age }}y
+      </span>
+    </li>
+  </ul>
+</div>

@@ -1,0 +1,16 @@
+.main-layout {
+  display: flex;
+  height: calc(100vh - 64px); /* height of top bar */
+}
+
+.sidebar {
+  width: 30%;
+  min-width: 280px; /* optional but recommended */
+  overflow-y: auto;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+}
+
