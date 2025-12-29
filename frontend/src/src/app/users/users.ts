@@ -27,7 +27,6 @@
 
 // }
 
-
 // export interface PatientSummaryDTO {
 //   id: number;
 //   name: string;
@@ -35,69 +34,52 @@
 //   lastUpdated: string; // ISO
 // }
 
-
 // BACKEND
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
-
-export interface PatientSummaryDTO {
-  id: number;
-  name: string;
-  age: number;
-  lastUpdated: string; 
-}
+import { PatientApiService } from '../services/patientApi/patient-api-service';
+import { PatientSummaryDTO } from '../models/patient.model';
 
 @Component({
   selector: 'app-users',
+  standalone: true,
   imports: [CommonModule],
   templateUrl: './users.html',
-  styleUrl: './users.css'
+  styleUrl: './users.css',
 })
-export class Users {
-
-  patients: PatientSummaryDTO[] = [
-    {
-      id: 1,
-      name: 'Name1',
-      age: 24,
-      lastUpdated: '2025-12-18T10:00:00Z'
-    },
-    {
-      id: 2,
-      name: 'Name2',
-      age: 36,
-      lastUpdated: '2025-12-26T08:00:00Z'
-    },
-    {
-      id: 3,
-      name: 'Name3',
-      age: 77,
-      lastUpdated: '2025-12-25T14:30:00Z'
-    }
-  ];
+export class Users implements OnInit {
+  patients: PatientSummaryDTO[] = [];
+  loading = true;
+  error: string | null = null;
 
   constructor(
-    private selectedPatientService: SelectedPatientService
+    private selectedPatientService: SelectedPatientService,
+    private patientApi: PatientApiService
   ) {}
+
+  ngOnInit() {
+    this.loadPatients();
+  }
+
+  loadPatients() {
+    this.loading = true;
+    this.error = null;
+    this.patientApi.getPatients().subscribe({
+      next: (patients) => {
+        this.patients = patients;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load patients', err);
+        this.error =
+          'Failed to load patients. Make sure the backend is running.';
+        this.loading = false;
+      },
+    });
+  }
 
   onPatientClick(patient: PatientSummaryDTO) {
     this.selectedPatientService.selectPatient(patient.id);
   }
-
-
-  //NOTEEEE: THis updates users component to use API
-// constructor(
-//   private selectedPatientService: SelectedPatientService,
-//   private patientApi: PatientApiService
-// ) {}
-
-// ngOnInit() {
-//   this.patientApi.getPatients().subscribe(patients => {
-//     this.patients = patients;
-//   });
-// }
-
 }
-
-

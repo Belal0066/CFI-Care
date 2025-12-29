@@ -16,7 +16,14 @@ const historyGraphRoutes = require("./historyGraph/historyGraphRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// CORS configuration for Angular frontend
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || "http://localhost:4200",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use("/api/patients", patientRoutes);

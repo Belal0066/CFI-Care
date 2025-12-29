@@ -4,15 +4,14 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
-
 @Component({
   selector: 'app-login',
+  standalone: true,
   imports: [LoginPageCards, FormsModule, CommonModule],
   templateUrl: './login.html',
-  styleUrl: './login.css'
+  styleUrl: './login.css',
 })
 export class Login {
-
   mode: 'login' | 'signup' = 'login';
   showForgot = false;
 
@@ -34,7 +33,7 @@ export class Login {
 
   /** FORM SUBMIT */
   onSubmit() {
-    if (this.showForgot) return this.sendReset();  // handle forgot panel submit
+    if (this.showForgot) return this.sendReset(); // handle forgot panel submit
 
     if (this.mode === 'login') {
       this.login();
@@ -47,18 +46,20 @@ export class Login {
   login() {
     if (!this.email || !this.password) return;
 
-    // ---- MOCK AUTH (replace with backend later) ----
-    const authSuccess = true;
-
-    if (authSuccess) {
-      this.handleRememberMe();
-      this.router.navigate(['/dashboard']);
-    }
+    // Simple login - just navigate to dashboard
+    this.handleRememberMe();
+    this.router.navigate(['/dashboard']);
   }
 
   /** SIGNUP */
   signup() {
-    if (!this.email || !this.password || !this.fullName || this.password !== this.confirmPassword) return;
+    if (
+      !this.email ||
+      !this.password ||
+      !this.fullName ||
+      this.password !== this.confirmPassword
+    )
+      return;
     const signupSuccess = true; // replace with backend call
 
     if (signupSuccess) {
@@ -87,7 +88,7 @@ export class Login {
   /** TOGGLE MODE */
   toggleMode() {
     this.mode = this.mode === 'login' ? 'signup' : 'login';
-    this.showForgot = false;  // hide forgot panel when toggling
+    this.showForgot = false; // hide forgot panel when toggling
   }
 
   /** FORGOT PASSWORD */
@@ -107,5 +108,4 @@ export class Login {
     this.forgotMessage = `If ${this.forgotEmail} exists, a reset link has been sent.`;
     this.showForgot = false;
   }
-
 }

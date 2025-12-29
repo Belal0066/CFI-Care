@@ -1,21 +1,11 @@
-/* .list-group{
-    background-color: #1E6ED3;
-}  */
-
-
-
 .patient-list {
-  width: 420px; /* keep the width you want */
-  margin-left: 35px;
-  margin-top: 10px;
-  max-height: 60vh; /* or calc(whatever you need) */
-  overflow-y: auto;  /* vertical scroll only */
-  overflow-x: hidden; /* prevent horizontal scroll */
+  width: 100%;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
-  border-radius: 12px; /* optional, to match cards */
-  padding-right: 5px; /* optional, avoid scrollbar overlapping content */
+  padding: 0 0.25rem;
 }
-
 
 .patient-list ul {
   padding: 0;
@@ -27,38 +17,62 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #1E6ED3;             /* main color */
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
+  background: #1e6ed3;
+  border: none;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.5rem;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .patient-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateX(4px);
+  background-color: #2578e0;
+  box-shadow: 0 4px 12px rgba(30, 110, 211, 0.3);
 }
 
 .patient-info {
   display: flex;
   flex-direction: column;
+  min-width: 0; /* Allow text truncation */
+  flex: 1;
 }
 
 .patient-name {
-  font-weight: 700;
+  font-weight: 600;
   color: #fff;
-  margin-bottom: 4px;
-  font-size: 16px;
+  margin-bottom: 2px;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .patient-updated {
-  font-size: 13px;
+  font-size: clamp(0.7rem, 2vw, 0.8rem);
   color: rgba(255, 255, 255, 0.7);
 }
 
 .patient-age {
   font-weight: 600;
-  font-size: 14px;
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
   color: rgba(255, 255, 255, 0.8);
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 992px) {
+  .patient-list {
+    max-height: calc(50vh - 150px);
+  }
+}
+
+@media (max-width: 480px) {
+  .patient-item {
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.375rem;
+  }
 }

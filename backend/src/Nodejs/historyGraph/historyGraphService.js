@@ -265,6 +265,25 @@ async function getGraphForPatient(patientId) {
     parentMap[edge.target_node_id] = edge.source_node_id;
   });
 
+  // Try to get the eocId from existing FHIR encounters
+  let eocId = null;
+  if (nodesRes.rows.length > 0) {
+    try {
+      const firstEncounterId = nodesRes.rows[0].encounter_fhir_id;
+      const encounterResponse = await encounterService.getEncounterById(
+        firstEncounterId
+      );
+      if (encounterResponse?.episodeOfCare?.[0]?.reference) {
+        eocId = encounterResponse.episodeOfCare[0].reference.replace(
+          "EpisodeOfCare/",
+          ""
+        );
+      }
+    } catch (err) {
+      console.log("Could not retrieve eocId from FHIR:", err.message);
+    }
+  }
+
   const formattedData = nodesRes.rows.map((row) => ({
     id: row.encounter_fhir_id,
     text_1: row.title || "Untitled Node",
@@ -279,7 +298,7 @@ async function getGraphForPatient(patientId) {
     isDiagnosis: row.is_diagnosis || false,
   }));
 
-  return formattedData;
+  return { nodes: formattedData, eocId };
 }
 
 // Create Mock Data for Testing
@@ -376,7 +395,6 @@ async function seedSampleData(patientId, nodes) {
 // add new node to graph
 async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   if (!patientId) throw new Error("patientId is required");
-  if (!eocId) throw new Error("eocId is required");
   if (!nodeData) throw new Error("nodeData is required");
   if (!nodeData.text_1 && !nodeData.title) {
     throw new Error("nodeData must contain either 'text_1' or 'title'");
@@ -385,8 +403,26 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     throw new Error("nodeData.category is required");
   }
 
-  // Generate ID if not provided
-  if (!nodeData.id) {
+  // Auto-create EpisodeOfCare if not provided or is 'auto'/'eoc-default'
+  let finalEocId = eocId;
+  if (!eocId || eocId === "auto" || eocId === "eoc-default") {
+    // Create a new EpisodeOfCare for this patient
+    finalEocId = `eoc-${randomUUID()}`;
+    const eocData = {
+      id: finalEocId,
+      status: "active",
+      patient: { reference: `Patient/${patientId}` },
+    };
+    try {
+      await eocService.createEpisodeOfCareWithSpecificId(eocData);
+      console.log(`Created new EpisodeOfCare: ${finalEocId}`);
+    } catch (err) {
+      throw new Error(`Failed to create EpisodeOfCare: ${err.message}`);
+    }
+  }
+
+  // Generate ID if not provided or starts with 'temp-'
+  if (!nodeData.id || nodeData.id.startsWith("temp-")) {
     nodeData.id = `enc-${randomUUID()}`;
   }
 
@@ -420,7 +456,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
       details: details,
     },
     patientId,
-    eocId
+    finalEocId
   );
 
   let createdEncounter;
@@ -429,7 +465,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
       await encounterService.createEncounterWithSpecificIdForEOC(
         patientId,
         fhirEncounter,
-        eocId
+        finalEocId
       );
     console.log(`FHIR Encounter created with ID: ${nodeData.id}`);
   } catch (err) {
@@ -517,16 +553,12 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     dateIssued: eventDate.split("T")[0],
     details: details,
     isDiagnosis: isDiagnosis,
+    eocId: finalEocId, // Return the eocId so frontend can use it for subsequent adds
     fhirResource: createdEncounter,
   };
 }
 
-async function updateNode(
-  patientId,
-  nodeId,
-  updatedData,
-  newParentNodeId = null
-) {
+async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   if (!patientId) throw new Error("patientId is required");
   if (!nodeId) throw new Error("nodeId is required");
   if (!updatedData) throw new Error("updatedData is required");
@@ -573,7 +605,26 @@ async function updateNode(
     throw new Error(`Node ${nodeId} not found for patient ${patientId}`);
   }
 
+  // Get current parent relationship from database
+  let currentParentId = null;
+  const parentQuery = await client.query(
+    "SELECT source_node_id FROM node_relations WHERE target_node_id = $1",
+    [nodeId]
+  );
+  if (parentQuery.rowCount > 0) {
+    currentParentId = parentQuery.rows[0].source_node_id;
+  }
+
+  console.log(
+    `updateNode: newParentNodeId=${newParentNodeId}, currentParentId=${currentParentId}`
+  );
+
+  // Only update parent relationship if newParentNodeId is explicitly provided (not undefined)
+  // undefined = don't change, null = make it a root node, value = change parent
   if (newParentNodeId !== undefined) {
+    console.log(
+      `Updating parent relationship for ${nodeId} to ${newParentNodeId}`
+    );
     await client.query("DELETE FROM node_relations WHERE target_node_id = $1", [
       nodeId,
     ]);
@@ -594,12 +645,17 @@ async function updateNode(
         [`rel-${randomUUID()}`, newParentNodeId, nodeId]
       );
     }
+    currentParentId = newParentNodeId;
+  } else {
+    console.log(
+      `Preserving parent relationship for ${nodeId}: ${currentParentId}`
+    );
   }
 
   return {
     id: nodeId,
     text_1: title,
-    father: newParentNodeId === undefined ? undefined : newParentNodeId,
+    father: currentParentId,
     category,
     priority,
     normality,

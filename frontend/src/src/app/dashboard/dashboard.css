@@ -1,16 +1,55 @@
 .main-layout {
   display: flex;
   height: calc(100vh - 64px); /* height of top bar */
+  overflow: hidden;
 }
 
 .sidebar {
-  width: 30%;
-  min-width: 280px; /* optional but recommended */
+  width: 320px;
+  min-width: 280px;
+  max-width: 100%;
   overflow-y: auto;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .content {
   flex: 1;
   overflow-y: auto;
+  min-width: 0; /* Allow content to shrink */
 }
 
+@media (max-width: 992px) {
+  .main-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 64px);
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 50vh;
+    min-width: unset;
+  }
+
+  .content {
+    flex: 1;
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    max-height: 40vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-layout {
+    height: auto;
+  }
+
+  .sidebar {
+    max-height: 45vh;
+  }
+}
