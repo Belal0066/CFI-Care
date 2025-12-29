@@ -80,5 +80,166 @@ export function fhirPatientToDetailsDTO(
     age: age,
     gender: patient.gender || 'unknown',
     lastUpdated: patient.meta?.lastUpdated || new Date().toISOString(),
+    primaryDiagnosis: '',
+    activeConditions: [],
+    currentMedications: [],
+    recentLabResults: [],
+    recentProcedures: [],
+  };
+}
+
+// FHIR Condition resource type
+export interface FHIRCondition {
+  resourceType: 'Condition';
+  id: string;
+  clinicalStatus?: {
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+  };
+  verificationStatus?: {
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+  };
+  category?: Array<{
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+  }>;
+  code?: {
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+    text?: string;
+  };
+  subject?: {
+    reference?: string;
+  };
+  onsetDateTime?: string;
+  recordedDate?: string;
+}
+
+// FHIR Encounter resource type
+export interface FHIREncounter {
+  resourceType: 'Encounter';
+  id: string;
+  status?: string;
+  class?: Array<{
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+  }>;
+  type?: Array<{
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+    text?: string;
+  }>;
+  reason?: Array<{
+    value?: Array<{
+      concept?: {
+        coding?: Array<{
+          system?: string;
+          code?: string;
+          display?: string;
+        }>;
+        text?: string;
+      };
+    }>;
+  }>;
+  subject?: {
+    reference?: string;
+  };
+  actualPeriod?: {
+    start?: string;
+    end?: string;
+  };
+  diagnosis?: Array<{
+    condition?: Array<{
+      reference?: {
+        reference?: string;
+      };
+      concept?: {
+        coding?: Array<{
+          system?: string;
+          code?: string;
+          display?: string;
+        }>;
+        text?: string;
+      };
+    }>;
+    use?: Array<{
+      coding?: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+      }>;
+    }>;
+  }>;
+}
+
+// Helper to extract display text from a FHIR Condition
+export function extractConditionDisplay(condition: FHIRCondition): string {
+  // Try to get the display text from code.text first, then code.coding[0].display
+  if (condition.code?.text) {
+    return condition.code.text;
+  }
+  if (condition.code?.coding && condition.code.coding.length > 0) {
+    return (
+      condition.code.coding[0].display ||
+      condition.code.coding[0].code ||
+      'Unknown Condition'
+    );
+  }
+  return 'Unknown Condition';
+}
+
+// Helper to extract info from a FHIR Encounter
+export function extractEncounterInfo(encounter: FHIREncounter): {
+  type: string;
+  reason: string;
+  date: string;
+  status: string;
+} {
+  // Get encounter type
+  let type = '';
+  if (encounter.type && encounter.type.length > 0) {
+    type =
+      encounter.type[0].text ||
+      encounter.type[0].coding?.[0]?.display ||
+      encounter.type[0].coding?.[0]?.code ||
+      '';
+  }
+
+  // Get reason
+  let reason = '';
+  if (encounter.reason && encounter.reason.length > 0) {
+    const firstReason = encounter.reason[0]?.value?.[0]?.concept;
+    reason = firstReason?.text || firstReason?.coding?.[0]?.display || '';
+  }
+
+  // Get date
+  const date = encounter.actualPeriod?.start
+    ? new Date(encounter.actualPeriod.start).toLocaleDateString()
+    : '';
+
+  return {
+    type,
+    reason: reason || type,
+    date,
+    status: encounter.status || '',
   };
 }

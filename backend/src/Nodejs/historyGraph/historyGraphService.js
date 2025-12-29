@@ -582,6 +582,46 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     eventDate = new Date(eventDate).toISOString();
   }
 
+  // Get the eocId from the existing FHIR encounter
+  let eocId = null;
+  try {
+    const existingEncounter = await encounterService.getEncounterById(nodeId);
+    if (existingEncounter?.episodeOfCare?.[0]?.reference) {
+      eocId = existingEncounter.episodeOfCare[0].reference.replace(
+        "EpisodeOfCare/",
+        ""
+      );
+    }
+  } catch (err) {
+    console.log("Could not retrieve eocId from FHIR:", err.message);
+  }
+
+  // Update FHIR Encounter
+  if (eocId) {
+    const fhirEncounter = mapNodeToFHiR5(
+      {
+        id: nodeId,
+        text_1: title,
+        title: title,
+        category: category,
+        priority: priority,
+        normality: normality,
+        dateIssued: eventDate,
+        details: details,
+      },
+      patientId,
+      eocId
+    );
+
+    try {
+      await encounterService.updateEncounter(nodeId, fhirEncounter);
+      console.log(`FHIR Encounter ${nodeId} updated successfully`);
+    } catch (err) {
+      console.error(`Failed to update FHIR Encounter ${nodeId}:`, err.message);
+      // Continue with DB update even if FHIR update fails
+    }
+  }
+
   const updateQuery = `
     UPDATE encounter_nodes
     SET title = $1, category = $2, priority = $3, normality = $4, event_date = $5, details = $6, is_diagnosis = $7
@@ -696,19 +736,40 @@ async function deleteNode(patientId, nodeId) {
   // Collect node + descendants
   const targets = await collectDescendants([nodeId]);
 
+  // Delete from FHIR server first
+  const fhirDeleteResults = [];
+  for (const encounterId of targets) {
+    try {
+      const result = await encounterService.deleteEncounter(encounterId);
+      fhirDeleteResults.push({ id: encounterId, success: true, result });
+      console.log(`FHIR Encounter ${encounterId} deleted successfully`);
+    } catch (err) {
+      console.error(
+        `Failed to delete FHIR Encounter ${encounterId}:`,
+        err.message
+      );
+      fhirDeleteResults.push({
+        id: encounterId,
+        success: false,
+        error: err.message,
+      });
+      // Continue with other deletions even if one fails
+    }
+  }
+
   // Remove relations first
   await client.query(
     "DELETE FROM node_relations WHERE source_node_id = ANY($1) OR target_node_id = ANY($1)",
     [targets]
   );
 
-  // Delete encounters
+  // Delete encounters from database
   await client.query(
     "DELETE FROM encounter_nodes WHERE patient_id = $1 AND encounter_fhir_id = ANY($2)",
     [patientId, targets]
   );
 
-  return { deleted: targets };
+  return { deleted: targets, fhirDeleteResults };
 }
 
 module.exports = {
