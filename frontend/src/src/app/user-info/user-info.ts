@@ -44,8 +44,11 @@ import {
   PatientDetailsDTO,
   FHIRPatient,
   fhirPatientToDetailsDTO,
+  extractConditionDisplay,
+  extractEncounterInfo,
 } from '../models/patient.model';
 import { CommonModule } from '@angular/common';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-user-info',
@@ -78,10 +81,57 @@ export class UserInfo implements OnInit {
   loadPatientDetails(id: string) {
     this.loading = true;
     this.error = null;
-    this.patientApi.getPatientById(id).subscribe({
-      next: (patient: FHIRPatient) => {
+
+    // Fetch patient, conditions, and encounters in parallel
+    forkJoin({
+      patient: this.patientApi.getPatientById(id),
+      conditions: this.patientApi.getPatientConditions(id),
+      encounters: this.patientApi.getPatientEncounters(id),
+    }).subscribe({
+      next: ({ patient, conditions, encounters }) => {
         // Transform FHIR Patient to PatientDetailsDTO
         this.patientDetails = fhirPatientToDetailsDTO(patient);
+
+        // Extract conditions from FHIR Bundle
+        if (conditions.entry && conditions.entry.length > 0) {
+          const conditionsList = conditions.entry.map((e: any) =>
+            extractConditionDisplay(e.resource)
+          );
+
+          // Find primary diagnosis (first condition marked as encounter-diagnosis or first condition)
+          const diagnosisCondition = conditions.entry.find((e: any) =>
+            e.resource.category?.some((cat: any) =>
+              cat.coding?.some(
+                (code: any) => code.code === 'encounter-diagnosis'
+              )
+            )
+          );
+          this.patientDetails.primaryDiagnosis = diagnosisCondition
+            ? extractConditionDisplay(diagnosisCondition.resource)
+            : conditionsList[0] || '';
+
+          // Active conditions are those with clinicalStatus 'active'
+          this.patientDetails.activeConditions = conditions.entry
+            .filter((e: any) =>
+              e.resource.clinicalStatus?.coding?.some(
+                (c: any) => c.code === 'active'
+              )
+            )
+            .map((e: any) => extractConditionDisplay(e.resource));
+        }
+
+        // Extract encounter info (procedures, diagnoses from encounters)
+        if (encounters.entry && encounters.entry.length > 0) {
+          const encounterInfo = encounters.entry.map((e: any) =>
+            extractEncounterInfo(e.resource)
+          );
+
+          // Recent procedures from encounters with type/reason
+          this.patientDetails.recentProcedures = encounterInfo
+            .filter((info: any) => info.reason)
+            .map((info: any) => `${info.reason} (${info.date})`);
+        }
+
         this.loading = false;
       },
       error: (err) => {

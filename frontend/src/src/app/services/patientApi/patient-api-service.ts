@@ -35,6 +35,7 @@ export interface UpdateNodeRequest {
 export class PatientApiService {
   private baseUrl = '/api/patients';
   private graphUrl = '/api/historyGraph';
+  private conditionsUrl = '/api/conditions';
 
   constructor(private http: HttpClient) {}
 
@@ -81,6 +82,11 @@ export class PatientApiService {
   // Get patient encounters
   getPatientEncounters(id: string | number): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/${id}/encounters`);
+  }
+
+  // Get patient conditions
+  getPatientConditions(id: string | number): Observable<any> {
+    return this.http.get<any>(`${this.conditionsUrl}/patient/${id}`);
   }
 
   // Create a new patient
