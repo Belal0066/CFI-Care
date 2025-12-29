@@ -35,91 +35,61 @@
 
 // }
 
-
-
 //BACKEND
 import { Component, OnInit } from '@angular/core';
 import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
 import { PatientApiService } from '../services/patientApi/patient-api-service';
 import { Router } from '@angular/router';
-import { PatientDetailsDTO } from '../models/patient.model';
+import {
+  PatientDetailsDTO,
+  FHIRPatient,
+  fhirPatientToDetailsDTO,
+} from '../models/patient.model';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-user-info',
+  standalone: true,
   imports: [CommonModule],
   templateUrl: './user-info.html',
-  styleUrl: './user-info.css'
+  styleUrl: './user-info.css',
 })
-export class UserInfo {
-
+export class UserInfo implements OnInit {
   patientDetails: PatientDetailsDTO | null = null;
-  // loading: boolean = false;
-  // error: string | null = null;
+  loading: boolean = false;
+  error: string | null = null;
 
   constructor(
     private selectedPatientService: SelectedPatientService,
-    // private patientApi: PatientApiService,
+    private patientApi: PatientApiService,
     private router: Router
   ) {}
 
-  //Use the one below this one!!!
   ngOnInit() {
-    this.selectedPatientService.selectedPatientId$
-      .subscribe(id => {
-        if (id !== null) {
-          this.loadPatientDetails(id);
-        } else {
-          this.patientDetails = null;
-        }
-      });
+    this.selectedPatientService.selectedPatientId$.subscribe((id) => {
+      if (id !== null) {
+        this.loadPatientDetails(id);
+      } else {
+        this.patientDetails = null;
+      }
+    });
   }
 
-  //USE THIS: 
-  // ngOnInit() {
-  //   // Subscribe to selected patient ID
-  //   this.selectedPatientService.selectedPatientId$.subscribe(id => {
-  //     if (id !== null) {
-  //       this.fetchPatientDetails(id);
-  //     } else {
-  //       this.patientDetails = null;
-  //     }
-  //   });
-  // }
-
-  //fetchPatientDetails HERE
-  // fetchPatientDetails(id: number) {
-  //   this.loading = true;
-  //   this.error = null;
-
-  //   this.patientApi.getPatientById(id).subscribe({
-  //     next: (details) => {
-  //       this.patientDetails = details;
-  //       this.loading = false;
-  //     },
-  //     error: (err) => {
-  //       console.error('Failed to load patient details', err);
-  //       this.error = 'Failed to load patient details.';
-  //       this.loading = false;
-  //     }
-  //   });
-  // }
-
-  loadPatientDetails(id: number) {
-    // 🔧 BACKEND PLACEHOLDER (mock data)
-    this.patientDetails = {
-      id,
-      name: 'sick man',
-      age: 61,
-      gender: "Male",
-      lastUpdated: '2025-12-26',
-
-      primaryDiagnosis: 'Type 2 Diabetes',
-      activeConditions: ['Hypertension', 'Hyperlipidemia'],
-      currentMedications: ['Metformin', 'Atorvastatin'],
-      recentLabResults: ['HbA1c 7.2%', 'LDL 110 mg/dL'],
-      recentProcedures: ['Cardiac Stress Test']
-    };
+  loadPatientDetails(id: string) {
+    this.loading = true;
+    this.error = null;
+    this.patientApi.getPatientById(id).subscribe({
+      next: (patient: FHIRPatient) => {
+        // Transform FHIR Patient to PatientDetailsDTO
+        this.patientDetails = fhirPatientToDetailsDTO(patient);
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load patient details', err);
+        this.error = 'Failed to load patient details.';
+        this.loading = false;
+      },
+    });
   }
 
   openMedFlowGraph() {
@@ -127,19 +97,4 @@ export class UserInfo {
       this.router.navigate(['/med-graph', this.patientDetails.id]);
     }
   }
-
-  //FETCHING FROM BACKEND (EDIT AS U NEED)
-//   constructor(
-//   private selectedPatientService: SelectedPatientService,
-//   private patientApi: PatientApiService,
-//   private router: Router
-// ) {}
-
-// loadPatientDetails(id: number) {
-//   this.patientApi.getPatientById(id)
-//     .subscribe(details => {
-//       this.patientDetails = details;
-//     });
-// }
-
 }

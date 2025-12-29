@@ -1,25 +1,31 @@
-<div class="container-fluid d-flex align-items-center border-bottom" style="background-color: #1E6ED3;">
-    <div class="left mt-3 d-flex align-items-center ">
-        <p class="ms-2 fs-5 fw-semibold" style="color: rgb(255, 255, 255);">MedFlow</p>
-        <p class="ms-4 fw-lighter fs-5" style="color: rgb(231, 214, 192);">|</p>
-        <p class="ms-4 fs-6 " style="color: rgb(231, 229, 226);">Patients Dashboard</p>
-    </div>
-    
-
-    <div class="btn-group mt-0" style="margin-left: 73%;">
-    <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: white; 
-    color: black;">
-        <i class="bi bi-funnel-fill" style="display: inline-block; 
-        transform: scaleX(-1);"></i> Filter
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-        <li><button class="dropdown-item" type="button">All Hospitals</button></li>
-        <li><button class="dropdown-item" type="button">Populate with hosp1</button></li>
-        <li><button class="dropdown-item" type="button">Populate with hosp2</button></li>
-    </ul>
+<div class="top-bar">
+    <div class="left-section">
+        <span class="brand-name">MedFlow</span>
+        <span class="divider">|</span>
+        <span class="page-title">Patients Dashboard</span>
     </div>
 
+    <div class="right-section">
+        <!-- Filter Dropdown -->
+        <div class="btn-group">
+            <button type="button" class="btn filter-btn dropdown-toggle" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i class="bi bi-funnel-fill flip-icon"></i>
+                <span class="filter-text">Filter</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><button class="dropdown-item" type="button">All Hospitals</button></li>
+                <li><button class="dropdown-item" type="button">Populate with hosp1</button></li>
+                <li><button class="dropdown-item" type="button">Populate with hosp2</button></li>
+            </ul>
+        </div>
 
-
+        <!-- User Info & Logout -->
+        <div class="user-section">
+            <button class="btn btn-outline-light btn-sm logout-btn" (click)="logout()">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="logout-text">Logout</span>
+            </button>
+        </div>
+    </div>
 </div>
-

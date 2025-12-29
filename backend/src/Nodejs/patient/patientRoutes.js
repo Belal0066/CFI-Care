@@ -6,6 +6,9 @@ const patientController = require("./patientController");
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
 
+// GET all patients
+router.get("/", patientController.getAllPatients);
+
 router.post(
   "/",
   validateRequest(createPatientSchema),

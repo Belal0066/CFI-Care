@@ -20,25 +20,20 @@
 
 // }
 
-
-
-//backend 
+//backend
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SelectedPatientService {
+  private selectedPatientIdSubject = new BehaviorSubject<string | null>(null);
 
-  private selectedPatientIdSubject =
-    new BehaviorSubject<number | null>(null);
+  selectedPatientId$ = this.selectedPatientIdSubject.asObservable();
 
-  selectedPatientId$ =
-    this.selectedPatientIdSubject.asObservable();
-
-  selectPatient(id: number) {
-    this.selectedPatientIdSubject.next(id);
+  selectPatient(id: string | number) {
+    this.selectedPatientIdSubject.next(String(id));
   }
 
   clearSelection() {
