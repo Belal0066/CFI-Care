@@ -1,0 +1,31 @@
+<div class="top-bar">
+    <div class="left-section">
+        <span class="brand-name">MedFlow</span>
+        <span class="divider">|</span>
+        <span class="page-title">Patients Dashboard</span>
+    </div>
+
+    <div class="right-section">
+        <!-- Filter Dropdown -->
+        <div class="btn-group">
+            <button type="button" class="btn filter-btn dropdown-toggle" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i class="bi bi-funnel-fill flip-icon"></i>
+                <span class="filter-text">Filter</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><button class="dropdown-item" type="button">All Hospitals</button></li>
+                <li><button class="dropdown-item" type="button">Populate with hosp1</button></li>
+                <li><button class="dropdown-item" type="button">Populate with hosp2</button></li>
+            </ul>
+        </div>
+
+        <!-- User Info & Logout -->
+        <div class="user-section">
+            <button class="btn btn-outline-light btn-sm logout-btn" (click)="logout()">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="logout-text">Logout</span>
+            </button>
+        </div>
+    </div>
+</div>

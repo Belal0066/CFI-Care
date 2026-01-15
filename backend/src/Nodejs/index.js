@@ -22,9 +22,20 @@ const authRoutes = require("./patient/authRoutes")
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
 
-app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
+// CORS configuration for Angular frontend
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || "http://localhost:4200",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// app.use(cors());
+
+// app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
 
 
 //timing middleware
@@ -47,15 +58,15 @@ app.use((req, res, next) => {
   next();
 });
 
-const path = require('path');
+// const path = require('path');
 
-app.use(express.static(path.join(__dirname, '../../../security/Containers/static')));
+// app.use(express.static(path.join(__dirname, '../../../security/Containers/static')));
 
 
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../../security/Containers/static', 'test-fetch-fhir-data.html'));
-});
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../../../security/Containers/static', 'test-fetch-fhir-data.html'));
+// });
 
 //logging for auth :/
 // app.use((req, res, next) => {
@@ -78,6 +89,7 @@ app.post('/timing', (req, res) => {
 
 // app.use(cookieParser());
 app.use("/auth", authRoutes);
+
 
 
 app.use("/api/patients", patientRoutes);

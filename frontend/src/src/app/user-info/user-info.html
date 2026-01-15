@@ -1,0 +1,98 @@
+<div class="no-user" *ngIf="!patientDetails">
+    <i class="bi bi-person"></i>
+    <p>Select a patient to view details</p>
+</div>
+
+<div class="user-display" *ngIf="patientDetails">
+
+    <div class="card user-card">
+        <div class="card-body">
+
+            <div class="user-header">
+                <h4 id="patient-name">
+                    {{ patientDetails.name }}
+                </h4>
+
+                <button (click)="openMedFlowGraph()" class="btn btn-primary btn-md graph-btn">
+                    Open MedFlow Graph <i class="bi bi-box-arrow-up-right ms-2"></i>
+                </button>
+            </div>
+
+            <p class="card-title patient-meta mt-2">
+                Age {{ patientDetails.age }} <i class="bi bi-dot"></i> Gender {{ patientDetails.gender }}
+                <span class="ms-3">ID {{ patientDetails.id }}</span>
+            </p>
+
+            <p class="card-text last-updated">
+                Last updated: {{ patientDetails.lastUpdated }}
+            </p>
+
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h6><i class="bi bi-activity me-1"></i> Primary Diagnosis</h6>
+        <div class="info-box">
+            <p *ngIf="patientDetails.primaryDiagnosis">{{ patientDetails.primaryDiagnosis }}</p>
+            <p *ngIf="!patientDetails.primaryDiagnosis" class="text-muted">No diagnosis recorded</p>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h6><i class="bi bi-clipboard2-pulse-fill me-1"></i> Active Conditions</h6>
+        <div class="conditions-box">
+            <span class="badge text-bg-info" *ngFor="let cond of patientDetails.activeConditions">
+                {{ cond }}
+            </span>
+            <p *ngIf="!patientDetails.activeConditions || patientDetails.activeConditions.length === 0"
+                class="text-muted mb-0">No active conditions</p>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h6><i class="bi bi-prescription2 me-1"></i> Current Medications</h6>
+        <div class="info-box">
+            <p class="medication-item" *ngFor="let med of patientDetails.currentMedications">
+                {{ med }}
+            </p>
+            <p *ngIf="!patientDetails.currentMedications || patientDetails.currentMedications.length === 0"
+                class="text-muted mb-0">No current medications</p>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h6><i class="bi bi-flask-fill me-1"></i> Recent Lab Results</h6>
+        <div class="info-box">
+            <div class="accordion accordion-flush" id="accordionFlushExample"
+                *ngIf="patientDetails.recentLabResults && patientDetails.recentLabResults.length > 0">
+                <div class="accordion-item" *ngFor="let lab of patientDetails.recentLabResults; let i = index">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            [attr.data-bs-target]="'#lab' + i">
+                            Lab Result {{ i + 1 }}
+                        </button>
+                    </h2>
+                    <div [id]="'lab' + i" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            {{ lab }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p *ngIf="!patientDetails.recentLabResults || patientDetails.recentLabResults.length === 0"
+                class="text-muted mb-0">No recent lab results</p>
+        </div>
+    </div>
+
+    <div class="info-section" style="margin-bottom: 1rem;">
+        <h6>Recent Procedures</h6>
+        <div class="info-box">
+            <p *ngFor="let proc of patientDetails.recentProcedures">
+                {{ proc }}
+            </p>
+            <p *ngIf="!patientDetails.recentProcedures || patientDetails.recentProcedures.length === 0"
+                class="text-muted mb-0">No recent procedures</p>
+        </div>
+    </div>
+
+</div>

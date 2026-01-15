@@ -152,9 +152,100 @@ async function createEncounterWithSpecificIdForEOC(
   }
 }
 
+// Update an existing Encounter in FHIR
+async function updateEncounter(encounterId, encounterData) {
+  if (!encounterId) {
+    throw new Error("Encounter ID is required");
+  }
+
+  // First, get the existing encounter to preserve fields we don't want to change
+  let existingEncounter;
+  try {
+    existingEncounter = await getEncounterById(encounterId);
+  } catch (error) {
+    throw new Error(`Encounter ${encounterId} not found in FHIR server`);
+  }
+
+  // Merge existing data with updated data
+  const fhirEncounterResource = {
+    ...existingEncounter,
+    ...encounterData,
+    resourceType: "Encounter",
+    id: encounterId,
+  };
+
+  console.log(
+    `Attempting to PUT (update) Encounter to /Encounter/${encounterId}`
+  );
+
+  try {
+    const response = await fhirApi.put(
+      `/Encounter/${encounterId}`,
+      fhirEncounterResource
+    );
+    return { data: response.data, id: response.data.id };
+  } catch (error) {
+    if (error.response) {
+      console.error("FHIR Server Error Status:", error.response.status);
+      console.error(
+        "FHIR Validation Details:",
+        JSON.stringify(error.response.data, null, 2)
+      );
+      const issueText = error.response.data.issue
+        ? error.response.data.issue
+            .map((i) => `${i.diagnostics || i.code}`)
+            .join(", ")
+        : error.response.statusText;
+      throw new Error(`FHIR Update Failed: ${issueText}`);
+    } else {
+      console.error("Network/Server Error:", error.message);
+      throw new Error("Could not connect to the FHIR server.");
+    }
+  }
+}
+
+// Delete an Encounter from FHIR
+async function deleteEncounter(encounterId) {
+  if (!encounterId) {
+    throw new Error("Encounter ID is required");
+  }
+
+  console.log(`Attempting to DELETE Encounter /Encounter/${encounterId}`);
+
+  try {
+    const response = await fhirApi.delete(`/Encounter/${encounterId}`);
+    return { success: true, id: encounterId };
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      // Already deleted or doesn't exist - treat as success
+      console.log(
+        `Encounter ${encounterId} not found in FHIR (may already be deleted)`
+      );
+      return { success: true, id: encounterId, alreadyDeleted: true };
+    } else if (error.response) {
+      console.error("FHIR Server Error Status:", error.response.status);
+      console.error(
+        "FHIR Deletion Details:",
+        JSON.stringify(error.response.data, null, 2)
+      );
+      const issueText = error.response.data.issue
+        ? error.response.data.issue
+            .map((i) => `${i.diagnostics || i.code}`)
+            .join(", ")
+        : error.response.statusText;
+      throw new Error(`FHIR Deletion Failed: ${issueText}`);
+    } else {
+      console.error("Network/Server Error:", error.message);
+      throw new Error("Could not connect to the FHIR server.");
+    }
+  }
+}
+
 module.exports = {
   getEncounterById,
   getEncounterEverything,
   createEncounterWithSpecificId,
   createEncounterWithSpecificIdForEOC,
+  updateEncounter,
+  deleteEncounter,
 };

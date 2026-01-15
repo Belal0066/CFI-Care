@@ -1,3 +1,6 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+
 const axios = require("axios");
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
@@ -5,6 +8,20 @@ const fhirApi = axios.create({
     "Content-Type": "application/fhir+json",
   },
 });
+
+// Fetch all conditions for a patient
+async function getConditionsByPatientId(patientId) {
+  try {
+    const response = await fhirApi.get(
+      `/Condition?subject=Patient/${patientId}`
+    );
+    const bundle = response.data;
+    return bundle;
+  } catch (error) {
+    console.error("FHIR Server Error:", error.message);
+    throw new Error("Could not fetch patient conditions.");
+  }
+}
 
 // Fetch condition by ID
 async function getConditionById(conditionId) {
@@ -60,5 +77,6 @@ async function createConditionWithSpecificId(conditionData) {
 }
 module.exports = {
   getConditionById,
+  getConditionsByPatientId,
   createConditionWithSpecificId,
 };

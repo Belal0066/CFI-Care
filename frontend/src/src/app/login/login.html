@@ -1,0 +1,137 @@
+<div class="login-page">
+    <div class="left-side">
+        <div class="branding">
+            <div class="brand-image">
+                <i class="bi bi-activity"></i>
+            </div>
+            <div class="text-block">
+                <div class="brand-title">MedFlow</div>
+                <div class="brand-subtitle">AI-Powered Collaborative Health Records</div>
+            </div>
+        </div>
+
+        <div class="advertising">
+            <h4 class="advertising-title">Why healthcare professionals should choose MedFlow</h4>
+            <app-login-page-cards icon="bi bi-shield" title="Enterprise Security"
+                description="End-to-end encryption and HIPAA compliance"></app-login-page-cards>
+            <app-login-page-cards icon="bi bi-people-fill" title="Seamless Collaboration"
+                description="Real-time sharing between care teams and specialists"></app-login-page-cards>
+            <app-login-page-cards icon="bi bi-heart" title="Patient-Centered Care"
+                description="Comprehensive health insights powered by AI analytics"></app-login-page-cards>
+        </div>
+    </div>
+
+    <div class="right-side">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>{{ mode === 'login' ? 'Welcome Back' : 'Create Account' }}</h2>
+                    <p> {{ mode === 'login' ? 'Sign in to your account' : 'Fill the details to sign up' }}</p>
+                </div>
+
+                <form class="login-form" id="loginForm" (ngSubmit)="onSubmit()" novalidate>
+                    <div *ngIf="mode === 'signup'" class="form-group">
+                        <div class="input-wrapper">
+                            <input type="text" id="fullName" name="fullName" [(ngModel)]="fullName" required>
+                            <label for="fullName">Full Name</label>
+                            <span class="focus-border"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="email" id="email" name="email" [(ngModel)]="email" required
+                                autocomplete="email" style="margin-top: 12px; ">
+                            <label for="email" style="padding-top: 15px;">Email Address</label>
+                            <span class="focus-border"></span>
+                        </div>
+                        <span class="error-message" id="emailError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="input-wrapper password-wrapper">
+                            <input type="password" id="password" name="password" [(ngModel)]="password" required
+                                autocomplete="current-password">
+                            <label for="password">Password</label>
+                            <button type="button" class="password-toggle" id="passwordToggle"
+                                aria-label="Toggle password visibility">
+                                <span class="eye-icon"></span>
+                            </button>
+                            <span class="focus-border"></span>
+                        </div>
+                        <span class="error-message" id="passwordError"></span>
+                    </div>
+
+                    <div *ngIf="mode === 'signup'" class="form-group">
+                        <div class="input-wrapper">
+                            <input type="password" id="confirmPassword" name="confirmPassword"
+                                [(ngModel)]="confirmPassword" required>
+                            <label for="confirmPassword">Confirm Password</label>
+                            <span class="focus-border"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-wrapper">
+                            <input type="checkbox" id="remember" name="remember" [(ngModel)]="rememberMe">
+                            <span class="checkbox-label">
+                                <span class="checkmark"></span>
+                                Remember me
+                            </span>
+                        </label>
+                        <a *ngIf="mode !== 'signup'" (click)="forgotPassword()" class="forgot-password">Forgot
+                            password?</a>
+                    </div>
+
+                    <div *ngIf="showForgot && mode !== 'signup'" class="login-card forgot-panel">
+                        <div class="login-header">
+                            <h2>Reset Password</h2>
+                            <p>Enter your email to receive a reset link</p>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <input type="email" [(ngModel)]="forgotEmail" required>
+                                <label>Email Address</label>
+                                <span class="focus-border"></span>
+                            </div>
+                        </div>
+
+                        <button class="btn login-btn" (click)="sendReset()">Send Link</button>
+                        <button class="btn login-btn"
+                            style="background: rgba(255,255,255,0.15); color: white; margin-top: 10px;"
+                            (click)="showForgot = false">Cancel</button>
+                    </div>
+
+
+                    <button *ngIf="!showForgot" type="submit" class="login-btn btn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loader"></span>
+                    </button>
+                </form>
+
+                <div *ngIf="!showForgot" class="divider">
+                    <span>or continue with</span>
+                </div>
+
+                <div *ngIf="!showForgot" class="social-login">
+                    <button type="button" class="social-btn google-btn">
+                        <span class="social-icon google-icon"></span>
+                        Google
+                    </button>
+                    <button type="button" class="social-btn facebook-btn">
+                        <span class="social-icon facebook-icon"></span>
+                        Facebook
+                    </button>
+                </div>
+
+                <div *ngIf="!showForgot" class="signup-link">
+                    <p>
+                        {{ mode === 'login' ? "Don't have an account?" : "Already have an account?" }}
+                        <a (click)="toggleMode()">{{ mode === 'login' ? 'Sign up' : 'Sign in' }}</a>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

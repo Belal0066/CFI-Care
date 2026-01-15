@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  background-color: #fff;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-right: 1px solid #e0e0e0;
+}
+
+.search-wrapper {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.search-input {
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.75rem;
+}
+
+.search-input input {
+  border: none;
+  outline: none;
+  flex: 1;
+  height: 100%;
+  font-size: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.search-input i {
+  color: #6c757d;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-container label {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+  color: #6c757d;
+  pointer-events: none;
+}
+
+.search-container input:focus + label,
+.search-container input:valid + label {
+  transform: translateY(-10px) scale(0);
+  opacity: 0;
+}
+
+.add-user-wrapper {
+  margin-bottom: 0.75rem;
+}
+
+.add-patient-btn {
+  width: 100%;
+  background-color: #1e6ed3;
+  border: none;
+  color: white;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+}
+
+.add-patient-btn:hover {
+  background-color: #1a5fb8;
+}
+
+@media (max-width: 992px) {
+  :host {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  :host {
+    padding: 0.5rem;
+  }
+
+  .search-input {
+    margin: 0.5rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .add-patient-btn {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+}
