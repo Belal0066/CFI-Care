@@ -28,7 +28,24 @@ const getConditionById = async (req, res) => {
   }
 };
 
+const getConditionsByPatientId = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const conditions = await conditionService.getConditionsByPatientId(
+      patientId
+    );
+    res.status(200).json(conditions);
+  } catch (error) {
+    console.error(
+      "Error in getConditionsByPatientId controller:",
+      error.message
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   getConditionById,
+  getConditionsByPatientId,
   createConditionWithSpecificId,
 };

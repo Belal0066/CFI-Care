@@ -1,0 +1,167 @@
+:host {
+  display: block;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.no-user {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+  background-color: rgb(247, 249, 252);
+}
+
+.no-user i {
+  font-size: 3rem;
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.no-user p {
+  color: #6c757d;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+.user-display {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+}
+
+.user-card {
+  margin: 0.25rem 1rem;
+  border: none;
+}
+
+.user-card .card-body {
+  border-bottom: 1px solid #ccc;
+  padding: 1rem 0;
+}
+
+.user-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.user-header h4 {
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  margin: 0;
+}
+
+.graph-btn {
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
+  white-space: nowrap;
+}
+
+.patient-meta {
+  font-size: clamp(0.8rem, 2.5vw, 1rem);
+  margin-bottom: 0.5rem;
+}
+
+.last-updated {
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.info-section {
+  margin: 1.5rem 1rem 0;
+}
+
+.info-section:last-child {
+  margin-bottom: 1rem;
+}
+
+.info-section h6 {
+  margin-bottom: 0.625rem;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+}
+
+.info-box {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.info-box p {
+  margin: 0;
+  font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+}
+
+.conditions-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.conditions-box .badge {
+  font-size: clamp(0.7rem, 2vw, 0.85rem);
+}
+
+.medication-item {
+  margin: 0.25rem 0;
+  font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+}
+
+.accordion {
+  width: 100%;
+}
+
+.accordion-button {
+  font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+}
+
+.accordion-body {
+  font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+}
+
+@media (max-width: 768px) {
+  :host {
+    padding: 0.75rem;
+  }
+
+  .user-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .graph-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .info-section {
+    margin: 1rem 0.75rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  :host {
+    padding: 0.5rem;
+  }
+
+  .user-card {
+    margin: 0.25rem 0.5rem;
+  }
+
+  .info-section {
+    margin: 0.75rem 0.5rem 0;
+  }
+
+  .info-box {
+    padding: 0.5rem;
+  }
+}

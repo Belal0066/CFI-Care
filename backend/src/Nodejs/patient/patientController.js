@@ -43,7 +43,6 @@ const loadToon = async () => {
 //   }
 // };
 
-
 // Streaming version (Sends data as it's encoded)
 const toonPatientEverything = async (req, res) => {
   try {
@@ -227,6 +226,21 @@ const getPatientEncounters = async (req, res) => {
   }
 };
 
+// Get all patients list
+// Supports optional ?practitionerId= query param to filter by doctor
+const getAllPatients = async (req, res) => {
+  try {
+    const { practitionerId } = req.query;
+    const patients = await patientService.getAllPatients(
+      practitionerId || null
+    );
+    res.status(200).json(patients);
+  } catch (error) {
+    console.error("Error in getAllPatients controller:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   createPatientWithSpecificId,
   createPatient,
@@ -236,4 +250,5 @@ module.exports = {
   getPatientObservations,
   getPatientEncounters,
   toonPatientEverything,
+  getAllPatients,
 };
