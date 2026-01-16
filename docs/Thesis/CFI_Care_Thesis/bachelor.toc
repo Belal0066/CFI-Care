@@ -6,15 +6,17 @@
 \contentsline {subsection}{\numberline {1.3.1}Core Architecture}{4}{subsection.1.3.1}%
 \contentsline {subsection}{\numberline {1.3.2}Key Technical Advantages}{4}{subsection.1.3.2}%
 \contentsline {subsection}{\numberline {1.3.3}Comparison of Standards}{5}{subsection.1.3.3}%
-\contentsline {chapter}{\numberline {2}Security}{7}{chapter.2}%
-\contentsline {chapter}{\numberline {3}AI}{8}{chapter.3}%
-\contentsline {chapter}{\numberline {4}Backend}{9}{chapter.4}%
-\contentsline {chapter}{\numberline {5}Frontend}{10}{chapter.5}%
-\contentsline {chapter}{\numberline {6}Mobile}{11}{chapter.6}%
-\contentsline {chapter}{\numberline {7}Diagrams}{12}{chapter.7}%
-\contentsline {chapter}{\numberline {8}Conclusion}{13}{chapter.8}%
-\contentsline {chapter}{Appendix}{14}{section*.8}%
-\contentsline {chapter}{\numberline {A}Lists}{15}{appendix.A}%
-\contentsline {section}{List of Abbreviations}{15}{section*.9}%
-\contentsline {section}{List of Figures}{16}{appendix*.10}%
-\contentsline {chapter}{References}{17}{appendix*.10}%
+\contentsline {chapter}{\numberline {2}Literature Review}{7}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Proposed Design Architecture}{8}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Backend}{8}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Frontend}{8}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Mobile}{8}{section.3.3}%
+\contentsline {chapter}{\numberline {4}Security Framework}{9}{chapter.4}%
+\contentsline {chapter}{\numberline {5}AI Integration}{10}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Testing and Verification}{11}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{12}{chapter.7}%
+\contentsline {chapter}{Appendix}{13}{section*.8}%
+\contentsline {chapter}{\numberline {A}Lists}{14}{appendix.A}%
+\contentsline {section}{List of Abbreviations}{14}{section*.9}%
+\contentsline {section}{List of Figures}{15}{appendix*.10}%
+\contentsline {chapter}{References}{16}{appendix*.10}%
