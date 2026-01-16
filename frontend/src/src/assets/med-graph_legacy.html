@@ -1154,7 +1154,6 @@
           if (tempNode && event.data.node.id) {
             console.log(`Updating temp node ${event.data.tempId} with real ID ${event.data.node.id}`);
             tempNode.id = event.data.node.id;
-            if (refreshGraph) refreshGraph();
           }
         }
 
