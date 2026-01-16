@@ -25,7 +25,8 @@ jobs:
         echo "date=$(date +'%Y-%m-%d-%H%M')" >> $GITHUB_OUTPUT
         echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         echo "committer=$(git log -1 --pretty=format:'%an' | tr ' ' '-' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-        echo "commit_msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+        commit_msg=$(git log -1 --pretty=%B | tr -d '\n' | sed 's/"/\\"/g')
+        echo "commit_msg=$commit_msg" >> $GITHUB_OUTPUT
         
         # Check if [rel] is in commit message
         if echo "${{ github.event.head_commit.message }}" | grep -iq '\[rel\]'; then
