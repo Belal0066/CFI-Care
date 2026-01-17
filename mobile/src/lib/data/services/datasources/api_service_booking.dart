@@ -5,9 +5,24 @@ import 'dart:io';
 
 class ApiService {
   // TODO: Replace with your actual API base URL
-  final String baseUrl = "http://"; 
+  final String baseUrl = "http://";
+  Future<http.Response> postData({
+    required String endpoint,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(data),
+      );
+      return response;
+    } catch (e) {
+      throw Exception("Network Error during POST: $e");
+    }
+  }
 
-Future<Map<String, dynamic>> uploadDocument({
+  Future<Map<String, dynamic>> uploadDocument({
     required File file,
     required String title,
     required String type,
@@ -15,7 +30,10 @@ Future<Map<String, dynamic>> uploadDocument({
     required String date,
     required String patientId,
   }) async {
-    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/documents'));
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/documents'),
+    );
 
     request.fields['title'] = title;
     request.fields['type'] = type;
@@ -34,6 +52,7 @@ Future<Map<String, dynamic>> uploadDocument({
       throw Exception("Upload failed: ${response.body}");
     }
   }
+
   // --- 1. FETCH API (GET) ---
   Future<List<dynamic>> fetchDoctors() async {
     try {

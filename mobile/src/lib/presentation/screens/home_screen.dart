@@ -4,6 +4,8 @@ import 'package:medflow/utils/themes/theme.dart';
 import '../widgets/vitals_section.dart';
 import '../viewmodels/major_event_provider.dart';
 import 'event_node_screen.dart'; 
+import '../viewmodels/booking_provider.dart';
+import '../widgets/appointment_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,8 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. THIS WAS MISSING: Listen to the provider for changes
+    //----WATCH PROVIDERS----
     final provider = context.watch<MajorEventProvider>();
+    final bookingProvider = context.watch<BookingProvider>();
 
     return MaterialApp(
       theme: patientTheme,
@@ -65,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // 2. CHECK LOADING STATE
+                    // CHECK LOADING STATE
                     if (provider.isLoadingEvents)
                       const Center(child: CircularProgressIndicator())
                     else
@@ -144,7 +147,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                     const SizedBox(height: 25),
-
+                    //---- Appointments Section ---
+                    if (bookingProvider.appointments.isNotEmpty) ...[
+                    const Text(
+                      "My Appointments",
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    // Display list of appointments (Reversed to show newest first)
+                    ...bookingProvider.appointments.reversed.map(
+                      (appt) => AppointmentCard(appointment: appt)
+                    ),
+                    const SizedBox(height: 25),
+                  ],
                     // --- VITALS SECTION ---
                     const VitalsSection(),
                   ],

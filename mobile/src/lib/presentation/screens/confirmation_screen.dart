@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; 
-import '../viewmodels/booking_provider.dart'; 
+import 'package:provider/provider.dart';
+import '../viewmodels/booking_provider.dart';
 import 'thank_you_screen.dart';
 import '../viewmodels/add_document_viewmodel.dart';
 
 class ConfirmationScreen extends StatelessWidget {
-  
   const ConfirmationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     // GET DATA FROM PROVIDER
     final booking = context.watch<BookingProvider>();
-    
+
     // Safety check
     final doctor = booking.selectedDoctor!;
     final appointmentTime = booking.selectedTime!;
-    final appointmentDate = booking.formattedDate; 
+    final appointmentDate = booking.formattedDate;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Modern light grey bg
@@ -38,7 +37,6 @@ class ConfirmationScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  
                   // --- 1. DOCTOR SUMMARY CARD ---
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -59,7 +57,11 @@ class ConfirmationScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF0073CF).withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF0073CF,
+                              ).withValues(alpha: 0.2),
+                            ),
                           ),
                           child: CircleAvatar(
                             radius: 30,
@@ -75,15 +77,18 @@ class ConfirmationScreen extends StatelessWidget {
                               Text(
                                 "Dr. ${doctor.name}",
                                 style: const TextStyle(
-                                  fontSize: 18, 
-                                  fontWeight: FontWeight.bold, 
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF333333),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 doctor.title,
-                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -92,7 +97,10 @@ class ConfirmationScreen extends StatelessWidget {
                         ),
                         // Price Tag
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(8),
@@ -111,11 +119,15 @@ class ConfirmationScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 24),
-                  
+
                   // --- 2. APPOINTMENT DETAILS SECTION ---
                   const Text(
                     "Appointment Details",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF333333),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -128,8 +140,8 @@ class ConfirmationScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         _buildDetailRow(
-                          Icons.calendar_month_outlined, 
-                          "Date & Time", 
+                          Icons.calendar_month_outlined,
+                          "Date & Time",
                           "$appointmentDate\n$appointmentTime",
                         ),
                         const Padding(
@@ -137,8 +149,8 @@ class ConfirmationScreen extends StatelessWidget {
                           child: Divider(height: 1),
                         ),
                         _buildDetailRow(
-                          Icons.location_on_outlined, 
-                          "Location", 
+                          Icons.location_on_outlined,
+                          "Location",
                           doctor.address,
                         ),
                       ],
@@ -150,7 +162,11 @@ class ConfirmationScreen extends StatelessWidget {
                   // --- 3. PATIENT DETAILS SECTION ---
                   const Text(
                     "Patient Details",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF333333),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -169,59 +185,86 @@ class ConfirmationScreen extends StatelessWidget {
                               height: 24,
                               width: 24,
                               child: Checkbox(
-                                value: false, 
+                                value: false,
                                 onChanged: (val) {},
                                 activeColor: const Color(0xFF0073CF),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             const Text(
                               "Booking for someone else?",
-                              style: TextStyle(color: Colors.grey, fontSize: 14),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
 
                         // Name Input
-                        _buildModernInput(label: "Full Name", initialValue: "Salma Youssef"),
+                        _buildModernInput(
+                          label: "Full Name",
+                          initialValue: "Salma Youssef",
+                        ),
                         const SizedBox(height: 16),
 
                         // Phone Input
                         const Text(
                           "Phone Number",
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade50,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
-                              child: const Text("🇪🇬 +20", style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                "🇪🇬 +20",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: TextFormField(
                                 initialValue: "1066890335",
                                 keyboardType: TextInputType.phone,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: Colors.grey.shade50,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -231,7 +274,7 @@ class ConfirmationScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 100), // Space for bottom button
                 ],
               ),
@@ -243,13 +286,15 @@ class ConfirmationScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
-                )
+                ),
               ],
             ),
             child: SafeArea(
@@ -257,7 +302,10 @@ class ConfirmationScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // 1. Navigate
+                    // SAVE THE APPOINTMENT
+                    context.read<BookingProvider>().confirmBooking();
+
+                    // Navigate
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => ThankYouScreen(
@@ -270,20 +318,24 @@ class ConfirmationScreen extends StatelessWidget {
                       ),
                     );
 
-                    // 2. Clear Data
+                    // Clear Data
                     context.read<BookingProvider>().clearBookingData();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD32F2F), // Red Action Color
+                    backgroundColor: const Color(
+                      0xFFD32F2F,
+                    ), // Red Action Color
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                   child: const Text(
                     "Confirm Booking",
                     style: TextStyle(
-                      fontSize: 16, 
-                      fontWeight: FontWeight.bold, 
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
@@ -322,7 +374,11 @@ class ConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
             ],
           ),
@@ -331,13 +387,20 @@ class ConfirmationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildModernInput({required String label, required String initialValue}) {
+  Widget _buildModernInput({
+    required String label,
+    required String initialValue,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -346,7 +409,10 @@ class ConfirmationScreen extends StatelessWidget {
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.grey.shade50,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
