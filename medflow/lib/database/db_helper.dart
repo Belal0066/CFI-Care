@@ -1,9 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
-import '../models/created_events.dart';
-import '../models/document.dart'; // Import Document Model
-import '../utils/schedule_utils.dart';
+import '../domain/models/created_events.dart';
+import '../domain/models/document.dart';
+import '../utils/enums/type_of_event.dart';
+import '../utils/enums/speciality_event.dart';
 
 class Session {
   static String? currentUserId;
@@ -23,11 +24,7 @@ class DBHelper {
   static Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _dbName);
-    return await openDatabase(
-      path,
-      version: _version,
-      onCreate: _createDb,
-    );
+    return await openDatabase(path, version: _version, onCreate: _createDb);
   }
 
   static Future<void> _createDb(Database db, int version) async {
@@ -83,7 +80,7 @@ class DBHelper {
       )
     ''');
 
-    // 4. NEW: Documents Table
+    // 4. Documents Table
     await db.execute("""
     CREATE TABLE documents (
       id TEXT PRIMARY KEY,
@@ -105,64 +102,106 @@ class DBHelper {
     final db = await database;
     print('\n================ DOCUMENTS TABLE ================');
     final docs = await db.query('documents');
-    for (var row in docs) print(row);
+    for (var row in docs) {
+      print(row);
+    }
     print('================================================\n');
   }
 
-  // ... (Users, Auth, Profile methods remain the same) ...
+  
   // ---------- Users & Auth ----------
-  static Future<int> insertUser({required String userId, required String email, required String password}) async {
+  static Future<int> insertUser({
+    required String userId,
+    required String email,
+    required String password,
+  }) async {
     final db = await database;
-    return await db.insert('users', {'userId': userId, 'email': email, 'password': password}, conflictAlgorithm: ConflictAlgorithm.abort);
+    return await db.insert('users', {
+      'userId': userId,
+      'email': email,
+      'password': password,
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
   static Future<String?> validateUser(String email, String password) async {
     final db = await database;
-    final res = await db.query('users', where: 'email = ? AND password = ?', whereArgs: [email, password], limit: 1);
+    final res = await db.query(
+      'users',
+      where: 'email = ? AND password = ?',
+      whereArgs: [email, password],
+      limit: 1,
+    );
     if (res.isNotEmpty) return res.first['userId'] as String;
     return null;
   }
 
   static Future<bool> emailExists(String email) async {
     final db = await database;
-    final res = await db.query('users', where: 'email = ?', whereArgs: [email], limit: 1);
+    final res = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+      limit: 1,
+    );
     return res.isNotEmpty;
   }
 
   // ---------- Profile ----------
-  static Future<int> upsertProfile(String userId, Map<String, dynamic> data) async {
+  static Future<int> upsertProfile(
+    String userId,
+    Map<String, dynamic> data,
+  ) async {
     final db = await database;
     data['userId'] = userId;
-    return await db.insert('user_profile', data, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert(
+      'user_profile',
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     final db = await database;
-    final maps = await db.query('user_profile', where: 'userId = ?', whereArgs: [userId]);
+    final maps = await db.query(
+      'user_profile',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
     return maps.isNotEmpty ? maps.first : null;
   }
 
-  // ... (Event methods remain the same) ...
-  static Future<int> insertEvent(String userId, Event event, DateTime date) async {
+  // ... EVENT METHODS ...
+  static Future<int> insertEvent(
+    String userId,
+    Event event,
+    DateTime date,
+  ) async {
     final db = await DBHelper.database;
     final id = event.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     return await db.insert('events', {
-        'id': id,                      
-        'userId': userId,
-        'title': event.title,
-        'summary': event.summary,
-        'details': event.details,
-        'attachmentPath': event.attachmentPath, 
-        'date': date.toIso8601String(),
-        'time': '${event.time.hour}:${event.time.minute}',
-        'type': event.selectedTypeOfEventEnum.index,
-        'speciality': event.selectedSpecialityEnum.index,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      'id': id,
+      'userId': userId,
+      'title': event.title,
+      'summary': event.summary,
+      'details': event.details,
+      'attachmentPath': event.attachmentPath,
+      'date': date.toIso8601String(),
+      'time': '${event.time.hour}:${event.time.minute}',
+      'type': event.selectedTypeOfEventEnum.index,
+      'speciality': event.selectedSpecialityEnum.index,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  static Future<Map<DateTime, List<Event>>> getAllEventsForUser(String userId) async {
+  static Future<Map<DateTime, List<Event>>> getAllEventsForUser(
+    String userId,
+  ) async {
     final db = await database;
-    final rows = await db.query('events', where: 'userId = ?', whereArgs: [userId], orderBy: 'date ASC, time ASC');
+    final rows = await db.query(
+      'events',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'date ASC, time ASC',
+    );
     final Map<DateTime, List<Event>> result = {};
     for (final row in rows) {
       try {
@@ -175,12 +214,19 @@ class DBHelper {
           summary: row['summary'] as String? ?? '',
           details: row['details'] as String? ?? '',
           attachmentPath: row['attachmentPath'] as String?,
-          selectedTypeOfEventEnum: TypeOfEventEnum.values[_parseEnumIndex(row['type'], 0)],
-          selectedSpecialityEnum: SpecialityEventEnum.values[_parseEnumIndex(row['speciality'], 0)],
-          time: TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1])),
+          selectedTypeOfEventEnum:
+              TypeOfEventEnum.values[_parseEnumIndex(row['type'], 0)],
+          selectedSpecialityEnum:
+              SpecialityEventEnum.values[_parseEnumIndex(row['speciality'], 0)],
+          time: TimeOfDay(
+            hour: int.parse(timeParts[0]),
+            minute: int.parse(timeParts[1]),
+          ),
         );
         result.putIfAbsent(key, () => []).add(event);
-      } catch (e) { print('Error parsing event: $e'); }
+      } catch (e) {
+        print('Error parsing event: $e');
+      }
     }
     return result;
   }
@@ -190,37 +236,38 @@ class DBHelper {
     return await db.delete('events', where: 'id = ?', whereArgs: [eventId]);
   }
 
-  // ---------- NEW: Documents Methods ----------
+  // ---------- Documents Methods ----------
 
-  static Future<int> insertDocument(String userId, Document doc) async {
+  static Future<int> insertDocument(String userId, DocumentModel doc) async {
     final db = await database;
     final id = doc.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    
-    return await db.insert(
-      'documents',
-      {
-        'id': id,
-        'userId': userId,
-        'title': doc.title,
-        'filePath': doc.filePath,
-        'isPDF': doc.isPDF ? 1 : 0,
-        'summary': doc.summary,
-        'details': doc.details,
-        'type': doc.type.index,
-        'speciality': doc.speciality.index,
-        'time': '${doc.time.hour}:${doc.time.minute}',
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+
+    return await db.insert('documents', {
+      'id': id,
+      'userId': userId,
+      'title': doc.title,
+      'filePath': doc.filePath,
+      'isPDF': doc.isPDF ? 1 : 0,
+      'summary': doc.summary,
+      'details': doc.details,
+      'type': doc.type.index,
+      'speciality': doc.speciality.index,
+      'time': '${doc.time.hour}:${doc.time.minute}',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  static Future<List<Document>> getDocumentsForUser(String userId) async {
+  static Future<List<DocumentModel>> getDocumentsForUser(String userId) async {
     final db = await database;
-    final rows = await db.query('documents', where: 'userId = ?', whereArgs: [userId], orderBy: 'id DESC');
-    
+    final rows = await db.query(
+      'documents',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'id DESC',
+    );
+
     return rows.map((row) {
       final timeParts = (row['time'] as String).split(':');
-      return Document(
+      return DocumentModel(
         id: row['id'] as String,
         title: row['title'] as String,
         filePath: row['filePath'] as String,
@@ -228,8 +275,12 @@ class DBHelper {
         summary: row['summary'] as String,
         details: row['details'] as String,
         type: TypeOfEventEnum.values[_parseEnumIndex(row['type'], 0)],
-        speciality: SpecialityEventEnum.values[_parseEnumIndex(row['speciality'], 0)],
-        time: TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1])),
+        speciality:
+            SpecialityEventEnum.values[_parseEnumIndex(row['speciality'], 0)],
+        time: TimeOfDay(
+          hour: int.parse(timeParts[0]),
+          minute: int.parse(timeParts[1]),
+        ),
       );
     }).toList();
   }
@@ -243,5 +294,18 @@ class DBHelper {
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? fallbackIndex;
     return fallbackIndex;
+  }
+  static Future<int> updateDocument(DocumentModel doc) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {
+        'isSynced': doc.isSynced ? 1 : 0,
+        'serverId': doc.serverId,
+        // You can update other fields here if needed (e.g. title, summary)
+      },
+      where: 'id = ?',
+      whereArgs: [doc.id],
+    );
   }
 }

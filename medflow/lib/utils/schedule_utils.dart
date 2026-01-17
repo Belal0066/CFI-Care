@@ -1,14 +1,13 @@
 import 'package:intl/intl.dart';
-import 'package:medflow/models/created_events.dart';
+import 'package:medflow/domain/models/created_events.dart';
 import 'package:flutter/foundation.dart';
+
 
 
 //store events created
 Map<DateTime, ValueNotifier<List<Event>>> events ={};
 
-// DropDownMenus
-enum TypeOfEventEnum { lab, scan, appointment,other}
-enum SpecialityEventEnum { cardiology, neurology, hematology,other }
+
 
 
 
