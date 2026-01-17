@@ -1,5 +1,5 @@
 import '../../domain/models/doctors.dart';
-// import '../../domain/models/appointments.dart';
+import '../../domain/models/appointment_history.dart';
 import '../services/datasources/api_service_booking.dart';
 
 class BookingRepositoryImpl {
@@ -7,6 +7,7 @@ class BookingRepositoryImpl {
 
   BookingRepositoryImpl(this.apiService);
 
+  
   // --- GET DOCTORS ---
   Future<List<Doctor>> getDoctors() async {
     final rawData = await apiService.fetchDoctors();
@@ -32,7 +33,23 @@ class BookingRepositoryImpl {
       );
     }).toList();
   }
-
+  Future<bool> createBooking(AppointmentHistory appointment) async {
+    try {
+      // This calls your API service (e.g., http.post)
+      // We pass the JSON we just created
+      final response = await apiService.postData(
+        //TODO: change the endpoint to the correct one
+        endpoint: '/appointments', 
+        data: appointment.toJson(),
+      );
+      
+      // Return true if status code is 200/201
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print("Error sending booking to server: $e");
+      return false;
+    }
+  }
   // --- SUBMIT BOOKING ---
   Future<void> submitBooking({
     required Doctor doctor,
@@ -54,3 +71,5 @@ class BookingRepositoryImpl {
     await apiService.createAppointment(bookingJson);
   }
 }
+  
+  
