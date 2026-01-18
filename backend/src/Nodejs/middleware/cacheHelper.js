@@ -5,15 +5,15 @@ const DEFAULT_EXPIRATION = 300;
 
 // Cache expiration times for different resource types
 const CACHE_EXPIRATION = {
-  PATIENT: 300, // 5 minutes
-  CONDITION: 300, // 5 minutes
-  ENCOUNTER: 300, // 5 minutes
-  PRACTITIONER: 300, // 5 minutes
-  EOC: 300, // 5 minutes
-  BINARY: 300, // 5 minutes
-  MEDICATION_REQUEST: 300, // 5 minutes
-  PROCEDURE: 300, // 5 minutes
-  SEARCH: 300, // 5 minutes
+  PATIENT: 60, // 1 minute
+  CONDITION: 60, // 1 minute
+  ENCOUNTER: 60, // 1 minute
+  PRACTITIONER: 60, // 1 minute
+  EOC: 60, // 1 minute
+  BINARY: 60, // 1 minute
+  MEDICATION_REQUEST: 60, // 1 minute
+  PROCEDURE: 60, // 1 minute
+  SEARCH: 60, // 1 minute
 };
 
 /**
