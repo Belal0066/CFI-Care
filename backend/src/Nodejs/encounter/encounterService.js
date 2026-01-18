@@ -2,6 +2,13 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const axios = require("axios");
+const {
+  getFromCache,
+  setInCache,
+  invalidateEncounterCache,
+  CACHE_EXPIRATION,
+} = require("../middleware/cacheHelper");
+
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
   headers: {
@@ -11,9 +18,22 @@ const fhirApi = axios.create({
 
 // Get Encounter by ID
 async function getEncounterById(encounterId) {
+  const cacheKey = `encounter:${encounterId}`;
+
   try {
+    // Check cache first
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
     const response = await fhirApi.get(`/Encounter/${encounterId}`);
-    return response.data;
+    const data = response.data;
+
+    // Store in cache
+    await setInCache(cacheKey, data, CACHE_EXPIRATION.ENCOUNTER);
+
+    return data;
   } catch (error) {
     if (error.response && error.response.status === 404) {
       throw new Error("Encounter not found");
@@ -26,11 +46,24 @@ async function getEncounterById(encounterId) {
 
 // Get Everything related to an Encounter
 async function getEncounterEverything(encounterId) {
+  const cacheKey = `encounter:${encounterId}:everything`;
+
   try {
+    // Check cache first
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
     const response = await fhirApi.get(`/Encounter/${encounterId}/$everything`);
-    return response.data.entry
+    const data = response.data.entry
       ? response.data.entry.map((e) => e.resource)
       : [];
+
+    // Store in cache
+    await setInCache(cacheKey, data, CACHE_EXPIRATION.ENCOUNTER);
+
+    return data;
   } catch (error) {
     console.error("FHIR Server Error:", error.message);
     throw new Error("Could not connect to the FHIR server.");
@@ -52,15 +85,20 @@ async function createEncounterWithSpecificId(encounterData) {
     // FHIR Server PUT Request
     const response = await fhirApi.put(
       `/Encounter/${encounterId}`,
-      fhirEncounterResource
+      fhirEncounterResource,
     );
+
+    // Invalidate cache after successful creation
+    const patientId = encounterData.subject?.reference?.split("/")[1];
+    await invalidateEncounterCache(encounterId, patientId);
+
     return { data: response.data, id: response.data.id };
   } catch (error) {
     if (error.response) {
       console.error("FHIR Server Error Status:", error.response.status);
       console.error(
         "FHIR Validation Details:",
-        JSON.stringify(error.response.data, null, 2)
+        JSON.stringify(error.response.data, null, 2),
       );
       const issueText = error.response.data.issue
         ? error.response.data.issue
@@ -79,7 +117,7 @@ async function createEncounterWithSpecificId(encounterData) {
 async function createEncounterWithSpecificIdForEOC(
   patientId,
   encounterData,
-  episodeOfCareId
+  episodeOfCareId,
 ) {
   const encounterId = encounterData.id;
   if (!encounterId) {
@@ -137,7 +175,7 @@ async function createEncounterWithSpecificIdForEOC(
       console.error("FHIR Server Error Status:", error.response.status);
       console.error(
         "FHIR Validation Details:",
-        JSON.stringify(error.response.data, null, 2)
+        JSON.stringify(error.response.data, null, 2),
       );
       const issueText = error.response.data.issue
         ? error.response.data.issue
@@ -175,21 +213,26 @@ async function updateEncounter(encounterId, encounterData) {
   };
 
   console.log(
-    `Attempting to PUT (update) Encounter to /Encounter/${encounterId}`
+    `Attempting to PUT (update) Encounter to /Encounter/${encounterId}`,
   );
 
   try {
     const response = await fhirApi.put(
       `/Encounter/${encounterId}`,
-      fhirEncounterResource
+      fhirEncounterResource,
     );
+
+    // Invalidate cache after successful update
+    const patientId = fhirEncounterResource.subject?.reference?.split("/")[1];
+    await invalidateEncounterCache(encounterId, patientId);
+
     return { data: response.data, id: response.data.id };
   } catch (error) {
     if (error.response) {
       console.error("FHIR Server Error Status:", error.response.status);
       console.error(
         "FHIR Validation Details:",
-        JSON.stringify(error.response.data, null, 2)
+        JSON.stringify(error.response.data, null, 2),
       );
       const issueText = error.response.data.issue
         ? error.response.data.issue
@@ -214,19 +257,27 @@ async function deleteEncounter(encounterId) {
 
   try {
     const response = await fhirApi.delete(`/Encounter/${encounterId}`);
+
+    // Invalidate cache after successful deletion
+    await invalidateEncounterCache(encounterId);
+
     return { success: true, id: encounterId };
   } catch (error) {
     if (error.response && error.response.status === 404) {
       // Already deleted or doesn't exist - treat as success
       console.log(
-        `Encounter ${encounterId} not found in FHIR (may already be deleted)`
+        `Encounter ${encounterId} not found in FHIR (may already be deleted)`,
       );
+
+      // Still invalidate cache to ensure consistency
+      await invalidateEncounterCache(encounterId);
+
       return { success: true, id: encounterId, alreadyDeleted: true };
     } else if (error.response) {
       console.error("FHIR Server Error Status:", error.response.status);
       console.error(
         "FHIR Deletion Details:",
-        JSON.stringify(error.response.data, null, 2)
+        JSON.stringify(error.response.data, null, 2),
       );
       const issueText = error.response.data.issue
         ? error.response.data.issue

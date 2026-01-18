@@ -6,5 +6,7 @@ const conditionController = require("./conditionController");
 router.get("/patient/:patientId", conditionController.getConditionsByPatientId);
 router.get("/:id", conditionController.getConditionById);
 router.put("/", conditionController.createConditionWithSpecificId);
+router.post("/:id", conditionController.updateCondition);
+router.delete("/:id", conditionController.deleteCondition);
 
 module.exports = router;
