@@ -13,6 +13,7 @@ export interface GraphNodeData {
   dateIssued: string;
   details: string;
   isDiagnosis?: boolean;
+  isManualBranch?: boolean;
 }
 
 export interface AddNodeRequest {

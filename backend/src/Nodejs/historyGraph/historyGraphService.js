@@ -345,7 +345,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
   const eventDate = normalizeDate(
     node.dateIssued || node.event_date || new Date(),
   );
-  const title = node.title || node.text_1 || "Untitled";
+  const title = (node.title || node.text_1 || "Untitled").trim();
   const details = node.details || "";
   const priorityObj = mapPriorityToActPriority(priority);
   const encounterClass = mapPriorityToEncounterClass(priority);
@@ -353,6 +353,75 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
 
   const serviceTypeCoding =
     CATEGORY_SERVICE_TYPE[category] || CATEGORY_SERVICE_TYPE.Consultation;
+
+  // Define buildEncounter helper function first
+  const buildEncounter = (typeCode, typeDisplay) => ({
+    resourceType: "Encounter",
+    id: nodeId,
+    status: mapNormalityToStatus(normality),
+    class: [
+      {
+        coding: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+            code: encounterClass.code,
+            display: encounterClass.display,
+          },
+        ],
+      },
+    ],
+    type: [
+      {
+        coding: [
+          {
+            system: "http://snomed.info/sct",
+            code: typeCode,
+            display: typeDisplay,
+          },
+        ],
+      },
+    ],
+    serviceType: [
+      {
+        concept: {
+          coding: [
+            {
+              system: serviceTypeCoding.system,
+              code: serviceTypeCoding.code,
+              display: serviceTypeCoding.display,
+            },
+          ],
+        },
+      },
+    ],
+    subject: { reference: `Patient/${patientId}` },
+    actualPeriod: {
+      start: eventDate,
+      end: eventDate,
+    },
+    reason: [
+      {
+        value: [
+          {
+            concept: {
+              coding: [
+                {
+                  system: "http://snomed.info/sct",
+                  code: "185349003",
+                  display: title,
+                },
+              ],
+              text: title,
+            },
+          },
+        ],
+      },
+    ],
+    text: {
+      status: "generated",
+      div: `<div xmlns="http://www.w3.org/1999/xhtml">Encounter: ${title}</div>`,
+    },
+  });
 
   // Handle diagnosis: create Condition resource if isDiagnosis=true
   if (isDiagnosis) {
@@ -372,7 +441,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
         coding: [
           {
             system:
-              "http://terminology.hl7.org/CodeSystem/condition-verification",
+              "http://terminology.hl7.org/CodeSystem/condition-ver-status",
             code: "confirmed",
             display: "Confirmed",
           },
@@ -409,88 +478,10 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
     const wrapperEncounter = buildEncounter("11429006", "Diagnosis Encounter");
     return {
       nodeId,
-      primaryResource: condition,
-      relatedResources: [wrapperEncounter],
+      primaryResource: wrapperEncounter,
+      relatedResources: [condition],
     };
   }
-
-  const buildEncounter = (typeCode, typeDisplay) => ({
-    resourceType: "Encounter",
-    id: nodeId,
-    status: mapNormalityToStatus(normality),
-    class: [
-      {
-        coding: [
-          {
-            system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-            code: encounterClass.code,
-            display: encounterClass.display,
-          },
-        ],
-      },
-    ],
-    type: [
-      {
-        coding: [
-          {
-            system: "http://snomed.info/sct",
-            code: typeCode,
-            display: typeDisplay,
-          },
-        ],
-        text: title,
-      },
-    ],
-    priority: {
-      coding: [
-        {
-          system: "http://terminology.hl7.org/CodeSystem/v3-ActPriority",
-          code: priorityObj.code,
-          display: priorityObj.display,
-        },
-      ],
-    },
-    serviceType: [
-      {
-        concept: {
-          coding: [
-            {
-              system: serviceTypeCoding.system,
-              code: serviceTypeCoding.code,
-              display: serviceTypeCoding.display,
-            },
-          ],
-          text: serviceTypeCoding.display,
-        },
-      },
-    ],
-    subject: { reference: `Patient/${patientId}` },
-    ...(eocId
-      ? {
-          episodeOfCare: [
-            {
-              reference: `EpisodeOfCare/${eocId}`,
-            },
-          ],
-        }
-      : {}),
-    actualPeriod: { start: eventDate },
-    ...(details
-      ? {
-          reason: [
-            {
-              value: [
-                {
-                  concept: {
-                    text: details,
-                  },
-                },
-              ],
-            },
-          ],
-        }
-      : {}),
-  });
 
   if (category === "Consultation") {
     return {
@@ -936,8 +927,8 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
 
   const insertNodeQuery = `
     INSERT INTO encounter_nodes 
-    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     ON CONFLICT (encounter_fhir_id) DO NOTHING
   `;
 
@@ -951,6 +942,7 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
     nodeData.dateIssued || new Date(),
     nodeData.details || "",
     nodeData.isDiagnosis || false,
+    nodeData.isManualBranch || false,
   ];
 
   await client.query(insertNodeQuery, nodeValues);
@@ -988,7 +980,7 @@ async function getGraphForPatient(patientId, options = {}) {
     let nodesQuery = `
       SELECT 
         encounter_fhir_id, patient_id, title, category, priority, 
-        normality, event_date, details, is_diagnosis, related_resource_ids,
+        normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids,
         created_at, updated_at, CASE WHEN is_deleted THEN deleted_at ELSE NULL END as deleted_at
       FROM encounter_nodes 
       WHERE patient_id = $1
@@ -1096,6 +1088,7 @@ async function getGraphForPatient(patientId, options = {}) {
         : new Date().toISOString().split("T")[0],
       details: row.details || "",
       isDiagnosis: row.is_diagnosis || false,
+      isManualBranch: row.is_manual_branch || false,
       relatedResourceIds: row.related_resource_ids || {},
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
@@ -1256,6 +1249,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   const category = nodeData.category;
   const details = nodeData.details || "";
   const isDiagnosis = nodeData.isDiagnosis || false;
+  const isManualBranch = nodeData.isManualBranch || false;
 
   // Parse and format date
   let eventDate = nodeData.dateIssued || new Date().toISOString();
@@ -1319,8 +1313,8 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
 
   const insertNodeQuery = `
     INSERT INTO encounter_nodes 
-    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, related_resource_ids, is_deleted, deleted_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE, NULL)
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, is_deleted, deleted_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE, NULL)
     ON CONFLICT (encounter_fhir_id) DO UPDATE SET
       title = EXCLUDED.title,
       category = EXCLUDED.category,
@@ -1329,6 +1323,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
       event_date = EXCLUDED.event_date,
       details = EXCLUDED.details,
       is_diagnosis = EXCLUDED.is_diagnosis,
+      is_manual_branch = EXCLUDED.is_manual_branch,
       related_resource_ids = EXCLUDED.related_resource_ids,
       is_deleted = FALSE,
       deleted_at = NULL,
@@ -1346,6 +1341,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     eventDate,
     details,
     isDiagnosis,
+    isManualBranch,
     relatedResourceIds,
   ];
 
@@ -1384,8 +1380,12 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     }
   }
 
-  // Invalidate cache after node creation
+  // Invalidate and proactively refresh cache
   await invalidatePatientCache(patientId);
+  // Fetch fresh data to warm up the cache
+  await getGraphForPatient(patientId).catch((err) =>
+    console.warn("Cache refresh failed after addNode:", err.message),
+  );
 
   const now = new Date().toISOString();
   return {
@@ -1399,6 +1399,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     dateIssued: eventDate.split("T")[0],
     details: details,
     isDiagnosis: isDiagnosis,
+    isManualBranch: isManualBranch,
     eocId: finalEocId,
     fhirResource: {
       primary: createdResources.primaryResult,
@@ -1429,6 +1430,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   const normality = updatedData.normality || "Pending";
   const details = updatedData.details || "";
   const isDiagnosis = updatedData.isDiagnosis || false;
+  const isManualBranch = updatedData.isManualBranch || false;
   const relationshipType =
     updatedData.relationshipType !== undefined
       ? normalizeRelationshipType(updatedData.relationshipType)
@@ -1540,8 +1542,8 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
 
   const updateQuery = `
     UPDATE encounter_nodes
-    SET title = $1, category = $2, priority = $3, normality = $4, event_date = $5, details = $6, is_diagnosis = $7, related_resource_ids = $8, updated_at = NOW()
-    WHERE encounter_fhir_id = $9 AND patient_id = $10
+    SET title = $1, category = $2, priority = $3, normality = $4, event_date = $5, details = $6, is_diagnosis = $7, is_manual_branch = $8, related_resource_ids = $9, updated_at = NOW()
+    WHERE encounter_fhir_id = $10 AND patient_id = $11
     RETURNING encounter_fhir_id
   `;
 
@@ -1553,6 +1555,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     eventDate,
     details,
     isDiagnosis,
+    isManualBranch,
     relatedResourceIds,
     nodeId,
     patientId,
@@ -1609,8 +1612,14 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     );
   }
 
-  // Invalidate cache after node update
+  // Invalidate cache and trigger background refresh
   await invalidatePatientCache(patientId);
+  // Proactively refresh cache in background (non-blocking)
+  setImmediate(() => {
+    getGraphForPatient(patientId).catch((err) =>
+      console.warn("[CACHE REFRESH] Failed after updateNode:", err.message),
+    );
+  });
 
   const now = new Date().toISOString();
   return {
@@ -1623,6 +1632,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     dateIssued: eventDate.split("T")[0],
     details,
     isDiagnosis,
+    isManualBranch,
     relatedResourceIds,
     relationshipType: relationshipType || undefined,
     updatedAt: now,
@@ -1680,11 +1690,10 @@ function resolveResourceIdentifiers(category, nodeId, eventDate) {
     case "Lab":
       addEncounter();
       resources.push({ resourceType: "Observation", id: nodeId });
-      relationshipType: (relationshipType || undefined,
-        resources.push({
-          resourceType: "DiagnosticReport",
-          id: `dr-${nodeId}`,
-        }));
+      resources.push({
+        resourceType: "DiagnosticReport",
+        id: `dr-${nodeId}`,
+      });
       break;
     case "Imaging":
       addEncounter();
@@ -1825,8 +1834,14 @@ async function deleteNode(patientId, nodeId) {
     );
   }
 
-  // Invalidate cache after node deletion
+  // Invalidate cache and trigger background refresh
   await invalidatePatientCache(patientId);
+  // Proactively refresh cache in background (non-blocking)
+  setImmediate(() => {
+    getGraphForPatient(patientId).catch((err) =>
+      console.warn("[CACHE REFRESH] Failed after deleteNode:", err.message),
+    );
+  });
 
   return { deleted: targets, fhirDeleteResults };
 }
@@ -1865,7 +1880,14 @@ async function restoreNode(patientId, nodeId) {
       [nodeId],
     );
 
+    // Invalidate cache and trigger background refresh
     await invalidatePatientCache(patientId);
+    // Proactively refresh cache in background (non-blocking)
+    setImmediate(() => {
+      getGraphForPatient(patientId).catch((err) =>
+        console.warn("[CACHE REFRESH] Failed after restoreNode:", err.message),
+      );
+    });
 
     return {
       success: true,
