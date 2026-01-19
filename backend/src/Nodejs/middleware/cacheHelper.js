@@ -115,6 +115,7 @@ async function invalidatePatientCache(patientId) {
     `encounters:patient:${patientId}`,
     `eoc:patient:${patientId}`,
     `historyGraph:patient:${patientId}`,
+    `historyGraph:patient:${patientId}:*`,
     `medicationRequests:patient:${patientId}`,
     `medicationRequests:patient:${patientId}:*`,
     `procedures:patient:${patientId}`,
