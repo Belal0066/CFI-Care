@@ -17,7 +17,7 @@ const binaryRoutes = require("./binary/binaryRoutes");
 const encounterRoutes = require("./encounter/encounterRoutes");
 const historyGraphRoutes = require("./historyGraph/historyGraphRoutes");
 
-const authRoutes = require("./patient/authRoutes")
+const authRoutes = require("./auth/authRoutes")
 const session = require("express-session");
 
 const redisClient = require("./utils/redisCli");

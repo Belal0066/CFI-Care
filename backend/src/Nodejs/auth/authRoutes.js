@@ -18,6 +18,7 @@ const pkce = require('pkce-challenge');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
+const { requireSession } = require('../middleware/requireSession');
 
 
 
@@ -26,6 +27,8 @@ const realm = process.env.KEYCLOAK_REALM;
 const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
 const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
+
+//  to implement : rate limiting 
 
 // /auth/login -> keycloak token endpoint (Direct Access Grants) --> resource owner pass creds? 
 router.post('/login', async (req, res) => {
@@ -233,7 +236,8 @@ router.get('/callback', async (req, res) => {
       }
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', requireSession, (req, res) => {
+      
       if (!req.session.user) return res.status(401).json({ authenticated: false });
       res.json({ authenticated: true, user: req.session.user });
 });
@@ -241,14 +245,25 @@ router.get('/me', (req, res) => {
 
 router.post('/logout', async (req, res) => {
       try {
-            const idToken = req.session.tokens?.id;
+            // const idToken = req.session.tokens?.id;
+            const access_token = req.session.tokens?.access;
             req.session.destroy(() => { });
-            if (idToken) {
+            if (access_token) {
                   const kcHost = process.env.KC_HOSTNAME;
                   const realm = process.env.KEYCLOAK_REALM;
                   const frontendReturn = process.env.FRONTEND_HOST;
-                  const kcLogout = `${kcHost}/realms/${realm}/protocol/openid-connect/logout?redirect_uri=${encodeURIComponent(frontendReturn)}`;
-                  return res.json({ ok: true, logoutUrl: kcLogout });
+                  // const kcLogout = `${kcHost}/realms/${realm}/protocol/openid-connect/logout?redirect_uri=${encodeURIComponent(frontendReturn)}`;
+                  const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
+                  const body = new URLSearchParams({
+                        token: access_token,
+                        client_id: clientId,
+                        client_secret: clientSecret,
+                  }).toString();
+
+                  await axios.post(revokeUrl, body, {
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                  });
+                  return res.json({ ok: true, logoutUrl: frontendReturn });
             }
             return res.json({ ok: true });
       } catch (e) {
