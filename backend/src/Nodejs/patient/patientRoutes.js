@@ -15,7 +15,7 @@ const { verifyToken } = require('../middleware/keycloakJWT');
 const requireScopes = require('../middleware/validateScopes');
 const attachForwardedToken = require('../middleware/attachForwardedToken');
 // const requireOwnership = require('../middleware/requireOwnership');
-
+const { requireSession } = require('../middleware/requireSession');
 
 
 
@@ -30,7 +30,7 @@ router.post(
 router.put("/", patientController.createPatientWithSpecificId);
 
 router.get("/toon-everything/:id", patientController.toonPatientEverything);
-router.get('/', attachForwardedToken, patientController.getCurrentPatient);
+router.get('/', requireSession, attachForwardedToken, patientController.getCurrentPatient);
 
 router.put(
   "/:id",
@@ -42,11 +42,11 @@ router.put(
 
 
 
-router.get("/:id", attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rs']), patientController.getPatientById);
+router.get("/:id",requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rs']), patientController.getPatientById);
 
 //still need to add scopes :/
-router.get("/:id/related-data",attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientAllRelatedData);
-router.get("/:id/observations", attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientObservations);
-router.get("/:id/encounters", attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientEncounters);
+router.get("/:id/related-data",requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientAllRelatedData);
+router.get("/:id/observations", requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientObservations);
+router.get("/:id/encounters", requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientEncounters);
 
 module.exports = router;

@@ -5,9 +5,12 @@ services:
     container_name: hapi-fhir-jpaserver-start
     restart: on-failure
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://hapi-fhir-postgres:5432/hapi"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "admin"
+      # SPRING_DATASOURCE_URL: "jdbc:postgresql://hapi-fhir-postgres:5432/hapi"
+      # SPRING_DATASOURCE_USERNAME: "admin"
+      # SPRING_DATASOURCE_PASSWORD: "admin"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require
+      SPRING_DATASOURCE_USERNAME: neondb_owner
+      SPRING_DATASOURCE_PASSWORD: npg_WlFfbh7akAz0
       SPRING_DATASOURCE_DRIVERCLASSNAME: "org.postgresql.Driver"
     ports:
       - "8080:8080"

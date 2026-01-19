@@ -8,9 +8,14 @@ services:
     env_file:
       - ./.env
     restart: unless-stopped
-    
+    #for frontend
+    ports:
+      - "3000:3000" 
+
+      # can't set dependencies on external containers , so i added "dependency" in script  
+      
     # depends_on:
-    #   redis:
+    #   redisStore:
     #     condition: service_healthy
     networks:
       - nginx-network
