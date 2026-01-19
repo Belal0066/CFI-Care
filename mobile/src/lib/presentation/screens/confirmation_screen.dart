@@ -306,7 +306,8 @@ class ConfirmationScreen extends StatelessWidget {
                     context.read<BookingProvider>().confirmBooking();
 
                     // Navigate
-                    Navigator.of(context).pushReplacement(
+                    Navigator.push(
+                      context,
                       MaterialPageRoute(
                         builder: (context) => ThankYouScreen(
                           appointmentDate: appointmentDate,
@@ -316,10 +317,10 @@ class ConfirmationScreen extends StatelessWidget {
                           viewModel: DocumentAddViewModel(),
                         ),
                       ),
-                    );
-
-                    // Clear Data
-                    context.read<BookingProvider>().clearBookingData();
+                    ).then((context) {
+                      // Clear Data
+                      context.read<BookingProvider>().clearBookingData();
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(
