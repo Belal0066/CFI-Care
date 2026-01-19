@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const { randomUUID } = require('crypto');
+const { randomUUID } = require("crypto");
 // const cookieParser = require('cookie-parser');
 
 const pagesDirectory = __dirname + "/TestPages/";
@@ -18,6 +18,11 @@ const encounterRoutes = require("./encounter/encounterRoutes");
 const historyGraphRoutes = require("./historyGraph/historyGraphRoutes");
 
 const authRoutes = require("./patient/authRoutes")
+const session = require("express-session");
+
+const redisClient = require("./utils/redisCli");
+const {RedisStore} = require('connect-redis');       //.default;
+const store = new RedisStore({ client: redisClient });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +62,21 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+app.use(
+      session({
+            store:store,          //new RedisStore({ client: redisClient }),
+            secret: process.env.SESSION_SECRET,
+            resave: false,
+            saveUninitialized: false,
+            cookie: {
+                  secure: true,
+                  httpOnly: true,
+                  sameSite: 'lax',
+                  maxAge: 60 * 60 * 1000, // 1 hr 
+            },
+      })
+)
 
 // const path = require('path');
 
