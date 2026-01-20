@@ -13,6 +13,7 @@ export interface GraphNodeData {
   dateIssued: string;
   details: string;
   isDiagnosis?: boolean;
+  isManualBranch?: boolean;
 }
 
 export interface AddNodeRequest {
@@ -36,6 +37,7 @@ export class PatientApiService {
   private baseUrl = '/api/patients';
   private graphUrl = '/api/historyGraph';
   private conditionsUrl = '/api/conditions';
+  private medicationRequestsUrl = '/api/medicationRequests';
 
   constructor(private http: HttpClient) {}
 
@@ -87,6 +89,16 @@ export class PatientApiService {
   // Get patient conditions
   getPatientConditions(id: string | number): Observable<any> {
     return this.http.get<any>(`${this.conditionsUrl}/patient/${id}`);
+  }
+
+  // Get patient medication requests
+  getPatientMedicationRequests(id: string | number): Observable<any> {
+    return this.http.get<any>(`${this.medicationRequestsUrl}/patient/${id}`);
+  }
+
+  // Get patient procedures
+  getPatientProcedures(id: string | number): Observable<any> {
+    return this.http.get<any>(`/api/procedures/patient/${id}`);
   }
 
   // Create a new patient
