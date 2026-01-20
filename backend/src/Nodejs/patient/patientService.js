@@ -14,25 +14,30 @@ const fhirApi = axios.create({
   },
 });
 
-// Fetch patient by ID with Caching
-async function getPatientById(patientId) {
+// Fetch patient by ID with Caching and Security
+async function getPatientById(patientId, accessToken) {
   const cacheKey = `patient:${patientId}`;
 
   try {
-    // Check cache first
     const cachedData = await getFromCache(cacheKey);
     if (cachedData) {
       return cachedData;
     }
 
-    // Fetch from API if not in cache
-    const response = await fhirApi.get(`/Patient/${patientId}`);
+    const config = {};
+    if (accessToken) {
+      config.headers = {
+        Authorization: `Bearer ${accessToken}`,
+      };
+    }
+
+    const response = await fhirApi.get(`/Patient/${patientId}`, config);
     const data = response.data;
 
-    // Store result in cache
     await setInCache(cacheKey, data, CACHE_EXPIRATION.PATIENT);
 
     return data;
+
   } catch (error) {
     if (error.response && error.response.status === 404) {
       throw new Error("Patient not found");
@@ -42,6 +47,7 @@ async function getPatientById(patientId) {
     }
   }
 }
+
 
 // Create patient with Specific ID
 async function createPatientWithSpecificId(patientData) {
