@@ -125,6 +125,18 @@ export class AuthService {
     );
   }
 
+  // Logout from ALL devices/sessions
+  logoutAll(): Observable<any> {
+    this.currentUserSubject.next(null);
+    return this.http.post<{ ok: boolean; message?: string }>(
+      `${this.API_URL}/logout-all`, 
+      {}, 
+      { withCredentials: true }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   // Handle HTTP errors
   
   private handleError(error: HttpErrorResponse) {
