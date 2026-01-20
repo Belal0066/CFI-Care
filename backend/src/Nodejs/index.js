@@ -28,9 +28,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
+
+  app.set('trust proxy', 1); 
+
+
 // CORS configuration for Angular frontend
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:4200",
+  origin: process.env.CORS_ORIGIN || "https://localhost",  // 5aleto https , w mn 8er port 3ashan y route thorugh nginx bas keda keda 3andoko cors_origin defined f env men 8ero fa mat8yrhosh l da law msh bt run-o el containers   //["http://localhost:4200", "https://localhost"], 
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -70,11 +74,13 @@ app.use(
             resave: false,
             saveUninitialized: false,
             cookie: {
-                  secure: true,
+                  secure: process.env.NODE_ENV === 'production', //for now because dev , frontend doesn't use ssl :/
                   httpOnly: true,
                   sameSite: 'lax',
                   maxAge: 60 * 60 * 1000, // 1 hr 
+                  // domain: process.env.COOKIE_DOMAIN || undefined, //lel cloud odam?
             },
+            // proxy: true, // Trust session cookies from proxy
       })
 )
 

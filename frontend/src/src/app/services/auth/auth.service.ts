@@ -33,6 +33,11 @@ export interface AuthStatusResponse {
   };
 }
 
+export interface LogoutResponse {
+  ok: boolean;
+  logoutUrl?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })

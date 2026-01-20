@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
       }
 });
 
-// /auth/register - create user vai Keycloak Admin API
+// /auth/register - create user vai Keycloak API
 router.post('/register', async (req, res) => {
       const { email, password, fullName } = req.body;
       
@@ -90,7 +90,7 @@ router.post('/register', async (req, res) => {
       }
 
       try {
-            // admin access token using client credentials
+            // access token using client credentials
             const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
             const adminBody = new URLSearchParams({
                   grant_type: 'client_credentials',
@@ -246,22 +246,24 @@ router.get('/me', requireSession, (req, res) => {
 router.post('/logout', async (req, res) => {
       try {
             // const idToken = req.session.tokens?.id;
+            const refresh_token = req.session.tokens?.refresh;
             const access_token = req.session.tokens?.access;
             req.session.destroy(() => { });
-            if (access_token) {
+            if (refresh_token) {
                   const kcHost = process.env.KC_HOSTNAME;
                   const realm = process.env.KEYCLOAK_REALM;
                   const frontendReturn = process.env.FRONTEND_HOST;
                   // const kcLogout = `${kcHost}/realms/${realm}/protocol/openid-connect/logout?redirect_uri=${encodeURIComponent(frontendReturn)}`;
                   const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
                   const body = new URLSearchParams({
-                        token: access_token,
+                        token: refresh_token,
+                        token_type_hint: 'refresh_token',
                         client_id: clientId,
                         client_secret: clientSecret,
                   }).toString();
 
                   await axios.post(revokeUrl, body, {
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                        headers: { "Authorization" : `Bearer ${access_token}`, "Content-Type": "application/x-www-form-urlencoded" }
                   });
                   return res.json({ ok: true, logoutUrl: frontendReturn });
             }
