@@ -3,7 +3,15 @@ const axios = require('axios');
 
 async function requireSession(req, res, next) {
     try {
+        console.log('[requireSession] Session check:', {
+            hasSession: !!req.session,
+            hasUser: !!req.session?.user,
+            hasTokens: !!req.session?.tokens,
+            sessionID: req.sessionID
+        });
+        
         if (!req.session || !req.session.user || !req.session.tokens) {
+            console.log('[requireSession] Rejecting - missing session data');
             return res.status(401).json({ error: 'Not authenticated' });
         }
 
@@ -16,11 +24,28 @@ async function requireSession(req, res, next) {
                 req.session.destroy(() => { });
                 return res.status(401).json({ error: 'Session expired' });
             }
-            await refreshTokens(req);
+
+            try {
+                await refreshTokens(req);
+            } catch (err) {
+                console.error('Token refresh failed:', err?.response?.data || err?.message);
+                req.session.destroy(() => { });
+                return res.status(401).json({ error: 'Session expired' });
+            }
         }
 
         req.accessToken = req.session.tokens.access;
         req.user = req.session.user;
+        
+        // for now
+        req.kauth = {
+            token: {
+                grant: {
+                    sub: req.session.user.sub
+                }
+            }
+        };
+        
         return next();
     } catch (err) {
         console.error('requireSession error:', err && err.message);

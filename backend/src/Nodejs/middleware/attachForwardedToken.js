@@ -4,10 +4,13 @@ const redis = new Redis(process.env.REDIS_URL);
 
 module.exports = async function attachForwardedToken(req, res, next) {
   try {
-    const forwarded = req.headers['x-access-token'];
-
+    const forwarded = req.accessToken;
 
     if (forwarded) {
+      if (!req.headers.authorization) {
+        req.headers.authorization = `Bearer ${forwarded}`;
+      }
+
       const decoded = jwt.decode(forwarded);
       // console.log('attachForwardedToken decoded token:', decoded);
       if (decoded) {

@@ -141,7 +141,10 @@ const getPatientById = async (req, res) => {
 const getCurrentPatient = async (req, res) => {
   try {
     let sub = null;
-    if (req.kauth && req.kauth.token && req.kauth.token.grant && req.kauth.token.grant.sub) {
+    if (req.session && req.session.user && req.session.user.sub) {
+      sub = req.session.user.sub;
+    } 
+    else if (req.kauth && req.kauth.token && req.kauth.token.grant && req.kauth.token.grant.sub) {
       sub = req.kauth.token.grant.sub;
     }
 

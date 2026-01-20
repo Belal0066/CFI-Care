@@ -29,7 +29,7 @@ router.post(
 
 router.put("/", patientController.createPatientWithSpecificId);
 
-router.get("/toon-everything/:id", patientController.toonPatientEverything);
+router.get("/toon-everything/:id", requireSession, attachForwardedToken, patientController.toonPatientEverything);
 router.get('/', requireSession, attachForwardedToken, patientController.getCurrentPatient);
 
 router.put(
