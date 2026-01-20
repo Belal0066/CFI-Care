@@ -43,6 +43,26 @@ services:
       - redis_data:/data
     networks:
       - nginx-network
+
+  redisAudit:
+    container_name: redisAudit
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - 6380:6379
+    command: redis-server --appendonly yes --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_audit_data:/data
+    networks:
+      - nginx-network
+
+
+
   # redis:
   #   container_name: redis
   #   build:
@@ -175,6 +195,8 @@ networks:
     driver: bridge
 
 volumes:
+  redis_audit_data:
+    driver: local
   redis_data:
     # driver: local
   # postgres_data:

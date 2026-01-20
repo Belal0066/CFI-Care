@@ -20,14 +20,17 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.2",
     "fhirpath": "^4.6.0",
     "graphviz": "^0.0.9",
+    "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
     "joi": "^18.0.1",
     "pdf-to-base64": "^1.0.3",
     "pg": "^8.16.3",
-    "pkce-challenge": "^5.0.1"
+    "pkce-challenge": "^5.0.1",
+    "rate-limit-redis": "^4.3.1"
   },
   "devDependencies": {
     "@toon-format/toon": "^2.1.0",

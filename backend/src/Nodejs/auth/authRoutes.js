@@ -19,6 +19,10 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { requireSession } = require('../middleware/requireSession');
+const { loginLimiter, registerLimiter, logoutAllLimiter } = require('../middleware/rateLimiter');
+const { validateLogin, validateRegister } = require('../middleware/validateInput');
+const { logAuthEvent } = require('../utils/auditLog');
+const { addSessionForUser, removeSessionForUser, getSessionsForUser, clearAllSessionsForUser, destroySessionById } = require('../utils/userSessions');
 
 
 
@@ -27,11 +31,12 @@ const realm = process.env.KEYCLOAK_REALM;
 const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
 const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
+const scopes = process.env.KC_SCOPES || 'openid profile email patient/*.rs';
 
 //  to implement : rate limiting 
 
 // /auth/login -> keycloak token endpoint (Direct Access Grants) --> resource owner pass creds? 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, validateLogin, async (req, res) => {
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -45,7 +50,7 @@ router.post('/login', async (req, res) => {
             client_secret: clientSecret,
             username: email,
             password: password,
-            scope: 'openid profile email'
+            scope: scopes
       }).toString();
 
       try {
@@ -68,6 +73,15 @@ router.post('/login', async (req, res) => {
             };
             req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
 
+            await addSessionForUser(userinfo.sub, req.sessionID);
+            console.log(`[LOGIN] Added session ${req.sessionID} for user ${userinfo.sub}`);
+
+            // log successful login
+            await logAuthEvent('LOGIN_SUCCESS', req, {
+                  userId: userinfo.sub,
+                  email: userinfo.email
+            });
+
             req.session.save(() => {
                   res.json({
                         success: true,
@@ -76,13 +90,20 @@ router.post('/login', async (req, res) => {
             });
       } catch (e) {
             console.error('Login failed:', e?.response?.data || e.message);
+
+            // Log failed login 
+            await logAuthEvent('LOGIN_FAILURE', req, {
+                  email,
+                  reason: e?.response?.data?.error_description || e.message
+            });
+
             const errorMsg = e?.response?.data?.error_description || 'Invalid credentials';
             res.status(401).json({ error: errorMsg });
       }
 });
 
 // /auth/register - create user vai Keycloak API
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, validateRegister, async (req, res) => {
       const { email, password, fullName } = req.body;
 
       if (!email || !password || !fullName) {
@@ -140,7 +161,7 @@ router.post('/register', async (req, res) => {
                         client_secret: clientSecret,
                         username: email,
                         password: password,
-                        scope: 'openid profile email'
+                        scope: scopes
                   }).toString();
 
                   const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
@@ -161,6 +182,14 @@ router.post('/register', async (req, res) => {
                   };
                   req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
 
+                  await addSessionForUser(userinfo.sub, req.sessionID);
+
+                  await logAuthEvent('REGISTER', req, {
+                        userId: userinfo.sub,
+                        email: userinfo.email,
+                        autoLogin: true
+                  });
+
                   return req.session.save(() => {
                         res.status(201).json({
                               success: true,
@@ -176,6 +205,14 @@ router.post('/register', async (req, res) => {
                         : 'User created. Please log in.';
 
                   console.warn('Auto-login after registration skipped:', errData || autoLoginErr.message);
+
+                  // log registration without auto-login
+                  await logAuthEvent('REGISTER', req, {
+                        email,
+                        autoLogin: false,
+                        reason: errData.error || autoLoginErr.message
+                  });
+
                   return res.status(201).json({
                         success: true,
                         autoLogin: false,
@@ -272,13 +309,22 @@ async function revokeTokens(refreshToken, accessToken) {
 // single logout
 router.post('/logout', async (req, res) => {
       try {
+            const userId = req.session.user?.sub;
+            const email = req.session.user?.email;
             const refreshToken = req.session.tokens?.refresh;
             const accessToken = req.session.tokens?.access;
             const frontendReturn = process.env.FRONTEND_HOST;
 
+            await removeSessionForUser(userId, req.sessionID);
             req.session.destroy(() => { });
 
             await revokeTokens(refreshToken, accessToken);
+
+            // Log 
+            await logAuthEvent('LOGOUT', req, {
+                  userId,
+                  email
+            });
 
             return res.json({ ok: true, logoutUrl: frontendReturn });
       } catch (e) {
@@ -290,6 +336,8 @@ router.post('/logout', async (req, res) => {
 // logout from all devices
 router.post('/logout-all', async (req, res) => {
       try {
+            const userId = req.session.user?.sub;
+            const email = req.session.user?.email;
             const idToken = req.session.tokens?.id;
             const refreshToken = req.session.tokens?.refresh;
             const accessToken = req.session.tokens?.access;
@@ -297,8 +345,9 @@ router.post('/logout-all', async (req, res) => {
             const realm = process.env.KEYCLOAK_REALM;
             const frontendReturn = process.env.FRONTEND_HOST;
 
-            // destroy backend session
-            req.session.destroy(() => { });
+            // // destroy backend session
+            // req.session.destroy(() => { });
+            // await removeSessionForUser(userId, req.sessionID);
 
             if (idToken && accessToken) {
 
@@ -332,12 +381,29 @@ router.post('/logout-all', async (req, res) => {
                         }
                   });
 
+                  const sessionIds = await getSessionsForUser(userId);
+                  console.log(`[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`);
+                  for (const sid of sessionIds) {
+                        await destroySessionById(sid);
+                  }
+                  await clearAllSessionsForUser(userId);
+
+                  await removeSessionForUser(userId, req.sessionID);
+                  req.session.destroy(() => { });
+
+                  await logAuthEvent('LOGOUT_ALL', req, {
+                        userId: userId,
+                        email
+                  });
+
                   return res.json({
                         ok: true,
                         message: 'Logged out from all devices silently'
                   });
             }
 
+            await removeSessionForUser(userId, req.sessionID);
+            req.session.destroy(() => { });
             return res.json({ ok: true });
       } catch (e) {
             console.error('global logout error', e?.response?.data || e.message);

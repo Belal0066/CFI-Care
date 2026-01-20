@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { randomUUID } = require("crypto");
+const helmet = require("helmet")
 // const cookieParser = require('cookie-parser');
 
 const pagesDirectory = __dirname + "/TestPages/";
@@ -21,8 +22,13 @@ const authRoutes = require("./auth/authRoutes")
 const session = require("express-session");
 
 const redisClient = require("./utils/redisCli");
-const {RedisStore} = require('connect-redis');       //.default;
-const store = new RedisStore({ client: redisClient });
+const {RedisStore} = require('connect-redis');
+const store = new RedisStore({ 
+  client: redisClient,
+  prefix: 'sess:'
+});
+
+const { generalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,10 +48,20 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    }
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true }
+}));
+
 // app.use(cors());
 
 // app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
-
 
 //timing middleware
 app.use((req, res, next) => {
@@ -73,6 +89,7 @@ app.use(
             secret: process.env.SESSION_SECRET,
             resave: false,
             saveUninitialized: false,
+            proxy: true,
             cookie: {
                   secure: process.env.NODE_ENV === 'production', //for now because dev , frontend doesn't use ssl :/
                   httpOnly: true,
@@ -80,28 +97,25 @@ app.use(
                   maxAge: 60 * 60 * 1000, // 1 hr 
                   // domain: process.env.COOKIE_DOMAIN || undefined, //lel cloud odam?
             },
-            // proxy: true, // Trust session cookies from proxy
       })
 )
 
-// const path = require('path');
-
-// app.use(express.static(path.join(__dirname, '../../../security/Containers/static')));
-
-
-
-// app.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, '../../../security/Containers/static', 'test-fetch-fhir-data.html'));
-// });
-
-//logging for auth :/
+// logging for /api/patients (after session middleware so cookies are parsed)
 // app.use((req, res, next) => {
-//   console.log(`[req ${req._id}] Incoming auth headers:`, {
-//     authorization: req.headers.authorization,
-//     x_access_token: req.headers['x-access-token'],
-//   });
+//   if (req.path.includes('/api/patients')) {
+//     console.log('[DEBUG] /api/patients incoming:', {
+//       path: req.path,
+//       method: req.method,
+//       cookies: req.headers.cookie,
+//       sessionID: req.sessionID,
+//       hasSession: !!req.session,
+//       hasUser: !!req.session?.user,
+//       hasTokens: !!req.session?.tokens
+//     });
+//   }
 //   next();
 // });
+
 
 app.post('/timing', (req, res) => {
   try {
@@ -114,6 +128,10 @@ app.post('/timing', (req, res) => {
 });
 
 // app.use(cookieParser());
+
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
+
 app.use("/auth", authRoutes);
 
 
@@ -125,6 +143,12 @@ app.use("/api/conditions", conditionRoutes);
 app.use("/api/binary", binaryRoutes);
 app.use("/api/encounters", encounterRoutes);
 app.use("/api/historyGraph", historyGraphRoutes);
+
+// //log all requests that reach here
+// app.use((req, res, next) => {
+//   console.log('[index.js] Request reached fallback:', req.method, req.path);
+//   res.status(404).json({ error: 'Route not found' });
+// });
 
 app.get("/CreatePatient", (req, res) => {
   res.sendFile(pagesDirectory + "createPatient.html");
