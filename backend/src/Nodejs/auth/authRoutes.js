@@ -33,7 +33,7 @@ const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
 // /auth/login -> keycloak token endpoint (Direct Access Grants) --> resource owner pass creds? 
 router.post('/login', async (req, res) => {
       const { email, password } = req.body;
-      
+
       if (!email || !password) {
             return res.status(400).json({ error: 'Email and password required' });
       }
@@ -67,11 +67,11 @@ router.post('/login', async (req, res) => {
                   refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
             };
             req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
-            
+
             req.session.save(() => {
-                  res.json({ 
-                        success: true, 
-                        user: req.session.user 
+                  res.json({
+                        success: true,
+                        user: req.session.user
                   });
             });
       } catch (e) {
@@ -84,7 +84,7 @@ router.post('/login', async (req, res) => {
 // /auth/register - create user vai Keycloak API
 router.post('/register', async (req, res) => {
       const { email, password, fullName } = req.body;
-      
+
       if (!email || !password || !fullName) {
             return res.status(400).json({ error: 'Email, password, and full name required' });
       }
@@ -122,7 +122,7 @@ router.post('/register', async (req, res) => {
             };
 
             await axios.post(createUserUrl, userData, {
-                  headers: { 
+                  headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminTokens.access_token}`
                   }
@@ -143,29 +143,29 @@ router.post('/register', async (req, res) => {
                         scope: 'openid profile email'
                   }).toString();
 
-            const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
-                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            });
+                  const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                  });
 
-            const { data: userinfo } = await axios.get(
-                  `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
-                  { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-            );
+                  const { data: userinfo } = await axios.get(
+                        `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+                        { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+                  );
 
-            req.session.tokens = {
-                  access: tokens.access_token,
-                  refresh: tokens.refresh_token,
-                  id: tokens.id_token,
-                  exp: Date.now() + tokens.expires_in * 1000,
-                  refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
-            };
-            req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
+                  req.session.tokens = {
+                        access: tokens.access_token,
+                        refresh: tokens.refresh_token,
+                        id: tokens.id_token,
+                        exp: Date.now() + tokens.expires_in * 1000,
+                        refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
+                  };
+                  req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
 
                   return req.session.save(() => {
-                        res.status(201).json({ 
+                        res.status(201).json({
                               success: true,
                               autoLogin: true,
-                              user: req.session.user 
+                              user: req.session.user
                         });
                   });
             } catch (autoLoginErr) {
@@ -176,7 +176,7 @@ router.post('/register', async (req, res) => {
                         : 'User created. Please log in.';
 
                   console.warn('Auto-login after registration skipped:', errData || autoLoginErr.message);
-                  return res.status(201).json({ 
+                  return res.status(201).json({
                         success: true,
                         autoLogin: false,
                         message,
@@ -237,44 +237,113 @@ router.get('/callback', async (req, res) => {
 });
 
 router.get('/me', requireSession, (req, res) => {
-      
+
       if (!req.session.user) return res.status(401).json({ authenticated: false });
       res.json({ authenticated: true, user: req.session.user });
 });
 
 
+async function revokeTokens(refreshToken, accessToken) {
+      if (!refreshToken) return;
+
+      const kcHost = process.env.KC_HOSTNAME;
+      const realm = process.env.KEYCLOAK_REALM;
+      const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
+
+      const body = new URLSearchParams({
+            token: refreshToken,
+            token_type_hint: 'refresh_token',
+            client_id: clientId,
+            client_secret: clientSecret,
+      }).toString();
+
+      try {
+            await axios.post(revokeUrl, body, {
+                  headers: {
+                        "Authorization": `Bearer ${accessToken}`,
+                        "Content-Type": "application/x-www-form-urlencoded"
+                  }
+            });
+      } catch (err) {
+            console.error('Token revocation error:', err.response?.data || err.message);
+      }
+}
+
+// single logout
 router.post('/logout', async (req, res) => {
       try {
-            // const idToken = req.session.tokens?.id;
-            const refresh_token = req.session.tokens?.refresh;
-            const access_token = req.session.tokens?.access;
-            req.session.destroy(() => { });
-            if (refresh_token) {
-                  const kcHost = process.env.KC_HOSTNAME;
-                  const realm = process.env.KEYCLOAK_REALM;
-                  const frontendReturn = process.env.FRONTEND_HOST;
-                  // const kcLogout = `${kcHost}/realms/${realm}/protocol/openid-connect/logout?redirect_uri=${encodeURIComponent(frontendReturn)}`;
-                  const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
-                  const body = new URLSearchParams({
-                        token: refresh_token,
-                        token_type_hint: 'refresh_token',
-                        client_id: clientId,
-                        client_secret: clientSecret,
-                  }).toString();
+            const refreshToken = req.session.tokens?.refresh;
+            const accessToken = req.session.tokens?.access;
+            const frontendReturn = process.env.FRONTEND_HOST;
 
-                  await axios.post(revokeUrl, body, {
-                        headers: { "Authorization" : `Bearer ${access_token}`, "Content-Type": "application/x-www-form-urlencoded" }
-                  });
-                  return res.json({ ok: true, logoutUrl: frontendReturn });
-            }
-            return res.json({ ok: true });
+            req.session.destroy(() => { });
+
+            await revokeTokens(refreshToken, accessToken);
+
+            return res.json({ ok: true, logoutUrl: frontendReturn });
       } catch (e) {
             console.error('logout error', e);
             res.status(500).json({ ok: false });
       }
 });
 
+// logout from all devices
+router.post('/logout-all', async (req, res) => {
+      try {
+            const idToken = req.session.tokens?.id;
+            const refreshToken = req.session.tokens?.refresh;
+            const accessToken = req.session.tokens?.access;
+            const kcHost = process.env.KC_HOSTNAME;
+            const realm = process.env.KEYCLOAK_REALM;
+            const frontendReturn = process.env.FRONTEND_HOST;
 
+            // destroy backend session
+            req.session.destroy(() => { });
+
+            if (idToken && accessToken) {
+
+                  const decoded = jwt.decode(idToken);
+                  const userId = decoded?.sub;
+
+                  if (!userId) {
+                        return res.status(400).json({ ok: false, error: 'Invalid ID token' });
+                  }
+
+                  await revokeTokens(refreshToken, accessToken);
+
+                  // Get admin token to access Keycloak Admin API
+                  const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+                  const adminBody = new URLSearchParams({
+                        grant_type: 'client_credentials',
+                        client_id: clientId,
+                        client_secret: clientSecret
+                  }).toString();
+
+                  const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                  });
+
+                  const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
+
+                  await axios.post(logoutAllUrl, {}, {
+                        headers: {
+                              'Authorization': `Bearer ${adminTokens.access_token}`,
+                              'Content-Type': 'application/json'
+                        }
+                  });
+
+                  return res.json({
+                        ok: true,
+                        message: 'Logged out from all devices silently'
+                  });
+            }
+
+            return res.json({ ok: true });
+      } catch (e) {
+            console.error('global logout error', e?.response?.data || e.message);
+            res.status(500).json({ ok: false, error: e.message });
+      }
+});
 
 // router.refreshTokens = refreshTokens;
 module.exports = router;

@@ -20,4 +20,17 @@ export class TopBar {
     });
     // this.router.navigate(['/login']);
   }
+
+  logoutAll(): void {
+    localStorage.clear();
+    this.authService.logoutAll().subscribe({
+      next: () => {
+        // If there's no redirect URL
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.router.navigate(['/login']);
+      }
+    });
+  }
 }
