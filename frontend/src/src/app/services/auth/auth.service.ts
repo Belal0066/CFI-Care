@@ -146,11 +146,15 @@ export class AuthService {
       // Client-side error
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      // Server-side error
-      errorMessage = error.error?.error || error.message || 'Server error';
+      // details -_-
+      const details = (error.error && Array.isArray(error.error.details))
+        ? error.error.details.map((d: any) => d.message).join('; ')
+        : null;
+
+      errorMessage = details || error.error?.error || error.message || 'Server error';
     }
-    
-    console.error('Auth error:', errorMessage);
+
+    console.error('Auth error:', errorMessage, error.error?.details || '');
     return throwError(() => new Error(errorMessage));
   }
 }
