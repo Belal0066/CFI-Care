@@ -91,12 +91,15 @@ spring:
     fail-on-missing-locations: false
 
   datasource:
+    url: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb_2?sslmode=require&channel_binding=require&currentSchema=public
+    username: neondb_owner
+    password: npg_WlFfbh7akAz0
     # url: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require
     # username: neondb_owner
     # password: npg_WlFfbh7akAz0
-    url: jdbc:postgresql://localhost:5432/fhir_db
-    username: adminuser
-    password: 1174
+    # url: jdbc:postgresql://localhost:5432/fhir_db
+    # username: adminuser
+    # password: 1174
     driverClassName: org.postgresql.Driver
     # max-active: 15     # (ignored with HikariCP; use hikari.maximum-pool-size)
     hikari:
