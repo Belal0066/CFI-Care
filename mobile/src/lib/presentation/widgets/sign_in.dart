@@ -25,7 +25,7 @@ class _SignInState extends State<SignIn> {
     super.dispose();
   }
 
-  /// ✅ Handle Login Button Press
+  /// Handle Login Button Press
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       TextInput.finishAutofillContext();
@@ -36,15 +36,14 @@ class _SignInState extends State<SignIn> {
       final userId = await DBHelper.validateUser(email, password);
 
       if (userId != null) {
-        // --- FIX 2: SAVE SESSION ---
-        // This is the critical missing step!
+        // --- SAVE SESSION --
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('currentUserId', userId);
         
         // Optional: Update static session if you use it elsewhere
         Session.currentUserId = userId; 
 
-        // 3. Navigate
+        // Navigate
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const MyApp()),
