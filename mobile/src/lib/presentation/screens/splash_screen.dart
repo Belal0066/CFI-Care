@@ -19,7 +19,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller = AnimationController(vsync: this);
     _goToNextAfterDelay();
   }
-
   void _goToNextAfterDelay() async {
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
