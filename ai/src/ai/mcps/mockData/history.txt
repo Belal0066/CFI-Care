@@ -1,0 +1,119 @@
+[
+  {
+    "id": "1",
+    "timestamp": "2024-02-01T10:00:00Z",
+    "phase": "General Practice",
+    "type": "Consultation",
+    "clinical_status": "Misdiagnosis",
+    "event": "Initial Asthma Diagnosis",
+    "measurements": {},
+    "text_summary": "Presents with exertional dyspnea; GP attributes to bronchial asthma. No cardiac screening performed."
+  },
+  {
+    "id": "7",
+    "timestamp": "2024-02-15T11:00:00Z",
+    "phase": "General Practice",
+    "type": "Imaging",
+    "clinical_status": "Escalation",
+    "event": "CXR Cardiomegaly",
+    "measurements": {
+      "cardiothoracic_ratio": 58.0
+    },
+    "text_summary": "CTR 58% noted; missed opportunity for immediate cardiac escalation."
+  },
+  {
+    "id": "10",
+    "timestamp": "2024-02-19T09:00:00Z",
+    "phase": "Pulmonology",
+    "type": "Lab",
+    "clinical_status": "Escalation",
+    "event": "BNP Elevation",
+    "measurements": {
+      "bnp": 2176.0
+    },
+    "text_summary": "BNP 2176 pg/mL; definitive marker of cardiac volume overload."
+  },
+  {
+    "id": "13",
+    "timestamp": "2024-02-20T10:00:00Z",
+    "phase": "Cardiology",
+    "type": "Consultation",
+    "clinical_status": "Confirmed Diagnosis",
+    "event": "DCM Confirmation",
+    "measurements": {
+      "lvef": 35.6
+    },
+    "text_summary": "Idiopathic DCM confirmed via Echo; LVEF 35.6%."
+  },
+  {
+    "id": "15",
+    "timestamp": "2024-02-21T10:00:00Z",
+    "phase": "Cardiology",
+    "type": "Medication",
+    "clinical_status": "Active",
+    "event": "Enalapril Started",
+    "measurements": {
+      "creatinine": 0.9,
+      "egfr": 82.0
+    },
+    "text_summary": "Initiated ESC Heart Failure protocol; renal baseline established."
+  },
+  {
+    "id": "17",
+    "timestamp": "2024-03-12T14:00:00Z",
+    "phase": "Cardiology",
+    "type": "Lab",
+    "clinical_status": "Adverse Event",
+    "event": "Renal Toxicity Peak",
+    "measurements": {
+      "creatinine": 2.1,
+      "egfr": 34.0
+    },
+    "text_summary": "Acute-on-chronic kidney injury (Stage 3b); 133% creatinine increase."
+  },
+  {
+    "id": "18",
+    "timestamp": "2024-03-13T09:00:00Z",
+    "phase": "Cardiology",
+    "type": "Medication",
+    "clinical_status": "Adverse Event",
+    "event": "Enalapril Discontinued",
+    "measurements": {},
+    "text_summary": "Absolute contraindication due to hyperkalemia and rapid decline in eGFR."
+  },
+  {
+    "id": "19",
+    "timestamp": "2024-03-14T10:00:00Z",
+    "phase": "Cardiology",
+    "type": "Medication",
+    "clinical_status": "Recovery",
+    "event": "Losartan Started",
+    "measurements": {},
+    "text_summary": "Transition to ARB to maintain RAAS blockade with safer renal hemodynamic profile."
+  },
+  {
+    "id": "20",
+    "timestamp": "2024-03-28T10:00:00Z",
+    "phase": "Cardiology",
+    "type": "Lab",
+    "clinical_status": "Recovery",
+    "event": "Renal Monitoring Stable",
+    "measurements": {
+      "creatinine": 1.1,
+      "egfr": 61.0
+    },
+    "text_summary": "Stabilization observed; eGFR recovered to Stage 2."
+  },
+  {
+    "id": "22",
+    "timestamp": "2024-04-10T11:00:00Z",
+    "phase": "Cardiology",
+    "type": "Imaging",
+    "clinical_status": "Recovery",
+    "event": "Follow-up Echo Improvement",
+    "measurements": {
+      "lvef": 50.6
+    },
+    "text_summary": "Functional recovery; LVEF improved from 35.6% to 50.6%."
+  }
+]
