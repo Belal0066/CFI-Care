@@ -91,7 +91,7 @@ spring:
     fail-on-missing-locations: false
 
   datasource:
-    # url: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/fhir_db?sslmode=require
+    # url: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require
     # username: neondb_owner
     # password: npg_WlFfbh7akAz0
     url: jdbc:postgresql://localhost:5432/fhir_db
