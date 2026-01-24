@@ -1,0 +1,162 @@
+@startuml Browser Token Flow <<Seqence Diagram>>
+
+actor User
+participant Browser
+
+participant nginx
+participant oauth2Proxy
+participant Keycloak
+
+participant NodeJS
+participant Redis
+participant FHIR
+
+participant RevocationService
+
+
+
+
+==User Registration Flow==
+User -> Browser : Registration request 
+Browser -> Keycloak : Registration request from sign in page
+Keycloak -> Browser : Redirect to registration page
+Browser -> Keycloak : Submit registration details
+Keycloak -> Keycloak : Create user account
+Keycloak -> Browser : Registration successful, redirect to main page
+Browser -> User : Display form to complete profile data
+== Complete Profile Data ==
+User -> Browser : Fill in profile data form
+Browser -> nginx : Submit profile data
+nginx -> NodeJS : Forward profile data
+NodeJS -> FHIR : Create user profile resource
+FHIR -> NodeJS : Acknowledge profile creation
+NodeJS -> nginx : Acknowledge profile data saved
+nginx -> Browser : Redirect to main page
+Browser -> User : Display main page
+
+
+== User Login Flow ==
+User -> Browser : Login request
+Browser -> nginx : Authentication request from frontend app
+
+' nginx -> Keycloak : Redirect 
+' Keycloak -> Browser : Authorization code (Authz code Flow)
+' Browser -> nginx : GET /callback with Authz code
+' nginx -> NodeJS : Authentication request with Authz code
+' NodeJS -> Keycloak : exchange code for tokens
+' Keycloak -> NodeJS : Access token , Refresh token , ID token
+' NodeJS -> NodeJS : validate tokens
+' NodeJS -> nginx : valid session
+
+nginx -> oauth2Proxy : Redirect to /oauth2/start
+oauth2Proxy -> Keycloak : Request Authorization code
+Keycloak -> Browser : Authorization code (Authz code Flow)
+Browser -> nginx : GET /oauth2/callback with Authz code
+nginx -> oauth2Proxy : callback with Authz code
+oauth2Proxy -> Keycloak : exchange code for tokens
+oauth2Proxy -> oauth2Proxy : store session cookie
+oauth2Proxy -> nginx : return authorization headers , set session cookie
+' nginx -> NodeJs : proxy request with authorization headers
+
+
+
+' NodeJS -> FHIR : forward Authorization
+' FHIR -> NodeJS : resource
+nginx -> Browser : redirect to main page
+Browser -> User : display main page
+
+== User Action Requiring Data (API Call) ==
+
+User -> Browser : Action that needs Data
+alt Session cookie present
+Browser -> nginx : API call with session cookie
+nginx -> oauth2Proxy : validate session cookie
+alt session cookie expired
+oauth2Proxy -> Keycloak : use refresh token to get new tokens
+Keycloak -> oauth2Proxy : new Access token , new Refresh token , new ID token
+oauth2Proxy -> oauth2Proxy : update session cookie
+end
+oauth2Proxy -> nginx : return access token
+nginx -> NodeJS : forward request with access token
+    alt resource available in cache
+        NodeJS -> Redis : get resource from cache
+        Redis -> NodeJS : resource
+    else resource not in cache
+        NodeJS -> FHIR : request resource with Access token
+        FHIR -> NodeJS : resource
+        NodeJS -> Redis : store resource in cache
+        Redis -> NodeJS : ack
+    end
+NodeJS -> nginx : response containing data
+nginx -> Browser : response
+Browser -> User : display data
+
+else No session cookie
+nginx -> Browser : 401 Unauthorized
+Browser -> User : prompt to login again (User Login Flow)
+end
+
+== Logout Flow (Per-session) ==
+User -> Browser : Click "Sign out"
+Browser -> nginx : POST /auth/logout 
+nginx -> NodeJS : /auth/logout handler 
+NodeJS -> NodeJS : POST oauth2/sign_out { sessionId }
+oauth2 -> oauth2 : remove session
+oauth2 -> Keycloak : revoke tokens
+Keycloak-> Browser : display logout page
+Browser -> User : display confirmation
+User -> Browser : Confirm logout
+Browser -> Browser : redirect to login page
+
+
+== Logout Flow (Global) ==
+User -> Browser : Click "Sign out of all devices"
+Browser -> nginx : POST /auth/logout-global
+nginx -> NodeJS : /auth/logout -> call RevocationService (global)
+NodeJS -> RevocationService : POST /revoke-user { userId}
+RevocationService -> Keycloak : POST /admin/realms/{realm}/users/{id}/logout
+RevocationService -> Redis : DEL keys matching user sessions (pattern)
+RevocationService -> NodeJS : 200 OK
+NodeJS -> Browser : redirect to '/'
+Browser -> oauth2Proxy : (old cookies invalid) /oauth2/auth -> requires login
+@enduml
+
+' alt access token expired
+'     nginx -> NodeJS : use refresh token to get new tokens
+'     NodeJS -> Keycloak : exchange refresh token for new tokens
+'     Keycloak -> NodeJS : new Access token , new Refresh token , new ID token
+'     NodeJS -> NodeJS : validate new tokens
+'      nginx -> NodeJS : proxy request , forward sanitized authorization
+'     NodeJS -> NodeJS : enforce resource authorization checks
+'     alt resource available in cache
+'         NodeJS -> Redis : get resource from cache
+'         Redis -> NodeJS : resource
+'     else resource not in cache
+'         NodeJS -> FHIR : request resource with Access token
+'         FHIR -> NodeJS : resource
+'         NodeJS -> Redis : store resource in cache
+'         Redis -> NodeJS : ack
+'     end
+' else access token valid
+'     nginx -> NodeJS : proxy request , forward sanitized authorization
+'     NodeJS -> NodeJS : enforce resource authorization checks
+'     alt resource available in cache
+'         NodeJS -> Redis : get resource from cache
+'         Redis -> NodeJS : resource
+'     else resource not in cache
+'         NodeJS -> FHIR : request resource with Access token
+'         FHIR -> NodeJS : resource
+'         NodeJS -> Redis : store resource in cache
+'         Redis -> NodeJS : ack
+'     end
+' else access token not valid
+'     nginx -> Browser : 401 Unauthorized
+'     Browser -> User : display error
+
+       
+' end
+
+
+
+
+
