@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  # Redis service
+  redis:
+    image: redis:7-alpine
+    container_name: cfi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cfi-network
+
+  # Node.js application
+  nodejs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cfi-nodejs
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+      - CORS_ORIGIN=http://localhost:4200
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - cfi-network
+    command: npm run dev
+
+volumes:
+  redis-data:
+
+networks:
+  cfi-network:
+    driver: bridge

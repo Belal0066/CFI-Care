@@ -55,6 +55,31 @@ async function ensureDbConnection() {
   }
 }
 
+// Try to reuse an existing EpisodeOfCare for this patient so all nodes share one EOC
+async function getExistingEocForPatient(patientId) {
+  await ensureDbConnection();
+  const res = await client.query(
+    "SELECT encounter_fhir_id FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE) AND category IN ('Consultation','FollowUp') ORDER BY created_at DESC LIMIT 5",
+    [patientId],
+  );
+
+  for (const row of res.rows) {
+    try {
+      const enc = await encounterService.getEncounterById(
+        row.encounter_fhir_id,
+      );
+      const ref = enc?.episodeOfCare?.[0]?.reference;
+      if (ref) return ref.replace("EpisodeOfCare/", "");
+    } catch (err) {
+      console.log(
+        "Could not fetch encounter for existing EOC check:",
+        err.message,
+      );
+    }
+  }
+  return null;
+}
+
 // ==========================================
 // VALIDATION & ERROR HANDLING
 // ==========================================
@@ -67,6 +92,7 @@ const ALLOWED_CATEGORIES = new Set([
   "AISuggestion",
   "FollowUp",
   "Allergy",
+  "Historical",
 ]);
 
 const ALLOWED_PRIORITIES = new Set(["Low", "Medium", "High"]);
@@ -112,6 +138,7 @@ const CATEGORY_RESOURCE_TYPE = {
   AISuggestion: "Observation",
   FollowUp: "Appointment",
   Allergy: "AllergyIntolerance",
+  Historical: "Encounter", // treated as contextual encounter entry
 };
 
 const CATEGORY_TYPE_CODING = {
@@ -125,6 +152,7 @@ const CATEGORY_TYPE_CODING = {
   },
   FollowUp: { code: "390906007", display: "Follow-up encounter" },
   Allergy: { code: "416098002", display: "Allergy screening" },
+  Historical: { code: "11429006", display: "Consultation" },
 };
 
 const CATEGORY_SERVICE_TYPE = {
@@ -162,6 +190,11 @@ const CATEGORY_SERVICE_TYPE = {
     system: "http://snomed.info/sct",
     code: "408478003",
     display: "Allergy service",
+  },
+  Historical: {
+    system: "http://snomed.info/sct",
+    code: "394802001",
+    display: "General medicine",
   },
 };
 
@@ -247,6 +280,25 @@ function normalizeDate(dateValue) {
   return new Date(dateValue).toISOString();
 }
 
+// Safely format a value to YYYY-MM-DD without timezone drift
+function formatDateOnly(value) {
+  if (!value) return new Date().toISOString().split("T")[0];
+  if (typeof value === "string") {
+    return value.includes("T") ? value.split("T")[0] : value;
+  }
+
+  // For Date objects (or values coercible to Date) preserve the local calendar day
+  const asDate = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(asDate.getTime())) {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  const y = asDate.getFullYear();
+  const m = asDate.getMonth();
+  const d = asDate.getDate();
+  return new Date(Date.UTC(y, m, d)).toISOString().split("T")[0];
+}
+
 function mapNormalityToStatus(normality) {
   switch (normality) {
     case "Pending":
@@ -301,6 +353,16 @@ function mapPriorityToEncounterClass(priority) {
   return { code: "AMB", display: "ambulatory" };
 }
 
+// Escape text for inclusion inside XHTML narrative divs
+function escapeForXhtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 async function upsertFHIRResource(resource) {
   if (!resource?.resourceType || !resource?.id) {
     throw new Error("FHIR resource must include resourceType and id");
@@ -347,6 +409,8 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
   );
   const title = (node.title || node.text_1 || "Untitled").trim();
   const details = node.details || "";
+  const safeTitle = escapeForXhtml(title);
+  const safeDetails = escapeForXhtml(details);
   const priorityObj = mapPriorityToActPriority(priority);
   const encounterClass = mapPriorityToEncounterClass(priority);
   const nodeId = node.id || `enc-${randomUUID()}`; // graph id aligns to Encounter id
@@ -399,6 +463,9 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       start: eventDate,
       end: eventDate,
     },
+    ...(eocId
+      ? { episodeOfCare: [{ reference: `EpisodeOfCare/${eocId}` }] }
+      : {}),
     reason: [
       {
         value: [
@@ -419,7 +486,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
     ],
     text: {
       status: "generated",
-      div: `<div xmlns="http://www.w3.org/1999/xhtml">Encounter: ${title}</div>`,
+      div: `<div xmlns="http://www.w3.org/1999/xhtml">Encounter: ${safeTitle}</div>`,
     },
   });
 
@@ -462,7 +529,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       recordedDate: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Condition: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Condition: ${safeTitle}</div>`,
       },
       ...(details
         ? {
@@ -524,7 +591,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       effectiveDateTime: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Observation: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Observation: ${safeTitle}</div>`,
       },
       ...(details ? { valueString: details } : {}),
       ...(interpretation
@@ -575,7 +642,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       result: [{ reference: `Observation/${observationId}` }],
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Report: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Report: ${safeTitle}</div>`,
       },
       ...(details ? { conclusion: details } : {}),
     };
@@ -614,7 +681,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       description: title,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">ImagingStudy: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">ImagingStudy: ${safeTitle}</div>`,
       },
     };
 
@@ -648,7 +715,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       study: [{ reference: `ImagingStudy/${imagingId}` }],
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Radiology Report: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Radiology Report: ${safeTitle}</div>`,
       },
       ...(details ? { conclusion: details } : {}),
     };
@@ -680,7 +747,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       },
       text: {
         status: "generated",
-        div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">MedicationRequest: ${title}</div>`,
+        div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">MedicationRequest: ${safeTitle}</div>`,
       },
       ...(details ? { note: [{ text: details }] } : {}),
     };
@@ -729,7 +796,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       effectiveDateTime: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">AI Suggestion: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">AI Suggestion: ${safeTitle}</div>`,
       },
       ...(details ? { valueString: details } : {}),
       ...(interpretation
@@ -796,7 +863,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
         ],
         text: {
           status: "generated",
-          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${title}</div>`,
+          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${safeTafeTitle}</div>`,
         },
       };
       const wrapperEncounter = buildEncounter(
@@ -850,7 +917,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       recordedDate: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Allergy: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Allergy: ${safeTitle}</div>`,
       },
       ...(details ? { note: [{ text: details }] } : {}),
     };
@@ -1083,9 +1150,7 @@ async function getGraphForPatient(patientId, options = {}) {
       category: row.category || "Consultation",
       priority: row.priority || "Low",
       normality: row.normality || "Normal",
-      dateIssued: row.event_date
-        ? new Date(row.event_date).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
+      dateIssued: formatDateOnly(row.event_date),
       details: row.details || "",
       isDiagnosis: row.is_diagnosis || false,
       isManualBranch: row.is_manual_branch || false,
@@ -1220,18 +1285,22 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   // Auto-create EpisodeOfCare if not provided or is 'auto'/'eoc-default'
   let finalEocId = eocId;
   if (!eocId || eocId === "auto" || eocId === "eoc-default") {
-    // Create a new EpisodeOfCare for this patient
-    finalEocId = `eoc-${randomUUID()}`;
-    const eocData = {
-      id: finalEocId,
-      status: "active",
-      patient: { reference: `Patient/${patientId}` },
-    };
-    try {
-      await eocService.createEpisodeOfCareWithSpecificId(eocData);
-      console.log(`Created new EpisodeOfCare: ${finalEocId}`);
-    } catch (err) {
-      throw new Error(`Failed to create EpisodeOfCare: ${err.message}`);
+    finalEocId = await getExistingEocForPatient(patientId);
+
+    if (!finalEocId) {
+      // Create a new EpisodeOfCare for this patient only if none exists
+      finalEocId = `eoc-${randomUUID()}`;
+      const eocData = {
+        id: finalEocId,
+        status: "active",
+        patient: { reference: `Patient/${patientId}` },
+      };
+      try {
+        await eocService.createEpisodeOfCareWithSpecificId(eocData);
+        console.log(`Created new EpisodeOfCare: ${finalEocId}`);
+      } catch (err) {
+        throw new Error(`Failed to create EpisodeOfCare: ${err.message}`);
+      }
     }
   }
 
