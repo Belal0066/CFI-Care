@@ -17,6 +17,8 @@ const conditionRoutes = require("./condition/conditionRoutes");
 const binaryRoutes = require("./binary/binaryRoutes");
 const encounterRoutes = require("./encounter/encounterRoutes");
 const historyGraphRoutes = require("./historyGraph/historyGraphRoutes");
+const medicationRequestRoutes = require("./medicationRequest/medicationRequestRoutes");
+const procedureRoutes = require("./procedure/procedureRoutes");
 
 const authRoutes = require("./auth/authRoutes")
 const session = require("express-session");
@@ -136,12 +138,14 @@ app.use("/auth", authRoutes);
 
 
 
+app.use("/api/medicationRequests", medicationRequestRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/practitioners", practitonerRoutes);
 app.use("/api/episodeOfCare", eocRoutes);
 app.use("/api/conditions", conditionRoutes);
 app.use("/api/binary", binaryRoutes);
 app.use("/api/encounters", encounterRoutes);
+app.use("/api/procedures", procedureRoutes);
 app.use("/api/historyGraph", historyGraphRoutes);
 
 // //log all requests that reach here
