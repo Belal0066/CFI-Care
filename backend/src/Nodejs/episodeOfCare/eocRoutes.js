@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const EOCController = require("./eocController");
+const { requireSession } = require('../middleware/requireSession');
 
 router.get("/:id/encounters", EOCController.getEncountersByEpisodeOfCareId);
 router.put("/", EOCController.createEpisodeOfCareWithSpecificId);
