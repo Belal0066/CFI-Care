@@ -16,4 +16,8 @@ export class TopBar {
     localStorage.clear();
     this.router.navigate(['/login']);
   }
+
+  navigateToChatGPT(): void {
+    this.router.navigate(['/chatgpt']);
+  }
 }

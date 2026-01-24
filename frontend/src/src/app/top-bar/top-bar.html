@@ -6,19 +6,11 @@
     </div>
 
     <div class="right-section">
-        <!-- Filter Dropdown -->
-        <div class="btn-group">
-            <button type="button" class="btn filter-btn dropdown-toggle" data-bs-toggle="dropdown"
-                aria-expanded="false">
-                <i class="bi bi-funnel-fill flip-icon"></i>
-                <span class="filter-text">Filter</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><button class="dropdown-item" type="button">All Hospitals</button></li>
-                <li><button class="dropdown-item" type="button">Populate with hosp1</button></li>
-                <li><button class="dropdown-item" type="button">Populate with hosp2</button></li>
-            </ul>
-        </div>
+        <!-- AI Button -->
+        <button type="button" class="btn ai-btn" (click)="navigateToChatGPT()">
+            <i class="bi bi-robot"></i>
+            <span class="ai-text">AI</span>
+        </button>
 
         <!-- User Info & Logout -->
         <div class="user-section">
