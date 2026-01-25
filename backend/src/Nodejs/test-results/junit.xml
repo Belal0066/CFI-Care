@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="99" failures="0" errors="0" time="8.79">
+  <testsuite name="Redis Cache Integration" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:36" time="6.98" tests="5">
+    <testcase classname="Redis Cache Integration should set and retrieve value from Redis" name="Redis Cache Integration should set and retrieve value from Redis" time="0.562">
+    </testcase>
+    <testcase classname="Redis Cache Integration should set value with TTL" name="Redis Cache Integration should set value with TTL" time="0.555">
+    </testcase>
+    <testcase classname="Redis Cache Integration should delete value from Redis" name="Redis Cache Integration should delete value from Redis" time="1.485">
+    </testcase>
+    <testcase classname="Redis Cache Integration should handle key expiration" name="Redis Cache Integration should handle key expiration" time="2.215">
+    </testcase>
+    <testcase classname="Redis Cache Integration should support multiple data types" name="Redis Cache Integration should support multiple data types" time="1.288">
+    </testcase>
+  </testsuite>
+  <testsuite name="Patient Workflow E2E Tests" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:43" time="0.407" tests="2">
+    <testcase classname="Patient Workflow E2E Tests Complete Patient Management Flow should create patient, add encounter, and add condition" name="Patient Workflow E2E Tests Complete Patient Management Flow should create patient, add encounter, and add condition" time="0.032">
+    </testcase>
+    <testcase classname="Patient Workflow E2E Tests Data Consistency Across Services should maintain data consistency when updating patient info" name="Patient Workflow E2E Tests Data Consistency Across Services should maintain data consistency when updating patient info" time="0.011">
+    </testcase>
+  </testsuite>
+  <testsuite name="History Graph API Routes" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:43" time="0.223" tests="10">
+    <testcase classname="History Graph API Routes PUT /api/history-graph/initialize should initialize history graph for a patient" name="History Graph API Routes PUT /api/history-graph/initialize should initialize history graph for a patient" time="0.008">
+    </testcase>
+    <testcase classname="History Graph API Routes PUT /api/history-graph/head-node/:patientId/:eocId should create head node for patient" name="History Graph API Routes PUT /api/history-graph/head-node/:patientId/:eocId should create head node for patient" time="0.008">
+    </testcase>
+    <testcase classname="History Graph API Routes GET /api/history-graph/:patientId should retrieve graph data for a patient" name="History Graph API Routes GET /api/history-graph/:patientId should retrieve graph data for a patient" time="0.004">
+    </testcase>
+    <testcase classname="History Graph API Routes GET /api/history-graph/:patientId should return empty graph for patient with no nodes" name="History Graph API Routes GET /api/history-graph/:patientId should return empty graph for patient with no nodes" time="0.003">
+    </testcase>
+    <testcase classname="History Graph API Routes POST /api/history-graph/seed/:patientId should create sample data for testing" name="History Graph API Routes POST /api/history-graph/seed/:patientId should create sample data for testing" time="0.002">
+    </testcase>
+    <testcase classname="History Graph API Routes POST /api/history-graph/addNode should add a new node to the graph" name="History Graph API Routes POST /api/history-graph/addNode should add a new node to the graph" time="0.003">
+    </testcase>
+    <testcase classname="History Graph API Routes POST /api/history-graph/addNode should validate required fields" name="History Graph API Routes POST /api/history-graph/addNode should validate required fields" time="0.003">
+    </testcase>
+    <testcase classname="History Graph API Routes PUT /api/history-graph/updateNode should update an existing node" name="History Graph API Routes PUT /api/history-graph/updateNode should update an existing node" time="0.002">
+    </testcase>
+    <testcase classname="History Graph API Routes DELETE /api/history-graph/:patientId/:nodeId should soft delete a node" name="History Graph API Routes DELETE /api/history-graph/:patientId/:nodeId should soft delete a node" time="0.003">
+    </testcase>
+    <testcase classname="History Graph API Routes DELETE /api/history-graph/:patientId/:nodeId should return 404 for non-existent node" name="History Graph API Routes DELETE /api/history-graph/:patientId/:nodeId should return 404 for non-existent node" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="Binary API Routes" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:43" time="0.169" tests="5">
+    <testcase classname="Binary API Routes GET /api/binary/:id should retrieve PDF binary resource" name="Binary API Routes GET /api/binary/:id should retrieve PDF binary resource" time="0.005">
+    </testcase>
+    <testcase classname="Binary API Routes GET /api/binary/:id should return 404 for non-existent binary" name="Binary API Routes GET /api/binary/:id should return 404 for non-existent binary" time="0.003">
+    </testcase>
+    <testcase classname="Binary API Routes PUT /api/binary should create binary resource from PDF file" name="Binary API Routes PUT /api/binary should create binary resource from PDF file" time="0.004">
+    </testcase>
+    <testcase classname="Binary API Routes PUT /api/binary should validate required fields" name="Binary API Routes PUT /api/binary should validate required fields" time="0.002">
+    </testcase>
+    <testcase classname="Binary API Routes DELETE /api/binary/:id should delete binary resource" name="Binary API Routes DELETE /api/binary/:id should delete binary resource" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="Patient API Routes" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:43" time="0.177" tests="8">
+    <testcase classname="Patient API Routes GET /api/patients should return all patients" name="Patient API Routes GET /api/patients should return all patients" time="0.004">
+    </testcase>
+    <testcase classname="Patient API Routes POST /api/patients should create a new patient with valid data" name="Patient API Routes POST /api/patients should create a new patient with valid data" time="0.008">
+    </testcase>
+    <testcase classname="Patient API Routes POST /api/patients should reject invalid patient data" name="Patient API Routes POST /api/patients should reject invalid patient data" time="0.003">
+    </testcase>
+    <testcase classname="Patient API Routes GET /api/patients/:id should return patient by ID" name="Patient API Routes GET /api/patients/:id should return patient by ID" time="0.003">
+    </testcase>
+    <testcase classname="Patient API Routes GET /api/patients/:id should return 404 for non-existent patient" name="Patient API Routes GET /api/patients/:id should return 404 for non-existent patient" time="0.002">
+    </testcase>
+    <testcase classname="Patient API Routes GET /api/patients/toon-everything/:id should export patient data in TOON format" name="Patient API Routes GET /api/patients/toon-everything/:id should export patient data in TOON format" time="0.003">
+    </testcase>
+    <testcase classname="Patient API Routes GET /api/patients/:id/related-data should return all related patient resources" name="Patient API Routes GET /api/patients/:id/related-data should return all related patient resources" time="0.003">
+    </testcase>
+    <testcase classname="Patient API Routes PUT /api/patients should create patient with specific ID" name="Patient API Routes PUT /api/patients should create patient with specific ID" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="History Graph Service" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.154" tests="30">
+    <testcase classname="History Graph Service getExistingEocForPatient should return existing EOC if found" name="History Graph Service getExistingEocForPatient should return existing EOC if found" time="0.001">
+    </testcase>
+    <testcase classname="History Graph Service getExistingEocForPatient should handle case when no EOC exists" name="History Graph Service getExistingEocForPatient should handle case when no EOC exists" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Graph Data Retrieval should retrieve all nodes for a patient" name="History Graph Service Graph Data Retrieval should retrieve all nodes for a patient" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Graph Data Retrieval should retrieve edges between nodes" name="History Graph Service Graph Data Retrieval should retrieve edges between nodes" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Graph Data Retrieval should handle database connection errors gracefully" name="History Graph Service Graph Data Retrieval should handle database connection errors gracefully" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Creation should create a new timeline node" name="History Graph Service Node Creation should create a new timeline node" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Creation should validate node category" name="History Graph Service Node Creation should validate node category" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Creation should cache TOON nodes after creation" name="History Graph Service Node Creation should cache TOON nodes after creation" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Update should update existing node details" name="History Graph Service Node Update should update existing node details" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Update should invalidate cache on update" name="History Graph Service Node Update should invalidate cache on update" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Deletion should soft delete a node" name="History Graph Service Node Deletion should soft delete a node" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Deletion should remove associated edges when deleting node" name="History Graph Service Node Deletion should remove associated edges when deleting node" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Node Deletion should prevent deletion of head node" name="History Graph Service Node Deletion should prevent deletion of head node" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Edge Management should create edge between two nodes" name="History Graph Service Edge Management should create edge between two nodes" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Edge Management should prevent circular references" name="History Graph Service Edge Management should prevent circular references" time="0.001">
+    </testcase>
+    <testcase classname="History Graph Service Edge Management should validate that both nodes exist before creating edge" name="History Graph Service Edge Management should validate that both nodes exist before creating edge" time="0">
+    </testcase>
+    <testcase classname="History Graph Service FHIR Integration should fetch encounter data from FHIR server" name="History Graph Service FHIR Integration should fetch encounter data from FHIR server" time="0">
+    </testcase>
+    <testcase classname="History Graph Service FHIR Integration should handle FHIR server unavailability" name="History Graph Service FHIR Integration should handle FHIR server unavailability" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Episode of Care Integration should link nodes to active EOC" name="History Graph Service Episode of Care Integration should link nodes to active EOC" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Episode of Care Integration should create new EOC if none exists" name="History Graph Service Episode of Care Integration should create new EOC if none exists" time="0.001">
+    </testcase>
+    <testcase classname="History Graph Service Cache Management should cache graph data after retrieval" name="History Graph Service Cache Management should cache graph data after retrieval" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Cache Management should use cached data when available" name="History Graph Service Cache Management should use cached data when available" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Cache Management should invalidate cache after node modifications" name="History Graph Service Cache Management should invalidate cache after node modifications" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Data Validation should validate allowed node categories" name="History Graph Service Data Validation should validate allowed node categories" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Data Validation should validate required fields for node creation" name="History Graph Service Data Validation should validate required fields for node creation" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Data Validation should sanitize user input to prevent SQL injection" name="History Graph Service Data Validation should sanitize user input to prevent SQL injection" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Error Handling should handle database connection failures" name="History Graph Service Error Handling should handle database connection failures" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Error Handling should handle query timeouts" name="History Graph Service Error Handling should handle query timeouts" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Error Handling should rollback transactions on error" name="History Graph Service Error Handling should rollback transactions on error" time="0">
+    </testcase>
+    <testcase classname="History Graph Service Sample Data Creation should create seed data for testing" name="History Graph Service Sample Data Creation should create seed data for testing" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="Encounter API Routes" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.164" tests="3">
+    <testcase classname="Encounter API Routes GET /api/encounters/:id should return encounter by ID" name="Encounter API Routes GET /api/encounters/:id should return encounter by ID" time="0.024">
+    </testcase>
+    <testcase classname="Encounter API Routes GET /api/encounters/:id/related-data should return encounter with related resources" name="Encounter API Routes GET /api/encounters/:id/related-data should return encounter with related resources" time="0.003">
+    </testcase>
+    <testcase classname="Encounter API Routes PUT /api/encounters should create a new encounter" name="Encounter API Routes PUT /api/encounters should create a new encounter" time="0.005">
+    </testcase>
+  </testsuite>
+  <testsuite name="History Graph E2E Workflow" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.111" tests="4">
+    <testcase classname="History Graph E2E Workflow Complete workflow: Initialize → Create Head → Add Nodes → Retrieve → Update → Delete" name="History Graph E2E Workflow Complete workflow: Initialize → Create Head → Add Nodes → Retrieve → Update → Delete" time="0.025">
+    </testcase>
+    <testcase classname="History Graph E2E Workflow Multi-branch workflow: Create branching timeline" name="History Graph E2E Workflow Multi-branch workflow: Create branching timeline" time="0.009">
+    </testcase>
+    <testcase classname="History Graph E2E Workflow Error handling: Invalid category rejection" name="History Graph E2E Workflow Error handling: Invalid category rejection" time="0.002">
+    </testcase>
+    <testcase classname="History Graph E2E Workflow Cache integration: Subsequent reads use cache" name="History Graph E2E Workflow Cache integration: Subsequent reads use cache" time="0.004">
+    </testcase>
+  </testsuite>
+  <testsuite name="Cache Helper" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.112" tests="9">
+    <testcase classname="Cache Helper getFromCache should return cached data if key exists" name="Cache Helper getFromCache should return cached data if key exists" time="0.001">
+    </testcase>
+    <testcase classname="Cache Helper getFromCache should return null if key does not exist" name="Cache Helper getFromCache should return null if key does not exist" time="0.001">
+    </testcase>
+    <testcase classname="Cache Helper getFromCache should handle cache errors gracefully" name="Cache Helper getFromCache should handle cache errors gracefully" time="0">
+    </testcase>
+    <testcase classname="Cache Helper setInCache should set data in cache with default TTL" name="Cache Helper setInCache should set data in cache with default TTL" time="0">
+    </testcase>
+    <testcase classname="Cache Helper setInCache should set data in cache with custom TTL" name="Cache Helper setInCache should set data in cache with custom TTL" time="0.001">
+    </testcase>
+    <testcase classname="Cache Helper setInCache should handle cache set errors gracefully" name="Cache Helper setInCache should handle cache set errors gracefully" time="0">
+    </testcase>
+    <testcase classname="Cache Helper deleteFromCache should delete key from cache and return count" name="Cache Helper deleteFromCache should delete key from cache and return count" time="0">
+    </testcase>
+    <testcase classname="Cache Helper deleteFromCache should return 0 if key does not exist" name="Cache Helper deleteFromCache should return 0 if key does not exist" time="0">
+    </testcase>
+    <testcase classname="Cache Helper invalidatePatientCache should invalidate patient-related cache patterns" name="Cache Helper invalidatePatientCache should invalidate patient-related cache patterns" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="Patient Service - Integration Tests" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.058" tests="9">
+    <testcase classname="Patient Service - Integration Tests getPatientById should return cached patient data on cache hit" name="Patient Service - Integration Tests getPatientById should return cached patient data on cache hit" time="0.002">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests getPatientById should fetch from FHIR API on cache miss" name="Patient Service - Integration Tests getPatientById should fetch from FHIR API on cache miss" time="0.001">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests getPatientById should throw error when patient not found (404)" name="Patient Service - Integration Tests getPatientById should throw error when patient not found (404)" time="0.016">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests getPatientById should throw error when FHIR server is unavailable" name="Patient Service - Integration Tests getPatientById should throw error when FHIR server is unavailable" time="0.001">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests createPatient should successfully create a patient" name="Patient Service - Integration Tests createPatient should successfully create a patient" time="0.001">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests createPatient should handle FHIR validation errors" name="Patient Service - Integration Tests createPatient should handle FHIR validation errors" time="0.001">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests createPatientWithSpecificId should throw error if patient ID is missing" name="Patient Service - Integration Tests createPatientWithSpecificId should throw error if patient ID is missing" time="0.002">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests createPatientWithSpecificId should create patient with specific ID" name="Patient Service - Integration Tests createPatientWithSpecificId should create patient with specific ID" time="0.001">
+    </testcase>
+    <testcase classname="Patient Service - Integration Tests getPatientAllRelatedData should fetch all related patient resources" name="Patient Service - Integration Tests getPatientAllRelatedData should fetch all related patient resources" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="Patient Validation Schema" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.043" tests="7">
+    <testcase classname="Patient Validation Schema createPatientSchema should validate a correct patient object" name="Patient Validation Schema createPatientSchema should validate a correct patient object" time="0.001">
+    </testcase>
+    <testcase classname="Patient Validation Schema createPatientSchema should reject patient with missing firstName" name="Patient Validation Schema createPatientSchema should reject patient with missing firstName" time="0">
+    </testcase>
+    <testcase classname="Patient Validation Schema createPatientSchema should reject patient with firstName shorter than 2 characters" name="Patient Validation Schema createPatientSchema should reject patient with firstName shorter than 2 characters" time="0.001">
+    </testcase>
+    <testcase classname="Patient Validation Schema createPatientSchema should reject patient with invalid email format" name="Patient Validation Schema createPatientSchema should reject patient with invalid email format" time="0">
+    </testcase>
+    <testcase classname="Patient Validation Schema createPatientSchema should reject patient with invalid ISO date format" name="Patient Validation Schema createPatientSchema should reject patient with invalid ISO date format" time="0">
+    </testcase>
+    <testcase classname="Patient Validation Schema createPatientSchema should reject patient with password shorter than 8 characters" name="Patient Validation Schema createPatientSchema should reject patient with password shorter than 8 characters" time="0.001">
+    </testcase>
+    <testcase classname="Patient Validation Schema createPatientSchema should allow additional fields" name="Patient Validation Schema createPatientSchema should allow additional fields" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Request Validation Middleware" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.041" tests="3">
+    <testcase classname="Request Validation Middleware should pass valid request to next middleware" name="Request Validation Middleware should pass valid request to next middleware" time="0">
+    </testcase>
+    <testcase classname="Request Validation Middleware should return 400 error for invalid request" name="Request Validation Middleware should return 400 error for invalid request" time="0">
+    </testcase>
+    <testcase classname="Request Validation Middleware should return specific error message for validation failure" name="Request Validation Middleware should return specific error message for validation failure" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Condition Service - Integration Tests" errors="0" failures="0" skipped="0" timestamp="2026-01-25T20:04:44" time="0.029" tests="4">
+    <testcase classname="Condition Service - Integration Tests getConditionsByPatientId should fetch all conditions for a patient" name="Condition Service - Integration Tests getConditionsByPatientId should fetch all conditions for a patient" time="0.002">
+    </testcase>
+    <testcase classname="Condition Service - Integration Tests getConditionsByPatientId should return empty bundle if no conditions found" name="Condition Service - Integration Tests getConditionsByPatientId should return empty bundle if no conditions found" time="0.001">
+    </testcase>
+    <testcase classname="Condition Service - Integration Tests createConditionWithSpecificId should create a new condition" name="Condition Service - Integration Tests createConditionWithSpecificId should create a new condition" time="0.001">
+    </testcase>
+    <testcase classname="Condition Service - Integration Tests updateCondition should update an existing condition" name="Condition Service - Integration Tests updateCondition should update an existing condition" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>
