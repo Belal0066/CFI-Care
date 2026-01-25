@@ -46,6 +46,8 @@ import {
   fhirPatientToDetailsDTO,
   extractConditionDisplay,
   extractEncounterInfo,
+  extractMedicationDisplay,
+  extractProcedureDisplay,
 } from '../models/patient.model';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
@@ -65,7 +67,7 @@ export class UserInfo implements OnInit {
   constructor(
     private selectedPatientService: SelectedPatientService,
     private patientApi: PatientApiService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit() {
@@ -82,29 +84,31 @@ export class UserInfo implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Fetch patient, conditions, and encounters in parallel
+    // Fetch patient, conditions, encounters, medications, and procedures in parallel
     forkJoin({
       patient: this.patientApi.getPatientById(id),
       conditions: this.patientApi.getPatientConditions(id),
       encounters: this.patientApi.getPatientEncounters(id),
+      medications: this.patientApi.getPatientMedicationRequests(id),
+      procedures: this.patientApi.getPatientProcedures(id),
     }).subscribe({
-      next: ({ patient, conditions, encounters }) => {
+      next: ({ patient, conditions, encounters, medications, procedures }) => {
         // Transform FHIR Patient to PatientDetailsDTO
         this.patientDetails = fhirPatientToDetailsDTO(patient);
 
         // Extract conditions from FHIR Bundle
         if (conditions.entry && conditions.entry.length > 0) {
           const conditionsList = conditions.entry.map((e: any) =>
-            extractConditionDisplay(e.resource)
+            extractConditionDisplay(e.resource),
           );
 
           // Find primary diagnosis (first condition marked as encounter-diagnosis or first condition)
           const diagnosisCondition = conditions.entry.find((e: any) =>
             e.resource.category?.some((cat: any) =>
               cat.coding?.some(
-                (code: any) => code.code === 'encounter-diagnosis'
-              )
-            )
+                (code: any) => code.code === 'encounter-diagnosis',
+              ),
+            ),
           );
           this.patientDetails.primaryDiagnosis = diagnosisCondition
             ? extractConditionDisplay(diagnosisCondition.resource)
@@ -114,22 +118,30 @@ export class UserInfo implements OnInit {
           this.patientDetails.activeConditions = conditions.entry
             .filter((e: any) =>
               e.resource.clinicalStatus?.coding?.some(
-                (c: any) => c.code === 'active'
-              )
+                (c: any) => c.code === 'active',
+              ),
             )
             .map((e: any) => extractConditionDisplay(e.resource));
         }
 
-        // Extract encounter info (procedures, diagnoses from encounters)
-        if (encounters.entry && encounters.entry.length > 0) {
-          const encounterInfo = encounters.entry.map((e: any) =>
-            extractEncounterInfo(e.resource)
-          );
+        // Extract medication requests from FHIR Bundle
+        if (medications.entry && medications.entry.length > 0) {
+          // Filter for active medications only
+          this.patientDetails.currentMedications = medications.entry
+            .filter(
+              (e: any) =>
+                e.resource.status === 'active' ||
+                e.resource.status === 'completed',
+            )
+            .map((e: any) => extractMedicationDisplay(e.resource));
+        }
 
-          // Recent procedures from encounters with type/reason
-          this.patientDetails.recentProcedures = encounterInfo
-            .filter((info: any) => info.reason)
-            .map((info: any) => `${info.reason} (${info.date})`);
+        // Extract procedures from FHIR Bundle
+        if (procedures.entry && procedures.entry.length > 0) {
+          // Filter for completed procedures and map to display strings
+          this.patientDetails.recentProcedures = procedures.entry
+            .filter((e: any) => e.resource.status === 'completed')
+            .map((e: any) => extractProcedureDisplay(e.resource));
         }
 
         this.loading = false;

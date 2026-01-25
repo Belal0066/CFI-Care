@@ -1,6 +1,12 @@
 const axios = require("axios");
 const fs = require("fs");
 const pdf2base64 = require("pdf-to-base64");
+const {
+  getFromCache,
+  setInCache,
+  deleteFromCache,
+  CACHE_EXPIRATION,
+} = require("../middleware/cacheHelper");
 
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
@@ -9,22 +15,11 @@ const fhirApi = axios.create({
   },
 });
 
-// async function convertPdfToBase64(file) {
-//   try {
-//     // Note: This requires the file to exist on the SERVER'S file system
-//     const pdfData = await pdf2base64(file);
-//     return pdfData.toString("base64");
-//   } catch (error) {
-//     console.error("File Read Error:", error.message);
-//     throw new Error("Could not read the PDF file at path: " + file);
-//   }
-// }
-
 // Create PDF Binary Resource and change to base64
 async function createPDFBinaryResource(
   file,
   id,
-  contentType = "application/pdf"
+  contentType = "application/pdf",
 ) {
   const base64Data = await pdf2base64(file);
 
@@ -37,6 +32,10 @@ async function createPDFBinaryResource(
 
   try {
     const response = await fhirApi.put(`/Binary/${id}`, binaryResource);
+
+    // Invalidate cache after successful creation
+    await deleteFromCache(`binary:${id}`);
+
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -56,9 +55,26 @@ async function createPDFBinaryResource(
 
 // Get PDF Binary Resource by ID
 async function getPDFBinaryResource(id) {
+  const cacheKey = `binary:${id}`;
+
   try {
+    // Check cache first
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) {
+      // Write cached data to file
+      fs.writeFileSync(`./${id}.pdf`, cachedData.data, {
+        encoding: "base64",
+      });
+      return cachedData;
+    }
+
     const response = await fhirApi.get(`/Binary/${id}`);
     const base64Data = response.data;
+
+    // Store in cache
+    await setInCache(cacheKey, base64Data, CACHE_EXPIRATION.BINARY);
+
+    // Write to file
     fs.writeFileSync(`./${id}.pdf`, base64Data.data, {
       encoding: "base64",
     });
@@ -69,8 +85,82 @@ async function getPDFBinaryResource(id) {
   }
 }
 
+// Update Binary resource
+async function updateBinary(binaryId, file, contentType = "application/pdf") {
+  if (!binaryId) {
+    throw new Error("Binary ID is required");
+  }
+
+  try {
+    // Get existing binary
+    let existingBinary;
+    try {
+      existingBinary = await getPDFBinaryResource(binaryId);
+    } catch (error) {
+      throw new Error(`Binary ${binaryId} not found`);
+    }
+
+    // Convert new file to base64
+    const base64Data = await pdf2base64(file);
+
+    const updateData = {
+      resourceType: "Binary",
+      id: binaryId,
+      contentType: contentType,
+      data: base64Data,
+    };
+
+    const response = await fhirApi.put(`/Binary/${binaryId}`, updateData);
+
+    // Invalidate cache after successful update
+    await deleteFromCache(`binary:${binaryId}`);
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error("FHIR Server Error Status:", error.response.status);
+      const issueText = error.response.data.issue
+        ? error.response.data.issue
+            .map((i) => `${i.diagnostics || i.code}`)
+            .join(", ")
+        : error.response.statusText;
+      throw new Error(`FHIR Validation Failed: ${issueText}`);
+    } else {
+      console.error("Network/Server Error:", error.message);
+      throw new Error("Could not connect to the FHIR server.");
+    }
+  }
+}
+
+// Delete Binary resource
+async function deleteBinary(binaryId) {
+  if (!binaryId) {
+    throw new Error("Binary ID is required");
+  }
+
+  try {
+    // Delete from FHIR server
+    await fhirApi.delete(`/Binary/${binaryId}`);
+
+    // Invalidate cache after successful deletion
+    await deleteFromCache(`binary:${binaryId}`);
+
+    return { success: true, id: binaryId };
+  } catch (error) {
+    if (error.response?.status === 404) {
+      console.log(`Binary ${binaryId} not found in FHIR`);
+      await deleteFromCache(`binary:${binaryId}`);
+      return { success: true, id: binaryId, alreadyDeleted: true };
+    }
+    console.error("FHIR Server Error:", error.message);
+    throw new Error("Could not delete binary.");
+  }
+}
+
 module.exports = {
   // convertPdfToBase64,
   createPDFBinaryResource,
   getPDFBinaryResource,
+  updateBinary,
+  deleteBinary,
 };
