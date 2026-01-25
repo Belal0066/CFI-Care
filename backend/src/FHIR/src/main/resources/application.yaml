@@ -415,7 +415,7 @@ hapi:
     # This keeps PostgreSQL fast and lean.
     binary_storage_enabled: true
     binary_storage_mode: FILESYSTEM
-    binary_storage_filesystem_base_directory: /target/binstore
+    binary_storage_filesystem_base_directory: /data/binstore
 
     # Files smaller than 10MB (like text notes) stay in the DB for speed.
     # Files larger than 10MB go to the /binstore folder.
