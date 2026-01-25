@@ -1,0 +1,32 @@
+@startuml Tokens Overview
+actor User
+participant Browser
+participant MobileApp
+participant nginx
+participant oauth2Proxy
+participant RevocationSvc
+participant Keycloak
+participant Backend
+
+User -> Browser : Login
+Browser -> nginx : / (auth_request -> oauth2Proxy)
+User -> MobileApp : Login
+MobileApp -> Keycloak : PKCE auth / store tokens
+
+note right of oauth2Proxy
+  oauth2-proxy stores session + tokens in Redis
+end note
+
+Browser -> nginx : API request (session cookie)
+nginx -> oauth2Proxy : auth_request -> returns access token
+nginx -> Backend : forward with X-Access-Token
+
+MobileApp -> nginx : API request (Authorization: Bearer)
+nginx -> Backend : forward with Authorization header
+
+== Logout branching ==
+Browser -> nginx : POST /auth/logout (per-session)
+nginx -> RevocationSvc : delete that session
+MobileApp -> nginx : POST /auth/logout?global
+nginx -> RevocationSvc : delete all sessions 
+@enduml
