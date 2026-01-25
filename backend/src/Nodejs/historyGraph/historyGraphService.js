@@ -11,6 +11,17 @@ const {
   invalidatePatientCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
+const {
+  getToonNode,
+  setToonNode,
+  getToonNodes,
+  setToonNodes,
+  getToonNodeMetadata,
+  setToonNodeMetadata,
+  invalidateToonCacheForPatient,
+  invalidateToonCacheForNode,
+  TOON_CACHE_EXPIRATION,
+} = require("../middleware/toonNodesCacheHelper");
 
 // DB Setup
 const { Client } = require("pg");
@@ -1033,13 +1044,11 @@ async function getGraphForPatient(patientId, options = {}) {
     sortOrder = "DESC",
   } = options;
 
-  const cacheKey = `historyGraph:patient:${patientId}:${JSON.stringify(options)}`;
-
   try {
-    // Check cache first
-    const cachedData = await getFromCache(cacheKey);
-    if (cachedData) {
-      return cachedData;
+    // Check toon cache first (dedicated cache for formatted nodes)
+    const cachedToonData = await getToonNodes(patientId, options);
+    if (cachedToonData) {
+      return cachedToonData;
     }
 
     await ensureDbConnection();
@@ -1168,8 +1177,18 @@ async function getGraphForPatient(patientId, options = {}) {
         : null,
     };
 
-    // Store in cache
-    await setInCache(cacheKey, result, CACHE_EXPIRATION.PATIENT);
+    // Store in both toon cache (for formatted nodes) and general cache
+    await setToonNodes(
+      patientId,
+      result,
+      options,
+      TOON_CACHE_EXPIRATION.NODE_COLLECTION,
+    );
+    await setInCache(
+      `historyGraph:patient:${patientId}:${JSON.stringify(options)}`,
+      result,
+      CACHE_EXPIRATION.PATIENT,
+    );
 
     return result;
   } catch (error) {
@@ -1449,8 +1468,9 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     }
   }
 
-  // Invalidate and proactively refresh cache
+  // Invalidate and proactively refresh cache (both general and toon cache)
   await invalidatePatientCache(patientId);
+  await invalidateToonCacheForPatient(patientId);
   // Fetch fresh data to warm up the cache
   await getGraphForPatient(patientId).catch((err) =>
     console.warn("Cache refresh failed after addNode:", err.message),
@@ -1683,6 +1703,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
 
   // Invalidate cache and trigger background refresh
   await invalidatePatientCache(patientId);
+  await invalidateToonCacheForPatient(patientId);
   // Proactively refresh cache in background (non-blocking)
   setImmediate(() => {
     getGraphForPatient(patientId).catch((err) =>
@@ -1905,6 +1926,7 @@ async function deleteNode(patientId, nodeId) {
 
   // Invalidate cache and trigger background refresh
   await invalidatePatientCache(patientId);
+  await invalidateToonCacheForPatient(patientId);
   // Proactively refresh cache in background (non-blocking)
   setImmediate(() => {
     getGraphForPatient(patientId).catch((err) =>
@@ -1951,6 +1973,7 @@ async function restoreNode(patientId, nodeId) {
 
     // Invalidate cache and trigger background refresh
     await invalidatePatientCache(patientId);
+    await invalidateToonCacheForPatient(patientId);
     // Proactively refresh cache in background (non-blocking)
     setImmediate(() => {
       getGraphForPatient(patientId).catch((err) =>
