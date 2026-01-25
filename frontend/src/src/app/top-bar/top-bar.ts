@@ -33,4 +33,8 @@ export class TopBar {
       }
     });
   }
+
+  navigateToChatGPT(): void {
+    this.router.navigate(['/chatgpt']);
+  }
 }
