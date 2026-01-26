@@ -3,6 +3,10 @@
 % \usepackage{url}
 % \usepackage{hyperref}
 
+% \usepackage{tikz}
+% \usetikzlibrary{positioning, shapes.geometric, arrows.meta}
+% \usepackage{float} % Required for the [H] placement
+
 % \title{Thesis_1}
 % \author{Youssef Tamer}
 % \date{January 2026}
@@ -38,7 +42,7 @@ The main design goals of the frontend include:
 
 Component-based frontend architectures have been shown to improve scalability,
 maintainability, and development efficiency in large-scale systems
-\cite{parnas1972,fowler2003}.
+% \cite{parnas1972,fowler2003}.
 
 \subsection{Technology Stack}
 
@@ -65,6 +69,27 @@ frontend implementation.
 Angular’s declarative templates and reactive change detection model make it
 suitable for highly interactive, state-driven medical interfaces
 \cite{angularDocs}.
+
+\subsection{System Architecture}
+\label{sec:system-architecture}
+
+The Patient Journey Dashboard is implemented as a modular, component-based
+single-page application using Angular. The system follows a layered frontend
+architecture that separates concerns between presentation, state management,
+domain models, and visualization logic.
+
+At a high level, the architecture consists of:
+\begin{itemize}
+    \item A core application shell responsible for routing, authentication, and global
+          layout
+    \item Feature-specific UI modules (dashboard, user management, patient selection)
+    \item A dedicated MedGraph visualization module for patient journey rendering
+    \item Shared domain models and state services
+    \item A graph rendering engine isolated from the Angular component tree
+\end{itemize}
+
+This separation supports scalability, testability, and controlled integration
+of complex visualization logic \cite{bass2012, richards2020}.
 
 \subsection{Styling and UX Philosophy}
 \label{subsec:styling}
@@ -132,7 +157,7 @@ Supported features include standard credential authentication. Research
 indicates that early user impressions significantly influence perceived
 reliability in clinical systems \cite{zhang2010}.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\linewidth]{Frontend/Images/signin.jpeg}
     \caption{Sign In interface of CFI-Care showing a split-view layout with value proposition messaging on the left and a glassmorphism-inspired authentication card on the right.}
@@ -147,7 +172,7 @@ the user’s full name, email address, and password confirmation, enabling a
 low-friction onboarding process. Minimizing onboarding complexity has been
 shown to improve professional software adoption \cite{nielsen1994}.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\linewidth]{Frontend/Images/signup.jpeg}
     \caption{Create Account interface maintaining visual consistency with the Sign In page to ensure low cognitive load and streamlined onboarding.}
@@ -171,7 +196,7 @@ in medical information systems \cite{shneiderman2016}. The layout consists of:
     \item \textbf{Clinical Summary View (Main Panel):} Displays structured patient information using a card-based layout.
 \end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{Frontend/Images/dashboard.jpeg}
     \caption{Patients Dashboard illustrating the master--detail layout with a patient navigator on the left and a structured clinical summary view on the right.}
@@ -289,14 +314,14 @@ structured modal dialogs. Destructive actions such as deletion require explicit
 confirmation to prevent accidental data loss, following safety-oriented
 interface guidelines \cite{iec62366}.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{Frontend/Images/categorical.jpeg}
     \caption{Categorical Patient Journey view representing medical events as a hierarchical graph. High-priority events are highlighted, and structural relationships between nodes are emphasized.}
     \label{fig:categorical_graph}
 \end{figure}
 
-\subsection{Patient Journey Dashboard - Chronological View}
+\subsection{Patient Journey Dashboard -- Chronological View}
 
 \subsubsection{Purpose and Conceptual Model}
 
@@ -353,7 +378,7 @@ views. This interaction is fully stateful and does not require page reloads,
 enabling clinicians to seamlessly transition between structural and temporal
 perspectives during analysis.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{Frontend/Images/chronological.jpeg}
     \caption{Chronological Patient Journey view displaying medical events along a horizontal timeline. Parallel branches represent alternative diagnostic or treatment pathways explored during clinical reasoning.}
@@ -380,6 +405,92 @@ Providing both views allows clinicians to:
 This dual-view approach follows established guidelines for multiple coordinated
 visualizations, which have been shown to improve usability and analytical
 effectiveness in complex systems \cite{baldonado2000}.
+
+\subsection{High-Level Component Architecture}
+\label{subsec:high-level-architecture}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+            box/.style={draw, rounded corners, minimum width=3cm, minimum height=1cm},
+            arrow/.style={->, thick}
+        ]
+
+        \node[box] (user) {Clinician};
+        \node[box, below=1.2cm of user] (ui) {Angular UI Components};
+        \node[box, below left=1.5cm of ui, xshift=-1cm] (services) {State \& API Services};
+        \node[box, below right=1.5cm of ui, xshift=2cm] (medgraph) {MedGraph Module};
+        \node[box, below=1.5cm of medgraph] (graph) {Graph Engine};
+
+        \draw[arrow] (user) -- (ui);
+        \draw[arrow] (ui) -- (services);
+        \draw[arrow] (ui) -- (medgraph);
+        \draw[arrow] (medgraph) -- (graph);
+
+    \end{tikzpicture}
+    \caption{High-level component architecture of the Patient Journey Dashboard}
+\end{figure}
+
+\subsection{Domain Models and State Services}
+\label{subsec:state-management}
+
+Shared domain concepts are defined in the \texttt{models} directory. The
+\texttt{patient.model.ts} file formalizes the patient entity, including
+identifiers, metadata, and associated medical events.
+
+Application-wide state is managed using injectable Angular services:
+
+\begin{itemize}
+    \item \texttt{PatientApiService}: Responsible for patient dashboard data retrieval and persistence
+    \item \texttt{SelectedPatientService}: Maintains the currently active patient context
+\end{itemize}
+
+By centralizing patient selection state, multiple components can reactively
+synchronize without direct dependencies, reducing tight coupling and improving
+maintainability
+% \cite{ngrx2018}.
+
+\subsection{Sequence Diagram}
+
+% Placeholder for the detailed sequence diagram (MedGraph)
+\begin{figure}[H]
+    \centering
+    % You can replace this with your Mermaid diagram using \begin{verbatim} ... \end{verbatim}
+    \fbox{\parbox{0.9\textwidth}{
+            Detailed sequence diagram of MedGraph interactions
+        }}
+    \caption{Sequence diagram illustrating MedGraph node operations, mode switching, and branching.}
+    \label{fig:medgraph-seq}
+\end{figure}
+
+\subsection{Component Diagram}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.9\textwidth}{
+            Component diagram showing Angular modules, services, MedGraph, and backend integration
+        }}
+    \caption{Component diagram illustrating the architecture of the dashboard, MedGraph, MedGemma AI modules, application services, and backend integration.}
+    \label{fig:component-diag}
+\end{figure}
+
+\subsection{Architectural Rationale}
+\label{subsec:architecture-rationale}
+
+The architectural decisions underlying the Patient Journey Dashboard were
+driven by three primary constraints:
+
+\begin{enumerate}
+    \item \textbf{Visualization Complexity}: Medical journey graphs require custom layouts not supported by standard UI frameworks.
+    \item \textbf{Performance}: SVG-heavy rendering must be isolated from Angular’s change detection loop.
+    \item \textbf{Maintainability}: Clinical logic, UI logic, and rendering logic must evolve independently.
+\end{enumerate}
+
+By separating MedGraph into a dedicated visualization boundary, the system
+adheres to the principle of separation of concerns while allowing future
+refactoring or replacement of the rendering engine without destabilizing the
+broader application
+% \cite{parnas1972}.
 
 \subsection{Summary}
 
