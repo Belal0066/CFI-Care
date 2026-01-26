@@ -11,6 +11,11 @@
 \contentsline {figure}{\numberline {3.6}{\ignorespaces Example Patient History Graph showing a diabetes patient with concurrent hypertension, demonstrating temporal branching and multiple relationship types.}}{22}{figure.caption.27}%
 \contentsline {figure}{\numberline {3.7}{\ignorespaces Two-Tier Caching Architecture showing distinct strategies for standard FHIR resources (Tier 1) and complex graph structures (Tier 2).}}{29}{figure.caption.37}%
 \addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (nginx), Backend-for-Frontend (Node.js), Identity \& Storage (Keycloak, Redis, Postgres), and Resource Server (HAPI FHIR) with their security-focused interactions.}}{12}{figure.caption.8}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Browser Token Authentication Flow: User registration, login, and API request handling with session cookies.}}{14}{figure.caption.11}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Planned Browser Flow (Future): Registration with email verification and BFF-mediated credential login, session cookie issuance, and server-side token refresh.}}{15}{figure.caption.13}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Mobile Token Authentication Flow (Future): BFF-mediated Authorization Code with PKCE, secure keystore token storage, and client-driven token refresh.}}{16}{figure.caption.15}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Token Flow Overview: Multi-client architecture (browser vs. mobile), session/token management, per-session and global logout patterns.}}{19}{figure.caption.19}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {6.1}{\ignorespaces Graph view of the two end-to-end suites; edges align to assertions within each test.}}{38}{figure.caption.49}%

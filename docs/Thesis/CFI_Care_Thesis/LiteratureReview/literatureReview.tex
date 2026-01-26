@@ -1,1 +1,72 @@
 \chapter{Literature Review}\label{chap:LiteratureReview}
+
+\section{Authentication and Authorization Standards}
+
+\subsection{OAuth 2.0 and OIDC}
+OAuth 2.0 \cite{rfc6749} defines authorization grant flows: Authorization Code (web), Resource Owner Password (custom UI), Client Credentials (service-to-service). OpenID Connect (OIDC) \cite{oidc} adds an identity layer with ID tokens and SSO. 
+CFI-Care uses OAuth 2.0 Resource Owner Password flow with OIDC for token-based API access.
+
+\subsection{JSON Web Tokens (JWT)}
+JWTs \cite{rfc7519} are signed tokens encoding claims (iss, aud, exp, roles, scopes).
+Stateless API authentication validates signatures without database queries. 
+Token revocation requires server-side tracking or short expiration windows.
+
+\subsection{PKCE}
+PKCE \cite{rfc7636} prevents authorization code interception attacks via 
+code verifier/challenge. Recommended for all OAuth 2.0 flows \cite{rfc9700}.
+
+\section{Healthcare Security and Standards}
+
+\subsection{FHIR and SMART on FHIR}
+FHIR \cite{fhirhl7} defines RESTful APIs for healthcare data exchange. 
+SMART on FHIR \cite{smart_fhir} applies OAuth 2.0 to FHIR with scoped access (e.g., \texttt{patient/Observation.read}). 
+The FHIR consent resource \cite{fhir_consent} models patient-controlled access with time-bound and actor-specific rules.
+
+% \subsection{HIPAA and GDPR}
+% HIPAA \cite{hipaa} requires access controls, 
+% encryption (in transit/at rest), and audit logging for Protected Health Information. 
+% GDPR \cite{gdpr} mandates data minimization, consent, and subject access rights.
+
+\section{Token-Based Authentication Patterns}
+
+% \subsection{Backend-for-Frontend (BFF) Pattern}
+% The BFF pattern \cite{draft_bff} stores tokens server-side as HTTP-only, 
+% SameSite session cookies, shielding from XSS. 
+% Mobile clients use platform-specific secure storage and Bearer token headers.
+
+\subsection{Session Management}
+HTTP-only cookies prevent JavaScript access \cite{rfc6265}; 
+SameSite blocks CSRF. 
+token revocation uses redis-backed session tracking or OAuth 2.0 server revocation.
+
+\section{API Security}
+
+\subsection{Rate Limiting}
+Rate limiting mitigates brute-force and enumeration attacks via Redis-backed counters \cite{ratelimit}.
+
+\subsection{Input Validation and XSS}
+Schema validation (Joi) enforces format/complexity rules. 
+OWASP \cite{owasp_xss} recommends output encoding and CSP headers.
+
+\subsection{CSRF}
+CSRF \cite{owasp_csrf} is mitigated with SameSite cookies and CSRF tokens.
+
+\section{Mobile Application Security}
+
+\subsection{Secure Token Storage}
+Android Keystore \cite{android_keystore} provides OS-level encryption and access control, unlike browser localStorage.
+
+
+\section{Audit Logging and Compliance}
+
+\subsection{Security Event Logging}
+OWASP \cite{owasp_logging} specifies what to log and exclude 
+audit logs enable forensics and compliance.
+
+\subsection{Threat Modeling}
+RFC 6819 \cite{rfc6819} outlines OAuth 2.0 threats: token theft, interception, phishing, CSRF, replay.
+
+\section{Infrastructure and Deployment}
+
+\subsection{API Gateway}
+nginx\cite{nginx} terminates TLS, routes requests, enforces rate limits, and sets security headers.
