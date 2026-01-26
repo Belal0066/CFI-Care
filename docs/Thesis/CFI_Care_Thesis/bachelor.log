@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.1.26)  26 JAN 2026 05:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.1.26)  26 JAN 2026 13:15
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -317,7 +317,7 @@ Package hyperref Info: Link coloring ON on input line 74.
 \openout2 = `ASU_TitlePage.aux'.
 
  (./ASU_TitlePage.tex
-<ASU_Logo.jpg, id=308, 475.7775pt x 475.7775pt>
+<ASU_Logo.jpg, id=284, 475.7775pt x 475.7775pt>
 File: ASU_Logo.jpg Graphic file (type jpg)
 <use ASU_Logo.jpg>
 Package pdftex.def Info: ASU_Logo.jpg  used on input line 40.
@@ -344,11 +344,11 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 
 
 
-] [5])
+])
 \tf@toc=\write4
 \openout4 = `bachelor.toc'.
 
- [6]
+ [5]
 \openout2 = `introduction.aux'.
 
  (./introduction.tex
@@ -358,7 +358,7 @@ Chapter 1.
 
 
 ] [2{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-<Images/HL7_Versions.png, id=435, 1027.84pt x 537.00626pt>
+<Images/HL7_Versions.png, id=401, 1027.84pt x 537.00626pt>
 File: Images/HL7_Versions.png Graphic file (type png)
 <use Images/HL7_Versions.png>
 Package pdftex.def Info: Images/HL7_Versions.png  used on input line 91.
@@ -378,12 +378,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 133--133
 []|\OT1/cmr/bx/n/12 Primary
  []
 
-<Images/FHIR-patient-JSON-example-source-2.png, id=458, 853.1875pt x 427.5975pt>
+<Images/FHIR-patient-JSON-example-source-2.png, id=424, 853.1875pt x 427.5975pt>
 File: Images/FHIR-patient-JSON-example-source-2.png Graphic file (type png)
 <use Images/FHIR-patient-JSON-example-source-2.png>
 Package pdftex.def Info: Images/FHIR-patient-JSON-example-source-2.png  used on input line 151.
 (pdftex.def)             Requested size: 317.07614pt x 158.91325pt.
-<Images/aid9705860-v4-728px-9705860-1.png, id=459, 730.73pt x 548.0475pt>
+<Images/aid9705860-v4-728px-9705860-1.png, id=425, 730.73pt x 548.0475pt>
 File: Images/aid9705860-v4-728px-9705860-1.png Graphic file (type png)
 <use Images/aid9705860-v4-728px-9705860-1.png>
 Package pdftex.def Info: Images/aid9705860-v4-728px-9705860-1.png  used on input line 151.
@@ -393,43 +393,17 @@ Package pdftex.def Info: Images/aid9705860-v4-728px-9705860-1.png  used on input
 
  (./LiteratureReview/literatureReview.tex
 Chapter 2.
-
-LaTeX Warning: Citation `oidc' on page 7 undefined on input line 8.
-
 [7
 
 
 
 
-]
-
-LaTeX Warning: Citation `gdpr' on page 8 undefined on input line 28.
-
-[8]
-
-LaTeX Warning: Citation `rfc6265' on page 9 undefined on input line 38.
-
-
-Overfull \hbox (4.52002pt too wide) in paragraph at lines 38--39
-\OT1/cmr/m/n/12 Session man-age-ment [[]] tra-di-tion-ally re-lies on cook-ies and server-side ses-sion state. HTTP-
- []
-
-
-LaTeX Warning: Citation `cors' on page 9 undefined on input line 51.
-
-
-LaTeX Warning: Citation `android_keystore' on page 9 undefined on input line 56.
-
-[9]
-
-LaTeX Warning: Citation `rfc8446' on page 10 undefined on input line 72.
-
-[10]) [11]
+]) [8] [9]
 \openout2 = `ProposedDesignArchitecture/proposedDesignArchitecture.aux'.
 
  (./ProposedDesignArchitecture/proposedDesignArchitecture.tex
 Chapter 3.
-(./Backend/backend.tex (./Backend/fhir.tex)) (./Frontend/frontend.tex) (./Mobile/mobile.tex)) [12
+(./Backend/backend.tex (./Backend/fhir.tex)) (./Frontend/frontend.tex) (./Mobile/mobile.tex)) [10
 
 
 
@@ -439,40 +413,40 @@ Chapter 3.
 
  (./Security/security.tex
 Chapter 4.
-<Security/images/ver-component.png, id=533, 1314.9125pt x 1556.81625pt>
+<Security/images/ver-component.png, id=491, 1314.9125pt x 1556.81625pt>
 File: Security/images/ver-component.png Graphic file (type png)
 <use Security/images/ver-component.png>
 Package pdftex.def Info: Security/images/ver-component.png  used on input line 28.
 (pdftex.def)             Requested size: 452.9679pt x 536.29453pt.
-[13
+[11
 
 
 
 
-] [14 <./Security/images/ver-component.png>]
-<Security/images/browser-tokens-flow.png, id=548, 1721.43124pt x 2681.01625pt>
+] [12 <./Security/images/ver-component.png>]
+<Security/images/browser-tokens-flow.png, id=505, 1721.43124pt x 2681.01625pt>
 File: Security/images/browser-tokens-flow.png Graphic file (type png)
 <use Security/images/browser-tokens-flow.png>
 Package pdftex.def Info: Security/images/browser-tokens-flow.png  used on input line 49.
 (pdftex.def)             Requested size: 407.66833pt x 634.90709pt.
- [15]
+ [13]
 Overfull \vbox (35.274pt too high) has occurred while \output is active []
 
- [16 <./Security/images/browser-tokens-flow.png (PNG copy)>]
-<Security/images/browser-tokens-flow-future.png, id=560, 984.67876pt x 623.32875pt>
+ [14 <./Security/images/browser-tokens-flow.png (PNG copy)>]
+<Security/images/browser-tokens-flow-future.png, id=518, 984.67876pt x 623.32875pt>
 File: Security/images/browser-tokens-flow-future.png Graphic file (type png)
 <use Security/images/browser-tokens-flow-future.png>
 Package pdftex.def Info: Security/images/browser-tokens-flow-future.png  used on input line 61.
 (pdftex.def)             Requested size: 362.37569pt x 229.39157pt.
-<Security/images/Mobile-tokens-flow.png, id=561, 1554.80875pt x 2684.0275pt>
+<Security/images/Mobile-tokens-flow.png, id=519, 1554.80875pt x 2684.0275pt>
 File: Security/images/Mobile-tokens-flow.png Graphic file (type png)
 <use Security/images/Mobile-tokens-flow.png>
 Package pdftex.def Info: Security/images/Mobile-tokens-flow.png  used on input line 76.
 (pdftex.def)             Requested size: 362.37569pt x 625.54529pt.
- [17 <./Security/images/browser-tokens-flow-future.png (PNG copy)>]
+ [15 <./Security/images/browser-tokens-flow-future.png (PNG copy)>]
 Overfull \vbox (25.9122pt too high) has occurred while \output is active []
 
- [18 <./Security/images/Mobile-tokens-flow.png (PNG copy)>]
+ [16 <./Security/images/Mobile-tokens-flow.png (PNG copy)>]
 Overfull \hbox (22.55652pt too wide) in paragraph at lines 95--97
 \OT1/cmr/m/n/12 clock skew tol-er-ance. The Au-tho-riza-tion header is pop-u-lated by \OT1/cmtt/m/n/12 attachForwardedToken
  []
@@ -487,21 +461,21 @@ Overfull \hbox (8.63223pt too wide) in paragraph at lines 97--99
 \OT1/cmr/m/n/12 from the to-ken. Com-pares re-quired SMART on FHIR scopes (e.g., \OT1/cmtt/m/n/12 patient/<id>.rs\OT1/cmr/m/n/12 )
  []
 
-[19]
-<Security/images/token-flow-overview.png, id=582, 1251.67625pt x 2506.36375pt>
+[17]
+<Security/images/token-flow-overview.png, id=538, 1251.67625pt x 2506.36375pt>
 File: Security/images/token-flow-overview.png Graphic file (type png)
 <use Security/images/token-flow-overview.png>
 Package pdftex.def Info: Security/images/token-flow-overview.png  used on input line 127.
 (pdftex.def)             Requested size: 317.07614pt x 634.88835pt.
- [20]
+ [18]
 Overfull \vbox (35.25526pt too high) has occurred while \output is active []
 
- [21 <./Security/images/token-flow-overview.png (PNG copy)>]
+ [19 <./Security/images/token-flow-overview.png (PNG copy)>]
 Overfull \hbox (8.39847pt too wide) in paragraph at lines 161--162
  []\OT1/cmr/bx/n/12 Security Event Log-ging & Au-dit Trail[] \OT1/cmr/m/n/12 All au-then-ti-ca-tion events (LO-GIN[]SUCCESS,
  []
 
-[22] [23]
+[20] [21]
 Overfull \hbox (0.64162pt too wide) in paragraph at lines 234--236
 \OT1/cmr/m/n/12 Scope checks com-pare the to-ken's \OT1/cmtt/m/n/12 scope \OT1/cmr/m/n/12 claim against re-quired route scopes us-ing pattern-
  []
@@ -523,12 +497,12 @@ Overfull \hbox (1.30667pt too wide) in paragraph at lines 247--251
 \OT1/cmr/m/n/12 schemas) are en-forced. Au-dit logged as \OT1/cmtt/m/n/12 MOBILE[]LOGIN[]SUCCESS \OT1/cmr/m/n/12 or \OT1/cmtt/m/n/12 MOBILE[]LOGIN[]FAILURE
  []
 
-[24]
+[22]
 Overfull \hbox (12.84457pt too wide) in paragraph at lines 253--257
 \OT1/cmr/m/n/12 for a new ac-cess to-ken via Key-cloak's re-fresh to-ken grant end-point. Re-turns \OMS/cmtt/m/n/12 f\OT1/cmtt/m/n/12 access[]token,
  []
 
-[25]
+[23]
 Overfull \hbox (10.0949pt too wide) in paragraph at lines 310--311
  []\OT1/cmr/bx/n/12 Route Guards (Au-then-ti-ca-tion Check)[] \OT1/cmr/m/n/12 Pro-tected routes (dash-board, med-graph/:id)
  []
@@ -538,12 +512,12 @@ Overfull \hbox (10.58157pt too wide) in paragraph at lines 312--313
 []\OT1/cmr/m/n/12 Calls Auth-Ser-vice.checkAuthStatus() (a cus-tome func-tion that calls our BFF auth/me
  []
 
-[26]
+[24]
 Overfull \hbox (48.47237pt too wide) in paragraph at lines 319--320
  []\OT1/cmr/bx/n/12 Authentication In-ter-cep-tor (401 Han-dling)[] \OT1/cmr/m/n/12 A global HTTP in-ter-cep-tor (\OT1/cmtt/m/n/12 authInterceptor\OT1/cmr/m/n/12 )
  []
 
-[27]
+[25]
 Overfull \hbox (12.18513pt too wide) in paragraph at lines 380--381
 []\OT1/cmtt/m/n/12 environment.ts \OT1/cmr/m/n/12 (de-vel-op-ment): \OT1/cmtt/m/n/12 production: false\OT1/cmr/m/n/12 , \OT1/cmtt/m/n/12 apiUrl: '/api'\OT1/cmr/m/n/12 , \OT1/cmtt/m/n/12 authUrl:
  []
@@ -553,24 +527,24 @@ Overfull \hbox (3.69911pt too wide) in paragraph at lines 381--382
 []\OT1/cmtt/m/n/12 environment.prod.ts \OT1/cmr/m/n/12 (pro-duc-tion): \OT1/cmtt/m/n/12 production: true\OT1/cmr/m/n/12 , \OT1/cmtt/m/n/12 apiUrl: ''\OT1/cmr/m/n/12 , \OT1/cmtt/m/n/12 authUrl:
  []
 
-[28]
+[26]
 Overfull \hbox (40.90921pt too wide) in paragraph at lines 387--388
 \OT1/cmr/m/n/12 All pro-tected routes (dash-board, med-graph/:id) are de-clared with \OT1/cmtt/m/n/12 canActivate: [authGuard]\OT1/cmr/m/n/12 .
  []
 
-[29]
+[27]
 Overfull \hbox (9.85892pt too wide) in paragraph at lines 421--422
 []\OT1/cmr/bx/n/12 Audit Store\OT1/cmr/m/n/12 : per-sists au-then-ti-ca-tion events (LO-GIN[]SUCCESS, LO-GIN[]FAILURE,
  []
 
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 435.
-[30] [31] [32] [33] [34]) [35]
+[28] [29] [30] [31] [32]) [33]
 \openout2 = `AI/AI.aux'.
 
  (./AI/AI.tex
 Chapter 5.
-) [36
+) [34
 
 
 
@@ -580,7 +554,7 @@ Chapter 5.
 
  (./Testing/testing.tex
 Chapter 6.
-) [37
+) [35
 
 
 
@@ -590,7 +564,7 @@ Chapter 6.
 
  (./conclusion.tex
 Chapter 7.
-) [38
+) [36
 
 
 
@@ -598,7 +572,7 @@ Chapter 7.
 ]
 \openout2 = `appendix.aux'.
 
- (./appendix.tex [39
+ (./appendix.tex [37
 
 
 
@@ -609,7 +583,7 @@ Appendix A.
 Package hyperref Warning: The anchor of a bookmark and its parent's must not
 (hyperref)                be the same. Added a new anchor on input line 9.
 
-[40
+[38
 
 ] (./bachelor.lof
 Overfull \hbox (5.1455pt too wide) in paragraph at lines 7--7
@@ -620,7 +594,7 @@ Overfull \hbox (5.1455pt too wide) in paragraph at lines 7--7
 \tf@lof=\write5
 \openout5 = `bachelor.lof'.
 
-) [41
+) [39
 
 
 ]
@@ -636,82 +610,87 @@ Underfull \hbox (badness 10000) in paragraph at lines 19--22
 \OT1/cmr/m/it/12 sis/Dissertation)\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / repositorio-[]aberto . up . pt / bitstream / 10216 /
  []
 
-[42
+[40
 
 
 
 
 ]
-Underfull \hbox (badness 1354) in paragraph at lines 72--76
+Underfull \hbox (badness 1354) in paragraph at lines 77--81
 []\OT1/cmr/m/n/12 M. Bertocci, \OT1/cmr/m/it/12 OAuth 2.0 To-ken Me-di-a-tor Pat-tern for Web API Au-tho-riza-
  []
 
 
-Underfull \hbox (badness 2096) in paragraph at lines 98--101
+Underfull \hbox (badness 2096) in paragraph at lines 110--113
 []\OT1/cmr/m/n/12 OWASP Foun-da-tion, \OT1/cmr/m/it/12 OWASP API Se-cu-rity Top 10\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / owasp . org /
  []
 
 
-Underfull \hbox (badness 3977) in paragraph at lines 121--124
+Underfull \hbox (badness 3977) in paragraph at lines 134--137
 []\OT1/cmr/m/n/12 OWASP Foun-da-tion, \OT1/cmr/m/it/12 Cross-Site Script-ing (XSS) Pre-ven-tion Cheat Sheet\OT1/cmr/m/n/12 ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 121--124
+Underfull \hbox (badness 10000) in paragraph at lines 134--137
 [][]$\OT1/cmtt/m/n/12 https : / / cheatsheetseries . owasp . org / cheatsheets / Cross _ Site _ Scripting _
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 126--129
+Underfull \hbox (badness 10000) in paragraph at lines 139--142
 [][]$\OT1/cmtt/m/n/12 https : / / cheatsheetseries . owasp . org / cheatsheets / Cross-[]Site _ Request _
  []
 
-[43]
-Underfull \hbox (badness 2818) in paragraph at lines 156--159
+[41]
+Underfull \hbox (badness 2818) in paragraph at lines 169--172
 []\OT1/cmr/m/n/12 U.S. De-part-ment of Health and Hu-man Ser-vices, \OT1/cmr/m/it/12 HIPAA Se-cu-rity Rule\OT1/cmr/m/n/12 ,
  []
 
 
-Underfull \hbox (badness 3872) in paragraph at lines 156--159
+Underfull \hbox (badness 3872) in paragraph at lines 169--172
 [][]$\OT1/cmtt/m/n/12 https : / / www . hhs . gov / hipaa / for-[]professionals / security / index . html$[][]\OT1/cmr/m/n/12 , Ac-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 162--165
+Underfull \hbox (badness 10000) in paragraph at lines 175--178
 []\OT1/cmr/m/n/12 Art Fu-ture, \OT1/cmr/m/it/12 OAuth 2.0 Au-then-ti-ca-tion with Key-cloak in
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 162--165
+Underfull \hbox (badness 10000) in paragraph at lines 175--178
 \OT1/cmr/m/it/12 Flut-ter Ap-pli-ca-tions\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / medium . com / @art . futurx /
  []
 
 
-Overfull \hbox (47.94865pt too wide) in paragraph at lines 162--165
+Overfull \hbox (47.94865pt too wide) in paragraph at lines 175--178
 \OT1/cmtt/m/n/12 oauth-[]2-[]0-[]authentication-[]with-[]keycloak-[]in-[]flutter-[]applications-[]35d588b2246d$[][]\OT1/cmr/m/n/12 ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 173--176
+Underfull \hbox (badness 10000) in paragraph at lines 186--189
 []\OT1/cmr/m/n/12 OWASP Foun-da-tion, \OT1/cmr/m/it/12 OWASP Mo-bile Top 10\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / owasp . org /
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 184--187
-[]\OT1/cmr/m/n/12 Auth0, \OT1/cmr/m/it/12 The Backend-for-Frontend Pat-tern\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / auth0 . com / blog /
+Underfull \hbox (badness 10000) in paragraph at lines 197--200
+[]\OT1/cmr/m/n/12 Google, \OT1/cmr/m/it/12 An-droid Key-store Sys-tem\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / developer . android . com /
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 215--218
+Underfull \hbox (badness 10000) in paragraph at lines 203--206
+[]\OT1/cmr/m/n/12 Auth0, \OT1/cmr/m/it/12 The Backend-for-Frontend Pat-tern\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / auth0 . com / blog /
+ []
+
+[42]
+Underfull \hbox (badness 10000) in paragraph at lines 234--237
 []\OT1/cmr/m/n/12 Keycloak Doc-u-men-ta-tion, \OT1/cmr/m/it/12 Ad-min-is-ter-ing Ses-sions in Key-cloak\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https :
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 215--218
+Underfull \hbox (badness 10000) in paragraph at lines 234--237
 \OT1/cmtt/m/n/12 / / wjw465150 . gitbooks . io / keycloak-[]documentation / content / server _ admin /
  []
 
-) [44] (./bachelor.aux (./ASU_TitlePage.aux) (./abstract.aux) (./introduction.aux) (./LiteratureReview/literatureReview.aux) (./ProposedDesignArchitecture/proposedDesignArchitecture.aux) (./Security/security.aux) (./AI/AI.aux) (./Testing/testing.aux) (./conclusion.aux) (./appendix.aux) (./references.aux))
+) [43] (./bachelor.aux (./ASU_TitlePage.aux) (./abstract.aux) (./introduction.aux) (./LiteratureReview/literatureReview.aux) (./ProposedDesignArchitecture/proposedDesignArchitecture.aux) (./Security/security.aux) (./AI/AI.aux) (./Testing/testing.aux) (./conclusion.aux) (./appendix.aux) (./references.aux))
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-11-14>
@@ -720,25 +699,22 @@ L3 programming layer <2025-11-14>
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-
-LaTeX Warning: There were undefined references.
-
 Package rerunfilecheck Info: File `bachelor.out' has not changed.
-(rerunfilecheck)             Checksum: A6D8346D5ADB37BC21CA33426134E229;13779.
+(rerunfilecheck)             Checksum: BC43647C54E061BD8E13CEC8D2BEE7BE;12205.
  ) 
 Here is how much of TeX's memory you used:
- 12070 strings out of 467538
- 197657 string characters out of 5422195
- 613381 words of memory out of 5000000
- 40513 multiletter control sequences out of 15000+600000
+ 12062 strings out of 467538
+ 197524 string characters out of 5422195
+ 613477 words of memory out of 5000000
+ 40510 multiletter control sequences out of 15000+600000
  634083 words of font info for 61 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,10n,79p,978b,616s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1200.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1200.pfb>
-Output written on bachelor.pdf (50 pages, 1480464 bytes).
+Output written on bachelor.pdf (48 pages, 1473689 bytes).
 PDF statistics:
- 922 PDF objects out of 1000 (max. 8388607)
- 833 compressed objects within 9 object streams
- 224 named destinations out of 1000 (max. 500000)
- 654 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 890 PDF objects out of 1000 (max. 8388607)
+ 803 compressed objects within 9 object streams
+ 219 named destinations out of 1000 (max. 500000)
+ 606 words of extra memory for PDF output out of 10000 (max. 10000000)
 
