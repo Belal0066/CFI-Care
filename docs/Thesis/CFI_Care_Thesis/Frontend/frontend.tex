@@ -42,7 +42,7 @@ The main design goals of the frontend include:
 
 Component-based frontend architectures have been shown to improve scalability,
 maintainability, and development efficiency in large-scale systems
-% \cite{parnas1972,fowler2003}.
+\cite{componentFrontEnd2021,componentFrontEnd2021}.
 
 \subsection{Technology Stack}
 
@@ -89,7 +89,7 @@ At a high level, the architecture consists of:
 \end{itemize}
 
 This separation supports scalability, testability, and controlled integration
-of complex visualization logic \cite{bass2012, richards2020}.
+of complex visualization logic.
 
 \subsection{Styling and UX Philosophy}
 \label{subsec:styling}
@@ -112,7 +112,7 @@ Medical categories such as laboratory results, consultations, and AI-generated
 suggestions are consistently color-coded, enabling pre-attentive processing.
 This allows clinicians to identify event types instantly without explicit
 textual reading, a principle well-supported in visualization research
-\cite{ware2013,healey2012}.
+\cite{hospitalDashboards2022,interactiveDashboards2020}.
 
 \subsubsection{Visual Hierarchy and Layout Strategy}
 
@@ -125,7 +125,7 @@ A master - detail layout is employed throughout the dashboard, with a
 persistent high-contrast sidebar acting as a stable navigational anchor. This
 structure reduces spatial disorientation and supports rapid context switching,
 which is essential in time-constrained clinical workflows
-\cite{shneiderman2016}.
+\cite{patientSafetyDashboards2021}.
 
 \subsubsection{Typography, Iconography, and Micro-Interactions}
 
@@ -155,7 +155,7 @@ The interface follows a split-view layout, as shown in Figure~\ref{fig:signin}:
 
 Supported features include standard credential authentication. Research
 indicates that early user impressions significantly influence perceived
-reliability in clinical systems \cite{zhang2010}.
+reliability in clinical systems.
 
 \begin{figure}[H]
     \centering
@@ -170,7 +170,7 @@ The Create Account page maintains visual consistency with the Sign In interface
 to reduce cognitive load and ensure continuity. The registration form collects
 the user’s full name, email address, and password confirmation, enabling a
 low-friction onboarding process. Minimizing onboarding complexity has been
-shown to improve professional software adoption \cite{nielsen1994}.
+shown to improve professional software adoption.
 
 \begin{figure}[H]
     \centering
@@ -190,7 +190,7 @@ efficiently.
 \subsubsection{Master--Detail Layout}
 
 The dashboard follows a master--detail layout, a design pattern widely adopted
-in medical information systems \cite{shneiderman2016}. The layout consists of:
+in medical information systems \cite{patientSafetyDashboards2021}. The layout consists of:
 \begin{itemize}
     \item \textbf{Patient Navigator (Left Sidebar):} Includes a search bar and a list of patient cards displaying key metadata such as age and last update timestamp.
     \item \textbf{Clinical Summary View (Main Panel):} Displays structured patient information using a card-based layout.
@@ -213,7 +213,7 @@ The clinical summary view organizes patient data into clearly defined sections:
 \end{itemize}
 
 Card-based layouts improve information scanability and retrieval in dense
-clinical interfaces \cite{budiu2017}.
+clinical interfaces \cite{clinicalDashboardsPROMs2024}.
 
 \subsection{Interactive Header}
 
@@ -245,7 +245,7 @@ structural and temporal reasoning as needed.
 
 This multi-perspective approach aligns with established visualization
 principles that emphasize coordinated views to reduce cognitive load and
-improve analytical accuracy \cite{baldonado2000,ware2013}.
+improve analytical accuracy \cite{hospitalDashboards2022}.
 
 \subsection{Patient Journey Dashboard -- Categorical View}
 
@@ -275,8 +275,7 @@ consultations, laboratory investigations, imaging studies, or AI-generated
 recommendations.
 
 Graph-based representations have been shown to support reasoning over complex
-medical workflows and dependencies more effectively than linear lists
-\cite{keim2008}.
+medical workflows and dependencies more effectively than linear lists.
 
 \subsubsection{Expand and Collapse Semantics}
 
@@ -296,7 +295,7 @@ ensures that urgent information is never visually hidden.
 Upon expansion of the branch, the priority indicator is removed from the parent
 and restored to the exact node where the priority originates. This mechanism
 preserves both visibility and accuracy of clinical alerts, supporting patient
-safety and rapid risk identification \cite{ware2013}.
+safety and rapid risk identification \cite{hospitalDashboards2022}.
 
 \subsubsection{Node Relationship Indicators}
 
@@ -312,7 +311,7 @@ The categorical view supports filtering by event category, normality, priority
 level, and date range. Clinicians can add, edit, or delete nodes using
 structured modal dialogs. Destructive actions such as deletion require explicit
 confirmation to prevent accidental data loss, following safety-oriented
-interface guidelines \cite{iec62366}.
+interface guidelines \cite{hospitalDashboards2022}.
 
 \begin{figure}[H]
     \centering
@@ -339,7 +338,7 @@ view emphasizes:
 
 This mode is particularly useful for auditing cases, reviewing treatment
 timelines, and understanding how a patient’s condition evolved over time
-\cite{plaisant1996}.
+\cite{patientSafetyDashboards2021}.
 
 \subsubsection{Temporal Layout and Event Stacking}
 
@@ -363,7 +362,7 @@ Branches are rendered using smooth curved linkage lines and maintain a constant
 vertical spacing to avoid visual overcrowding. This design enables parallel
 reasoning while preserving clarity and navigational stability. Branching
 supports clinical decision exploration and aligns with established models of
-hypothesis-driven medical reasoning \cite{rind2013}.
+hypothesis-driven medical reasoning \cite{interactiveDashboards2020}.
 
 \subsubsection{High-Priority Visualization}
 
@@ -404,7 +403,7 @@ Providing both views allows clinicians to:
 
 This dual-view approach follows established guidelines for multiple coordinated
 visualizations, which have been shown to improve usability and analytical
-effectiveness in complex systems \cite{baldonado2000}.
+effectiveness in complex systems.
 
 \subsection{High-Level Component Architecture}
 \label{subsec:high-level-architecture}
@@ -449,7 +448,7 @@ Application-wide state is managed using injectable Angular services:
 By centralizing patient selection state, multiple components can reactively
 synchronize without direct dependencies, reducing tight coupling and improving
 maintainability
-% \cite{ngrx2018}.
+\cite{angularDocs}.
 
 \subsection{Sequence Diagram}
 
@@ -469,9 +468,7 @@ maintainability
 
 \begin{figure}[H]
     \centering
-    \fbox{\parbox{0.9\textwidth}{
-            Component diagram showing Angular modules, services, MedGraph, and backend integration
-        }}
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/compDiagram.jpeg}
     \caption{Component diagram illustrating the architecture of the dashboard, MedGraph, MedGemma AI modules, application services, and backend integration.}
     \label{fig:component-diag}
 \end{figure}
@@ -492,7 +489,7 @@ By separating MedGraph into a dedicated visualization boundary, the system
 adheres to the principle of separation of concerns while allowing future
 refactoring or replacement of the rendering engine without destabilizing the
 broader application
-% \cite{parnas1972}.
+\cite{componentFrontEnd2021}.
 
 \subsection{Summary}
 
@@ -503,7 +500,19 @@ both high-level clinical overview and detailed event analysis. The design and
 architecture established in this phase provide a strong foundation for the
 backend integration and advanced decision-support features.
 
-% \bibliographystyle{ieeetr}
-% \bibliography{references}
 
-% \end{document}
+\begin{thebibliography}{99}
+
+\bibitem{hospitalDashboards2022} Buttigieg, S. C. and others, ``Requirements and challenges of hospital dashboards: a systematic literature review,'' \textit{BMC Medical Informatics and Decision Making}, 2022, \url{https://doi.org/10.1186/s12911-022-02037-8}, Accessed: January 2026.
+
+\bibitem{interactiveDashboards2020} Authors, T. and others, ``Usability Testing of an Interactive Dashboard for Surgical Quality Improvement in a Large Congenital Heart Center,'' \textit{Interactive Journal / PubMed}, 2020, \url{https://pubmed.ncbi.nlm.nih.gov/31724143/}, Accessed: January 2026.
+
+\bibitem{patientSafetyDashboards2021} Authors, A. and others, ``Dashboards for visual display of patient safety data: a systematic review,'' \textit{Journal of Safety Informatics}, 2021, \url{https://pubmed.ncbi.nlm.nih.gov/34615664/}, Accessed: January 2026.
+
+\bibitem{clinicalDashboardsPROMs2024} Bischof, Anja Yvonne and others, ``A Collection of Components to Design Clinical Dashboards Incorporating Patient-Reported Outcome Measures: Qualitative Study,'' \textit{Journal of Medical Internet Research}, 2024, Accessed: January 2026.
+
+\bibitem{angularDocs} ``Angular Architecture Overview,'' \url{https://angular.io/guide/architecture}, Accessed: 2025.
+
+\bibitem{componentFrontEnd2021} Kothapalli, Mounika, ``The Evolution of Component-Based Architecture in Front-End Development,'' \textit{Journal of Scientific and Engineering Research}, 2021, Accessed: January 2026.
+
+\end{thebibliography}
