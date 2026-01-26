@@ -149,7 +149,7 @@ layer, which dispatches it to the PatientService controller. The controller
 immediately implements input validation: the patientId parameter is checked to
 ensure it conforms to expected format (numeric ID or UUID, depending on the
 system design), and the authenticated user's roles are verified to confirm they
-have permission to access that patient's data (enforcing HIPAA privacy
+have permission to access that patient's data (enforcing \ac{HIPAA} privacy
 principles).
 
 Before querying the database, the controller checks the Tier 1 cache (managed

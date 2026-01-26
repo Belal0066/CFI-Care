@@ -164,29 +164,29 @@ backbone for this project.
 
 \section{Authentication and Authorization Standards}
 
-\subsection{OAuth 2.0 and OIDC}
-OAuth 2.0 \cite{rfc6749} defines authorization grant flows: Authorization Code
+\subsection{\ac{OAuth} 2.0 and OIDC}
+\ac{OAuth} 2.0 \cite{rfc6749} defines authorization grant flows: Authorization Code
 (web), Resource Owner Password (custom UI), Client Credentials
 (service-to-service). OpenID Connect (OIDC) \cite{oidc} adds an identity layer
-with ID tokens and SSO. CFI-Care uses OAuth 2.0 Resource Owner Password flow
-with OIDC for token-based API access.
+with ID tokens and SSO. CFI-Care uses \ac{OAuth} 2.0 Resource Owner Password flow
+with OIDC for token-based \ac{API} access.
 
-\subsection{JSON Web Tokens (JWT)}
-JWTs \cite{rfc7519} are signed tokens encoding claims (iss, aud, exp, roles,
-scopes). Stateless API authentication validates signatures without database
+\subsection{JSON Web Tokens (\ac{JWT})}
+\ac{JWT}s \cite{rfc7519} are signed tokens encoding claims (iss, aud, exp, roles,
+scopes). Stateless \ac{API} authentication validates signatures without database
 queries. Token revocation requires server-side tracking or short expiration
 windows.
 
 \subsection{PKCE}
 PKCE \cite{rfc7636} prevents authorization code interception attacks via code
-verifier/challenge. Recommended for all OAuth 2.0 flows \cite{rfc9700}.
+verifier/challenge. Recommended for all \ac{OAuth} 2.0 flows \cite{rfc9700}.
 
 \section{Healthcare Security and Standards}
 
-\subsection{FHIR and SMART on FHIR}
-FHIR \cite{fhirhl7} defines RESTful APIs for healthcare data exchange. SMART on
-FHIR \cite{smart_fhir} applies OAuth 2.0 to FHIR with scoped access (e.g.,
-\texttt{patient/Observation.read}). The FHIR consent resource
+\subsection{\ac{FHIR} and \ac{SMART} on \ac{FHIR}} \ac{FHIR} \cite{fhirhl7} defines RESTful \ac{API}s
+for healthcare data exchange. \ac{SMART} on \ac{FHIR} \cite{smart_fhir} applies
+\ac{OAuth} 2.0 to \ac{FHIR} with scoped access (e.g.,
+\texttt{patient/Observation.read}). The \ac{FHIR} consent resource
 \cite{fhir_consent} models patient-controlled access with time-bound and
 actor-specific rules.
 
