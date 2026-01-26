@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.15)  26 JAN 2026 09:43
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.15)  26 JAN 2026 09:53
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -795,23 +795,23 @@ Overfull \hbox (11.32433pt too wide) in paragraph at lines 106--110
 \OT1/cmr/m/n/12 Postgres smoke tests con-firm con-nec-tiv-ity, the pres-ence of \OT1/cmtt/m/n/12 timeline[]nodes \OT1/cmr/m/n/12 and \OT1/cmtt/m/n/12 node[]edges\OT1/cmr/m/n/12 ,
  []
 
-
-Overfull \hbox (75.00208pt too wide) in paragraph at lines 129--147
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-Overfull \hbox (55.25232pt too wide) in paragraph at lines 153--161
- [][] 
- []
-
+<Testing/Images/BackendTesting1.png, id=585, 1429.59094pt x 692.5875pt>
+File: Testing/Images/BackendTesting1.png Graphic file (type png)
+<use Testing/Images/BackendTesting1.png>
+Package pdftex.def Info: Testing/Images/BackendTesting1.png  used on input line 129.
+(pdftex.def)             Requested size: 362.37569pt x 175.55595pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[40])) [41]
+<Testing/Images/BackendTesting2.png, id=586, 1429.59094pt x 683.55376pt>
+File: Testing/Images/BackendTesting2.png Graphic file (type png)
+<use Testing/Images/BackendTesting2.png>
+Package pdftex.def Info: Testing/Images/BackendTesting2.png  used on input line 154.
+(pdftex.def)             Requested size: 362.37569pt x 173.2661pt.
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[40])) [41 <./Testing/Images/BackendTesting1.png> <./Testing/Images/BackendTesting2.png>]
 \openout2 = `conclusion.aux'.
 
  (./conclusion.tex
@@ -885,18 +885,18 @@ Package rerunfilecheck Info: File `bachelor.out' has not changed.
 (rerunfilecheck)             Checksum: 6BDA1C41935104AB8BB6998BC7AFE5B8;10323.
  ) 
 Here is how much of TeX's memory you used:
- 32819 strings out of 467538
- 770337 string characters out of 5423724
+ 32833 strings out of 467538
+ 770909 string characters out of 5423724
  1296632 words of memory out of 5000000
- 60953 multiletter control sequences out of 15000+600000
+ 60967 multiletter control sequences out of 15000+600000
  634394 words of font info for 62 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  99i,10n,118p,977b,881s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on bachelor.pdf (51 pages, 4322318 bytes).
+Output written on bachelor.pdf (51 pages, 4493454 bytes).
 PDF statistics:
- 739 PDF objects out of 1000 (max. 8388607)
+ 743 PDF objects out of 1000 (max. 8388607)
  639 compressed objects within 7 object streams
  176 named destinations out of 1000 (max. 500000)
- 524 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 534 words of extra memory for PDF output out of 10000 (max. 10000000)
 
