@@ -8,7 +8,6 @@
 \usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{appendix}
-\usepackage[pdfborder={0 0 0}, colorlinks=true, linkcolor=black, citecolor=blue]{hyperref}
 \usepackage{acronym}
 \usepackage{algorithmic}
 \usepackage{algorithm}
@@ -16,11 +15,28 @@
 \usepackage{caption}
 \usepackage{setspace}
 \usepackage{pgfplots}
+
+% \documentclass{article}
+\usepackage{listings}
+\usepackage{xcolor}
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage{graphicx}
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[pdfborder={0 0 0}, colorlinks=true, linkcolor=black, citecolor=blue]{hyperref}
+
 \nocite{*}
 
-\newcommand{\submissionDay}{04}
-\newcommand{\submissionMonth}{April}
-\newcommand{\submissionYear}{2025}
+\newcommand{\submissionDay}{27}
+\newcommand{\submissionMonth}{January}
+\newcommand{\submissionYear}{2026}
 \newcommand{\submissionDate}{\submissionDay~\submissionMonth,~\submissionYear}
 \newcommand{\typeOfThesis}{Graduation Project Thesis}
 
@@ -80,8 +96,11 @@
 \pagenumbering{Roman}
 
 \include{ASU_TitlePage}
-\include{abstract}
+
 \tableofcontents
+
+\include{acknowledgments}
+\include{abstract}
 \clearpage
 
 \pagestyle{headings}

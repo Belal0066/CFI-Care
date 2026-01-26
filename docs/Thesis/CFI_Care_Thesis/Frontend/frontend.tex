@@ -1,1 +1,311 @@
+% \documentclass{article}
+% \usepackage{graphicx} % Required for inserting images
+
+% \title{Thesis_1}
+% \author{Youssef Tamer}
+% \date{January 2026}
+
+% \begin{document}
+
 \section{Frontend}\label{chap:Frontend}
+% \chapter{Frontend Design and Implementation}
+
+\subsection{Overview and Design Objectives}
+
+The frontend of \textit{CFI-Care} was designed as an interactive medical
+information system aimed at enabling healthcare professionals to efficiently
+explore, manage, and reason about patient data. The primary objective was to
+transform fragmented medical records into a coherent, visual, and navigable
+representation of a patient’s medical journey, while maintaining clinical
+clarity, responsiveness, and usability.
+
+The frontend follows a component-based architecture implemented using the
+Angular framework. Advanced data visualization is achieved through the
+integration of D3.js and Treeviz, while Bootstrap and Bootstrap Icons are used
+to ensure responsive layout, visual consistency, and accessibility across
+devices.
+
+The main design goals of the frontend include:
+\begin{itemize}
+    \item Clear separation of concerns between navigation, visualization, and data
+          manipulation.
+    \item Visual prioritization of clinically critical events.
+    \item Support for both categorical and temporal reasoning over patient medical data.
+    \item Extensibility to support future backend integration and advanced analytics.
+\end{itemize}
+
+Component-based frontend architectures have been shown to improve scalability,
+maintainability, and development efficiency in large-scale systems
+\cite{parnas1972,fowler2003}.
+
+\subsection{Technology Stack}
+
+Table~\ref{tab:frontend_stack} summarizes the main technologies used in the
+frontend implementation.
+
+\begin{table}[h]
+    \centering
+    \caption{Frontend Technology Stack}
+    \label{tab:frontend_stack}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Technology} & \textbf{Purpose}                                \\
+        \hline
+        Angular             & Core frontend framework and state management    \\
+        D3.js               & Data-driven visualization and interaction logic \\
+        Treeviz             & Hierarchical graph layout abstraction           \\
+        Bootstrap           & Responsive layout and UI consistency            \\
+        Bootstrap Icons     & Visual indicators and interaction affordances   \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Angular’s declarative templates and reactive change detection model make it
+suitable for highly interactive, state-driven medical interfaces
+\cite{angularDocs}.
+
+\subsection{Authentication Suite}
+
+\subsubsection{Sign In Interface}
+
+The Sign In page serves as the primary entry point to the system and was
+designed to establish trust and professionalism, which are critical factors in
+healthcare software adoption.
+
+The interface follows a split-view layout, as shown in Figure~\ref{fig:signin}:
+\begin{itemize}
+    \item \textbf{Left Pane:} Reinforces the system’s value proposition through concise messaging emphasizing security, collaboration, and patient-centered care.
+    \item \textbf{Right Pane:} Contains a modern authentication card inspired by glassmorphism design principles.
+\end{itemize}
+
+Supported features include standard credential authentication. Research
+indicates that early user impressions significantly influence perceived
+reliability in clinical systems \cite{zhang2010}.
+
+\subsubsection{Create Account Interface}
+
+The Create Account page maintains visual consistency with the Sign In interface
+to reduce cognitive load and ensure continuity. The registration form collects
+the user’s full name, email address, and password confirmation, enabling a
+low-friction onboarding process. Minimizing onboarding complexity has been
+shown to improve professional software adoption \cite{nielsen1994}.
+
+\subsection{Patients Dashboard}
+
+\subsubsection{Overview}
+
+The Patients Dashboard functions as the primary data-management hub of the
+system. It enables clinicians to search, select, and review patient profiles
+efficiently.
+
+\subsubsection{Master--Detail Layout}
+
+The dashboard follows a master--detail layout, a design pattern widely adopted
+in medical information systems \cite{shneiderman2016}. The layout consists of:
+\begin{itemize}
+    \item \textbf{Patient Navigator (Left Sidebar):} Includes a search bar and a list of patient cards displaying key metadata such as age and last update timestamp.
+    \item \textbf{Clinical Summary View (Main Panel):} Displays structured patient information using a card-based layout.
+\end{itemize}
+
+\subsection{Clinical Summary View}
+
+The clinical summary view organizes patient data into clearly defined sections:
+\begin{itemize}
+    \item Demographics: name, age, gender, and patient identifier.
+    \item Clinical data: primary diagnosis, active conditions, and current medications.
+    \item Expandable sections for recent laboratory results and procedures.
+\end{itemize}
+
+Card-based layouts improve information scanability and retrieval in dense
+clinical interfaces \cite{budiu2017}.
+
+\subsection{Interactive Header}
+
+A global action header provides filtering capabilities and a prominent control
+for opening the MedGraph, transitioning the user from record-based inspection
+to journey-based visualization.
+
+\subsection{Patient Journey Dashboard}
+
+While traditional medical dashboards present patient data as isolated records,
+clinical decision-making often requires understanding how events evolve,
+relate, and unfold over time. To address this limitation, CFI-Care introduces
+the \textit{Patient Journey Dashboard}, a dedicated interactive environment
+that provides a holistic view of a patient’s medical history.
+
+The Patient Journey Dashboard enables clinicians to:
+\begin{itemize}
+    \item Explore relationships between medical events.
+    \item Understand disease progression from initial presentation to treatment.
+    \item Analyze alternative diagnostic or treatment paths.
+    \item Identify clinically critical events without losing contextual awareness.
+\end{itemize}
+
+Rather than enforcing a single representation, the dashboard provides two
+complementary visualization modes: \textit{Categorical} and
+\textit{Chronological}. Each mode offers a distinct analytical perspective over
+the same underlying patient data, allowing clinicians to switch between
+structural and temporal reasoning as needed.
+
+This multi-perspective approach aligns with established visualization
+principles that emphasize coordinated views to reduce cognitive load and
+improve analytical accuracy \cite{baldonado2000,ware2013}.
+
+\subsection{Patient Journey Dashboard -- Categorical View}
+
+\subsubsection{Purpose and Conceptual Model}
+
+The categorical view presents the patient journey as a hierarchical,
+relationship-oriented structure similar to a family tree. Its primary purpose
+is to visualize \textbf{clinical relationships, causality, and dependency}
+between medical events.
+
+In this mode, clinicians can clearly observe:
+\begin{itemize}
+    \item How diagnostic steps lead to subsequent decisions.
+    \item Which medical events are logically connected.
+    \item Complete clinical paths from disease onset to treatment.
+\end{itemize}
+
+This representation is particularly effective for understanding the structure
+of a case, rather than its temporal sequence.
+
+\subsubsection{Hierarchical Graph Representation}
+
+Medical events are represented as nodes within a node-link hierarchical graph.
+A single root node represents the patient case, from which first-level
+categories branch out. These categories group related clinical events such as
+consultations, laboratory investigations, imaging studies, or AI-generated
+recommendations.
+
+Graph-based representations have been shown to support reasoning over complex
+medical workflows and dependencies more effectively than linear lists
+\cite{keim2008}.
+
+\subsubsection{Expand and Collapse Semantics}
+
+Only first-level nodes directly connected to the root support expand and
+collapse interactions. This constraint limits visual complexity while
+preserving a stable mental model for the user. Deeper levels remain
+structurally intact but are revealed only when their parent category is
+expanded.
+
+\subsubsection{High-Priority Propagation Mechanism}
+
+Clinically critical events are visually marked using a red circular border.
+When a high-priority node exists within a collapsed branch, the priority
+indicator propagates upward to the corresponding first-level parent node. This
+ensures that urgent information is never visually hidden.
+
+Upon expansion of the branch, the priority indicator is removed from the parent
+and restored to the exact node where the priority originates. This mechanism
+preserves both visibility and accuracy of clinical alerts, supporting patient
+safety and rapid risk identification \cite{ware2013}.
+
+\subsubsection{Node Relationship Indicators}
+
+Each node explicitly indicates whether it represents a single-child event or a
+sibling event within a group. This is conveyed through a labeled rectangular
+visual marker with distinct colors and text. These indicators allow clinicians
+to quickly infer structural relationships without expanding the entire
+hierarchy.
+
+\subsubsection{Filtering and Actions}
+
+The categorical view supports filtering by event category, normality, priority
+level, and date range. Clinicians can add, edit, or delete nodes using
+structured modal dialogs. Destructive actions such as deletion require explicit
+confirmation to prevent accidental data loss, following safety-oriented
+interface guidelines \cite{iec62366}.
+
+\subsection{Patient Journey Dashboard -- Chronological View}
+
+\subsubsection{Purpose and Conceptual Model}
+
+The chronological view reorganizes the same patient data into a time-oriented
+representation. Its purpose is to support \textbf{temporal reasoning} by
+allowing clinicians to read the patient journey as a sequential narrative.
+
+Unlike the categorical view, which emphasizes relationships, the chronological
+view emphasizes:
+\begin{itemize}
+    \item The order of events.
+    \item Time intervals between clinical decisions.
+    \item The progression of care across time.
+\end{itemize}
+
+This mode is particularly useful for auditing cases, reviewing treatment
+timelines, and understanding how a patient’s condition evolved over time
+\cite{plaisant1996}.
+
+\subsubsection{Temporal Layout and Event Stacking}
+
+Events are displayed along a horizontal timeline. When multiple events occur on
+the same date, they are stacked vertically above one another to preserve
+temporal accuracy while avoiding overlap. This design allows dense clinical
+activity to be represented without sacrificing readability.
+
+\subsubsection{Branching Mechanism for Clinical Reasoning}
+
+A key feature of the chronological view is its branching mechanism. By default,
+the timeline contains a primary branch representing the main clinical pathway
+followed during patient care.
+
+When uncertainty arises, such as alternative diagnostic hypotheses or treatment
+strategies, clinicians can create separate branches. These branches represent
+exploratory or tentative paths that may later be completed or rejected based on
+clinical validation.
+
+Branches are rendered using smooth curved linkage lines and maintain a constant
+vertical spacing to avoid visual overcrowding. This design enables parallel
+reasoning while preserving clarity and navigational stability. Branching
+supports clinical decision exploration and aligns with established models of
+hypothesis-driven medical reasoning \cite{rind2013}.
+
+\subsubsection{High-Priority Visualization}
+
+High-priority events are highlighted using prominent red labels positioned
+beneath nodes. This visual hierarchy ensures that urgent clinical issues remain
+immediately noticeable within the temporal flow.
+
+\subsubsection{Stateful Mode Switching}
+
+A toggle control allows instant switching between categorical and chronological
+views. This interaction is fully stateful and does not require page reloads,
+enabling clinicians to seamlessly transition between structural and temporal
+perspectives during analysis.
+
+\subsection{Complementary Roles of Categorical and Chronological Views}
+
+The categorical and chronological views address fundamentally different
+cognitive tasks. The categorical view focuses on \textbf{structural
+    understanding}, enabling clinicians to reason about relationships,
+dependencies, and complete clinical paths. In contrast, the chronological view
+focuses on \textbf{temporal understanding}, enabling clinicians to interpret
+the sequence and timing of events.
+
+Providing both views allows clinicians to:
+\begin{itemize}
+    \item Understand how events are connected (categorical).
+    \item Understand when events occurred (chronological).
+    \item Reduce cognitive load by selecting the most appropriate representation for the
+          task at hand.
+\end{itemize}
+
+This dual-view approach follows established guidelines for multiple coordinated
+visualizations, which have been shown to improve usability and analytical
+effectiveness in complex systems \cite{baldonado2000}.
+
+\subsection{Summary}
+
+The CFI-Care frontend successfully transforms complex medical data into an
+interactive and extensible visualization system. By combining structured
+dashboards with intelligent graph-based representations, the frontend supports
+both high-level clinical overview and detailed event analysis. The design and
+architecture established in this phase provide a strong foundation for the
+backend integration and advanced decision-support features.
+
+% \bibliographystyle{ieeetr}
+% \bibliography{references}
+
+% \end{document}
