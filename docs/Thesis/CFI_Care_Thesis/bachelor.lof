@@ -3,8 +3,18 @@
 \contentsline {figure}{\numberline {1.2}{\ignorespaces Visual Comparison of Data structure: HL7 v2 Message vs. FHIR JSON Resource.}}{6}{figure.caption.7}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces High-Level Container Architecture showing the interaction between the Nginx proxy, application services, and data persistence layers.}}{9}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Internal layered architecture of the Node.js Application Server, detailing the middleware stack and service distribution.}}{10}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table.}}{12}{figure.caption.15}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Request/Response flow for patient data retrieval, showing cache hit and miss scenarios with complete middleware pipeline.}}{14}{figure.caption.18}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Complete encounter creation workflow showing FHIR resource persistence, graph construction, and cache invalidation cascade.}}{16}{figure.caption.20}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Example Patient History Graph showing a diabetes patient with concurrent hypertension, demonstrating temporal branching and multiple relationship types.}}{22}{figure.caption.27}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Two-Tier Caching Architecture showing distinct strategies for standard FHIR resources (Tier 1) and complex graph structures (Tier 2).}}{29}{figure.caption.37}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Graph view of the two end-to-end suites; edges align to assertions within each test.}}{38}{figure.caption.49}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Number of Test Cases and its status.}}{40}{figure.caption.50}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Unit, integration and End-to-end workflow suite status.}}{40}{figure.caption.51}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
