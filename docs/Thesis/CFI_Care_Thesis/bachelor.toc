@@ -70,9 +70,22 @@
 \contentsline {chapter}{\numberline {4}Security Framework}{36}{chapter.4}%
 \contentsline {chapter}{\numberline {5}AI Integration}{37}{chapter.5}%
 \contentsline {chapter}{\numberline {6}Testing and Verification}{38}{chapter.6}%
-\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{39}{chapter.7}%
-\contentsline {chapter}{Appendix}{40}{section*.50}%
-\contentsline {chapter}{\numberline {A}Lists}{41}{appendix.A}%
-\contentsline {section}{List of Abbreviations}{41}{section*.51}%
-\contentsline {section}{List of Figures}{42}{appendix*.52}%
-\contentsline {chapter}{References}{43}{appendix*.52}%
+\contentsline {section}{\numberline {6.1}Backend Testing Overview}{38}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Execution Environment}{38}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Scope}{38}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}API Route Coverage}{38}{subsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.1.4}Service and Integration Tests}{39}{subsection.6.1.4}%
+\contentsline {subsection}{\numberline {6.1.5}Test Design and Data}{39}{subsection.6.1.5}%
+\contentsline {subsection}{\numberline {6.1.6}End-to-End Workflows}{39}{subsection.6.1.6}%
+\contentsline {subsection}{\numberline {6.1.7}Validation and Middleware}{40}{subsection.6.1.7}%
+\contentsline {subsection}{\numberline {6.1.8}Caching and Redis}{40}{subsection.6.1.8}%
+\contentsline {subsection}{\numberline {6.1.9}Database Checks}{40}{subsection.6.1.9}%
+\contentsline {subsection}{\numberline {6.1.10}Gaps and Next Steps}{40}{subsection.6.1.10}%
+\contentsline {subsection}{\numberline {6.1.11}Test Result Summary}{40}{subsection.6.1.11}%
+\contentsline {subsection}{\numberline {6.1.12}Interpretation of Results}{40}{subsection.6.1.12}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{42}{chapter.7}%
+\contentsline {chapter}{Appendix}{43}{section*.53}%
+\contentsline {chapter}{\numberline {A}Lists}{44}{appendix.A}%
+\contentsline {section}{List of Abbreviations}{44}{section*.54}%
+\contentsline {section}{List of Figures}{45}{appendix*.55}%
+\contentsline {chapter}{References}{46}{appendix*.55}%
