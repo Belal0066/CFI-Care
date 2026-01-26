@@ -7,5 +7,4 @@
 
 stop_containers.sh
 start_nodejs_containers.sh
-*.sh
-*.sh
+
