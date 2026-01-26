@@ -1,5 +1,7 @@
 % \documentclass{article}
 % \usepackage{graphicx} % Required for inserting images
+% \usepackage{url}
+% \usepackage{hyperref}
 
 % \title{Thesis_1}
 % \author{Youssef Tamer}
@@ -64,6 +66,54 @@ Angular’s declarative templates and reactive change detection model make it
 suitable for highly interactive, state-driven medical interfaces
 \cite{angularDocs}.
 
+\subsection{Styling and UX Philosophy}
+\label{subsec:styling}
+
+The CFI-Care frontend adopts a \textit{High-Contrast Clinical Design System},
+intentionally crafted to balance institutional medical trust with modern,
+AI-driven sophistication. This design approach prioritizes clarity, confidence,
+and rapid information recognition, all critical requirements in high-stakes
+clinical environments.
+
+\subsubsection{Color Theory and Semantic Encoding}
+
+The visual palette is dominated by blue-scale tones combined with cyan and teal
+gradients. Deep blue hues are widely associated with trust, security, and
+professionalism in healthcare interfaces, while cyan gradients introduce a
+contemporary, technology-forward aesthetic.
+
+Color is used not merely as decoration but as a semantic layer of information.
+Medical categories such as laboratory results, consultations, and AI-generated
+suggestions are consistently color-coded, enabling pre-attentive processing.
+This allows clinicians to identify event types instantly without explicit
+textual reading, a principle well-supported in visualization research
+\cite{ware2013,healey2012}.
+
+\subsubsection{Visual Hierarchy and Layout Strategy}
+
+The interface relies on a card-based information architecture layered over a
+neutral background. Glassmorphism and soft elevation effects are applied
+selectively to authentication cards and dashboard panels, creating visual depth
+without introducing clutter.
+
+A master - detail layout is employed throughout the dashboard, with a
+persistent high-contrast sidebar acting as a stable navigational anchor. This
+structure reduces spatial disorientation and supports rapid context switching,
+which is essential in time-constrained clinical workflows
+\cite{shneiderman2016}.
+
+\subsubsection{Typography, Iconography, and Micro-Interactions}
+
+Clean sans-serif typography is used consistently to maximize legibility across
+varying screen sizes and lighting conditions. Minimalist line-based medical
+icons provide language-independent visual cues, accelerating recognition and
+navigation.
+
+Within the Patient Journey Dashboard, medical events are represented as
+stylized nodes with subtle glow effects and connective paths. This transforms
+static medical history into an interactive visual map, reinforcing the notion
+of patient data as an evolving clinical narrative rather than a static record.
+
 \subsection{Authentication Suite}
 
 \subsubsection{Sign In Interface}
@@ -82,6 +132,13 @@ Supported features include standard credential authentication. Research
 indicates that early user impressions significantly influence perceived
 reliability in clinical systems \cite{zhang2010}.
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/signin.jpeg}
+    \caption{Sign In interface of CFI-Care showing a split-view layout with value proposition messaging on the left and a glassmorphism-inspired authentication card on the right.}
+    \label{fig:signin}
+\end{figure}
+
 \subsubsection{Create Account Interface}
 
 The Create Account page maintains visual consistency with the Sign In interface
@@ -89,6 +146,13 @@ to reduce cognitive load and ensure continuity. The registration form collects
 the user’s full name, email address, and password confirmation, enabling a
 low-friction onboarding process. Minimizing onboarding complexity has been
 shown to improve professional software adoption \cite{nielsen1994}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/signup.jpeg}
+    \caption{Create Account interface maintaining visual consistency with the Sign In page to ensure low cognitive load and streamlined onboarding.}
+    \label{fig:signup}
+\end{figure}
 
 \subsection{Patients Dashboard}
 
@@ -106,6 +170,13 @@ in medical information systems \cite{shneiderman2016}. The layout consists of:
     \item \textbf{Patient Navigator (Left Sidebar):} Includes a search bar and a list of patient cards displaying key metadata such as age and last update timestamp.
     \item \textbf{Clinical Summary View (Main Panel):} Displays structured patient information using a card-based layout.
 \end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/dashboard.jpeg}
+    \caption{Patients Dashboard illustrating the master--detail layout with a patient navigator on the left and a structured clinical summary view on the right.}
+    \label{fig:patients_dashboard}
+\end{figure}
 
 \subsection{Clinical Summary View}
 
@@ -218,7 +289,14 @@ structured modal dialogs. Destructive actions such as deletion require explicit
 confirmation to prevent accidental data loss, following safety-oriented
 interface guidelines \cite{iec62366}.
 
-\subsection{Patient Journey Dashboard -- Chronological View}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/categorical.jpeg}
+    \caption{Categorical Patient Journey view representing medical events as a hierarchical graph. High-priority events are highlighted, and structural relationships between nodes are emphasized.}
+    \label{fig:categorical_graph}
+\end{figure}
+
+\subsection{Patient Journey Dashboard - Chronological View}
 
 \subsubsection{Purpose and Conceptual Model}
 
@@ -274,6 +352,13 @@ A toggle control allows instant switching between categorical and chronological
 views. This interaction is fully stateful and does not require page reloads,
 enabling clinicians to seamlessly transition between structural and temporal
 perspectives during analysis.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/chronological.jpeg}
+    \caption{Chronological Patient Journey view displaying medical events along a horizontal timeline. Parallel branches represent alternative diagnostic or treatment pathways explored during clinical reasoning.}
+    \label{fig:chronological_graph}
+\end{figure}
 
 \subsection{Complementary Roles of Categorical and Chronological Views}
 

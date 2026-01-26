@@ -1,4 +1,4 @@
-\section{System Architecture}
+\subsection{System Architecture}
 \label{sec:system_architecture}
 
 The CFI-Care system is built upon a robust three-tier architecture designed to
@@ -120,7 +120,7 @@ specific functionality: authentication verification, input validation, business
 logic execution, data transformation, and response formatting.
 
 \subsubsection{Request Ingress and Authentication}
-A request originates from the Angular frontend as an HTTP request, typically
+A request originates from the Angular frontend as an HTTPS request, typically
 including a Bearer token in the Authorization header. The request first reaches
 the Nginx reverse proxy, which acts as the external-facing gateway. Nginx
 terminates the TLS/SSL connection, decrypts the HTTPS payload, and forwards the
@@ -217,9 +217,8 @@ The request undergoes the same initial security and authentication pipeline as
 before. Upon reaching the EncounterService controller, the request enters the
 input validation phase. The encounter data is validated against a schema
 ensuring that all required fields are present and correctly formatted. The
-encounter date is verified to be a valid date and logically consistent (e.g.,
-encounter date cannot be in the future). The patient ID is validated to ensure
-the patient exists in the system.
+encounter date is verified to be a valid date and logically consistent. The
+patient ID is validated to ensure the patient exists in the system.
 
 Next, the EncounterService constructs a FHIR Encounter resource conforming to
 the FHIR R5 standard and submits a POST request to the HAPI FHIR server:
@@ -290,10 +289,9 @@ in subsequent requests.
 Throughout this flow, validation occurs at multiple critical junctures. Input
 validation at the controller layer ensures that user-supplied data conforms to
 expected types and ranges. Business logic validation in the service layer
-verifies that operations are consistent with clinical rules (e.g., an encounter
-date cannot precede a patient's birth date). FHIR resource validation at the
-HAPI FHIR server ensures that resources conform to the FHIR R5 specification,
-preventing invalid data from being persisted.
+verifies that operations are consistent with clinical rules. FHIR resource
+validation at the HAPI FHIR server ensures that resources conform to the FHIR
+R5 specification, preventing invalid data from being persisted.
 
 Error conditions at any stage result in appropriate HTTP status codes and error
 messages: 400 Bad Request for input validation failures, 403 Forbidden for

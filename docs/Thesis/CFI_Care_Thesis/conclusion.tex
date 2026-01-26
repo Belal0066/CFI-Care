@@ -1,16 +1,18 @@
 \chapter{Conclusion and Future Work}\label{chap:conclAndFutureWork}
 
-
 \section{Conclusion}
-This thesis presented CFI-Care, a patient-centric healthcare platform that addresses three critical gaps in current digital health systems.
-The implemented system successfully consolidates fragmented medical records into a unified platform. 
-The HAPI FHIR server, backed by PostgreSQL, provides standards-compliant storage for clinical resources (Patient, Encounter, Practioner, etc..),
-enabling cross-institutional data exchange. 
-The Node.js layer translates FHIR resources into application-specific formats while enforcing business logic and security policies. 
-The Angular frontend delivers an interactive interface for patients to manage their health data and for clinicians to review patient histories.
+This thesis presented CFI-Care, a patient-centric healthcare platform that
+addresses three critical gaps in current digital health systems. The
+implemented system successfully consolidates fragmented medical records into a
+unified platform. The HAPI FHIR server, backed by PostgreSQL, provides
+standards-compliant storage for clinical resources (Patient, Encounter,
+Practioner, etc..), enabling cross-institutional data exchange. The Node.js
+layer translates FHIR resources into application-specific formats while
+enforcing business logic and security policies. The Angular frontend delivers
+an interactive interface for patients to manage their health data and for
+clinicians to review patient histories.
 
 \section{Future Work}
-
 
 \subsection{Security}
 
@@ -22,8 +24,68 @@ The Angular frontend delivers an interactive interface for patients to manage th
     \item Deploy security containers to cloud infrastructure with load balancing.
     \item Use Let's Encrypt for production level TLS certificates after cloud deployment.
     \item Complete the patient-doctor consent workflow and enforce it at the FHIR server.
-    \item Finalize role-to-scope mapping in Keycloak and document SMART on FHIR compliance.
-    \item Migrate to Authorization Code + PKCE for improved security and standards compliance.
+    \item Finalize role-to-scope mapping in Keycloak and document SMART on FHIR
+          compliance.
+    \item Migrate to Authorization Code + PKCE for improved security and standards
+          compliance.
     \item Build a centralized audit dashboard for security monitoring.
     \item Enable Redis persistence encryption for session and audit data at rest.
 \end{itemize}
+
+\subsection{Mobile}
+
+\subsubsection{Push Notifications}
+To enhance user engagement and ensure immediate response to critical events
+(e.g., doctor access requests), we plan to implement a robust Push Notification
+system. This architecture relies on \textbf{Firebase Cloud Messaging (FCM)} as
+the delivery intermediary.
+
+\paragraph{Technical Implementation}
+The proposed workflow consists of two distinct phases: Token Registration and
+Message Delivery.
+
+\begin{itemize}
+    \item \textbf{Token Generation (Frontend):}
+          Upon logging in, the Flutter application utilizes the \texttt{firebase\_messaging} \cite{firebase_messaging_pub}package to generate a unique Registration Token for the device. This token acts as the specific address for the user's phone.
+
+    \item \textbf{Token Registration (Backend):}
+          The mobile application transmits this token via a secure API endpoint (e.g., \texttt{POST /user/fcm-token}) to our Node.js backend. The backend associates this token with the User ID and stores it in the database.
+
+    \item \textbf{Notification Triggering:}
+          When a business event occurs (e.g., a doctor requests access), the Node.js backend retrieves the target user's stored FCM token. It then utilizes the \texttt{firebase-admin} SDK to dispatch the payload to the FCM servers, which subsequently route the notification to the user's device, even if the application is in the background.\cite{ashan2024push}
+\end{itemize}
+\subsubsection{Wearable Data Integration}
+To transition from a system of historical records to a platform for active
+health monitoring, we propose integrating \textbf{Android Health Connect}. This
+allows the application to ingest vital signs collected by smartwatches and
+fitness trackers.
+
+\subsubsection{Objective: Remote Patient Monitoring (RPM)}
+The goal is to automatically populate the "My Vitals" dashboard without manual
+entry. By syncing with devices (e.g., Samsung Galaxy Watch, Google Pixel
+Watch), the system can track:
+\begin{itemize}
+    \item \textbf{Heart Rate \& Variability (HRV):} To detect potential cardiac anomalies early.
+    \item \textbf{Activity Levels (Steps):} To monitor recovery progress after surgery.
+    \item \textbf{Sleep Quality:} To assess overall patient well-being.
+\end{itemize}
+
+\subsubsection{Health Connect}
+The Health Connect app is responsible for handling all the requests that your
+application sends through the Health Connect SDK. These requests include
+storing data and managing its read and write access.
+\cite{android_health_connect}
+\begin{enumerate}
+    \item \textbf{Data Aggregation:} Smartwatches sync their raw sensor data to the Health Connect app on the patient's Android phone.
+    \item \textbf{Privacy-First Access:} Our Flutter application requests specific granular permissions (e.g., \texttt{READ\_HEART\_RATE}) from Health Connect.
+    \item \textbf{Background Synchronization:} A background worker in the Flutter app periodically fetches new data points and transmits them to our Node.js backend.
+    \item \textbf{Anomaly Detection:} The backend analyzes these trends and triggers an alert notification to the doctor if vitals exceed safety thresholds.
+\end{enumerate}
+
+% \subsection{unit and widget testing and mockito}
+% image picker 
+% \subsection{How to monetize the application}
+% https://www.udacity.com/enrollment/ud518
+
+% \bibliography{sample}
+% \bibliographystyle{ieeetr}
