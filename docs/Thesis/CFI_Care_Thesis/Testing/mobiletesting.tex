@@ -44,11 +44,11 @@ more resource-intensive than unit or widget tests.
 We utilized the following standard Flutter testing libraries:
 \begin{itemize}
     \item \textbf{flutter\_test}: The core framework used to write and run assertions.\cite{flutter_testing_docs}
-    \item \textbf{mockito}: Used to simulate external dependencies. Since our ViewModels depend on Repositories (e.g., \texttt{BookingRepository}) and Plugins (e.g., \texttt{ImagePicker}), we created "Mock" objects to return controlled dummy data during tests.\cite{mockito_pub}
-    \item \textbf{build\_runner}: Used to automatically generate the Mock classes \newline(e.g., \texttt{MockMajorEventRepository}) using the \texttt{@GenerateMocks} annotation, ensuring our test mocks stay up-to-date with our actual interfaces.\cite{build_runner_pub}
+    \item \textbf{mockito}: Used to simulate external dependencies. Since our ViewModels depend on Repositories and Plugins, we created "Mock" objects to return controlled dummy data during tests.\cite{mockito_pub}
+    \item \textbf{build\_runner}: Used to automatically generate the Mock classes using the \texttt{@GenerateMocks} annotation, ensuring our test mocks stay up-to-date with our actual interfaces.\cite{build_runner_pub}
     \item \textbf{WidgetTester}: Provided by the \texttt{flutter\_test} package, this allows us to build and interact with widgets in a test environment without running the full app on an emulator.\cite{flutter_widgettester}
     \item \textbf{network\_image\_mock}: Since widget tests run in a restrictive environment without real internet access, standard \texttt{Image.network} widgets would fail. We used this package to wrap our tests and mock successful image loads.\cite{tigerasks2024provider, network_image_mock}
-    \item \textbf{Provider Injection}: Many of our widgets (e.g., \texttt{DoctorCard}) rely on \newline\texttt{ChangeNotifierProvider}. In tests, we injected "Mock Providers" (created with Mockito) to supply controlled data and verify that buttons trigger the correct business logic.\cite{tigerasks2024provider}
+    \item \textbf{Provider Injection}: Many of our widgets rely on \newline\texttt{ChangeNotifierProvider}. In tests, we injected "Mock Providers" (created with Mockito) to supply controlled data and verify that buttons trigger the correct business logic.\cite{tigerasks2024provider}
 \end{itemize}
 
 \subsection{Unit Testing Implementation}
@@ -94,7 +94,7 @@ This provider handles fetching the patient's "Major Events" and their
 sub-nodes.
 \begin{itemize}
     \item \textbf{State Management:} We tested the \texttt{fetchEvents} method to ensure the \texttt{isLoading} boolean correctly toggles to \texttt{true} when the call starts and \texttt{false} when data is received.
-    \item \textbf{Data Clearing:} We verified that fetching details for a new event (e.g., "Surgery") correctly clears the old data from the previous event to prevent showing stale information.
+    \item \textbf{Data Clearing:} We verified that fetching details for a new event correctly clears the old data from the previous event to prevent showing stale information.
 \end{itemize}
 
 \begin{verbatim}
