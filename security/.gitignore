@@ -1,0 +1,17 @@
+# security files
+
+*/certs/
+*/.secrets/
+# development-realm.json
+# realms.json
+.env
+Plan.md
+
+test-login.html
+sign_in.html
+route.html
+
+login/
+css/
+
+decode_jwt.py
