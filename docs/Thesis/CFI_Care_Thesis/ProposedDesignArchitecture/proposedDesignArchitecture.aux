@@ -20,25 +20,87 @@
 \@writefile{toc}{\contentsline {subsubsection}{Caching and Auditing}{11}{section*.14}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table.}}{12}{figure.caption.15}\protected@file@percent }
 \newlabel{fig:database_schema}{{3.3}{12}{Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table}{figure.caption.15}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.4}Security and Infrastructure Layer}{12}{subsection.3.1.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.5}HAPI FHIR Server Implementation}{12}{subsection.3.1.5}\protected@file@percent }
-\newlabel{subsec:hapi_fhir_server}{{3.1.5}{12}{HAPI FHIR Server Implementation}{subsection.3.1.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.2}Patient History Graph Implementation}{13}{section.3.2}\protected@file@percent }
-\newlabel{sec:graph_logic}{{3.2}{13}{Patient History Graph Implementation}{section.3.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.1}Graph Construction Algorithm}{13}{subsection.3.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}Temporal Branching}{14}{subsection.3.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.3}Performance Optimization}{14}{section.3.3}\protected@file@percent }
-\newlabel{sec:backend_optimization}{{3.3}{14}{Performance Optimization}{section.3.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Tier 1: Standard Resource Cache}{14}{subsection.3.3.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Tier 2: Specialized Graph Cache}{14}{subsection.3.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.4}Frontend}{14}{section.3.4}\protected@file@percent }
-\newlabel{chap:Frontend}{{3.4}{14}{Frontend}{section.3.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.5}Mobile}{14}{section.3.5}\protected@file@percent }
-\newlabel{chap:Mobile}{{3.5}{14}{Mobile}{section.3.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.4}Request/Response Flow and Data Transformation Pipeline}{12}{subsection.3.1.4}\protected@file@percent }
+\newlabel{subsec:request_response_flow}{{3.1.4}{12}{Request/Response Flow and Data Transformation Pipeline}{subsection.3.1.4}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Request Ingress and Authentication}{12}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Concrete Example: Patient Data Retrieval}{13}{section*.17}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces Request/Response flow for patient data retrieval, showing cache hit and miss scenarios with complete middleware pipeline.}}{14}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:request_response_flow}{{3.4}{14}{Request/Response flow for patient data retrieval, showing cache hit and miss scenarios with complete middleware pipeline}{figure.caption.18}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Concrete Example: Encounter Creation and Graph Update}{14}{section*.19}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3.5}{\ignorespaces Complete encounter creation workflow showing FHIR resource persistence, graph construction, and cache invalidation cascade.}}{16}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:encounter_creation_flow}{{3.5}{16}{Complete encounter creation workflow showing FHIR resource persistence, graph construction, and cache invalidation cascade}{figure.caption.20}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Validation Points and Error Conditions}{16}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.5}Error Handling and Fault Tolerance}{17}{subsection.3.1.5}\protected@file@percent }
+\newlabel{subsec:error_handling}{{3.1.5}{17}{Error Handling and Fault Tolerance}{subsection.3.1.5}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Layered Error Handling Strategy}{17}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Fallback Mechanisms and Graceful Degradation}{17}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Circuit Breaker Pattern}{18}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Resilience for Cache Operations}{18}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Logging and Observability for Error Diagnosis}{19}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.6}Security and Infrastructure Layer}{19}{subsection.3.1.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.7}HAPI FHIR Server Implementation}{19}{subsection.3.1.7}\protected@file@percent }
+\newlabel{subsec:hapi_fhir_server}{{3.1.7}{19}{HAPI FHIR Server Implementation}{subsection.3.1.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}API Design and Endpoints}{20}{section.3.2}\protected@file@percent }
+\newlabel{sec:api_design}{{3.2}{20}{API Design and Endpoints}{section.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.1}RESTful Structure and Formats}{20}{subsection.3.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}FHIR-Compliant Endpoints}{21}{subsection.3.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}Custom History Graph Endpoints}{21}{subsection.3.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Key REST API Endpoints provided by the Node.js Backend.}}{22}{table.caption.27}\protected@file@percent }
+\newlabel{tab:api_endpoints}{{3.1}{22}{Key REST API Endpoints provided by the Node.js Backend}{table.caption.27}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Patient History Graph Implementation}{22}{section.3.3}\protected@file@percent }
+\newlabel{sec:graph_logic}{{3.3}{22}{Patient History Graph Implementation}{section.3.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Motivation: Beyond Linear Medical Records}{22}{subsection.3.3.1}\protected@file@percent }
+\newlabel{subsec:graph_motivation}{{3.3.1}{22}{Motivation: Beyond Linear Medical Records}{subsection.3.3.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.6}{\ignorespaces Example Patient History Graph showing a diabetes patient with concurrent hypertension, demonstrating temporal branching and multiple relationship types.}}{23}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:patient_history_graph_example}{{3.6}{23}{Example Patient History Graph showing a diabetes patient with concurrent hypertension, demonstrating temporal branching and multiple relationship types}{figure.caption.28}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Graph Data Model}{24}{subsection.3.3.2}\protected@file@percent }
+\newlabel{subsec:graph_model}{{3.3.2}{24}{Graph Data Model}{subsection.3.3.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Node Representation}{24}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Edge Representation}{24}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.3}Graph Construction Algorithm}{24}{subsection.3.3.3}\protected@file@percent }
+\newlabel{subsec:graph_construction}{{3.3.3}{24}{Graph Construction Algorithm}{subsection.3.3.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Stage 1: Node Creation}{24}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Stage 2: Temporal Scanning and Parent Identification}{25}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Stage 3: Edge Creation}{25}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Algorithm Pseudocode}{25}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.4}Temporal Branching and Concurrent Episodes}{26}{subsection.3.3.4}\protected@file@percent }
+\newlabel{subsec:temporal_branching}{{3.3.4}{26}{Temporal Branching and Concurrent Episodes}{subsection.3.3.4}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Head Node Concept}{26}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Visual Implications}{27}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Clinical Advantages}{27}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.5}Relationship Classification}{27}{subsection.3.3.5}\protected@file@percent }
+\newlabel{subsec:relationship_types}{{3.3.5}{27}{Relationship Classification}{subsection.3.3.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.6}Handling Edge Cases}{28}{subsection.3.3.6}\protected@file@percent }
+\newlabel{subsec:edge_cases}{{3.3.6}{28}{Handling Edge Cases}{subsection.3.3.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.7}Query Patterns and Optimization}{28}{subsection.3.3.7}\protected@file@percent }
+\newlabel{subsec:graph_queries}{{3.3.7}{28}{Query Patterns and Optimization}{subsection.3.3.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Performance Optimization}{29}{section.3.4}\protected@file@percent }
+\newlabel{sec:backend_optimization}{{3.4}{29}{Performance Optimization}{section.3.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.7}{\ignorespaces Two-Tier Caching Architecture showing distinct strategies for standard FHIR resources (Tier 1) and complex graph structures (Tier 2).}}{30}{figure.caption.38}\protected@file@percent }
+\newlabel{fig:two_tier_caching}{{3.7}{30}{Two-Tier Caching Architecture showing distinct strategies for standard FHIR resources (Tier 1) and complex graph structures (Tier 2)}{figure.caption.38}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4.1}Tier 1: Standard Resource Cache}{30}{subsection.3.4.1}\protected@file@percent }
+\newlabel{subsec:tier1_cache}{{3.4.1}{30}{Tier 1: Standard Resource Cache}{subsection.3.4.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Mechanism and Interception}{30}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Time-To-Live (TTL) Management}{31}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Cache Invalidation for Tier 1}{31}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Practical Impact}{32}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4.2}Tier 2: Specialized Graph Cache}{32}{subsection.3.4.2}\protected@file@percent }
+\newlabel{subsec:tier2_cache}{{3.4.2}{32}{Tier 2: Specialized Graph Cache}{subsection.3.4.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Computational Cost of Graph Construction}{32}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{The Graph Cache Manager: toonNodesCacheHelper}{33}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Aggressive Invalidation Strategy}{33}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Cache Reconstruction Workflow}{33}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Hit Rate and Performance Impact}{34}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Coordination Between Tier 1 and Tier 2}{34}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Memory Management and Cache Eviction}{34}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Frontend}{35}{section.3.5}\protected@file@percent }
+\newlabel{chap:Frontend}{{3.5}{35}{Frontend}{section.3.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Mobile}{35}{section.3.6}\protected@file@percent }
+\newlabel{chap:Mobile}{{3.6}{35}{Mobile}{section.3.6}{}}
 \@setckpt{ProposedDesignArchitecture/proposedDesignArchitecture}{
-\setcounter{page}{15}
+\setcounter{page}{36}
 \setcounter{equation}{0}
-\setcounter{enumi}{0}
+\setcounter{enumi}{6}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
 \setcounter{enumiv}{0}
@@ -46,13 +108,13 @@
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
 \setcounter{chapter}{3}
-\setcounter{section}{5}
+\setcounter{section}{6}
 \setcounter{subsection}{0}
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{3}
-\setcounter{table}{0}
+\setcounter{figure}{7}
+\setcounter{table}{1}
 \setcounter{float@type}{8}
 \setcounter{caption@flags}{2}
 \setcounter{continuedfloat}{0}
@@ -67,9 +129,9 @@
 \setcounter{@ppsavesec}{0}
 \setcounter{@ppsaveapp}{0}
 \setcounter{section@level}{1}
-\setcounter{Item}{0}
+\setcounter{Item}{6}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{24}
+\setcounter{bookmark@seq@number}{35}
 \setcounter{ALC@unique}{0}
 \setcounter{ALC@line}{0}
 \setcounter{ALC@rem}{0}

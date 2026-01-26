@@ -17,22 +17,62 @@
 \contentsline {subsubsection}{Relational Data}{11}{section*.12}%
 \contentsline {subsubsection}{Custom Graph Schema}{11}{section*.13}%
 \contentsline {subsubsection}{Caching and Auditing}{11}{section*.14}%
-\contentsline {subsection}{\numberline {3.1.4}Security and Infrastructure Layer}{12}{subsection.3.1.4}%
-\contentsline {subsection}{\numberline {3.1.5}HAPI FHIR Server Implementation}{12}{subsection.3.1.5}%
-\contentsline {section}{\numberline {3.2}Patient History Graph Implementation}{13}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Graph Construction Algorithm}{13}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}Temporal Branching}{14}{subsection.3.2.2}%
-\contentsline {section}{\numberline {3.3}Performance Optimization}{14}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Tier 1: Standard Resource Cache}{14}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}Tier 2: Specialized Graph Cache}{14}{subsection.3.3.2}%
-\contentsline {section}{\numberline {3.4}Frontend}{14}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Mobile}{14}{section.3.5}%
-\contentsline {chapter}{\numberline {4}Security Framework}{15}{chapter.4}%
-\contentsline {chapter}{\numberline {5}AI Integration}{16}{chapter.5}%
-\contentsline {chapter}{\numberline {6}Testing and Verification}{17}{chapter.6}%
-\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{18}{chapter.7}%
-\contentsline {chapter}{Appendix}{19}{section*.16}%
-\contentsline {chapter}{\numberline {A}Lists}{20}{appendix.A}%
-\contentsline {section}{List of Abbreviations}{20}{section*.17}%
-\contentsline {section}{List of Figures}{21}{appendix*.18}%
-\contentsline {chapter}{References}{22}{appendix*.18}%
+\contentsline {subsection}{\numberline {3.1.4}Request/Response Flow and Data Transformation Pipeline}{12}{subsection.3.1.4}%
+\contentsline {subsubsection}{Request Ingress and Authentication}{12}{section*.16}%
+\contentsline {subsubsection}{Concrete Example: Patient Data Retrieval}{13}{section*.17}%
+\contentsline {subsubsection}{Concrete Example: Encounter Creation and Graph Update}{14}{section*.19}%
+\contentsline {subsubsection}{Validation Points and Error Conditions}{16}{section*.21}%
+\contentsline {subsection}{\numberline {3.1.5}Error Handling and Fault Tolerance}{17}{subsection.3.1.5}%
+\contentsline {subsubsection}{Layered Error Handling Strategy}{17}{section*.22}%
+\contentsline {subsubsection}{Fallback Mechanisms and Graceful Degradation}{17}{section*.23}%
+\contentsline {subsubsection}{Circuit Breaker Pattern}{18}{section*.24}%
+\contentsline {subsubsection}{Resilience for Cache Operations}{18}{section*.25}%
+\contentsline {subsubsection}{Logging and Observability for Error Diagnosis}{19}{section*.26}%
+\contentsline {subsection}{\numberline {3.1.6}Security and Infrastructure Layer}{19}{subsection.3.1.6}%
+\contentsline {subsection}{\numberline {3.1.7}HAPI FHIR Server Implementation}{19}{subsection.3.1.7}%
+\contentsline {section}{\numberline {3.2}API Design and Endpoints}{20}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}RESTful Structure and Formats}{20}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}FHIR-Compliant Endpoints}{21}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Custom History Graph Endpoints}{21}{subsection.3.2.3}%
+\contentsline {section}{\numberline {3.3}Patient History Graph Implementation}{22}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Motivation: Beyond Linear Medical Records}{22}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Graph Data Model}{24}{subsection.3.3.2}%
+\contentsline {subsubsection}{Node Representation}{24}{section*.29}%
+\contentsline {subsubsection}{Edge Representation}{24}{section*.30}%
+\contentsline {subsection}{\numberline {3.3.3}Graph Construction Algorithm}{24}{subsection.3.3.3}%
+\contentsline {subsubsection}{Stage 1: Node Creation}{24}{section*.31}%
+\contentsline {subsubsection}{Stage 2: Temporal Scanning and Parent Identification}{25}{section*.32}%
+\contentsline {subsubsection}{Stage 3: Edge Creation}{25}{section*.33}%
+\contentsline {subsubsection}{Algorithm Pseudocode}{25}{section*.34}%
+\contentsline {subsection}{\numberline {3.3.4}Temporal Branching and Concurrent Episodes}{26}{subsection.3.3.4}%
+\contentsline {subsubsection}{Head Node Concept}{26}{section*.35}%
+\contentsline {subsubsection}{Visual Implications}{27}{section*.36}%
+\contentsline {subsubsection}{Clinical Advantages}{27}{section*.37}%
+\contentsline {subsection}{\numberline {3.3.5}Relationship Classification}{27}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {3.3.6}Handling Edge Cases}{28}{subsection.3.3.6}%
+\contentsline {subsection}{\numberline {3.3.7}Query Patterns and Optimization}{28}{subsection.3.3.7}%
+\contentsline {section}{\numberline {3.4}Performance Optimization}{29}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Tier 1: Standard Resource Cache}{30}{subsection.3.4.1}%
+\contentsline {subsubsection}{Mechanism and Interception}{30}{section*.39}%
+\contentsline {subsubsection}{Time-To-Live (TTL) Management}{31}{section*.40}%
+\contentsline {subsubsection}{Cache Invalidation for Tier 1}{31}{section*.41}%
+\contentsline {subsubsection}{Practical Impact}{32}{section*.42}%
+\contentsline {subsection}{\numberline {3.4.2}Tier 2: Specialized Graph Cache}{32}{subsection.3.4.2}%
+\contentsline {subsubsection}{Computational Cost of Graph Construction}{32}{section*.43}%
+\contentsline {subsubsection}{The Graph Cache Manager: toonNodesCacheHelper}{33}{section*.44}%
+\contentsline {subsubsection}{Aggressive Invalidation Strategy}{33}{section*.45}%
+\contentsline {subsubsection}{Cache Reconstruction Workflow}{33}{section*.46}%
+\contentsline {subsubsection}{Hit Rate and Performance Impact}{34}{section*.47}%
+\contentsline {subsubsection}{Coordination Between Tier 1 and Tier 2}{34}{section*.48}%
+\contentsline {subsubsection}{Memory Management and Cache Eviction}{34}{section*.49}%
+\contentsline {section}{\numberline {3.5}Frontend}{35}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Mobile}{35}{section.3.6}%
+\contentsline {chapter}{\numberline {4}Security Framework}{36}{chapter.4}%
+\contentsline {chapter}{\numberline {5}AI Integration}{37}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Testing and Verification}{38}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{39}{chapter.7}%
+\contentsline {chapter}{Appendix}{40}{section*.50}%
+\contentsline {chapter}{\numberline {A}Lists}{41}{appendix.A}%
+\contentsline {section}{List of Abbreviations}{41}{section*.51}%
+\contentsline {section}{List of Figures}{42}{appendix*.52}%
+\contentsline {chapter}{References}{43}{appendix*.52}%
