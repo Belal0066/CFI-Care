@@ -10,115 +10,109 @@
 \contentsline {section}{\numberline {2.1}Authentication and Authorization Standards}{7}{section.2.1}%
 \contentsline {subsection}{\numberline {2.1.1}OAuth 2.0 and OIDC}{7}{subsection.2.1.1}%
 \contentsline {subsection}{\numberline {2.1.2}JSON Web Tokens (JWT)}{7}{subsection.2.1.2}%
-\contentsline {subsection}{\numberline {2.1.3}PKCE (Proof Key for Code Exchange)}{8}{subsection.2.1.3}%
-\contentsline {section}{\numberline {2.2}Healthcare Security and Standards}{8}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}FHIR and SMART on FHIR}{8}{subsection.2.2.1}%
-\contentsline {subsection}{\numberline {2.2.2}HIPAA and GDPR}{8}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.1.3}PKCE}{7}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Healthcare Security and Standards}{7}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}FHIR and SMART on FHIR}{7}{subsection.2.2.1}%
 \contentsline {section}{\numberline {2.3}Token-Based Authentication Patterns}{8}{section.2.3}%
-\contentsline {subsection}{\numberline {2.3.1}Backend-for-Frontend (BFF) Pattern}{8}{subsection.2.3.1}%
-\contentsline {subsection}{\numberline {2.3.2}Session Management}{9}{subsection.2.3.2}%
-\contentsline {section}{\numberline {2.4}API Security}{9}{section.2.4}%
-\contentsline {subsection}{\numberline {2.4.1}Rate Limiting and DDoS Protection}{9}{subsection.2.4.1}%
-\contentsline {subsection}{\numberline {2.4.2}Input Validation and XSS Prevention}{9}{subsection.2.4.2}%
-\contentsline {subsection}{\numberline {2.4.3}CORS and CSRF Protection}{9}{subsection.2.4.3}%
-\contentsline {section}{\numberline {2.5}Mobile Application Security}{10}{section.2.5}%
-\contentsline {subsection}{\numberline {2.5.1}Secure Token Storage}{10}{subsection.2.5.1}%
-\contentsline {subsection}{\numberline {2.5.2}Certificate Pinning}{10}{subsection.2.5.2}%
-\contentsline {section}{\numberline {2.6}Audit Logging and Compliance}{10}{section.2.6}%
-\contentsline {subsection}{\numberline {2.6.1}Security Event Logging}{10}{subsection.2.6.1}%
-\contentsline {subsection}{\numberline {2.6.2}Threat Modeling}{10}{subsection.2.6.2}%
-\contentsline {section}{\numberline {2.7}Infrastructure and Deployment}{10}{section.2.7}%
-\contentsline {subsection}{\numberline {2.7.1}TLS and Encryption}{10}{subsection.2.7.1}%
-\contentsline {subsection}{\numberline {2.7.2}API Gateway and Reverse Proxy}{11}{subsection.2.7.2}%
-\contentsline {subsection}{\numberline {2.7.3}Containerization and Orchestration}{11}{subsection.2.7.3}%
-\contentsline {section}{\numberline {2.8}Summary}{11}{section.2.8}%
-\contentsline {chapter}{\numberline {3}Proposed Design Architecture}{12}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Backend}{12}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Frontend}{12}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Mobile}{12}{section.3.3}%
-\contentsline {chapter}{\numberline {4}Security}{13}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Introduction}{13}{section.4.1}%
-\contentsline {section}{\numberline {4.2}Architecture \& Design}{13}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Identity \& Access Management}{15}{subsection.4.2.1}%
-\contentsline {subsubsection}{Keycloak Realm \& Clients}{15}{section*.9}%
-\contentsline {subsubsection}{Browser Flow }{15}{section*.10}%
-\contentsline {paragraph}{Planned Browser Hardening ( Email Verification)}{17}{section*.12}%
-\contentsline {subsubsection}{Mobile Flow}{17}{section*.14}%
-\contentsline {subsubsection}{Session Storage }{19}{section*.16}%
-\contentsline {subsection}{\numberline {4.2.2}Authorization \& Policy Enforcement}{19}{subsection.4.2.2}%
-\contentsline {subsubsection}{BFF Middleware: Session Check, JWT Verify, Scope Validation}{19}{section*.17}%
-\contentsline {subsubsection}{FHIR Server Enforcement}{19}{section*.18}%
-\contentsline {subsection}{\numberline {4.2.3}Doctor–Patient Consent \& Access Grants}{19}{subsection.4.2.3}%
-\contentsline {subsection}{\numberline {4.2.4}Session Management \& Revocation}{20}{subsection.4.2.4}%
-\contentsline {subsection}{\numberline {4.2.5}Defense-in-Depth}{22}{subsection.4.2.5}%
-\contentsline {subsubsection}{Edge}{22}{section*.20}%
-\contentsline {subsubsection}{API Gateway (nginx)}{22}{section*.21}%
-\contentsline {subsubsection}{BFF}{22}{section*.22}%
-\contentsline {paragraph}{Input Validation \& Rate Limiting}{22}{section*.23}%
-\contentsline {paragraph}{Security Event Logging \& Audit Trail}{23}{section*.24}%
-\contentsline {paragraph}{Session Revocation \& Logout}{23}{section*.25}%
-\contentsline {subsubsection}{Resource Server (FHIR Policies)}{23}{section*.26}%
-\contentsline {section}{\numberline {4.3}Implementation \& Setup}{23}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}Keycloak Configuration}{23}{subsection.4.3.1}%
-\contentsline {subsubsection}{Clients, Scopes}{23}{section*.27}%
-\contentsline {subsubsection}{Password Policy}{23}{section*.28}%
-\contentsline {subsection}{\numberline {4.3.2}Backend-for-Frontend (BFF) Security Implementation}{24}{subsection.4.3.2}%
-\contentsline {subsubsection}{Session Middleware (Redis), Token Refresh, Token Rotation}{24}{section*.29}%
-\contentsline {subsubsection}{JWT Verification (JWKS), Scope Checks, Patient Binding}{24}{section*.30}%
-\contentsline {subsubsection}{Input Validation, Error Handling}{24}{section*.31}%
-\contentsline {subsubsection}{Mobile Authentication Endpoints (Future Work)}{24}{section*.32}%
-\contentsline {paragraph}{POST /auth/mobile/login:}{25}{section*.33}%
-\contentsline {paragraph}{POST /auth/refresh}{25}{section*.34}%
-\contentsline {paragraph}{POST /auth/logout ( will be updated for mobile)}{25}{section*.35}%
-\contentsline {subsection}{\numberline {4.3.3}nginx API Gateway}{25}{subsection.4.3.3}%
-\contentsline {subsubsection}{TLS Termination, HSTS, Secure Headers}{25}{section*.36}%
-\contentsline {subsubsection}{Proxy Configuration, Forwarded Headers}{26}{section*.37}%
-\contentsline {subsubsection}{CORS Configuration}{26}{section*.38}%
-\contentsline {subsection}{\numberline {4.3.4}Container Security \& Deployment}{26}{subsection.4.3.4}%
-\contentsline {subsection}{\numberline {4.3.5}Frontend \& Mobile Clients}{26}{subsection.4.3.5}%
-\contentsline {subsubsection}{Angular Frontend Architecture}{26}{section*.39}%
-\contentsline {paragraph}{Route Guards (Authentication Check)}{27}{section*.40}%
-\contentsline {paragraph}{Authentication Interceptor (401 Handling)}{27}{section*.41}%
-\contentsline {paragraph}{Credentials Handling (withCredentials Flag)}{27}{section*.42}%
-\contentsline {paragraph}{Error Handling \& User Feedback}{27}{section*.43}%
-\contentsline {paragraph}{Current User State Management}{28}{section*.44}%
-\contentsline {paragraph}{Third-Party Dependencies}{28}{section*.45}%
-\contentsline {subsubsection}{Mobile App (Flutter) Security Architecture}{28}{section*.46}%
-\contentsline {subsubsection}{Environment-Specific Configuration}{28}{section*.47}%
-\contentsline {subsection}{\numberline {4.3.6}Angular Frontend Security Implementation}{29}{subsection.4.3.6}%
-\contentsline {subsubsection}{Route Protection \& Guards}{29}{section*.48}%
-\contentsline {subsubsection}{HTTP Interceptors \& 401 Handling}{29}{section*.49}%
-\contentsline {subsubsection}{Cookie-Based Credentials}{29}{section*.50}%
-\contentsline {subsubsection}{Reactive State Management}{29}{section*.51}%
-\contentsline {subsubsection}{Error Transparency}{30}{section*.52}%
-\contentsline {subsection}{\numberline {4.3.7}Keycloak}{30}{subsection.4.3.7}%
-\contentsline {subsection}{\numberline {4.3.8}Redis}{30}{subsection.4.3.8}%
-\contentsline {subsection}{\numberline {4.3.9}nginx API Gateway}{30}{subsection.4.3.9}%
-\contentsline {subsection}{\numberline {4.3.10}PostgreSQL}{30}{subsection.4.3.10}%
-\contentsline {subsection}{\numberline {4.3.11}Node.js Backend-for-Frontend (BFF) Libraries}{31}{subsection.4.3.11}%
-\contentsline {section}{\numberline {4.4}Challenges \& Trade-offs}{31}{section.4.4}%
-\contentsline {subsection}{\numberline {4.4.1}Session Management Across Client Types}{31}{subsection.4.4.1}%
-\contentsline {subsection}{\numberline {4.4.2}Stateless Tokens vs. Revocation Needs}{31}{subsection.4.4.2}%
-\contentsline {subsection}{\numberline {4.4.3}Balancing Consent Privacy \& Usability}{32}{subsection.4.4.3}%
-\contentsline {subsection}{\numberline {4.4.4}Clock Skew \& Distributed Verification}{32}{subsection.4.4.4}%
-\contentsline {section}{\numberline {4.5}Security Analysis}{32}{section.4.5}%
-\contentsline {subsection}{\numberline {4.5.1}Attack Surface Analysis}{32}{subsection.4.5.1}%
-\contentsline {subsection}{\numberline {4.5.2}Threat Model \& Residual Risks}{33}{subsection.4.5.2}%
-\contentsline {subsection}{\numberline {4.5.3}Mitigations Implemented \& Gaps}{33}{subsection.4.5.3}%
-\contentsline {paragraph}{Implemented Mitigations}{33}{section*.53}%
-\contentsline {paragraph}{Gaps \& Future Work}{34}{section*.54}%
-\contentsline {section}{\numberline {4.6}Summary}{34}{section.4.6}%
-\contentsline {paragraph}{Identity \& Access (Keycloak + Tokens)}{34}{section*.55}%
-\contentsline {paragraph}{Browser Access (Sessions + BFF)}{34}{section*.56}%
-\contentsline {paragraph}{API Layer (Middleware + Validation)}{34}{section*.57}%
-\contentsline {paragraph}{Transport \& Edge (TLS + Headers)}{35}{section*.58}%
-\contentsline {paragraph}{Current State}{35}{section*.59}%
-\contentsline {paragraph}{Next Steps}{35}{section*.60}%
-\contentsline {chapter}{\numberline {5}AI Integration}{36}{chapter.5}%
-\contentsline {chapter}{\numberline {6}Testing and Verification}{37}{chapter.6}%
-\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{38}{chapter.7}%
-\contentsline {chapter}{Appendix}{39}{section*.61}%
-\contentsline {chapter}{\numberline {A}Lists}{40}{appendix.A}%
-\contentsline {section}{List of Abbreviations}{40}{section*.62}%
-\contentsline {section}{List of Figures}{41}{appendix*.63}%
-\contentsline {chapter}{References}{42}{appendix*.63}%
+\contentsline {subsection}{\numberline {2.3.1}Session Management}{8}{subsection.2.3.1}%
+\contentsline {section}{\numberline {2.4}API Security}{8}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Rate Limiting}{8}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Input Validation and XSS}{8}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}CSRF}{8}{subsection.2.4.3}%
+\contentsline {section}{\numberline {2.5}Mobile Application Security}{8}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Secure Token Storage}{8}{subsection.2.5.1}%
+\contentsline {section}{\numberline {2.6}Audit Logging and Compliance}{8}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Security Event Logging}{8}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Threat Modeling}{9}{subsection.2.6.2}%
+\contentsline {section}{\numberline {2.7}Infrastructure and Deployment}{9}{section.2.7}%
+\contentsline {subsection}{\numberline {2.7.1}API Gateway}{9}{subsection.2.7.1}%
+\contentsline {chapter}{\numberline {3}Proposed Design Architecture}{10}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Backend}{10}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Frontend}{10}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Mobile}{10}{section.3.3}%
+\contentsline {chapter}{\numberline {4}Security}{11}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Introduction}{11}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Architecture \& Design}{11}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Identity \& Access Management}{13}{subsection.4.2.1}%
+\contentsline {subsubsection}{Keycloak Realm \& Clients}{13}{section*.9}%
+\contentsline {subsubsection}{Browser Flow }{13}{section*.10}%
+\contentsline {paragraph}{Planned Browser Hardening ( Email Verification)}{15}{section*.12}%
+\contentsline {subsubsection}{Mobile Flow}{15}{section*.14}%
+\contentsline {subsubsection}{Session Storage }{17}{section*.16}%
+\contentsline {subsection}{\numberline {4.2.2}Authorization \& Policy Enforcement}{17}{subsection.4.2.2}%
+\contentsline {subsubsection}{BFF Middleware: Session Check, JWT Verify, Scope Validation}{17}{section*.17}%
+\contentsline {subsubsection}{FHIR Server Enforcement}{17}{section*.18}%
+\contentsline {subsection}{\numberline {4.2.3}Doctor–Patient Consent \& Access Grants}{17}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Session Management \& Revocation}{18}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.5}Defense-in-Depth}{20}{subsection.4.2.5}%
+\contentsline {subsubsection}{Edge}{20}{section*.20}%
+\contentsline {subsubsection}{API Gateway (nginx)}{20}{section*.21}%
+\contentsline {subsubsection}{BFF}{20}{section*.22}%
+\contentsline {paragraph}{Input Validation \& Rate Limiting}{20}{section*.23}%
+\contentsline {paragraph}{Security Event Logging \& Audit Trail}{21}{section*.24}%
+\contentsline {paragraph}{Session Revocation \& Logout}{21}{section*.25}%
+\contentsline {subsubsection}{Resource Server (FHIR Policies)}{21}{section*.26}%
+\contentsline {section}{\numberline {4.3}Implementation \& Setup}{21}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Keycloak Configuration}{21}{subsection.4.3.1}%
+\contentsline {subsubsection}{Clients, Scopes}{21}{section*.27}%
+\contentsline {subsubsection}{Password Policy}{21}{section*.28}%
+\contentsline {subsection}{\numberline {4.3.2}Backend-for-Frontend (BFF) Security Implementation}{22}{subsection.4.3.2}%
+\contentsline {subsubsection}{Session Middleware (Redis), Token Refresh, Token Rotation}{22}{section*.29}%
+\contentsline {subsubsection}{JWT Verification (JWKS), Scope Checks, Patient Binding}{22}{section*.30}%
+\contentsline {subsubsection}{Input Validation, Error Handling}{22}{section*.31}%
+\contentsline {subsubsection}{Mobile Authentication Endpoints (Future Work)}{22}{section*.32}%
+\contentsline {paragraph}{POST /auth/mobile/login:}{23}{section*.33}%
+\contentsline {paragraph}{POST /auth/refresh}{23}{section*.34}%
+\contentsline {paragraph}{POST /auth/logout ( will be updated for mobile)}{23}{section*.35}%
+\contentsline {subsection}{\numberline {4.3.3}nginx API Gateway}{23}{subsection.4.3.3}%
+\contentsline {subsubsection}{TLS Termination, HSTS, Secure Headers}{23}{section*.36}%
+\contentsline {subsubsection}{Proxy Configuration, Forwarded Headers}{24}{section*.37}%
+\contentsline {subsubsection}{CORS Configuration}{24}{section*.38}%
+\contentsline {subsection}{\numberline {4.3.4}Container Security \& Deployment}{24}{subsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.3.5}Frontend \& Mobile Clients}{24}{subsection.4.3.5}%
+\contentsline {subsubsection}{Angular Frontend Architecture}{24}{section*.39}%
+\contentsline {paragraph}{Route Guards (Authentication Check)}{25}{section*.40}%
+\contentsline {paragraph}{Authentication Interceptor (401 Handling)}{25}{section*.41}%
+\contentsline {paragraph}{Credentials Handling (withCredentials Flag)}{25}{section*.42}%
+\contentsline {paragraph}{Error Handling \& User Feedback}{25}{section*.43}%
+\contentsline {paragraph}{Current User State Management}{26}{section*.44}%
+\contentsline {paragraph}{Third-Party Dependencies}{26}{section*.45}%
+\contentsline {subsubsection}{Mobile App (Flutter) Security Architecture}{26}{section*.46}%
+\contentsline {subsubsection}{Environment-Specific Configuration}{26}{section*.47}%
+\contentsline {subsection}{\numberline {4.3.6}Angular Frontend Security Implementation}{27}{subsection.4.3.6}%
+\contentsline {subsubsection}{Route Protection \& Guards}{27}{section*.48}%
+\contentsline {subsubsection}{HTTP Interceptors \& 401 Handling}{27}{section*.49}%
+\contentsline {subsubsection}{Cookie-Based Credentials}{27}{section*.50}%
+\contentsline {subsubsection}{Reactive State Management}{27}{section*.51}%
+\contentsline {subsubsection}{Error Transparency}{28}{section*.52}%
+\contentsline {subsection}{\numberline {4.3.7}Keycloak}{28}{subsection.4.3.7}%
+\contentsline {subsection}{\numberline {4.3.8}Redis}{28}{subsection.4.3.8}%
+\contentsline {subsection}{\numberline {4.3.9}nginx API Gateway}{28}{subsection.4.3.9}%
+\contentsline {subsection}{\numberline {4.3.10}PostgreSQL}{28}{subsection.4.3.10}%
+\contentsline {subsection}{\numberline {4.3.11}Node.js Backend-for-Frontend (BFF) Libraries}{29}{subsection.4.3.11}%
+\contentsline {section}{\numberline {4.4}Challenges \& Trade-offs}{29}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Session Management Across Client Types}{29}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Stateless Tokens vs. Revocation Needs}{29}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Balancing Consent Privacy \& Usability}{30}{subsection.4.4.3}%
+\contentsline {subsection}{\numberline {4.4.4}Clock Skew \& Distributed Verification}{30}{subsection.4.4.4}%
+\contentsline {section}{\numberline {4.5}Security Analysis}{30}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Attack Surface Analysis}{30}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Threat Model \& Residual Risks}{31}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}Mitigations Implemented \& Gaps}{31}{subsection.4.5.3}%
+\contentsline {paragraph}{Implemented Mitigations}{31}{section*.53}%
+\contentsline {paragraph}{Gaps \& Future Work}{32}{section*.54}%
+\contentsline {section}{\numberline {4.6}Summary}{32}{section.4.6}%
+\contentsline {paragraph}{Identity \& Access (Keycloak + Tokens)}{32}{section*.55}%
+\contentsline {paragraph}{Browser Access (Sessions + BFF)}{32}{section*.56}%
+\contentsline {paragraph}{API Layer (Middleware + Validation)}{32}{section*.57}%
+\contentsline {paragraph}{Transport \& Edge (TLS + Headers)}{33}{section*.58}%
+\contentsline {paragraph}{Current State}{33}{section*.59}%
+\contentsline {paragraph}{Next Steps}{33}{section*.60}%
+\contentsline {chapter}{\numberline {5}AI Integration}{34}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Testing and Verification}{35}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{36}{chapter.7}%
+\contentsline {chapter}{Appendix}{37}{section*.61}%
+\contentsline {chapter}{\numberline {A}Lists}{38}{appendix.A}%
+\contentsline {section}{List of Abbreviations}{38}{section*.62}%
+\contentsline {section}{List of Figures}{39}{appendix*.63}%
+\contentsline {chapter}{References}{40}{appendix*.63}%
