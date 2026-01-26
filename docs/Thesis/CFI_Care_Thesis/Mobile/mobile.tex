@@ -1,61 +1,61 @@
 \section{Mobile}\label{chap:Mobile}
 
-\subsection{Problem Statement}
-The digital transformation of healthcare in Egypt faces significant structural
-challenges that directly impact patient care and safety. Despite national
-initiatives for modernization, the current healthcare ecosystem remains
-characterized by fragmentation, reliance on analog documentation, and a lack of
-standardized data governance. This thesis addresses these critical gaps by
-proposing a patient-centric mobile application designed to bridge the current
-digital fragmentation.
+% \subsection{Problem Statement}
+% The digital transformation of healthcare in Egypt faces significant structural
+% challenges that directly impact patient care and safety. Despite national
+% initiatives for modernization, the current healthcare ecosystem remains
+% characterized by fragmentation, reliance on analog documentation, and a lack of
+% standardized data governance. This thesis addresses these critical gaps by
+% proposing a patient-centric mobile application designed to bridge the current
+% digital fragmentation.
 
-\subsection{Data Fragmentation and the ``Silo'' Effect}
-A primary challenge facing Egyptian patients is the lack of interoperability
-between healthcare providers. Research indicates that Egyptian health entities
-operate in ``silos,'' utilizing discrete data collection systems that do not
-integrate or complement one another~\cite{rizk2025egypt}. Consequently, patient
-data is scattered across various hospitals, private clinics, and diagnostic
-laboratories. In the absence of a unified national medical record, the patient
-is forced to assume the role of the sole custodian of their medical history.
-This places an undue burden on patients—particularly those with chronic
-conditions—to physically transport scattered paper reports and diagnostic films
-between providers, increasing the risk of information loss and discontinuity of
-care.
+% \subsection{Data Fragmentation and the ``Silo'' Effect}
+% A primary challenge facing Egyptian patients is the lack of interoperability
+% between healthcare providers. Research indicates that Egyptian health entities
+% operate in ``silos,'' utilizing discrete data collection systems that do not
+% integrate or complement one another~\cite{rizk2025egypt}. Consequently, patient
+% data is scattered across various hospitals, private clinics, and diagnostic
+% laboratories. In the absence of a unified national medical record, the patient
+% is forced to assume the role of the sole custodian of their medical history.
+% This places an undue burden on patients—particularly those with chronic
+% conditions—to physically transport scattered paper reports and diagnostic films
+% between providers, increasing the risk of information loss and discontinuity of
+% care.
 
-\subsection{Reliance on Analog Systems and Data Quality}
-The persistence of paper-based (analog) data collection mechanisms
-significantly undermines data quality and accessibility. Current policy
-assessments reveal a fundamental lack of proper health-data collection
-mechanisms within the sector~\cite{rizk2025egypt}.
+% \subsection{Reliance on Analog Systems and Data Quality}
+% The persistence of paper-based (analog) data collection mechanisms
+% significantly undermines data quality and accessibility. Current policy
+% assessments reveal a fundamental lack of proper health-data collection
+% mechanisms within the sector~\cite{rizk2025egypt}.
 
-Collected low-quality data are characterized by incomplete fields, data entry
-errors, and reliance on manual updates.~\cite{rizk2025egypt}.
+% Collected low-quality data are characterized by incomplete fields, data entry
+% errors, and reliance on manual updates.~\cite{rizk2025egypt}.
 
-% For the patient, this analog dependency creates a vulnerability to ``recall bias.'' 
-When transitioning between doctors, patients must rely on their memory to
-verbally relay complex medical histories. This often results in ``information
-asymmetry,'' where crucial clinical details—such as drug allergies or previous
-surgical interventions—are omitted, leading to potential misdiagnoses or
-redundant diagnostic testing.
+% % For the patient, this analog dependency creates a vulnerability to ``recall bias.'' 
+% When transitioning between doctors, patients must rely on their memory to
+% verbally relay complex medical histories. This often results in ``information
+% asymmetry,'' where crucial clinical details—such as drug allergies or previous
+% surgical interventions—are omitted, leading to potential misdiagnoses or
+% redundant diagnostic testing.
 
-\subsection{Absence of Standardized Consent and Data Sovereignty}
-Furthermore, the current landscape lacks a robust framework for patient data
-rights and privacy. There is a notable absence of standardized consent
-practices; written consent for data usage is rarely obtained, and patients
-often lack awareness regarding how their health data is utilized or stored
-~\cite{rizk2025egypt}. Patients currently possess no granular control over who
-accesses their records once they are handed over to a facility. This lack of
-transparency and control fosters a reluctance among patients to share sensitive
-health information, further hindering the effectiveness of clinical
-consultations.
+% \subsection{Absence of Standardized Consent and Data Sovereignty}
+% Furthermore, the current landscape lacks a robust framework for patient data
+% rights and privacy. There is a notable absence of standardized consent
+% practices; written consent for data usage is rarely obtained, and patients
+% often lack awareness regarding how their health data is utilized or stored
+% ~\cite{rizk2025egypt}. Patients currently possess no granular control over who
+% accesses their records once they are handed over to a facility. This lack of
+% transparency and control fosters a reluctance among patients to share sensitive
+% health information, further hindering the effectiveness of clinical
+% consultations.
 
-\subsection{The Need for Continuous Monitoring}
-Finally, traditional healthcare models in Egypt often fail to capture the
-patient's daily health status. Current protocols rely on sporadic clinical
-visits, missing the continuous physiological data that modern wearable
-technology can provide. By failing to integrate real-time vitals into the
-formal medical record, the system misses critical opportunities for
-preventative monitoring and early intervention.
+% \subsection{The Need for Continuous Monitoring}
+% Finally, traditional healthcare models in Egypt often fail to capture the
+% patient's daily health status. Current protocols rely on sporadic clinical
+% visits, missing the continuous physiological data that modern wearable
+% technology can provide. By failing to integrate real-time vitals into the
+% formal medical record, the system misses critical opportunities for
+% preventative monitoring and early intervention.
 \section{Mobile Application Goal and Methods}
 
 The primary objective of developing the proposed mobile application is to
@@ -423,23 +423,21 @@ drives the application's core functionality.
 Internal stakeholders are responsible for the technical construction,
 maintenance, and security of the platform.
 
-\paragraph{1. Mobile Application Developers (Flutter Team)}
+\paragraph{1.Developers}
 % \newline
 \textbf{Interaction:}
 \begin{itemize}
     \item \textbf{Frontend Implementation:} Responsible for building the cross-platform mobile interface using the Flutter framework.
     \item \textbf{API Integration:} They implement the communication layer that sends authentication requests and data queries to the backend.
     \item \textbf{UX/UI Design:} They translate the complex "Medical History Tree" concept into a user-friendly mobile timeline.
-\end{itemize}
-
-\paragraph{2. Backend \& System Architects}
-% \newline
-\textbf{Interaction:}
-\begin{itemize}
+          % \end{itemize}
+          % % \textbf{Interaction:}
+          % \begin{itemize}
     \item \textbf{Authentication Flow:} They manage the identity management integration. The Flutter app sends credentials to the Node.js backend, which acts as an intermediary to communicate with \textbf{Keycloak} for secure Single Sign-On (SSO) and token validation.
     \item \textbf{Data Orchestration:} They maintain the Node.js middleware that fetches data from the \textbf{FHIR Server} and formats it for the mobile client.
     \item \textbf{Standardization:} They ensure that all medical data stored and retrieved adheres to HL7 FHIR standards for interoperability.
 \end{itemize}
+
 \section{System Sequence Diagram}
 \begin{figure}[H]
     \centering
@@ -480,8 +478,8 @@ mobile application.
 \begin{itemize}
     % \item \textbf{NFR-01 Security \& Privacy:} All Protected Health Information (PHI) must be encrypted in transit and at rest. Authentication shall be handled via Keycloak OIDC (OpenID Connect) to ensure secure session management.
     \item \textbf{NFR-01 Interoperability:} The application must parse and render data compliant with HL7 FHIR standards to ensure seamless integration with the Node.js backend.
-    \item \textbf{NFR-02 Localization:} To serve the local demographic, the interface must fully support Arabic (RTL) and English (LTR) languages.
-    \item \textbf{NFR-03 Performance:} The medical history timeline uses "Lazy Loading" to ensure the application remains responsive even for patients with extensive medical records.
+          % \item \textbf{NFR-02 Localization:} To serve the local demographic, the interface must fully support Arabic (RTL) and English (LTR) languages.
+    \item \textbf{NFR-02 Performance:} The medical history timeline uses "Lazy Loading" to ensure the application remains responsive even for patients with extensive medical records.
 \end{itemize}
 
 \subsection{Optional Requirements (Future Scope)}

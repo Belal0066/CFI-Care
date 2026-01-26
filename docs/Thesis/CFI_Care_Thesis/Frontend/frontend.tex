@@ -190,7 +190,8 @@ efficiently.
 \subsubsection{Master--Detail Layout}
 
 The dashboard follows a master--detail layout, a design pattern widely adopted
-in medical information systems \cite{patientSafetyDashboards2021}. The layout consists of:
+in medical information systems \cite{patientSafetyDashboards2021}. The layout
+consists of:
 \begin{itemize}
     \item \textbf{Patient Navigator (Left Sidebar):} Includes a search bar and a list of patient cards displaying key metadata such as age and last update timestamp.
     \item \textbf{Clinical Summary View (Main Panel):} Displays structured patient information using a card-based layout.
@@ -215,11 +216,23 @@ The clinical summary view organizes patient data into clearly defined sections:
 Card-based layouts improve information scanability and retrieval in dense
 clinical interfaces \cite{clinicalDashboardsPROMs2024}.
 
-\subsection{Interactive Header}
+\subsection{Patient-Scoped MedGraph Access}
 
-A global action header provides filtering capabilities and a prominent control
-for opening the MedGraph, transitioning the user from record-based inspection
-to journey-based visualization.
+Rather than exposing journey visualization controls globally, access to the
+MedGraph is embedded within the patient details card. This design ensures that
+any transition to the MedGraph view is explicitly scoped to the currently
+selected patient, preventing ambiguity and reducing the risk of context errors.
+
+Placing advanced visualization actions within the local context of the patient
+record aligns with established usability principles for safety-critical
+systems, where actions should be clearly associated with their target objects.
+Context-aware controls reduce mode errors and improve user confidence by making
+system state and action consequences explicit .
+
+By initiating the MedGraph from the patient’s summary card, the system
+preserves continuity between record-based inspection and journey-based
+visualization, while ensuring that the displayed care trajectory corresponds
+unambiguously to the intended patient.
 
 \subsection{Patient Journey Dashboard}
 
@@ -421,8 +434,7 @@ Application-wide state is managed using injectable Angular services:
 
 By centralizing patient selection state, multiple components can reactively
 synchronize without direct dependencies, reducing tight coupling and improving
-maintainability
-\cite{angularDocs}.
+maintainability \cite{angularDocs}.
 
 \subsection{Sequence Diagram}
 
@@ -462,8 +474,7 @@ driven by three primary constraints:
 By separating MedGraph into a dedicated visualization boundary, the system
 adheres to the principle of separation of concerns while allowing future
 refactoring or replacement of the rendering engine without destabilizing the
-broader application
-\cite{componentFrontEnd2021}.
+broader application \cite{componentFrontEnd2021}.
 
 \subsection{Summary}
 
@@ -473,6 +484,4 @@ dashboards with intelligent graph-based representations, the frontend supports
 both high-level clinical overview and detailed event analysis. The design and
 architecture established in this phase provide a strong foundation for the
 backend integration and advanced decision-support features.
-
-
 
