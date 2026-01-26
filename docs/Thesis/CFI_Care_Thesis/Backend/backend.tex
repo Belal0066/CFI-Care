@@ -1,4 +1,6 @@
+\section{Backend}
 \input{Backend/systemarch.tex}
+
 \input{Backend/fhir.tex}
 
 \input{Backend/api_design.tex}
@@ -375,12 +377,12 @@ frequencies and computational costs.
 \label{subsec:tier1_cache}
 
 The first tier utilizes a generic \texttt{cacheHelper} middleware that
-intercepts HTTP requests for standard FHIR resources. This middleware operates
+intercepts HTTPS requests for standard FHIR resources. This middleware operates
 at the request level, functioning as a transparent cache layer between the
 frontend client and the backend processing pipeline.
 
 \subsubsection{Mechanism and Interception}
-When an HTTP request arrives at the backend (such as a GET request to
+When an HTTPS request arrives at the backend (such as a GET request to
 \texttt{/api/patients}), the \texttt{cacheHelper} middleware performs a
 sequence of operations to determine whether a cached response can be served.
 The middleware first generates a deterministic cache key from the request URL
