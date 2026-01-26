@@ -1,154 +1,68 @@
 \chapter{Introduction}
 \label{chap:intro}
-\hspace*{2em}Today, patients often face fragmented healthcare experiences, with their medical information dispersed across multiple institutions and providers. This project proposes a patient-centric healthcare application designed to consolidate all medical reports within a single, secure, and unified platform.
-\vspace{0.5cm}
+\section{The Global Digital Health Revolution}
+\hspace*{2em}Healthcare is shifting from reactive treatment toward proactive, data-driven prevention. The global digital health market was valued at roughly USD 288 billion in 2024 and is projected to approach USD 946 billion by 2030, growing at more than 22\% annually. This acceleration is powered by mobile health, telemedicine, and Artificial Intelligence (AI), which promise cheaper, faster, and more effective care. Yet adoption is uneven: while leading systems deploy AI for personalized care, many Low- and Middle-Income Countries (LMICs) still struggle with basic record keeping because of weak infrastructure, unclear policy, and fragmented data.
 
-The system empowers patients to manage their health through continuous data
-collection, secure communication, and controlled information sharing using
-Role-Based Access Control (RBAC) to ensure privacy, consent, and data
-integrity. Additionally, by integrating features such as medical history
-visualization and Retrieval-Augmented Generation (RAG)-enabled AI, the proposed
-system transforms previously scattered and isolated medical data into a
-unified, interconnected ecosystem. This integration establishes meaningful
-relationships between patients, healthcare providers, and medical records,
-promoting continuous, coordinated, and personalized healthcare delivery.
+\section{The Situation in Egypt}
+\hspace*{2em}Egypt, home to over 106 million people and the largest healthcare market in MENA, has improved outcomes but faces a persistent data void. Records in many Public Health Centers (PHCs) remain paper-based, locked in filing rooms, and rarely interoperable across facilities. Digital systems that do exist often operate in silos, so a patient moving between providers loses continuity of care. Data quality is frequently incomplete or error-prone, and patients seldom provide formal written consent, reflecting limited trust and awareness of data value. This fragmentation prevents AI from learning accurate patterns and delivering benefits to Egyptian patients.
 
-\newpage
-\section*{Purpose}
-\hspace*{2em}The primary purpose of this project is to develop a unified healthcare platform that securely consolidates patients' medical records from multiple institutions. By leveraging technologies such as RAG-enabled AI and graphical data visualization, the project aims to enhance clinical insight and support medical decision-making. Furthermore, the platform seeks to empower patients to monitor their own health data while maintaining full control over information sharing through robust RBAC mechanisms. Ultimately, this initiative strives to ensure privacy, data integrity, and interoperability across the healthcare ecosystem to enhance patient trust and system reliability.
-
-\section*{Objective}
-The key objectives of this project are as follows:
+\section{Problem Statement}
+When a patient sees multiple specialists, their medical records scatter across
+disconnected systems. Radiology images sit at one hospital, lab results at
+another, prescriptions at a third. Clinicians piece together incomplete
+histories from memory or phone calls. Patients have no way to track their own
+health trends over time. Care coordination breaks down because nobody has the
+full picture. Egypt needs modern, AI-enabled healthcare but lacks the
+foundational data ecosystem. The core challenges are:
 \begin{itemize}
-      \item To develop a unified healthcare platform that securely consolidates patients'
-            medical records from multiple institutions.
-      \item To empower patients to manage and monitor their own health data while
-            maintaining full control over information sharing through RBAC mechanisms.
-      \item To enable secure and efficient communication between patients, doctors, and
-            caregivers.
-      \item To provide data visualization tools, including a medical history graph, to help
-            healthcare providers interpret patient data trends and clinical progress.
-      \item To integrate RAG-enabled AI capabilities to generate automated reports and
-            actionable insights that support doctors in diagnosis and medical
-            decision-making.
-      \item To ensure privacy, data integrity, and interoperability across the healthcare
-            ecosystem to enhance patient trust and system reliability.
-      \item To implement a defense-in-depth security architecture leveraging OAuth 2.0, JWT,
-            and FHIR Consent resources for multi-layered authentication, authorization, and
-            access control across browser and mobile clients.
-      \item To establish comprehensive audit logging, session management, and revocation
-            capabilities for forensic analysis and immediate access termination.
+      \item \textbf{Fragmentation:} Records scattered across clinics with no single longitudinal home.
+      \item \textbf{Analog Dominance:} Paper-first workflows impede longitudinal tracking and lossless sharing.
+      \item \textbf{Lack of Control:} Patients cannot easily access or share their own histories.
+      \item \textbf{Privacy and Consent Gaps:} No standardized, auditable consent flows.
+      \item \textbf{Missed AI Opportunities:} Absent or inaccessible digital data blocks safe clinical decision support such as Retrieval-Augmented Generation (RAG).
 \end{itemize}
 
-\newpage
-
-\section{Digital Health Market Overview}
-
-The global push towards digital transformation in healthcare is driven by the
-need for efficiency, accessibility, and improved patient outcomes. According to
-Grand View Research, the global digital health market size was valued at USD
-288.55 billion in 2024 and is projected to reach USD 946.04 billion by 2030,
-expanding at a Compound Annual Growth Rate (CAGR) of 22.2\% from 2025 to 2030
-\cite{grandview}.
-
-This rapid growth is fueled by factors such as the increasing penetration of
-smartphones, advancements in internet connectivity, and government initiatives
-promoting digital health infrastructure \cite{grandview}. However, realizing
-this potential requires overcoming the challenge of data silos. Currently,
-healthcare data is often locked within proprietary systems, making
-\textit{interoperability}—the ability of different information systems to
-access, exchange, integrate, and cooperatively use data in a coordinated
-manner—a critical requirement for the modern healthcare ecosystem \cite{repo}.
-
-\section{HL7 - Health Level Seven}
-
-Health Level Seven (HL7) International is a standards development organization
-that has defined the framework for the exchange, integration, sharing, and
-retrieval of electronic health information for decades \cite{intellisoft}.
-Understanding the evolution of these standards is crucial to appreciating the
-architectural shifts in modern healthcare applications.
-
-\subsection{Evolution of Standards}
-
+\section{The Proposed Solution: CFI Care}
+\hspace*{2em}\textit{CFI Care} is an AI-powered, collaborative, patient-centric health record platform that unifies medical reports in one secure ecosystem while keeping patients in control.
 \begin{itemize}
-      \item \textbf{HL7 v2 (The Workhorse):} Established in 1989, HL7 v2 remains the most widely implemented standard for hospital workflows (e.g., ADT - Admission, Discharge, Transfer messages). It utilizes a non-XML, pipe-delimited syntax (e.g., \verb+MSH|^~\&|...+). While highly efficient for legacy backend systems, its lack of semantic strictness leads to significant implementation variances, posing challenges for modern web and mobile application development \cite{intellisoft}.
-      \item \textbf{HL7 v3 (The Theoretical Model):} Introduced in the 1990s to address the vagueness of v2, HL7 v3 was built on a rigorous Reference Information Model (RIM). It enforced strict semantic correctness using complex XML structures. However, this theoretical purity resulted in a steep learning curve and bloated message sizes, leading to poor adoption rates and a lack of backward compatibility with v2 \cite{intellisoft}.
-
-      \item \textbf{HL7 CDA (Clinical Document Architecture):} A component of v3, CDA focuses on the exchange of clinical documents (such as discharge summaries). While effective for static snapshots of care, it is document-centric rather than data-centric, making it difficult to extract granular data (like a single heart rate reading) required for real-time interactive applications \cite{wiki_fhir}.
+      \item \textbf{Unified Records:} Consolidates data from disparate sources into a single, secure repository with timeline visualization.
+      \item \textbf{Git-Inspired Version Control:} Tracks evolving treatment plans as a medical history graph to reveal branches, merges, and longitudinal trends.
+      \item \textbf{Role-Based Access Control (RBAC):} Lets patients grant time-bound, role-specific access to clinicians or caregivers, creating a clear consent audit trail.
+      \item \textbf{AI Integration (RAG):} Grounds generative summaries and answers in the patient's own records to support safer diagnostics and triage.
+      \item \textbf{Mobile Digitization:} A camera scanner digitizes legacy paper reports, crowdsourcing data ingestion despite PHC device constraints.
 \end{itemize}
 
-% Placeholder for a figure showing the timeline or structure difference
-\begin{figure}[ht]
-      \centering
-      % REPLACE THE LINE ABOVE WITH YOUR ACTUAL IMAGE FILE
-      \fbox{\begin{minipage}{0.8\textwidth}
-                  \centering
-                  % \vspace{2cm}
-                  \includegraphics[width=1.0\textwidth]{Images/HL7_Versions.png}
-                  % \textbf{[Insert Figure Here: Evolution of HL7 Standards]}\\
-                  % \textit{Diagram illustrating the transition from V2 (Messaging) to V3 (RIM/Model) to FHIR (RESTful API/Resources).}
-                  % \vspace{2cm}
-            \end{minipage}}
-      \caption{Evolution of HL7 Standards from Messaging to RESTful Resources.}
-      \label{fig:hl7_evolution}
-\end{figure}
-
-\section{Fast Healthcare Interoperability Resources (FHIR)}
-
-In response to the complexity of HL7 v3 and the limitations of v2, HL7
-introduced \textbf{FHIR} (Fast Healthcare Interoperability Resources) in 2012.
-FHIR represents a paradigm shift from complex, custom healthcare protocols to
-modern web standards.
-
-\subsection{Core Architecture}
-Unlike its predecessors, FHIR is built on the RESTful API approach widely used
-in modern IT industries (e.g., by Google, Facebook, Twitter). It treats data
-elements as independent "Resources"—modular components like \texttt{Patient},
-\texttt{Observation}, or \texttt{Medication}—that can be accessed and
-manipulated via standard HTTP methods (GET, POST, PUT, DELETE)
-\cite{wiki_fhir}.
-
-\subsection{Key Technical Advantages}
+\section{Thesis Objectives}
+This thesis aims to design and develop CFI Care to modernize health data
+management in Egypt by:
 \begin{itemize}
-      \item \textbf{Granularity via Resources:} FHIR allows systems to access specific data elements using unique URLs (e.g., \texttt{GET /Patient/123}), rather than exchanging entire heavy documents. This makes it ideal for mobile devices with limited bandwidth \cite{wiki_fhir}.
-
-      \item \textbf{Modern Formats (JSON \& XML):} While previous standards relied on complex XML or pipe-delimited text, FHIR natively supports  JSON  (JavaScript Object Notation), which is lightweight and directly parsable by web browsers and mobile apps \cite{intellisoft}.
-
-      \item \textbf{The 80/20 Rule:} FHIR focuses on defining the 20\% of requirements that satisfy 80\% of common healthcare use cases. For the remaining complex or local requirements, it uses a built-in extension mechanism, ensuring the core standard remains simple and implementable \cite{repo}.
+      \item Documenting digital health barriers in Egypt, including infrastructure gaps and
+            consent practices.
+      \item Designing a secure, scalable, and usable architecture for patient-centric
+            records and clinician workflows.
+      \item Implementing robust RBAC and consent enforcement to safeguard privacy while
+            enabling necessary sharing.
+      \item Engineering AI (RAG) services that can interpret medical records and deliver
+            actionable insights.
+      \item Empowering patients with tools for data ownership, appointments, caregiver
+            sharing, and mobile digitization.
 \end{itemize}
 
-\subsection{Comparison of Standards}
-Table \ref{tab:comparison} highlights the fundamental differences between the
-major HL7 standards, illustrating why FHIR was chosen as the interoperability
-backbone for this project.
+\section{Thesis Structure}
+\begin{itemize}
+      \item Chapter~\ref{chap:intro}: Introduction to the global digital health revolution,
+            Egypt's healthcare challenges, and the CFI Care solution.
+      \item Chapter~\ref{chap:LiteratureReview}: Standards (HL7/FHIR), governance,
+            authentication, and security foundations.
+      \item Chapter~\ref{chap:ProposedDesignArchitecture}: CFI Care system architecture
+            including backend, frontend, and mobile components.
+      \item Chapter~\ref{chap:Security}: Defense-in-depth security architecture with OAuth
+            2.0, JWT Tokens, RBAC, Rate Limiting on API endpoints, and audit logging.
+      \item Chapter~\ref{chap:AI}: AI integration using Retrieval-Augmented Generation for
+            clinical decision support.
+      \item Chapter~\ref{chap:TestingAndVerification}: Testing methodology, implementation
+            milestones, and validation.
+      \item Chapter~\ref{chap:conclAndFutureWork}: Conclusion, expected impact, and future
+            enhancements.
+\end{itemize}
 
-\begin{table}[ht]
-      \centering
-      \caption{Comparison of HL7 v2, v3, CDA, and FHIR Standards}
-      \label{tab:comparison}
-      \renewcommand{\arraystretch}{1.4}
-      \begin{tabular}{|p{0.2\linewidth}|p{0.22\linewidth}|p{0.22\linewidth}|p{0.22\linewidth}|}
-            \hline
-            \textbf{Feature}          & \textbf{HL7 v2}                             & \textbf{HL7 v3 / CDA}                          & \textbf{FHIR}                                                      \\ \hline
-            \textbf{Primary Paradigm} & \raggedright Event-Driven Messaging         & \raggedright Reference Model (RIM) / Documents & \raggedright RESTful API \& Resources \tabularnewline \hline
-            \textbf{Data Format}      & \raggedright Pipe-delimited text            & \raggedright Complex XML                       & \raggedright JSON, XML, RDF \tabularnewline \hline
-            \textbf{Transport}        & \raggedright LLP / MLLP (TCP/IP)            & \raggedright SOAP / Web Services               & \raggedright HTTP / REST \tabularnewline \hline
-            \textbf{Complexity}       & \raggedright Moderate (Vague semantics)     & \raggedright High (Steep learning curve)       & \raggedright Low (Web-standard based) \tabularnewline \hline
-            \textbf{Use Case}         & \raggedright Hospital Backend (ADT, Orders) & \raggedright Clinical Documents (Summaries)    & \raggedright Mobile, Web, Cloud, \& Backend \tabularnewline \hline
-      \end{tabular}
-\end{table}
-\begin{figure}[ht]
-      \centering
-      % REPLACE THE LINE ABOVE WITH YOUR ACTUAL IMAGE FILE
-      \fbox{\begin{minipage}{0.7\textwidth}
-                  \centering
-                  % \vspace{2cm}
-                  \includegraphics[width=1.0\textwidth]{Images/FHIR-patient-JSON-example-source-2.png}
-                  \includegraphics[width=1.0\textwidth]{Images/aid9705860-v4-728px-9705860-1.png}
-                  % \textbf{[Insert Figure Here: Structure of a FHIR Resource]}\\
-                  % \textit{Diagram showing a JSON snippet of a Patient Resource (Name, ID, Gender) vs. a legacy v2 Message string.}
-                  % \vspace{1cm}
-            \end{minipage}}
-      \caption{Visual Comparison of Data structure: HL7 v2 Message vs. FHIR JSON Resource.}
-      \label{fig:fhir_structure}
-\end{figure}

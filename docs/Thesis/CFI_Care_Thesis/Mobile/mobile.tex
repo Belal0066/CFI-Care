@@ -1,142 +1,215 @@
-\documentclass{article}
-\usepackage{listings}
-\usepackage{xcolor}
-% Language setting
-% Replace `english' with e.g. `spanish' to change the document language
-\usepackage[english]{babel}
-\usepackage{caption}
-\usepackage{graphicx}
-% Set page size and margins
-% Replace `letterpaper' with `a4paper' for UK/EU standard size
-\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
-
-% Useful packages
-\usepackage{amsmath}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage[colorlinks=true, allcolors=blue]{hyperref}
-
 \section{Mobile}\label{chap:Mobile}
 
-
-\section{Problem Statement}
-The digital transformation of healthcare in Egypt faces significant structural challenges that directly impact patient care and safety. Despite national initiatives for modernization, the current healthcare ecosystem remains characterized by fragmentation, reliance on analog documentation, and a lack of standardized data governance. This thesis addresses these critical gaps by proposing a patient-centric mobile application designed to bridge the current digital fragmentation.
+\subsection{Problem Statement}
+The digital transformation of healthcare in Egypt faces significant structural
+challenges that directly impact patient care and safety. Despite national
+initiatives for modernization, the current healthcare ecosystem remains
+characterized by fragmentation, reliance on analog documentation, and a lack of
+standardized data governance. This thesis addresses these critical gaps by
+proposing a patient-centric mobile application designed to bridge the current
+digital fragmentation.
 
 \subsection{Data Fragmentation and the ``Silo'' Effect}
-A primary challenge facing Egyptian patients is the lack of interoperability between healthcare providers. Research indicates that Egyptian health entities operate in ``silos,'' utilizing discrete data collection systems that do not integrate or complement one another \cite{rizk2025egypt}. Consequently, patient data is scattered across various hospitals, private clinics, and diagnostic laboratories. In the absence of a unified national medical record, the patient is forced to assume the role of the sole custodian of their medical history. This places an undue burden on patients—particularly those with chronic conditions—to physically transport scattered paper reports and diagnostic films between providers, increasing the risk of information loss and discontinuity of care.
+A primary challenge facing Egyptian patients is the lack of interoperability
+between healthcare providers. Research indicates that Egyptian health entities
+operate in ``silos,'' utilizing discrete data collection systems that do not
+integrate or complement one another~\cite{rizk2025egypt}. Consequently, patient
+data is scattered across various hospitals, private clinics, and diagnostic
+laboratories. In the absence of a unified national medical record, the patient
+is forced to assume the role of the sole custodian of their medical history.
+This places an undue burden on patients—particularly those with chronic
+conditions—to physically transport scattered paper reports and diagnostic films
+between providers, increasing the risk of information loss and discontinuity of
+care.
 
 \subsection{Reliance on Analog Systems and Data Quality}
-The persistence of paper-based (analog) data collection mechanisms significantly undermines data quality and accessibility. Current policy assessments reveal a fundamental lack of proper health-data collection mechanisms within the sector \cite{rizk2025egypt}. 
+The persistence of paper-based (analog) data collection mechanisms
+significantly undermines data quality and accessibility. Current policy
+assessments reveal a fundamental lack of proper health-data collection
+mechanisms within the sector~\cite{rizk2025egypt}.
 
-Collected low-quality data are characterized by incomplete fields, data entry errors, and reliance on manual updates.\cite{rizk2025egypt}.
+Collected low-quality data are characterized by incomplete fields, data entry
+errors, and reliance on manual updates.~\cite{rizk2025egypt}.
 
 % For the patient, this analog dependency creates a vulnerability to ``recall bias.'' 
-When transitioning between doctors, patients must rely on their memory to verbally relay complex medical histories. This often results in ``information asymmetry,'' where crucial clinical details—such as drug allergies or previous surgical interventions—are omitted, leading to potential misdiagnoses or redundant diagnostic testing.
+When transitioning between doctors, patients must rely on their memory to
+verbally relay complex medical histories. This often results in ``information
+asymmetry,'' where crucial clinical details—such as drug allergies or previous
+surgical interventions—are omitted, leading to potential misdiagnoses or
+redundant diagnostic testing.
 
 \subsection{Absence of Standardized Consent and Data Sovereignty}
-Furthermore, the current landscape lacks a robust framework for patient data rights and privacy. There is a notable absence of standardized consent practices; written consent for data usage is rarely obtained, and patients often lack awareness regarding how their health data is utilized or stored \cite{rizk2025egypt}. Patients currently possess no granular control over who accesses their records once they are handed over to a facility. This lack of transparency and control fosters a reluctance among patients to share sensitive health information, further hindering the effectiveness of clinical consultations.
+Furthermore, the current landscape lacks a robust framework for patient data
+rights and privacy. There is a notable absence of standardized consent
+practices; written consent for data usage is rarely obtained, and patients
+often lack awareness regarding how their health data is utilized or stored
+~\cite{rizk2025egypt}. Patients currently possess no granular control over who
+accesses their records once they are handed over to a facility. This lack of
+transparency and control fosters a reluctance among patients to share sensitive
+health information, further hindering the effectiveness of clinical
+consultations.
 
 \subsection{The Need for Continuous Monitoring}
-Finally, traditional healthcare models in Egypt often fail to capture the patient's daily health status. Current protocols rely on sporadic clinical visits, missing the continuous physiological data that modern wearable technology can provide. By failing to integrate real-time vitals into the formal medical record, the system misses critical opportunities for preventative monitoring and early intervention.
+Finally, traditional healthcare models in Egypt often fail to capture the
+patient's daily health status. Current protocols rely on sporadic clinical
+visits, missing the continuous physiological data that modern wearable
+technology can provide. By failing to integrate real-time vitals into the
+formal medical record, the system misses critical opportunities for
+preventative monitoring and early intervention.
 \section{Mobile Application Goal and Methods}
 
-The primary objective of developing the proposed mobile application is to provide a secure, efficient, and patient-centered platform for managing personal health information within the digital medical ecosystem integrated with a FHIR-compliant backend.
+The primary objective of developing the proposed mobile application is to
+provide a secure, efficient, and patient-centered platform for managing
+personal health information within the digital medical ecosystem integrated
+with a FHIR-compliant backend.
 
 \subsection{Digital Document Management}
-The application enables patients to digitally capture, upload, and store medical reports, diagnostic scans, and other relevant health documents using their mobile devices. These documents are maintained within the application’s local storage and synchronized with the backend system when required, thereby reducing reliance on physical medical records.
+The application enables patients to digitally capture, upload, and store
+medical reports, diagnostic scans, and other relevant health documents using
+their mobile devices. These documents are maintained within the application’s
+local storage and synchronized with the backend system when required, thereby
+reducing reliance on physical medical records.
 
 \subsection{Doctor-Patient Data Sharing}
-A core objective of the system is to support controlled and consent-based data sharing. Doctors may submit requests to access a patient’s medical data, which the patient can explicitly approve or reject. Upon approval, patients are able to define granular access permissions, such as read-only or read-write access, as well as specify a time-bound duration for which the access remains valid. This approach ensures patient data privacy while enabling physicians to effectively review and update medical records when authorized.
+A core objective of the system is to support controlled and consent-based data
+sharing. Doctors may submit requests to access a patient’s medical data, which
+the patient can explicitly approve or reject. Upon approval, patients are able
+to define granular access permissions, such as read-only or read-write access,
+as well as specify a time-bound duration for which the access remains valid.
+This approach ensures patient data privacy while enabling physicians to
+effectively review and update medical records when authorized.
 
 \subsection{Elimination of Physical Records}
-By digitizing medical documentation and access workflows, the system aims to eliminate common issues associated with traditional paper-based records, including loss, damage, and the burden of carrying extensive physical reports during medical visits.
+By digitizing medical documentation and access workflows, the system aims to
+eliminate common issues associated with traditional paper-based records,
+including loss, damage, and the burden of carrying extensive physical reports
+during medical visits.
 
 \subsection{Caregiver and Family Involvement}
-In addition to doctor access, the application supports caregiver and family member involvement. Patients may grant designated caregivers permission to monitor their health status, subject to explicit consent. Similar to doctor access, patients can define the level of access (read-only or read-write) and set temporal constraints for each caregiver, ensuring full control over shared medical information.
+In addition to doctor access, the application supports caregiver and family
+member involvement. Patients may grant designated caregivers permission to
+monitor their health status, subject to explicit consent. Similar to doctor
+access, patients can define the level of access (read-only or read-write) and
+set temporal constraints for each caregiver, ensuring full control over shared
+medical information.
 
 \subsection{Appointment Management}
-The application further facilitates appointment management by allowing patients to schedule medical appointments directly through the mobile interface. During the booking process, patients may optionally attach relevant medical documents to provide physicians with preliminary information prior to consultation.
+The application further facilitates appointment management by allowing patients
+to schedule medical appointments directly through the mobile interface. During
+the booking process, patients may optionally attach relevant medical documents
+to provide physicians with preliminary information prior to consultation.
 
 \subsection{Wearable Device Integration}
-Finally, the system is designed to support integration with wearable and smart health devices, such as smartwatches, to collect physiological data including heart rate and other vital signs. This data can be incorporated into the patient’s health profile to support continuous monitoring and more informed clinical decision-making.
+Finally, the system is designed to support integration with wearable and smart
+health devices, such as smartwatches, to collect physiological data including
+heart rate and other vital signs. This data can be incorporated into the
+patient’s health profile to support continuous monitoring and more informed
+clinical decision-making.
 \section{Related Work}
-This section provides an overview of a selection of mobile applications comparable to the one in this work.
+This section provides an overview of a selection of mobile applications
+comparable to the one in this work.
 
 \subsection{Apple Health}
-The closest existing commercial application to our proposed \textit{AI-Powered Collaborative Patient-Centric Health Record Platform} is \textbf{Apple Health}. It serves as the global standard for patient-centric data aggregation. Below is an analysis of its core features which serve as a baseline for our project:
+The closest existing commercial application to our proposed \textit{AI-Powered
+    Collaborative Patient-Centric Health Record Platform} is \textbf{Apple Health}.
+It serves as the global standard for patient-centric data aggregation. Below is
+an analysis of its core features which serve as a baseline for our project:
 
 \begin{itemize}
     \item \textbf{Centralized Health Hub:} It acts as a single repository for mobility data, sleep history, and vital signs collected from wearable devices. It also allows users to personalize their experience by storing demographics and basic health details \cite{apple_find_health}.
-    
+
     \item \textbf{Record Management:} Users can manually input data or download health records directly from supported healthcare institutions. Key features include searching for specific clinical categories (like allergies or vitals) and pinning important lab results for quick access \cite{apple_view_records}.
-    
+
     \item \textbf{Data Sharing \& Privacy:}
-    \begin{itemize}
-        \item \textit{Provider Integration:} Users can share specific data points (e.g., heart rate trends) with doctors who view it on their own dashboards \cite{apple_share_data}.
-        \item \textit{Family Access:} The system allows for data sharing with trusted contacts (e.g., caregivers or family members) for monitoring, with granular control over what is shared \cite{apple_share_data}.
-    \end{itemize}
-    
+          \begin{itemize}
+              \item \textit{Provider Integration:} Users can share specific data points (e.g., heart rate trends) with doctors who view it on their own dashboards \cite{apple_share_data}.
+              \item \textit{Family Access:} The system allows for data sharing with trusted contacts (e.g., caregivers or family members) for monitoring, with granular control over what is shared \cite{apple_share_data}.
+          \end{itemize}
+
     \item \textbf{Medication \& Cycle Tracking:} Built-in modules allow for medication adherence logging and reproductive health tracking to predict fertile windows and track symptoms \cite{apple_find_health}.
 \end{itemize}
 
 \subsubsection{System Differentiation: The "Full Integrated Ecosystem"}
-While Apple Health excels as a \textit{Patient-Side Aggregator}, our proposed system is fundamentally different because it is a \textbf{bidirectional, fully integrated ecosystem}.
+While Apple Health excels as a \textit{Patient-Side Aggregator}, our proposed
+system is fundamentally different because it is a \textbf{bidirectional, fully
+    integrated ecosystem}.
 
 \subsubsection{The Missing Link: Doctor Web Interface}
-Apple Health relies on third-party integration; it does not provide the medical tools for the doctor itself. In contrast, our system includes a dedicated \textbf{Web Interface for Doctors}, creating a closed-loop environment:
+Apple Health relies on third-party integration; it does not provide the medical
+tools for the doctor itself. In contrast, our system includes a dedicated
+\textbf{Web Interface for Doctors}, creating a closed-loop environment:
 \begin{itemize}
     \item \textbf{Active Collaboration:} Unlike Apple Health, where data is passively "shared," our system allows doctors to actively write to the patient's record,with the patient consent,and update treatment plans.
     \item \textbf{Data shared with Doctor:} Our AI component does not just categorize data; it assists the doctor by analyzing the patient's inputs, to help the doctor in diagonizing the disease, a feature absent in standard health aggregators.
 \end{itemize}
 
 \section{Market Analysis: The Egyptian Landscape}
-In the context of Egypt, our system addresses a significant gap. While there are successful health-tech players, none offer the complete \textit{Full Integrated Ecosystem} we are proposing.
- % ElBalto
+In the context of Egypt, our system addresses a significant gap. While there
+are successful health-tech players, none offer the complete \textit{Full
+    Integrated Ecosystem} we are proposing.
+% ElBalto
 \subsection{Vezeeta}
-    \begin{itemize}
-        \item Vezeeta currently hast around 1 million users. The application can be downloaded for free in the Google Play-Store and the Apple Store.
-        \item \textit{Focus:} Primary focus is on \textbf{booking and telemedicine}.
-        \item \textit{Limitation:} These platforms function primarily as marketplaces. They do not typically offer a persistent, longitudinal health record that stays with the patient across different providers, nor do they utilize advanced AI, used by doctors, for clinical decision support during the collaboration.
-    \end{itemize}
-    
-    % \item \textbf{HealthTag:}
-    % \begin{itemize}
-    %     \item \textit{Focus:} Health Information Exchange (HIE) and record storage.
-    %     \item \textit{Limitation:} While HealthTag allows users to carry their medical records (via a card or app), it lacks the interactive \textbf{AI-driven collaborative layer} that actively interprets this data for both the patient and the doctor.
-    % \end{itemize}
-    \subsection{Lumi by Nextcare:}
-    \begin{itemize}
-        \item \textit{Market Reach:} A widely used application in the region with over 1 million downloads \cite{lumi_playstore}.
-        \item \textit{Focus:} Specialized primarily in insurance management, approvals, and pharmacy benefits, with some telehealth features.
-        % \item \textit{Absence of Wearable Device Integration:} There is not continuous monitoring through wearables devices like smartwatches, which our system offer.
-        \item \textit{Limitation:} It lacks a "full closed system" for clinical management. Crucially, it does not structure medical history as a connected longitudinal record. Documents and visits are often treated as isolated transactional events (e.g., a claim or a prescription) rather than a continuous medical narrative.
-    \end{itemize}
-    
+\begin{itemize}
+    \item Vezeeta currently hast around 1 million users. The application can be
+          downloaded for free in the Google Play-Store and the Apple Store.
+    \item \textit{Focus:} Primary focus is on \textbf{booking and telemedicine}.
+    \item \textit{Limitation:} These platforms function primarily as marketplaces. They do not typically offer a persistent, longitudinal health record that stays with the patient across different providers, nor do they utilize advanced AI, used by doctors, for clinical decision support during the collaboration.
+\end{itemize}
+
+% \item \textbf{HealthTag:}
+% \begin{itemize}
+%     \item \textit{Focus:} Health Information Exchange (HIE) and record storage.
+%     \item \textit{Limitation:} While HealthTag allows users to carry their medical records (via a card or app), it lacks the interactive \textbf{AI-driven collaborative layer} that actively interprets this data for both the patient and the doctor.
+% \end{itemize}
+\subsection{Lumi by Nextcare:}
+\begin{itemize}
+    \item \textit{Market Reach:} A widely used application in the region with over 1 million downloads \cite{lumi_playstore}.
+    \item \textit{Focus:} Specialized primarily in insurance management, approvals, and pharmacy benefits, with some telehealth features.
+          % \item \textit{Absence of Wearable Device Integration:} There is not continuous monitoring through wearables devices like smartwatches, which our system offer.
+    \item \textit{Limitation:} It lacks a "full closed system" for clinical management. Crucially, it does not structure medical history as a connected longitudinal record. Documents and visits are often treated as isolated transactional events (e.g., a claim or a prescription) rather than a continuous medical narrative.
+\end{itemize}
 
 \subsection{Our Competitive Advantage: The "Medical History Tree"}
-The most distinct differentiator of our system is the data architecture, designed to solve the fragmentation found in apps like Lumi:
+The most distinct differentiator of our system is the data architecture,
+designed to solve the fragmentation found in apps like Lumi:
 
 \begin{itemize}
-    \item \textbf{Graph Visualization (Doctor's View):} 
-    Unlike existing solutions that show simple lists, our Web Interface presents the patient's history as a \textbf{Graph/Tree Structure}. Doctors can traverse this graph where each "node" represents a specific medical event (visit, procedure, or test) containing all attached documents and AI summaries. This allows for rapid correlation between past and present conditions.
-    
-    \item \textbf{Major Events Timeline (Patient's View):} 
-    On the mobile application, the patient sees a simplified, chronological view of "Major Events." Each event expands into a detailed node containing the specific visit info and documents, ensuring they own a complete, navigable copy of their medical history, rather than just a list of insurance claims.
+    \item \textbf{Graph Visualization (Doctor's View):}
+          Unlike existing solutions that show simple lists, our Web Interface presents the patient's history as a \textbf{Graph/Tree Structure}. Doctors can traverse this graph where each "node" represents a specific medical event (visit, procedure, or test) containing all attached documents and AI summaries. This allows for rapid correlation between past and present conditions.
+
+    \item \textbf{Major Events Timeline (Patient's View):}
+          On the mobile application, the patient sees a simplified, chronological view of "Major Events." Each event expands into a detailed node containing the specific visit info and documents, ensuring they own a complete, navigable copy of their medical history, rather than just a list of insurance claims.
 \end{itemize}
 
 \section{Flutter and Dart}
 \subsection{Clean Architecture in the Mobile Application}
 
-To ensure a scalable, maintainable, and testable codebase for the patient mobile application, this project adopts principles of Clean Architecture.
+To ensure a scalable, maintainable, and testable codebase for the patient
+mobile application, this project adopts principles of Clean Architecture.
 
-Clean Architecture is a layered software design paradigm that promotes clear separation of concerns, dependency management, and modularization of application logic. The fundamental goal of this approach is to isolate core business rules from implementation details and platform-specific frameworks, thereby improving long-term maintainability and facilitating unit testing \cite{clean_arch_flutter}.
+Clean Architecture is a layered software design paradigm that promotes clear
+separation of concerns, dependency management, and modularization of
+application logic. The fundamental goal of this approach is to isolate core
+business rules from implementation details and platform-specific frameworks,
+thereby improving long-term maintainability and facilitating unit testing
+\cite{clean_arch_flutter}.
 
-According to the Flutter documentation on application architecture, well-structured applications organize code into logical layers that separate the user interface, application logic, and data handling. The documentation emphasizes the importance of isolating state management, dependency injection, and data access concerns to support growth and complexity in larger applications \cite{flutter_architecture}.
+According to the Flutter documentation on application architecture,
+well-structured applications organize code into logical layers that separate
+the user interface, application logic, and data handling. The documentation
+emphasizes the importance of isolating state management, dependency injection,
+and data access concerns to support growth and complexity in larger
+applications \cite{flutter_architecture}.
 
-As illustrated in Figure~\ref{fig:clean-architecture}, the the application is structured into three principal layers: the presentation layer, the domain layer, and the data layer. Each layer has a distinct responsibility and communicates with adjacent layers through abstract interfaces, ensuring that dependencies always point inward toward business logic rather than outward toward infrastructure or frameworks \cite{clean_arch_flutter}.
+As illustrated in Figure~\ref{fig:clean-architecture}, the the application is
+structured into three principal layers: the presentation layer, the domain
+layer, and the data layer. Each layer has a distinct responsibility and
+communicates with adjacent layers through abstract interfaces, ensuring that
+dependencies always point inward toward business logic rather than outward
+toward infrastructure or frameworks \cite{clean_arch_flutter}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{Clean-Architecture-Flutter-Diagram-Reso-Coder.png}
+    \includegraphics[width=0.6\textwidth]{Mobile/Images/Clean-Architecture-Flutter-Diagram-Reso-Coder.png}
     \caption{Layered Clean Architecture adopted in the mobile application}
     \label{fig:clean-architecture}
 \end{figure}
@@ -144,34 +217,62 @@ As illustrated in Figure~\ref{fig:clean-architecture}, the the application is st
 \subsection{Layered Structure}
 
 \paragraph{Presentation Layer}
-This outermost layer contains code that directly interacts with the user interface. In the context of this Flutter application, it includes widgets, screens, routing logic, and Riverpod providers to manage application state when implemented. The presentation layer orchestrates the flow of data from use cases in the domain layer to the UI and captures user interactions for processing. Presentation logic is kept distinct from business rules and data access to avoid tightly coupling UI changes with core system logic \cite{clean_arch_flutter}.
+This outermost layer contains code that directly interacts with the user
+interface. In the context of this Flutter application, it includes widgets,
+screens, routing logic, and Riverpod providers to manage application state when
+implemented. The presentation layer orchestrates the flow of data from use
+cases in the domain layer to the UI and captures user interactions for
+processing. Presentation logic is kept distinct from business rules and data
+access to avoid tightly coupling UI changes with core system logic
+\cite{clean_arch_flutter}.
 
 \paragraph{Domain Layer}
-The domain layer encapsulates the core business logic and entities of the system. It is independent of Flutter or any external dependencies. This layer defines use cases that represent application-specific operations, such as requesting document access or scheduling appointments, and serves as the central coordinator of business rules. The domain layer’s independence from external libraries and frameworks enhances testability and ensures that business logic can be validated in isolation \cite{clean_arch_flutter}.
+The domain layer encapsulates the core business logic and entities of the
+system. It is independent of Flutter or any external dependencies. This layer
+defines use cases that represent application-specific operations, such as
+requesting document access or scheduling appointments, and serves as the
+central coordinator of business rules. The domain layer’s independence from
+external libraries and frameworks enhances testability and ensures that
+business logic can be validated in isolation \cite{clean_arch_flutter}.
 
 \paragraph{Data Layer}
-The data layer is responsible for integrating with external systems, including APIs, local storage, and the backend FHIR server. It provides implementations of repository interfaces defined in the domain layer and manages data transformation between network responses, local models, and domain entities. The layered separation ensures that external dependencies do not leak into the domain or presentation layers \cite{clean_arch_flutter}.
+The data layer is responsible for integrating with external systems, including
+APIs, local storage, and the backend FHIR server. It provides implementations
+of repository interfaces defined in the domain layer and manages data
+transformation between network responses, local models, and domain entities.
+The layered separation ensures that external dependencies do not leak into the
+domain or presentation layers \cite{clean_arch_flutter}.
 
 % \subsection{Permission Function}
 \subsection{Centralized Runtime Permission Handling}
 
-To ensure a secure and seamless interaction with device hardware, the application implements a centralized asynchronous mechanism for managing runtime permissions. This approach abstracts the complexity of the \texttt{permission\_handler} library and follows established patterns for robust permission management \cite{anthony2025permissions}. The function \texttt{handlePermission} provides a unified interface for requesting access to sensitive resources such as the camera, storage, or microphone.
+To ensure a secure and seamless interaction with device hardware, the
+application implements a centralized asynchronous mechanism for managing
+runtime permissions. This approach abstracts the complexity of the
+\texttt{permission\_handler} library and follows established patterns for
+robust permission management \cite{anthony2025permissions}. The function
+\texttt{handlePermission} provides a unified interface for requesting access to
+sensitive resources such as the camera, storage, or microphone.
 
-The function operates as a \texttt{Future<bool>}, returning a boolean value to indicate the success or failure of the authorization process. Upon invocation, the function executes the following logic flow:
+The function operates as a \texttt{Future<bool>}, returning a boolean value to
+indicate the success or failure of the authorization process. Upon invocation,
+the function executes the following logic flow:
 
 \begin{enumerate}
     \item \textbf{Asynchronous Request:} It initiates a request to the underlying operating system using \texttt{permission.request()}. The execution yields until the user interacts with the system dialog or the operating system returns the current status.
-    
+
     \item \textbf{Status Evaluation:} The returned \texttt{PermissionStatus} is evaluated against standard authorization states:
-    \begin{itemize}
-        \item \textbf{Granted:} If the user approves the request (\texttt{isGranted}), the function immediately returns \texttt{true}, allowing the calling process to proceed.
-        \item \textbf{Permanently Denied:} If the permission is flagged as \texttt{isPermanentlyDenied} (a state where the operating system suppresses further prompts due to repeated denials), the system intervenes to prevent a silent failure. It displays a toast notification instructing the user to enable the permission manually and invokes \texttt{openAppSettings()} to redirect the user to the device’s settings menu.
-        \item \textbf{Denied:} In cases of a standard denial, a feedback message is displayed via \texttt{Fluttertoast} to inform the user of the restriction, and the function returns \texttt{false}.
-    \end{itemize}
+          \begin{itemize}
+              \item \textbf{Granted:} If the user approves the request (\texttt{isGranted}), the function immediately returns \texttt{true}, allowing the calling process to proceed.
+              \item \textbf{Permanently Denied:} If the permission is flagged as \texttt{isPermanentlyDenied} (a state where the operating system suppresses further prompts due to repeated denials), the system intervenes to prevent a silent failure. It displays a toast notification instructing the user to enable the permission manually and invokes \texttt{openAppSettings()} to redirect the user to the device’s settings menu.
+              \item \textbf{Denied:} In cases of a standard denial, a feedback message is displayed via \texttt{Fluttertoast} to inform the user of the restriction, and the function returns \texttt{false}.
+          \end{itemize}
 \end{enumerate}
 
-By encapsulating this logic, the system ensures that permission failures are handled gracefully, guiding users through recovery steps when necessary rather than causing application crashes or unresponsive features. The implementation of this logic is demonstrated in Listing \ref{lst:perm_logic}.
-\newpage
+By encapsulating this logic, the system ensures that permission failures are
+handled gracefully, guiding users through recovery steps when necessary rather
+than causing application crashes or unresponsive features. The implementation
+of this logic is demonstrated in Listing \ref{lst:perm_logic}. \newpage
 \begin{lstlisting}[
     language=Java, 
     basicstyle=\ttfamily\footnotesize, 
@@ -210,66 +311,74 @@ Future<bool> handlePermission(
 \end{lstlisting}
 \begin{figure}[H]
     \centering
-\includegraphics[width=0.7\textwidth]{Permission_handler_Camera.png}
+    \includegraphics[width=0.7\textwidth]{Mobile/Images/Permission_handler_Camera.png}
     \caption{using handlePermission For Camera Access In code}
     \label{fig:handlePermission For camera access in code}
 \end{figure}
 \subsubsection{Best Practices for handling Permissions in Flutter}
 \begin{itemize}
     \item \textbf{Contextual Permission Requests: }To avoid overwhelming the user and to establish context, the application rejects the traditional ``up-front'' permission model (where all permissions are requested at launch). Instead, a \textit{Contextual Request} pattern is employed. Permissions are only requested at the specific moment a feature is invoked. For example, access to the \texttt{Camera} is requested solely when the user attempts to scan a medical report.
-% and access to \texttt{Location} is requested only when the user initiates the ``Find Nearby Clinics'' feature.\cite{daydreamsoft2025permissions}
+          % and access to \texttt{Location} is requested only when the user initiates the ``Find Nearby Clinics'' feature.\cite{daydreamsoft2025permissions}
     \item \textbf{Transparent Rationale and Trust Building: } In compliance with privacy best practices, the application explains the ``Why'' before the ``How.'' Prior to triggering the system permission dialog, the application presents a custom UI explanation detailing exactly why a specific permission is needed and how it benefits the user. This transparency is critical in a healthcare context, increasing the likelihood of approval and reinforcing the patient's understanding that their data is being used strictly for medical management.\cite{daydreamsoft2025permissions}
     \item \textbf{User Agency and Graceful Degradation: } The system is designed to respect user choices without compromising the core functionality of the application. If a user denies a non-critical permission, the app enters a state of \textit{Graceful Degradation}.
-    % For instance, if access to the \texttt{Calendar} is denied, the appointment booking feature remains active, but the automatic synchronization with the user's personal schedule is disabled. 
+          % For instance, if access to the \texttt{Calendar} is denied, the appointment booking feature remains active, but the automatic synchronization with the user's personal schedule is disabled. 
 
-The application avoids repetitive prompting (``nagging''), ensuring a respectful user experience. \cite{daydreamsoft2025permissions}
+          The application avoids repetitive prompting (``nagging''), ensuring a
+          respectful user experience. \cite{daydreamsoft2025permissions}
 
     \item \textbf{Comprehensive State Handling: }The application logic accounts for the full lifecycle of permission states, ensuring stability across different scenarios\cite{daydreamsoft2025permissions}\cite{boudanes2024permissions}:
-\begin{itemize}
-    \item \textbf{Granted:} The feature proceeds immediately.
-    \item \textbf{Denied:} The feature is disabled, and the user is informed of the limitation.
-    \item \textbf{Permanently Denied:} In cases where the user has selected ``Don't ask again,'' the application detects this state and provides a subtle option to guide the user to the system \texttt{App Settings} menu for manual enablement, should they choose to do so later.
+          \begin{itemize}
+              \item \textbf{Granted:} The feature proceeds immediately.
+              \item \textbf{Denied:} The feature is disabled, and the user is informed of the limitation.
+              \item \textbf{Permanently Denied:} In cases where the user has selected ``Don't ask again,'' the application detects this state and provides a subtle option to guide the user to the system \texttt{App Settings} menu for manual enablement, should they choose to do so later.
+          \end{itemize}
+          % \item \textbf{Platform Compliance and Manifest Integrity: }% \subsubsection{}
+          % Finally, the application adheres strictly to the interface guidelines. The Android Manifest files are configured to declare only the absolute minimum permissions required for functionality, adhering to the principle of \textit{Least Privilege}. This minimizes the security surface area and ensures compliance with modern mobile operating system standards.
+
 \end{itemize}
-% \item \textbf{Platform Compliance and Manifest Integrity: }% \subsubsection{}
-% Finally, the application adheres strictly to the interface guidelines. The Android Manifest files are configured to declare only the absolute minimum permissions required for functionality, adhering to the principle of \textit{Least Privilege}. This minimizes the security surface area and ensures compliance with modern mobile operating system standards.
-
-    
-\end{itemize}
-
-
-
 
 \begin{figure}[H]
     \centering
-\includegraphics[width=0.7\textwidth]{diagram_for_permissions.jpg}
+    \includegraphics[width=0.7\textwidth]{Mobile/Images/diagram_for_permissions.jpg}
     \caption{Best Practices for Handling Permissions in Flutter}
     \label{fig:Best Practices for Handling Permissions in Flutter}
 \end{figure}
 \begin{figure}[H]
     \centering
-\includegraphics[width=0.3\textwidth]{Asking_camera_permission.jpeg}
+    \includegraphics[width=0.3\textwidth]{Mobile/Images/Asking_camera_permission.jpeg}
     \caption{Dialog to allow the app to access the camera}
     \label{fig:Dialog to allow the app to access the camera}
 \end{figure}
 \section{Requirements Engineering}
-To ensure the delivery of a viable and effective application, the development lifecycle begins with a stakeholder analysis to establish the system context. This is followed by a comprehensive definition of the functional, non-functional, and optional requirements. Synthesizing this information facilitates the creation of a domain model, which acts as the foundational blueprint for the subsequent database design.
+To ensure the delivery of a viable and effective application, the development
+lifecycle begins with a stakeholder analysis to establish the system context.
+This is followed by a comprehensive definition of the functional,
+non-functional, and optional requirements. Synthesizing this information
+facilitates the creation of a domain model, which acts as the foundational
+blueprint for the subsequent database design.
 \subsection{Target Group and User Group}
-The mobile application is designed for a broad demographic, targeting two key user segments:
+The mobile application is designed for a broad demographic, targeting two key
+user segments:
 
 \begin{itemize}
     \item \textbf{Primary Users (Patients):} Individuals seeking a digital solution to store and organize their medical history, accessible via any standard smartphone.
     \item \textbf{Secondary Users (Caregivers/Family):} Family members or guardians who require shared access to monitor the patient's health status and assist in managing their care plan.
 \end{itemize}
 
-By digitizing medical records, the application serves anyone looking to transition from fragmented paper records to a structured, accessible mobile archive.
+By digitizing medical records, the application serves anyone looking to
+transition from fragmented paper records to a structured, accessible mobile
+archive.
 \subsection{Stakeholder}
 % A comprehensive analysis of stakeholders is essential to define the system's context and requirements. 
-Stakeholders are categorized into Internal Stakeholders, who are directly involved in the development and operation of the system, and External Stakeholders, who utilize the system's end products.
+Stakeholders are categorized into Internal Stakeholders, who are directly
+involved in the development and operation of the system, and External
+Stakeholders, who utilize the system's end products.
 
 \subsubsection{External Stakeholders}
-External stakeholders are the primary users of the system. Their interaction drives the application's core functionality.
+External stakeholders are the primary users of the system. Their interaction
+drives the application's core functionality.
 \paragraph{1. Patients (Primary Users)}
-\newline
+% \newline
 \textbf{Interaction:}
 \begin{itemize}
     \item \textbf{Data Management:} Patients interact with the mobile interface to upload medical documents (lab results, scans) and view their historical data presented in a structured "Major Events" timeline.
@@ -284,7 +393,7 @@ External stakeholders are the primary users of the system. Their interaction dri
 \end{itemize}
 
 \paragraph{2. Family Members (Secondary Users)}
-\newline
+% \newline
 \textbf{Interaction:}
 \begin{itemize}
     \item \textbf{Monitoring:} Through shared access granted by the patient, family members can view health trends and documents to assist in care.
@@ -297,7 +406,7 @@ External stakeholders are the primary users of the system. Their interaction dri
 \end{itemize}
 
 \paragraph{3. Doctors (Service Providers)}
-\newline
+% \newline
 \textbf{Interaction:}
 \begin{itemize}
     \item \textbf{Session Initiation:} While doctors primarily use the Web Interface, their actions directly trigger updates on the mobile app. A doctor initiates a "New Encounter Node" in the patient's history tree during a visit.
@@ -311,10 +420,11 @@ External stakeholders are the primary users of the system. Their interaction dri
 \end{itemize}
 
 \subsubsection{Internal Stakeholders}
-Internal stakeholders are responsible for the technical construction, maintenance, and security of the platform.
+Internal stakeholders are responsible for the technical construction,
+maintenance, and security of the platform.
 
 \paragraph{1. Mobile Application Developers (Flutter Team)}
-\newline
+% \newline
 \textbf{Interaction:}
 \begin{itemize}
     \item \textbf{Frontend Implementation:} Responsible for building the cross-platform mobile interface using the Flutter framework.
@@ -323,37 +433,41 @@ Internal stakeholders are responsible for the technical construction, maintenanc
 \end{itemize}
 
 \paragraph{2. Backend \& System Architects}
-\newline
+% \newline
 \textbf{Interaction:}
 \begin{itemize}
     \item \textbf{Authentication Flow:} They manage the identity management integration. The Flutter app sends credentials to the Node.js backend, which acts as an intermediary to communicate with \textbf{Keycloak} for secure Single Sign-On (SSO) and token validation.
     \item \textbf{Data Orchestration:} They maintain the Node.js middleware that fetches data from the \textbf{FHIR Server} and formats it for the mobile client.
     \item \textbf{Standardization:} They ensure that all medical data stored and retrieved adheres to HL7 FHIR standards for interoperability.
 \end{itemize}
-\section{System Context Diagram}
+\section{System Sequence Diagram}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{Sequence_family_patient.png}
+    \includegraphics[width=1\textwidth]{Mobile/Images/Sequence_family_patient.png}
     \caption{Sequence Diagram for Mobile Application}
     \label{fig:Sequence Diagram for Mobile Application}
-    \end{figure}
+\end{figure}
 \section{System Requirements Specification}
-The requirements for an application can be divided into three categories: functional requirements,
-non-functional requirements, and optional requirements. In this section all 3 requirements will be discussed. 
+The requirements for an application can be divided into three categories:
+functional requirements, non-functional requirements, and optional
+requirements. In this section all 3 requirements will be discussed.
 
 \subsection{Functional Requirements}
-The functional requirements define the specific behaviors and functions of the mobile application.
+The functional requirements define the specific behaviors and functions of the
+mobile application.
 
 \subsubsection{Patient Capabilities}
 \begin{itemize}
     \item \textbf{FR-01 Document Management:} The system shall allow patients to upload, categorize, and tag medical documents (e.g., Lab Results, Radiography) into their personal repository.
     \item \textbf{FR-02 History Visualization:} The application shall present medical history as a "Major Events" timeline. Each event must be expandable to reveal detailed encounter notes and attached files.
-    \item \textbf{FR-03 Access Control Management:} 
-    \begin{itemize}
-        \item The system shall notify patients of incoming access requests from doctors.
-        \item Patients shall be able to grant \textit{Read-Only} or \textit{Read-Write} permissions.
-        \item Patients shall be able to define the duration of access and revoke permissions immediately at any time.
-    \end{itemize}
+    \item \textbf{FR-03 Access Control Management:}
+          \begin{itemize}
+              \item The system shall notify patients of incoming access requests from doctors.
+              \item Patients shall be able to grant \textit{Read-Only} or \textit{Read-Write}
+                    permissions.
+              \item Patients shall be able to define the duration of access and revoke permissions
+                    immediately at any time.
+          \end{itemize}
 \end{itemize}
 
 \subsubsection{Family \& Caregiver Capabilities}
@@ -382,7 +496,8 @@ The functional requirements define the specific behaviors and functions of the m
 % notification from family members to access
 % \subsection{book appointments}
 \section{Use Cases}
-This section describes the primary interactions between the users (Actors) and the mobile application system.
+This section describes the primary interactions between the users (Actors) and
+the mobile application system.
 
 \subsection{SignIn and SignUp Pages}
 \textbf{Actors:} Patient, Family Member \\
@@ -393,7 +508,8 @@ This section describes the primary interactions between the users (Actors) and t
 \end{itemize}
 
 \subsection{Document Management}
-Figure \ref{fig:Documents Management Use Case} illustrates the patient's interactions with their personal medical history data.
+Figure \ref{fig:Documents Management Use Case} illustrates the patient's
+interactions with their personal medical history data.
 \begin{enumerate}
     \item \textbf{View Document List:} The user requests to see their existing medical files. This action requires the system to query the database using the user's secure authentication token.
     \item \textbf{Upload Document:} The user adds new records to their profile. This involves selecting a file and assigning title.
@@ -402,44 +518,44 @@ Figure \ref{fig:Documents Management Use Case} illustrates the patient's interac
 \end{enumerate}
 \begin{figure}[H]
     \centering
-    \includegraphics[width= 1\textwidth]{Document_manager_usecase.png}
+    \includegraphics[width= 1\textwidth]{Mobile/Images/Document_manager_usecase.png}
     \caption{Documents Management Use Case}
     \label{fig:Documents Management Use Case}
-    \end{figure}
+\end{figure}
 \subsection{Medical History Navigation}
-Figure \ref{fig:History Navigation Use Case} illustrates how a patient can navigation to explore a their medical history.
+Figure \ref{fig:History Navigation Use Case} illustrates how a patient can
+navigation to explore a their medical history.
 \begin{enumerate}
     \item \textbf{View Major Events (Dashboard):} The entry point where the patient views high-level summaries of their active medical contexts (e.g., Cardiac Workup).
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Home Page.jpeg}
-    \caption{Major Events}
-    \label{fig:Major Events}
-    \end{figure}
+          \begin{figure}[H]
+              \centering
+              \includegraphics[width=0.3\textwidth]{Mobile/Images/Home Page.jpeg}
+              \caption{Major Events}
+              \label{fig:Major Events}
+          \end{figure}
     \item \textbf{View Event Nodes:} By selecting a specific major event, the user extends their interaction to view a chronological list of related encounters (the "Nodes").
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Node_list.jpeg}
-    \caption{List of Nodes}
-    \label{fig:List of Nodes}
-    \end{figure}
+          \begin{figure}[H]
+              \centering
+              \includegraphics[width=0.3\textwidth]{Mobile/Images/Node_list.jpeg}
+              \caption{List of Nodes}
+              \label{fig:List of Nodes}
+          \end{figure}
     \item \textbf{View Encounter Details:} Selecting a specific node allows the user to inspect the full clinical details of that visit.
     \item \textbf{View Attached Documents:} Within the details view, the user can optionally retrieve and view specific medical files (PDFs/Images) associated with that encounter.
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{node_details.jpeg}
-    \caption{Node Details}
-    \label{fig:Node Details}
-    \end{figure}
+          \begin{figure}[H]
+              \centering
+              \includegraphics[width=0.3\textwidth]{Mobile/Images/node_details.jpeg}
+              \caption{Node Details}
+              \label{fig:Node Details}
+          \end{figure}
 \end{enumerate}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{medical_hirstory_usecase.png}
+    \includegraphics[width=1\textwidth]{Mobile/Images/medical_hirstory_usecase.png}
     \caption{History Navigation Use Case}
     \label{fig:History Navigation Use Case}
-    \end{figure}
-
+\end{figure}
 
 % \subsection{Access Control Notifications}
 % \textbf{Actors:} Patient, Doctor (Trigger), Family Member (Trigger) \\
@@ -449,7 +565,8 @@ Figure \ref{fig:History Navigation Use Case} illustrates how a patient can navig
 %     \item \textbf{Family Access Invite:} A family member can request to follow a patient, or a patient can send an invite. The patient must explicitly confirm this relationship to allow the family member to view their "Major Events" timeline.
 % \end{itemize}
 \subsection{Appointment Booking}
-Figure \ref{fig:Booking Appointments Usecase} depicts the functional capabilities available to the Patient during the scheduling process.
+Figure \ref{fig:Booking Appointments Usecase} depicts the functional
+capabilities available to the Patient during the scheduling process.
 \begin{enumerate}
     \item \textbf{Core Functionality:} The primary goal is the \textit{Book Appointment} use case. To complete this, the system mandates several included steps: searching for a specialist, selecting a valid time slot, and confirming the details.
     \item \textbf{Optional Extension:} The \textit{Attach Documents} use case is modeled as an extension. It is not required to complete a booking but provides optional value (sending scans/PDFs) upon successful completion.
@@ -457,11 +574,11 @@ Figure \ref{fig:Booking Appointments Usecase} depicts the functional capabilitie
 \end{enumerate}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.1\textwidth]{use_case_book_appointments.png}
+    \includegraphics[width=1.1\textwidth]{Mobile/Images/use_case_book_appointments.png}
     \caption{Booking Appointments Usecase}
     \label{fig:Booking Appointments Usecase}
-    \end{figure}
-    
+\end{figure}
+
 % % \section{Sequence Diagram: Access Control and Permissions}
 % % Figure \ref{fig:access_control_sequence} details the asynchronous communication flow for managing data privacy.
 % % \begin{enumerate}
@@ -477,27 +594,51 @@ Figure \ref{fig:My Profile Use Case} details the data consistency mechanism.
 \end{enumerate}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{My-Profile-usecase.png}
+    \includegraphics[width=1\textwidth]{Mobile/Images/My-Profile-usecase.png}
     \caption{My Profile Use Case}
     \label{fig:My Profile Use Case}
-    \end{figure}
+\end{figure}
 \section{Quality Assurance and Testing}
 \subsection{Unit Testing}
-Unit testing is the process of verifying the correctness of a single function, method, or class in isolation. It is considered the foundation of the testing pyramid. The primary goal is to ensure that the business logic and algorithms function as expected under a variety of conditions without any interaction with the User Interface (UI) or external dependencies such as databases or web servers \cite{flutterunittest}.
+Unit testing is the process of verifying the correctness of a single function,
+method, or class in isolation. It is considered the foundation of the testing
+pyramid. The primary goal is to ensure that the business logic and algorithms
+function as expected under a variety of conditions without any interaction with
+the User Interface (UI) or external dependencies such as databases or web
+servers \cite{flutterunittest}.
 
-As described by Torres \cite{torres2024testing}, unit tests help ensure that specific pieces of logic produce the expected output given a particular input. These tests are characterized by their execution speed and low maintenance cost. In Flutter, unit tests typically utilize the \texttt{test} package to define expectations and assertions for Dart classes.
+As described by Torres \cite{torres2024testing}, unit tests help ensure that
+specific pieces of logic produce the expected output given a particular input.
+These tests are characterized by their execution speed and low maintenance
+cost. In Flutter, unit tests typically utilize the \texttt{test} package to
+define expectations and assertions for Dart classes.
 
 \subsection{Widget Testing}
-Widget testing, often referred to as component testing in other frameworks, sits between unit and integration testing. A widget test verifies the behavior of a single widget or a small group of widgets \cite{flutterwidgettest}. 
+Widget testing, often referred to as component testing in other frameworks,
+sits between unit and integration testing. A widget test verifies the behavior
+of a single widget or a small group of widgets \cite{flutterwidgettest}.
 
-According to Bharti \cite{bharti2024widget}, the objective of widget testing is to ensure UI reliability and quality by asserting that the widget's visual layout is rendered correctly and that it responds appropriately to user interactions, such as button taps or text entry. 
+According to Bharti \cite{bharti2024widget}, the objective of widget testing is
+to ensure UI reliability and quality by asserting that the widget's visual
+layout is rendered correctly and that it responds appropriately to user
+interactions, such as button taps or text entry.
 
-Unlike unit tests, widget tests require a simulated environment. The Flutter framework provides the \texttt{WidgetTester} utility, which allows developers to build and interact with widgets in a test environment that is significantly faster than a full UI system but complex enough to render the widget tree \cite{flutterwidgettest}.
+Unlike unit tests, widget tests require a simulated environment. The Flutter
+framework provides the \texttt{WidgetTester} utility, which allows developers
+to build and interact with widgets in a test environment that is significantly
+faster than a full UI system but complex enough to render the widget tree
+\cite{flutterwidgettest}.
 
 \subsection{Integration Testing}
-Integration testing involves testing the application as a complete system. This methodology validates that all individual components—including the UI, business logic, and external services—work together correctly \cite{torres2024testing}.
+Integration testing involves testing the application as a complete system. This
+methodology validates that all individual components—including the UI, business
+logic, and external services—work together correctly \cite{torres2024testing}.
 
-These tests simulate a real user's journey through the application, such as logging in, navigating through screens, and performing data updates. Because integration tests typically run on real devices or emulators to capture accurate performance data and visual rendering, they are generally slower and more resource-intensive than unit or widget tests.
+These tests simulate a real user's journey through the application, such as
+logging in, navigating through screens, and performing data updates. Because
+integration tests typically run on real devices or emulators to capture
+accurate performance data and visual rendering, they are generally slower and
+more resource-intensive than unit or widget tests.
 \subsection{Testing Architecture and Tools}
 We utilized the following standard Flutter testing libraries:
 \begin{itemize}
@@ -510,10 +651,15 @@ We utilized the following standard Flutter testing libraries:
 \end{itemize}
 
 \subsection{Unit Testing Implementation}
-To ensure the reliability of the application's business logic and maintain a stable codebase, we implemented a comprehensive Unit Testing strategy. This strategy focused on verifying the behavior of our \textbf{ViewModels} (Providers) in isolation from the UI and external dependencies (such as the backend API or local device storage).
+To ensure the reliability of the application's business logic and maintain a
+stable codebase, we implemented a comprehensive Unit Testing strategy. This
+strategy focused on verifying the behavior of our \textbf{ViewModels}
+(Providers) in isolation from the UI and external dependencies (such as the
+backend API or local device storage).
 
 \subsubsection{Booking Logic (BookingProvider)}
-The booking process involves complex state management where selecting a doctor resets previously selected dates to prevent invalid slots.
+The booking process involves complex state management where selecting a doctor
+resets previously selected dates to prevent invalid slots.
 \begin{itemize}
     \item \textbf{Scenario Tested:} We verified that selecting a new doctor automatically clears the \texttt{selectedDate} and \texttt{selectedTime} to enforce valid scheduling.
     \item \textbf{Optimistic Updates:} We tested the \texttt{confirmBooking} method to ensure that once the repository returns success, the local appointment list updates immediately without requiring a full page refresh.
@@ -536,14 +682,16 @@ test('Selecting a doctor should reset Date and Time', () {
 \end{verbatim}
 
 \subsubsection{Document Uploads (DocumentAddViewModel)}
-This module interacts with native platform channels (File Picker, Image Picker). Testing it requires intercepting these platform calls.
+This module interacts with native platform channels (File Picker, Image
+Picker). Testing it requires intercepting these platform calls.
 \begin{itemize}
     \item \textbf{Validation Logic:} We verified that the \texttt{isValid} getter returns \texttt{false} unless both a "Title" and a "File" are present, preventing users from submitting incomplete forms.
     \item \textbf{Platform Mocking:} Since Unit Tests run on a computer (not a phone), calls to \texttt{getApplicationDocumentsDirectory} would normally crash. We used \texttt{MethodChannel} mocking to intercept these calls and return a temporary directory on the test machine.
 \end{itemize}
 
 \subsubsection{Medical History Timeline (MajorEventProvider)}
-This provider handles fetching the patient's "Major Events" and their sub-nodes.
+This provider handles fetching the patient's "Major Events" and their
+sub-nodes.
 \begin{itemize}
     \item \textbf{State Management:} We tested the \texttt{fetchEvents} method to ensure the \texttt{isLoading} boolean correctly toggles to \texttt{true} when the call starts and \texttt{false} when data is received.
     \item \textbf{Data Clearing:} We verified that fetching details for a new event (e.g., "Surgery") correctly clears the old data from the previous event to prevent showing stale information.
@@ -571,7 +719,8 @@ test('fetchEvents success updates list and loading state', () async {
 \end{verbatim}
 
 \subsubsection{Test Coverage Results}
-By isolating the ViewModels and mocking the repositories, we achieved high test coverage for the application's core logic. This approach allowed us to:
+By isolating the ViewModels and mocking the repositories, we achieved high test
+coverage for the application's core logic. This approach allowed us to:
 \begin{enumerate}
     \item \textbf{Identify Edge Cases:} We caught issues where invalid form submissions were possible before implementing the validation checks.
     \item \textbf{Refactor Safely:} We could optimize the \texttt{BookingProvider} logic with confidence, knowing the tests would fail if we broke the "reset date" functionality.
@@ -579,26 +728,35 @@ By isolating the ViewModels and mocking the repositories, we achieved high test 
 \end{enumerate}
 \section{Future Work}
 \subsection{Push Notifications}
-To enhance user engagement and ensure immediate response to critical events (e.g., doctor access requests), we plan to implement a robust Push Notification system. This architecture relies on \textbf{Firebase Cloud Messaging (FCM)} as the delivery intermediary.
+To enhance user engagement and ensure immediate response to critical events
+(e.g., doctor access requests), we plan to implement a robust Push Notification
+system. This architecture relies on \textbf{Firebase Cloud Messaging (FCM)} as
+the delivery intermediary.
 
 \paragraph{Technical Implementation}
-The proposed workflow consists of two distinct phases: Token Registration and Message Delivery.
+The proposed workflow consists of two distinct phases: Token Registration and
+Message Delivery.
 
 \begin{itemize}
-    \item \textbf{Token Generation (Frontend):} 
-    Upon logging in, the Flutter application utilizes the \texttt{firebase\_messaging} \cite{firebase_messaging_pub}package to generate a unique Registration Token for the device. This token acts as the specific address for the user's phone.
-    
-    \item \textbf{Token Registration (Backend):} 
-    The mobile application transmits this token via a secure API endpoint (e.g., \texttt{POST /user/fcm-token}) to our Node.js backend. The backend associates this token with the User ID and stores it in the database.
-    
-    \item \textbf{Notification Triggering:} 
-    When a business event occurs (e.g., a doctor requests access), the Node.js backend retrieves the target user's stored FCM token. It then utilizes the \texttt{firebase-admin} SDK to dispatch the payload to the FCM servers, which subsequently route the notification to the user's device, even if the application is in the background.\cite{ashan2024push}
+    \item \textbf{Token Generation (Frontend):}
+          Upon logging in, the Flutter application utilizes the \texttt{firebase\_messaging} \cite{firebase_messaging_pub}package to generate a unique Registration Token for the device. This token acts as the specific address for the user's phone.
+
+    \item \textbf{Token Registration (Backend):}
+          The mobile application transmits this token via a secure API endpoint (e.g., \texttt{POST /user/fcm-token}) to our Node.js backend. The backend associates this token with the User ID and stores it in the database.
+
+    \item \textbf{Notification Triggering:}
+          When a business event occurs (e.g., a doctor requests access), the Node.js backend retrieves the target user's stored FCM token. It then utilizes the \texttt{firebase-admin} SDK to dispatch the payload to the FCM servers, which subsequently route the notification to the user's device, even if the application is in the background.\cite{ashan2024push}
 \end{itemize}
 \subsection{Wearable Data Integration}
-To transition from a system of historical records to a platform for active health monitoring, we propose integrating \textbf{Android Health Connect}. This allows the application to ingest vital signs collected by smartwatches and fitness trackers.
+To transition from a system of historical records to a platform for active
+health monitoring, we propose integrating \textbf{Android Health Connect}. This
+allows the application to ingest vital signs collected by smartwatches and
+fitness trackers.
 
 \subsection{Objective: Remote Patient Monitoring (RPM)}
-The goal is to automatically populate the "My Vitals" dashboard without manual entry. By syncing with devices (e.g., Samsung Galaxy Watch, Google Pixel Watch), the system can track:
+The goal is to automatically populate the "My Vitals" dashboard without manual
+entry. By syncing with devices (e.g., Samsung Galaxy Watch, Google Pixel
+Watch), the system can track:
 \begin{itemize}
     \item \textbf{Heart Rate \& Variability (HRV):} To detect potential cardiac anomalies early.
     \item \textbf{Activity Levels (Steps):} To monitor recovery progress after surgery.
@@ -606,7 +764,10 @@ The goal is to automatically populate the "My Vitals" dashboard without manual e
 \end{itemize}
 
 \subsection{Health Connect}
-The Health Connect app is responsible for handling all the requests that your application sends through the Health Connect SDK. These requests include storing data and managing its read and write access. \cite{android_health_connect}
+The Health Connect app is responsible for handling all the requests that your
+application sends through the Health Connect SDK. These requests include
+storing data and managing its read and write access.
+\cite{android_health_connect}
 \begin{enumerate}
     \item \textbf{Data Aggregation:} Smartwatches sync their raw sensor data to the Health Connect app on the patient's Android phone.
     \item \textbf{Privacy-First Access:} Our Flutter application requests specific granular permissions (e.g., \texttt{READ\_HEART\_RATE}) from Health Connect.
@@ -621,6 +782,3 @@ The Health Connect app is responsible for handling all the requests that your ap
 
 \bibliography{sample}
 \bibliographystyle{ieeetr}
-
-
-\end{document}
