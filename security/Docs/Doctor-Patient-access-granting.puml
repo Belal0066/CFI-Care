@@ -25,32 +25,38 @@ participant AuditLog
 participant Application as App
 actor Patient
 
-==Access Granting Flow==
+==Access Granting Flow (FHIR R4 Consent Standard)==
 Patient -> App : Grant access to Dr (search by doctor ID)
-App -> nginx : access grant creation req{doctorId, scopes, expiresIn}
+App -> nginx : access grant creation req\n{doctorId, scopes[], resourceTypes[], purpose[], expiresIn}
 nginx -> NJS : forward request with patient's access token
 
-NJS -> NJS : validate patient token & extract id
-' NJS -> FHIR : Verify patient owns their data (Patient resource)
-' FHIR -> NJS : Patient resource confirmed
+NJS -> NJS : validate patient token & extract patientId
+NJS -> FHIR : Verify patient owns their data (GET /Patient/{patientId})
+FHIR -> NJS : Patient resource confirmed
 
-' NJS -> NJS : Validate requested scopes against patient's rights
+NJS -> NJS : Validate requested scopes/purposes against patient's rights
 
-' NJS -> FHIR : Create Consent resource (FHIR R4)
-' FHIR -> NJS : Consent resource created with ID
+NJS -> App : Request patient verification\n(e.g., 2FA, PIN, biometric, or review Consent Form)
+App -> Patient : Display Consent Form\n"Grant Dr. X access to [Conditions, Encounters]\nfor Treatment purposes until [date]"
+Patient -> App : Confirm (sign/verify)
+App -> NJS : Verification confirmed
+
+NJS -> FHIR : Create Consent resource (FHIR R4)\n{\n  status: "active",\n  grantor: Patient,\n  grantee: Practitioner/doctorId,\n  decision: "permit",\n  provision: {\n    actor: doctorId,\n    purpose: ["TREAT"],\n    resourceType: ["Condition","Encounter"],\n    period: {start, end}\n  },\n  verification: {\n    verified: true,\n    verificationType: "Patient signature",\n    verificationDate: now\n  }\n}
+FHIR -> NJS : Consent resource created with consentId
 
 ' access:grant:{patientId}:{doctorId}\nValue: {grantId, scopes, expiresAt}\nTTL: patient-specified duration
 ' grantId : specific value for currently active session
-NJS -> AR : Store access grant Key 
-AR -> NJS : Grant stored successfully
+NJS -> NJS : Generate grant signature (HMAC of consentId+scope+expiry)
+NJS -> AR : Cache access grant for fast lookup\nKey: access:grant:{patientId}:{doctorId}\nValue: {consentId, scopes, expiresAt, signature}\nTTL: patient-specified duration
+AR -> NJS : Grant cached successfully
 
-' event\n{patientId, doctorId, timestamp, scopes} , hal me7tagen keda tho?
-' NJS -> AuditLog : Log consent grant 
-' AuditLog -> NJS : Logged
+' event\n{patientId, doctorId, consentId, timestamp, scopes, purposes, verification} , hal me7tagen keda tho?
+NJS -> AuditLog : Log consent grant 
+AuditLog -> NJS : Logged successfully
 
-NJS -> nginx : Creation Confirmation
+NJS -> nginx : Creation Confirmation {consentId}
 nginx -> App : Grant created successfully
-App -> Patient : Display confirmation
+App -> Patient : Display confirmation\n"Dr. X can now access your [Conditions, Encounters]\nConsent ID: {consentId}"
 
 ==Registered Doctor requesting access to patient data==
 Doctor -> Browser : search for patient (by id)
@@ -58,41 +64,28 @@ Browser -> nginx : req to access patient data
 nginx-> NJS: forward req
 
 NJS -> NJS : Extract doctorId from token
-NJS->AR : search access grants using dr id
-' NJS -> NJS : Filter search results
+NJS -> FHIR : Query Consent resources\nWHERE performer=doctorId AND status=active
+FHIR -> NJS : Return matching Consent resources (consentId, patient ref)
+
 alt Doctor has access to patient data
+NJS -> AR : Get cached grant for validation\nKey: access:grant:{patientId}:{doctorId}
+AR -> NJS: return access grant with signature
 
-' wala redis by3rf y search? 
+NJS -> NJS : Verify signature (HMAC), validate scopes, check expiry
 
-AR->NJS: return access grant 
-'needed??? check id pattren or ttl?
-NJS->NJS : verify grant's validity , validate scopes
+NJS -> FHIR : Fetch scoped resources only\n(e.g., Condition, Encounter per Consent.provision)
+FHIR -> NJS : Return scoped patient data
 
-' active Id =001 for example
-NJS->AR : set grantId to active session Id
-' for now get all ptient dta for the rag
-NJS->FHIR: call everything API (by id)
-FHIR->NJS: all patient's data
-NJS-> PDR : cache data
-NJS->NJS: preprocess data as needed for rag
-NJS->RR: preprocessed data
- 
+NJS -> PDR : Cache scoped data only
+NJS -> NJS : Preprocess scoped data for RAG
+NJS -> RR : Store preprocessed scoped data
 
+NJS -> AuditLog : Log data 
+' access\n{doctorId, patientId, timestamp, resourceTypes, consentId}
 
-
-' NJS->PDR : check for cached Patient Data (by id)
-'     alt Patient Data already cached
-'     PDR-> NJS : return Main Data
-'     else Patient Data not cached
-'     PDR->NJS: return null
-'     NJS -> FHIR : fetch needed data (by id)
-'     FHIR-> NJS: return fetched data 
-'     NJS-> PDR : cache data
-'     end
-' NJS -> AuditLog : Log access
-NJS->nginx: forward OK response (requested patient data)
-nginx-> Browser: forward resp
-Browser-> Doctor: display requested patient data 
+NJS -> nginx: forward OK response with scoped data
+nginx -> Browser: forward resp
+Browser -> Doctor: display requested patient data 
 
 
 ' redis auto deletes expired data , double check :/
@@ -102,14 +95,12 @@ Browser-> Doctor: display requested patient data
 
 
 else Doctor has no access to this pateint's data
-AR->NJS: return null
+AR->NJS: return no active consent found
 
-' NJs->AuditLog : Log unauthorized access attempt
-' NJS->nginx: return unauthorized response
-NJS->nginx: return OK resp (mask patinet's existence)
-nginx->Browser: forawrd resp (empty)
-' Browser-> Doctor: display unauthorized errro message
-Browser-> Doctor : display empty results (e.g no patient found)
+' NJS -> AuditLog : Log unauthorized access attempt\n{doctorId, searchedPatientId, timestamp}
+NJS -> nginx: return OK resp (mask patient's existence)
+nginx -> Browser: forward resp (empty)
+Browser -> Doctor : display empty results (e.g no patient found)
 
 end
 
@@ -124,42 +115,51 @@ end
 ==Doctor chooses report node==
 
 ==LLM queries (after dr opens patient graph , start llm session?)==
-' Browser->RAG: start session (attach access token)
-' RAG->nginx : req access to data
-' nginx->NJS : forward req
-' NJS -> AR: verify access
+Doctor -> Browser : Ask question about patient
+Browser -> RAG : Send query with question
 
-' alt valid access grant 
-' AR->NJS : return grant 
-' NJS-> RR : get patient data
-' RR-> NJS : return patient data
-' NJS-> nginx : forward patient data
-' nginx-> RAG : forward patient data
+RAG -> nginx : Request patient data (with access token)
+nginx -> NJS : Forward request with doctorId from token
 
-' else invalid/expired grant (shouldn't happen , extra security)
-' AR->NJS : return null
-' NJS->nginx: return unauthorized response 
-' nginx-> RAG : forward unauthorized response
-' RAG->Browser: display access denied message
+NJS -> FHIR : Verify active Consent\nWHERE performer=doctorId AND patient=patientId AND status=active
+alt Valid active Consent
+FHIR -> NJS : Consent still active
+NJS -> RR : Get preprocessed scoped data
+RR -> NJS : Return scoped patient data
 
+NJS -> AuditLog : Log RAG access\n{doctorId, patientId, timestamp, queryType, consentId}
 
-' end
+NJS -> nginx : Forward scoped data
+nginx -> RAG : Forward scoped data
+RAG -> RAG : Process query with scoped context
+RAG -> Browser : Return LLM response
+Browser -> Doctor : Display answer
 
-RAG->RR : get data 
+else Consent revoked or expired
+FHIR -> NJS : No active Consent
+NJS -> nginx : Return unauthorized
+nginx -> RAG : Forward unauthorized
+RAG -> Browser : Display access denied
+Browser -> Doctor : Show "Access revoked or expired"
+end 
 
 ==Patient Revokes access==
 ' drs with access are listed??
 Patient -> App : revoke dr access 
 
-App->nginx: request deletion of access grant
-nginx->NJS : forward deletion request
-NJS -> AR : delete access grant 
-AR->NJS : deletion confirmation
+App -> nginx: request deletion of access grant
+nginx -> NJS : forward deletion request
 
-' NJS ->FHIR: update consent resourse to inactive
-' FHIR -> NJS : consent resource updated
+NJS -> FHIR : Update Consent resource to revoked\nPATCH /Consent/{consentId} {status: "inactive"}
+FHIR -> NJS : Consent resource updated
 
-' NJS ->AuditLog : Log access revocation
+NJS -> AR : Delete cached grant\nKey: access:grant:{patientId}:{doctorId}
+AR -> NJS : deletion confirmation
+
+NJS -> PDR : Invalidate cached patient data for this grant
+NJS -> RR : Clear RAG preprocessed data for this grant
+
+NJS -> AuditLog : Log access revocation\n{patientId, doctorId, timestamp, consentId, reason}
 
 NJS-> nginx: return OK 
 nginx-> App: forward OK response
