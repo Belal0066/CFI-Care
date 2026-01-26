@@ -8,15 +8,83 @@
 \contentsline {subsection}{\numberline {1.3.3}Comparison of Standards}{5}{subsection.1.3.3}%
 \contentsline {chapter}{\numberline {2}Literature Review}{7}{chapter.2}%
 \contentsline {chapter}{\numberline {3}Proposed Design Architecture}{8}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Backend}{8}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Frontend}{8}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Mobile}{8}{section.3.3}%
-\contentsline {chapter}{\numberline {4}Security Framework}{9}{chapter.4}%
-\contentsline {chapter}{\numberline {5}AI Integration}{10}{chapter.5}%
-\contentsline {chapter}{\numberline {6}Testing and Verification}{11}{chapter.6}%
-\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{12}{chapter.7}%
-\contentsline {chapter}{Appendix}{13}{section*.8}%
-\contentsline {chapter}{\numberline {A}Lists}{14}{appendix.A}%
-\contentsline {section}{List of Abbreviations}{14}{section*.9}%
-\contentsline {section}{List of Figures}{15}{appendix*.10}%
-\contentsline {chapter}{References}{16}{appendix*.10}%
+\contentsline {section}{\numberline {3.1}System Architecture}{8}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}High-Level Architecture}{8}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Node.js Application Server}{9}{subsection.3.1.2}%
+\contentsline {subsubsection}{Middleware and Security}{9}{section*.9}%
+\contentsline {subsubsection}{Routing and Services}{10}{section*.10}%
+\contentsline {subsection}{\numberline {3.1.3}Data Persistence and Schema}{10}{subsection.3.1.3}%
+\contentsline {subsubsection}{Relational Data}{11}{section*.12}%
+\contentsline {subsubsection}{Custom Graph Schema}{11}{section*.13}%
+\contentsline {subsubsection}{Caching and Auditing}{11}{section*.14}%
+\contentsline {subsection}{\numberline {3.1.4}Request/Response Flow and Data Transformation Pipeline}{12}{subsection.3.1.4}%
+\contentsline {subsubsection}{Request Ingress and Authentication}{12}{section*.16}%
+\contentsline {subsubsection}{Concrete Example: Patient Data Retrieval}{13}{section*.17}%
+\contentsline {subsubsection}{Concrete Example: Encounter Creation and Graph Update}{14}{section*.19}%
+\contentsline {subsubsection}{Validation Points and Error Conditions}{16}{section*.21}%
+\contentsline {subsection}{\numberline {3.1.5}Error Handling and Fault Tolerance}{17}{subsection.3.1.5}%
+\contentsline {subsubsection}{Layered Error Handling Strategy}{17}{section*.22}%
+\contentsline {subsubsection}{Fallback Mechanisms and Graceful Degradation}{17}{section*.23}%
+\contentsline {subsubsection}{Resilience for Cache Operations}{18}{section*.24}%
+\contentsline {subsubsection}{Logging and Observability for Error Diagnosis}{18}{section*.25}%
+\contentsline {subsection}{\numberline {3.1.6}Security and Infrastructure Layer}{19}{subsection.3.1.6}%
+\contentsline {subsection}{\numberline {3.1.7}HAPI FHIR Server Implementation}{19}{subsection.3.1.7}%
+\contentsline {section}{\numberline {3.2}API Design and Endpoints}{20}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}RESTful Structure and Formats}{20}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}FHIR-Compliant Endpoints}{20}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Custom History Graph Endpoints}{20}{subsection.3.2.3}%
+\contentsline {section}{\numberline {3.3}Patient History Graph Implementation}{21}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Motivation: Beyond Linear Medical Records}{21}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Graph Data Model}{23}{subsection.3.3.2}%
+\contentsline {subsubsection}{Node Representation}{23}{section*.28}%
+\contentsline {subsubsection}{Edge Representation}{23}{section*.29}%
+\contentsline {subsection}{\numberline {3.3.3}Graph Construction Algorithm}{23}{subsection.3.3.3}%
+\contentsline {subsubsection}{Stage 1: Node Creation}{23}{section*.30}%
+\contentsline {subsubsection}{Stage 2: Temporal Scanning and Parent Identification}{24}{section*.31}%
+\contentsline {subsubsection}{Stage 3: Edge Creation}{24}{section*.32}%
+\contentsline {subsubsection}{Algorithm Pseudocode}{24}{section*.33}%
+\contentsline {subsection}{\numberline {3.3.4}Temporal Branching and Concurrent Episodes}{25}{subsection.3.3.4}%
+\contentsline {subsubsection}{Head Node Concept}{25}{section*.34}%
+\contentsline {subsubsection}{Visual Implications}{26}{section*.35}%
+\contentsline {subsubsection}{Clinical Advantages}{26}{section*.36}%
+\contentsline {subsection}{\numberline {3.3.5}Relationship Classification}{26}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {3.3.6}Handling Edge Cases}{27}{subsection.3.3.6}%
+\contentsline {subsection}{\numberline {3.3.7}Query Patterns and Optimization}{27}{subsection.3.3.7}%
+\contentsline {section}{\numberline {3.4}Performance Optimization}{28}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Tier 1: Standard Resource Cache}{29}{subsection.3.4.1}%
+\contentsline {subsubsection}{Mechanism and Interception}{29}{section*.38}%
+\contentsline {subsubsection}{Time-To-Live (TTL) Management}{30}{section*.39}%
+\contentsline {subsubsection}{Cache Invalidation for Tier 1}{30}{section*.40}%
+\contentsline {subsubsection}{Practical Impact}{31}{section*.41}%
+\contentsline {subsection}{\numberline {3.4.2}Tier 2: Specialized Graph Cache}{31}{subsection.3.4.2}%
+\contentsline {subsubsection}{Computational Cost of Graph Construction}{31}{section*.42}%
+\contentsline {subsubsection}{The Graph Cache Manager: toonNodesCacheHelper}{32}{section*.43}%
+\contentsline {subsubsection}{Aggressive Invalidation Strategy}{32}{section*.44}%
+\contentsline {subsubsection}{Cache Reconstruction Workflow}{32}{section*.45}%
+\contentsline {subsubsection}{Hit Rate and Performance Impact}{33}{section*.46}%
+\contentsline {subsubsection}{Coordination Between Tier 1 and Tier 2}{33}{section*.47}%
+\contentsline {subsubsection}{Memory Management and Cache Eviction}{33}{section*.48}%
+\contentsline {section}{\numberline {3.5}Frontend}{34}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Mobile}{34}{section.3.6}%
+\contentsline {chapter}{\numberline {4}Security Framework}{35}{chapter.4}%
+\contentsline {chapter}{\numberline {5}AI Integration}{36}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Testing and Verification}{37}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Backend Testing Overview}{37}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Execution Environment}{37}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Scope}{37}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}API Route Coverage}{37}{subsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.1.4}Service and Integration Tests}{38}{subsection.6.1.4}%
+\contentsline {subsection}{\numberline {6.1.5}Test Design and Data}{38}{subsection.6.1.5}%
+\contentsline {subsection}{\numberline {6.1.6}End-to-End Workflows}{38}{subsection.6.1.6}%
+\contentsline {subsection}{\numberline {6.1.7}Validation and Middleware}{39}{subsection.6.1.7}%
+\contentsline {subsection}{\numberline {6.1.8}Caching and Redis}{39}{subsection.6.1.8}%
+\contentsline {subsection}{\numberline {6.1.9}Database Checks}{39}{subsection.6.1.9}%
+\contentsline {subsection}{\numberline {6.1.10}Gaps and Next Steps}{39}{subsection.6.1.10}%
+\contentsline {subsection}{\numberline {6.1.11}Test Result Summary}{39}{subsection.6.1.11}%
+\contentsline {subsection}{\numberline {6.1.12}Interpretation of Results}{39}{subsection.6.1.12}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{41}{chapter.7}%
+\contentsline {chapter}{Appendix}{42}{section*.52}%
+\contentsline {chapter}{\numberline {A}Lists}{43}{appendix.A}%
+\contentsline {section}{List of Abbreviations}{43}{section*.53}%
+\contentsline {section}{List of Figures}{44}{appendix*.54}%
+\contentsline {chapter}{References}{45}{appendix*.54}%

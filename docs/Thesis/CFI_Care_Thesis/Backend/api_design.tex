@@ -1,0 +1,66 @@
+\section{API Design and Endpoints}
+\label{sec:api_design}
+
+The communication between the frontend client and the backend server is
+established through a structured RESTful API. This design ensures that the
+system remains stateless and scalable, utilizing standard HTTP methods to
+perform operations on resources. The Node.js application server acts as the
+centralized gateway, exposing a unified set of endpoints that handle both
+standard clinical data and custom graph logic.
+
+\subsection{RESTful Structure and Formats}
+All API interactions strictly adhere to the Javascript Object Notation (JSON)
+format for both request bodies and response payloads. The system utilizes
+standard HTTP verbs to define the nature of the operation. GET requests are
+used exclusively for retrieving data without side effects, while POST requests
+handle the creation of new resources. PUT methods are employed for updating
+existing records, and DELETE methods remove specific resources when permitted.
+
+Responses from the server are standardized to ensure predictability for the
+client application. Successful operations return a 200 OK status code
+accompanied by the requested data object. In cases of resource creation, a 201
+Created status is returned. Error handling is centralized, ensuring that any
+failure creates a consistent JSON error object containing a human-readable
+message and a specific error code, rather than exposing raw server stack
+traces.
+
+\subsection{FHIR-Compliant Endpoints}
+A significant portion of the API is dedicated to proxying standard FHIR
+resources. Endpoints such as \texttt{/api/patients} and
+\texttt{/api/encounters} act as a validation and caching layer sitting in front
+of the HAPI FHIR server. When the frontend requests patient details, the
+Node.js server intercepts this call, validates the parameters, and then
+forwards the request to the underlying Java server. The response is strictly
+strictly compliant with the FHIR R5 standard, ensuring that the data structure
+remains interoperable with other external healthcare systems.
+
+\subsection{Custom History Graph Endpoints}
+Beyond standard FHIR resources, the API exposes specialized endpoints designed
+to support the Patient History Graph visualization. The primary endpoint,
+\texttt{/api/historyGraph}, does not return a simple list of records. Instead,
+it aggregates data from multiple FHIR resources and transforms them into a
+graph structure containing nodes and relational edges. This allows the frontend
+to render the complex temporal relationships between medical events without
+needing to perform heavy data processing in the browser.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|p{5cm}|}
+        \hline
+        \textbf{Method} & \textbf{Endpoint}              & \textbf{Description}                                           \\
+        \hline
+        \hline
+        GET             & \texttt{/api/patients}         & Retrieve list of patients with pagination support              \\
+        \hline
+        POST            & \texttt{/api/patients}         & Register a new patient with FHIR validation                    \\
+        \hline
+        GET             & \texttt{/api/encounters/:id}   & Get specific encounter details including clinical observations \\
+        \hline
+        GET             & \texttt{/api/historyGraph/:id} & Get patient history graph nodes and causal relationships       \\
+        \hline
+        POST            & \texttt{/auth/login}           & Authenticate user and obtain JWT token via Keycloak            \\
+        \hline
+    \end{tabular}
+    \caption{Key REST API Endpoints provided by the Node.js Backend.}
+    \label{tab:api_endpoints}
+\end{table}
