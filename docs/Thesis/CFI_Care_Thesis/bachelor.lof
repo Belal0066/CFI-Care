@@ -14,7 +14,7 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {6.1}{\ignorespaces Graph view of the two end-to-end suites; edges align to assertions within each test.}}{39}{figure.caption.50}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Unit and integration suite status (Pass* requires Redis/Postgres available).}}{41}{figure.caption.51}%
-\contentsline {figure}{\numberline {6.3}{\ignorespaces End-to-end workflow suite status.}}{41}{figure.caption.52}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Number of Test Cases and its status.}}{41}{figure.caption.51}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Unit, integration and End-to-end workflow suite status.}}{41}{figure.caption.52}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

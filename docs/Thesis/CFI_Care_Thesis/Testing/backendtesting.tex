@@ -126,39 +126,42 @@ summarize the principal suites and their last known status.
 
 \begin{figure}[h]
     \centering
-    \begin{tabular}{llc}
-        \toprule
-        Suite                           & Focus                                                & Status  \\
-        \midrule
-        patientRoutes                   & Patient HTTP contracts (CRUD, TOON, related-data)    & Pass    \\
-        encounterRoutes                 & Encounter HTTP contracts and \$everything            & Pass    \\
-        binaryRoutes                    & Binary PDF fetch/create/delete + validation          & Pass    \\
-        patientValidation               & Joi schema for patient payloads                      & Pass    \\
-        validateRequest                 & Middleware pass/fail branches                        & Pass    \\
-        cacheHelper                     & Cache get/set/delete/TTL/invalidation (mocked Redis) & Pass    \\
-        patientService.integration      & Cache-first FHIR access, create, \$everything        & Pass    \\
-        conditionService.integration    & Patient condition queries/create/update              & Pass    \\
-        historyGraphRoutes              & History graph HTTP contracts (init/head CRUD/seed)   & Pass    \\
-        historyGraphService.integration & Graph service behaviors (scaffold, no asserts)       & Pending \\
-        redis                           & Live Redis CRUD/TTL/string-list-set                  & Pass*   \\
-        database                        & Postgres connectivity + timeline inserts             & Pass*   \\
-        \bottomrule
-    \end{tabular}
-    \caption{Unit and integration suite status (Pass* requires Redis/Postgres available).}
+    \includegraphics[width=0.8\textwidth]{Testing/Images/BackendTesting1.png}
+    % \begin{tabular}{llc}
+    %     \toprule
+    %     Suite                           & Focus                                                & Status  \\
+    %     \midrule
+    %     patientRoutes                   & Patient HTTP contracts (CRUD, TOON, related-data)    & Pass    \\
+    %     encounterRoutes                 & Encounter HTTP contracts and \$everything            & Pass    \\
+    %     binaryRoutes                    & Binary PDF fetch/create/delete + validation          & Pass    \\
+    %     patientValidation               & Joi schema for patient payloads                      & Pass    \\
+    %     validateRequest                 & Middleware pass/fail branches                        & Pass    \\
+    %     cacheHelper                     & Cache get/set/delete/TTL/invalidation (mocked Redis) & Pass    \\
+    %     patientService.integration      & Cache-first FHIR access, create, \$everything        & Pass    \\
+    %     conditionService.integration    & Patient condition queries/create/update              & Pass    \\
+    %     historyGraphRoutes              & History graph HTTP contracts (init/head CRUD/seed)   & Pass    \\
+    %     historyGraphService.integration & Graph service behaviors (scaffold, no asserts)       & Pending \\
+    %     redis                           & Live Redis CRUD/TTL/string-list-set                  & Pass*   \\
+    %     database                        & Postgres connectivity + timeline inserts             & Pass*   \\
+    %     \bottomrule
+    % \end{tabular}
+    \caption{Number of Test Cases and its status.}
     \label{fig:test-matrix-unit-integration}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \begin{tabular}{llc}
-        \toprule
-        Suite                     & Workflow                                                                                  & Status \\
-        \midrule
-        patient-workflow.e2e      & Create \textrightarrow{} fetch \textrightarrow{} condition \textrightarrow{} related-data & Pass   \\
-        historyGraph-workflow.e2e & Init graph \textrightarrow{} head \textrightarrow{} add/update/delete nodes, branching    & Pass   \\
-        \bottomrule
-    \end{tabular}
-    \caption{End-to-end workflow suite status.}
+    \includegraphics[width=0.8\textwidth]{Testing/Images/BackendTesting2.png}
+
+    % \begin{tabular}{llc}
+    %     \toprule
+    %     Suite                     & Workflow                                                                                  & Status \\
+    %     \midrule
+    %     patient-workflow.e2e      & Create \textrightarrow{} fetch \textrightarrow{} condition \textrightarrow{} related-data & Pass   \\
+    %     historyGraph-workflow.e2e & Init graph \textrightarrow{} head \textrightarrow{} add/update/delete nodes, branching    & Pass   \\
+    %     \bottomrule
+    % \end{tabular}
+    \caption{Unit, integration and End-to-end workflow suite status.}
     \label{fig:test-matrix-e2e-db}
 \end{figure}
 

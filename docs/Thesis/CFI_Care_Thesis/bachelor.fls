@@ -491,6 +491,16 @@ INPUT ./Testing/backendtesting.tex
 INPUT Testing/backendtesting.tex
 INPUT c:/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmr10.tfm
 INPUT c:/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT ./Testing/Images/BackendTesting1.png
+INPUT ./Testing/Images/BackendTesting1.png
+INPUT ./Testing/Images/BackendTesting1.png
+INPUT ./Testing/Images/BackendTesting1.png
+INPUT ./Testing/Images/BackendTesting1.png
+INPUT ./Testing/Images/BackendTesting2.png
+INPUT ./Testing/Images/BackendTesting2.png
+INPUT ./Testing/Images/BackendTesting2.png
+INPUT ./Testing/Images/BackendTesting2.png
+INPUT ./Testing/Images/BackendTesting2.png
 INPUT ./conclusion.tex
 INPUT ./conclusion.tex
 OUTPUT conclusion.aux
