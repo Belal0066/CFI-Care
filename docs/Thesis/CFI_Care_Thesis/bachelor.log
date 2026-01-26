@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.15)  17 JAN 2026 00:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.15)  26 JAN 2026 02:46
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -317,7 +317,7 @@ Package hyperref Info: Link coloring ON on input line 74.
 \openout2 = `ASU_TitlePage.aux'.
 
  (./ASU_TitlePage.tex
-<ASU_Logo.jpg, id=91, 475.7775pt x 475.7775pt>
+<ASU_Logo.jpg, id=135, 475.7775pt x 475.7775pt>
 File: ASU_Logo.jpg Graphic file (type jpg)
 <use ASU_Logo.jpg>
 Package pdftex.def Info: ASU_Logo.jpg  used on input line 40.
@@ -340,15 +340,15 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 
 
 
-] (./bachelor.toc)
+] (./bachelor.toc [4
+
+
+
+])
 \tf@toc=\write4
 \openout4 = `bachelor.toc'.
 
- [4
-
-
-
-]
+ [5]
 \openout2 = `introduction.aux'.
 
  (./introduction.tex
@@ -358,7 +358,7 @@ Chapter 1.
 
 
 ] [2{c:/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-<Images/HL7_Versions.png, id=154, 1027.84pt x 537.00626pt>
+<Images/HL7_Versions.png, id=215, 1027.84pt x 537.00626pt>
 File: Images/HL7_Versions.png Graphic file (type png)
 <use Images/HL7_Versions.png>
 Package pdftex.def Info: Images/HL7_Versions.png  used on input line 86.
@@ -378,12 +378,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 128--128
 []|\OT1/cmr/bx/n/12 Primary
  []
 
-<Images/FHIR-patient-JSON-example-source-2.png, id=179, 853.1875pt x 427.5975pt>
+<Images/FHIR-patient-JSON-example-source-2.png, id=238, 853.1875pt x 427.5975pt>
 File: Images/FHIR-patient-JSON-example-source-2.png Graphic file (type png)
 <use Images/FHIR-patient-JSON-example-source-2.png>
 Package pdftex.def Info: Images/FHIR-patient-JSON-example-source-2.png  used on input line 146.
 (pdftex.def)             Requested size: 317.07614pt x 158.91325pt.
-<Images/aid9705860-v4-728px-9705860-1.png, id=180, 730.73pt x 548.0475pt>
+<Images/aid9705860-v4-728px-9705860-1.png, id=239, 730.73pt x 548.0475pt>
 File: Images/aid9705860-v4-728px-9705860-1.png Graphic file (type png)
 <use Images/aid9705860-v4-728px-9705860-1.png>
 Package pdftex.def Info: Images/aid9705860-v4-728px-9705860-1.png  used on input line 146.
@@ -403,17 +403,55 @@ Chapter 2.
 
  (./ProposedDesignArchitecture/proposedDesignArchitecture.tex
 Chapter 3.
-(./Backend/backend.tex (./Backend/fhir.tex)) (./Frontend/frontend.tex) (./Mobile/mobile.tex)) [8
+(./Backend/backend.tex (./Backend/systemarch.tex
+<Backend/Images/SystemArchitecture.drawio.png, id=255, 5212.47375pt x 4001.95125pt>
+File: Backend/Images/SystemArchitecture.drawio.png Graphic file (type png)
+<use Backend/Images/SystemArchitecture.drawio.png>
+Package pdftex.def Info: Backend/Images/SystemArchitecture.drawio.png  used on input line 35.
+(pdftex.def)             Requested size: 430.31812pt x 330.36046pt.
+
+Overfull \hbox (6.79999pt too wide) in paragraph at lines 35--36
+ [][] 
+ []
+
+[8
 
 
 
 
-]
+] [9 <./Backend/Images/SystemArchitecture.drawio.png>]
+<Backend/Images/InternalNodeJsArch.png, id=268, 5976.3275pt x 3929.68124pt>
+File: Backend/Images/InternalNodeJsArch.png Graphic file (type png)
+<use Backend/Images/InternalNodeJsArch.png>
+Package pdftex.def Info: Backend/Images/InternalNodeJsArch.png  used on input line 72.
+(pdftex.def)             Requested size: 430.31812pt x 282.90086pt.
+
+Overfull \hbox (6.79999pt too wide) in paragraph at lines 72--73
+ [][] 
+ []
+
+[10 <./Backend/Images/InternalNodeJsArch.png>]
+<Backend/Images/PatientsDatabaseSchema.png, id=276, 1388.18625pt x 744.7825pt>
+File: Backend/Images/PatientsDatabaseSchema.png Graphic file (type png)
+<use Backend/Images/PatientsDatabaseSchema.png>
+Package pdftex.def Info: Backend/Images/PatientsDatabaseSchema.png  used on input line 108.
+(pdftex.def)             Requested size: 452.9679pt x 243.01743pt.
+
+Overfull \hbox (6.79999pt too wide) in paragraph at lines 108--109
+ [][] 
+ []
+
+[11]) (./Backend/fhir.tex [12 <./Backend/Images/PatientsDatabaseSchema.png>]) [13]) (./Frontend/frontend.tex
+Overfull \hbox (6.61131pt too wide) in paragraph at lines 45--1
+\OT1/cmr/m/n/12 The sec-ond tier, man-aged by \OT1/cmtt/m/n/12 toonNodesCacheHelper\OT1/cmr/m/n/12 , is de-signed for the high-computation
+ []
+
+) (./Mobile/mobile.tex)) [14]
 \openout2 = `Security/security.aux'.
 
  (./Security/security.tex
 Chapter 4.
-) [9
+) [15
 
 
 
@@ -423,7 +461,7 @@ Chapter 4.
 
  (./AI/AI.tex
 Chapter 5.
-) [10
+) [16
 
 
 
@@ -433,7 +471,7 @@ Chapter 5.
 
  (./Testing/testing.tex
 Chapter 6.
-) [11
+) [17
 
 
 
@@ -443,7 +481,7 @@ Chapter 6.
 
  (./conclusion.tex
 Chapter 7.
-) [12
+) [18
 
 
 
@@ -451,7 +489,7 @@ Chapter 7.
 ]
 \openout2 = `appendix.aux'.
 
- (./appendix.tex [13
+ (./appendix.tex [19
 
 
 
@@ -462,13 +500,13 @@ Appendix A.
 Package hyperref Warning: The anchor of a bookmark and its parent's must not
 (hyperref)                be the same. Added a new anchor on input line 9.
 
-[14
+[20
 
 ] (./bachelor.lof)
 \tf@lof=\write5
 \openout5 = `bachelor.lof'.
 
-) [15
+) [21
 
 
 ]
@@ -494,7 +532,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 19--22
 \OT1/cmr/m/it/12 sis/Dissertation)\OT1/cmr/m/n/12 , [][]$\OT1/cmtt/m/n/12 https : / / repositorio-[]aberto . up . pt / bitstream / 10216 /
  []
 
-) [16
+) [22
 
 
 
@@ -505,21 +543,21 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2025-11-14>
  ***********
 Package rerunfilecheck Info: File `bachelor.out' has not changed.
-(rerunfilecheck)             Checksum: C6E86271C540BE47558366B30593FC47;3268.
+(rerunfilecheck)             Checksum: B7A8880DD958DBCC77DE37A6B24FA12A;5622.
  ) 
 Here is how much of TeX's memory you used:
- 11754 strings out of 467538
- 191654 string characters out of 5423724
- 605093 words of memory out of 5000000
- 40367 multiletter control sequences out of 15000+600000
+ 11826 strings out of 467538
+ 193477 string characters out of 5423724
+ 606766 words of memory out of 5000000
+ 40410 multiletter control sequences out of 15000+600000
  633786 words of font info for 60 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,10n,79p,977b,608s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on bachelor.pdf (20 pages, 680279 bytes).
+Output written on bachelor.pdf (27 pages, 1626067 bytes).
 PDF statistics:
- 292 PDF objects out of 1000 (max. 8388607)
- 249 compressed objects within 3 object streams
- 55 named destinations out of 1000 (max. 500000)
- 197 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 402 PDF objects out of 1000 (max. 8388607)
+ 345 compressed objects within 4 object streams
+ 81 named destinations out of 1000 (max. 500000)
+ 300 words of extra memory for PDF output out of 10000 (max. 10000000)
 

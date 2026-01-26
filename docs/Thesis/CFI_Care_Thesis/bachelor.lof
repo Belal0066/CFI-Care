@@ -3,6 +3,9 @@
 \contentsline {figure}{\numberline {1.2}{\ignorespaces Visual Comparison of Data structure: HL7 v2 Message vs. FHIR JSON Resource.}}{6}{figure.caption.7}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces High-Level Container Architecture showing the interaction between the Nginx proxy, application services, and data persistence layers.}}{9}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Internal layered architecture of the Node.js Application Server, detailing the middleware stack and service distribution.}}{10}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table.}}{12}{figure.caption.15}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
