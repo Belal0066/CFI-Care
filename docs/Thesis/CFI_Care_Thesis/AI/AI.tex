@@ -72,14 +72,28 @@ expert-defined logic to data-driven probabilistic models. However, the
 transition to Generative AI in medicine introduces novel challenges in
 verification and temporal reasoning that remain largely unaddressed.
 
-\subsection{Traditional Clinical Decision Support Systems} Early CDS systems, such as MYCIN in the 1970s, utilized hard-coded heuristic
+\subsection{Traditional Clinical Decision Support Systems}
+
+Early CDS systems, such as MYCIN in the 1970s, utilized hard-coded heuristic
 rules and "if-then" logic to provide antibiotic recommendations. While
 foundational, these systems suffered from the \textit{knowledge acquisition
-    bottleneck} the inability to scale as medical knowledge expanded exponentially. \begin{itemize} \item \textbf{Rule-Based Alerts:} Modern EHRs primarily use static alerts triggered by discrete data points (e.g., a high potassium value). \item \textbf{Limitations:} These systems are "text-blind," ignoring 80% of patient data stored in unstructured clinical notes. Furthermore, they are prone to high false-positive rates, contributing to the \textit{Alert Fatigue} discussed in Section 1.2. \end{itemize}
+    bottleneck} the inability to scale as medical knowledge expanded exponentially.
 
-\subsection{LLMs in Healthcare} The advent of Large Language Models (LLMs) like GPT-4 and Med-PaLM 2
+\begin{itemize}
+    \item \textbf{Rule-Based Alerts:} Modern EHRs primarily use static alerts triggered by discrete data points (e.g., a high potassium value).
+    \item \textbf{Limitations:} These systems are "text-blind," ignoring 80\% of patient data stored in unstructured clinical notes. Furthermore, they are prone to high false-positive rates, contributing to the \textit{Alert Fatigue} discussed in Section 1.2.
+\end{itemize}
+
+\subsection{LLMs in Healthcare}
+
+The advent of Large Language Models (LLMs) like GPT-4 and Med-PaLM 2
 demonstrated that neural networks could pass the USMLE and summarize complex
-notes with high fluency. \begin{itemize} \item \textbf{Clinical Fine-tuning:} Research into models like \textit{MedGemma} and \textit{BioBERT} has shown that domain-specific pre-training improves the understanding of medical terminology and clinical ontologies (SNOMED-CT, ICD-10). \item \textbf{The Verification Gap:} Despite their linguistic prowess, "vanilla" LLMs are closed systems. They lack access to real-time patient records and are prone to \textit{hallucinations} generating plausible-sounding but medically incorrect information making them unsuitable for direct clinical use without a grounding mechanism. \end{itemize}
+notes with high fluency.
+
+\begin{itemize}
+    \item \textbf{Clinical Fine-tuning:} Research into models like \textit{MedGemma} and \textit{BioBERT} has shown that domain-specific pre-training improves the understanding of medical terminology and clinical ontologies (SNOMED-CT, ICD-10).
+    \item \textbf{The Verification Gap:} Despite their linguistic prowess, "vanilla" LLMs are closed systems. They lack access to real-time patient records and are prone to \textit{hallucinations} generating plausible-sounding but medically incorrect information making them unsuitable for direct clinical use without a grounding mechanism.
+\end{itemize}
 
 \subsection{RAG in High-Risk Domains} Retrieval-Augmented Generation (RAG) was introduced to ground LLM outputs in
 external, verifiable facts. In high-risk domains like law and medicine, RAG
@@ -147,7 +161,7 @@ repository for source Mermaid code).
     \centering
     \includegraphics[width=\textwidth]{AI/High-Level-Architecture.png}
     \caption{\textbf{High-Level System Architecture.} The flow connects the Streamlit UI to the FastAPI backend, which orchestrates the LangGraph agent. The agent routes between the Local RAG pipeline (Ingestion $\rightarrow$ Qdrant $\rightarrow$ MedGemma) and the External MCP Tools (PubMed Access) based on query classification.}
-    \label{fig:high_level_arch}
+    \label{fig:AI_high_level_arch}
 \end{figure}
 
 \begin{figure}[H]

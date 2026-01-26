@@ -387,7 +387,7 @@ When an HTTPS request arrives at the backend (such as a GET request to
 sequence of operations to determine whether a cached response can be served.
 The middleware first generates a deterministic cache key from the request URL
 and query parameters---for example, a request to \newline
-\texttt{/api/patients?page=1\&limit=20} generates the key
+\texttt{/api/patients?page=1\&{}limit=20} generates the key
 \texttt{cache:patients:page:1:limit:20}. The middleware then queries the Redis
 cache for an entry matching this key. If a valid cache entry exists, meaning
 the entry has not expired, the cached response is immediately returned to the
