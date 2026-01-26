@@ -18,16 +18,16 @@ multiple concurrent diagnoses or extended treatment histories.
 \subsection{Motivation: Beyond Linear Medical Records}
 \label{subsec:graph_motivation}
 
-Traditional Electronic Health Records (EHRs) typically present patient data as
-chronologically ordered events: a consultation on January 1st, a lab test on
-January 3rd, a prescription on January 5th, and so forth. While this linear
-representation is straightforward to implement and understand, it obscures the
-causal relationships that are essential to clinical reasoning. Consider a
-patient with Type 2 Diabetes presenting with hypertension and elevated
-cholesterol levels. In a linear record, these appear as separate events without
-explicit connection. However, a clinician recognizes that these conditions are
-causally related---elevated cholesterol and hypertension may be comorbidities
-stemming from the underlying metabolic dysfunction of diabetes.
+Traditional Electronic Health Records (\ac{EHR}s) typically present patient
+data as chronologically ordered events: a consultation on January 1st, a lab
+test on January 3rd, a prescription on January 5th, and so forth. While this
+linear representation is straightforward to implement and understand, it
+obscures the causal relationships that are essential to clinical reasoning.
+Consider a patient with Type 2 Diabetes presenting with hypertension and
+elevated cholesterol levels. In a linear record, these appear as separate
+events without explicit connection. However, a clinician recognizes that these
+conditions are causally related---elevated cholesterol and hypertension may be
+comorbidities stemming from the underlying metabolic dysfunction of diabetes.
 
 The Patient History Graph addresses this limitation by explicitly modeling
 causality and temporal dependencies. Each medical event is represented as a
@@ -197,7 +197,7 @@ end function
 Real-world patient histories are rarely linear. A patient may have multiple
 concurrent health issues being managed in parallel. For example, a patient may
 simultaneously receive treatment for diabetes, hypertension, and arthritis. In
-a traditional linear EHR, this complexity is flattened; all events appear
+a traditional linear \ac{EHR}, this complexity is flattened; all events appear
 chronologically without indication of which episode they belong to.
 
 The CFI-Care graph model handles this through an explicit branching mechanism:
