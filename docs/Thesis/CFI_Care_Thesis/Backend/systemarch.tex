@@ -359,27 +359,27 @@ action cannot be completed at this moment. Rather than accepting incomplete or
 invalid data, the system fails safely, requiring the user to retry when the
 service recovers.
 
-\subsubsection{Circuit Breaker Pattern}
-To prevent cascading failures---where repeated attempts to call a failing
-service consume resources and delay error detection---the CFI-Care backend
-implements a circuit breaker pattern for FHIR server interactions. The circuit
-breaker monitors the success and failure rates of calls to the FHIR server.
-When failures exceed a configurable threshold (e.g., 5 consecutive failures or
-50\% failure rate over the last 100 requests), the circuit breaker "trips,"
-transitioning to an OPEN state. In the OPEN state, subsequent requests to the
-FHIR server are immediately rejected without attempting the call, returning an
-error response quickly rather than waiting for a timeout. After a configured
-cooldown period (e.g., 30 seconds), the circuit breaker transitions to a
-HALF-OPEN state, allowing a limited number of test requests to determine
-whether the FHIR server has recovered. If test requests succeed, the circuit
-breaker resets to a CLOSED state (normal operation). If test requests fail, it
-transitions back to OPEN.
+% \subsubsection{Circuit Breaker Pattern}
+% To prevent cascading failures---where repeated attempts to call a failing
+% service consume resources and delay error detection---the CFI-Care backend
+% implements a circuit breaker pattern for FHIR server interactions. The circuit
+% breaker monitors the success and failure rates of calls to the FHIR server.
+% When failures exceed a configurable threshold (e.g., 5 consecutive failures or
+% 50\% failure rate over the last 100 requests), the circuit breaker "trips,"
+% transitioning to an OPEN state. In the OPEN state, subsequent requests to the
+% FHIR server are immediately rejected without attempting the call, returning an
+% error response quickly rather than waiting for a timeout. After a configured
+% cooldown period (e.g., 30 seconds), the circuit breaker transitions to a
+% HALF-OPEN state, allowing a limited number of test requests to determine
+% whether the FHIR server has recovered. If test requests succeed, the circuit
+% breaker resets to a CLOSED state (normal operation). If test requests fail, it
+% transitions back to OPEN.
 
-The circuit breaker pattern provides several benefits. It reduces resource
-consumption by avoiding repeated calls to a failing service. It enables faster
-error responses to clients rather than waiting for timeouts. It signals to
-operators that a dependency is failing and requires attention. It facilitates
-automatic recovery when the dependency becomes healthy again.
+% The circuit breaker pattern provides several benefits. It reduces resource
+% consumption by avoiding repeated calls to a failing service. It enables faster
+% error responses to clients rather than waiting for timeouts. It signals to
+% operators that a dependency is failing and requires attention. It facilitates
+% automatic recovery when the dependency becomes healthy again.
 
 \subsubsection{Resilience for Cache Operations}
 Redis provides the caching infrastructure for both session management and data
