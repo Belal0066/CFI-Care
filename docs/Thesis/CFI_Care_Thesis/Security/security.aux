@@ -1,11 +1,104 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Security Framework}{9}{chapter.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Security}{13}{chapter.4}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{chap:Security}{{4}{9}{Security Framework}{chapter.4}{}}
+\newlabel{chap:Security}{{4}{13}{Security}{chapter.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Introduction}{13}{section.4.1}\protected@file@percent }
+\newlabel{sec:security-intro}{{4.1}{13}{Introduction}{section.4.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Architecture \& Design}{13}{section.4.2}\protected@file@percent }
+\newlabel{sec:security-architecture}{{4.2}{13}{Architecture \& Design}{section.4.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (nginx), Backend-for-Frontend (Node.js), Identity \& Storage (Keycloak, Redis, Postgres), and Resource Server (HAPI FHIR) with their security-focused interactions.}}{14}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:security-components}{{4.1}{14}{Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (nginx), Backend-for-Frontend (Node.js), Identity \& Storage (Keycloak, Redis, Postgres), and Resource Server (HAPI FHIR) with their security-focused interactions}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Identity \& Access Management}{15}{subsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Keycloak Realm \& Clients}{15}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Browser Flow }{15}{section*.10}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces Browser Token Authentication Flow: User registration, login, and API request handling with session cookies.}}{16}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:browser-tokens-flow}{{4.2}{16}{Browser Token Authentication Flow: User registration, login, and API request handling with session cookies}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{Planned Browser Hardening ( Email Verification)}{17}{section*.12}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4.3}{\ignorespaces Planned Browser Flow (Future): Registration with email verification and BFF-mediated credential login, session cookie issuance, and server-side token refresh.}}{17}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:browser-tokens-flow-future}{{4.3}{17}{Planned Browser Flow (Future): Registration with email verification and BFF-mediated credential login, session cookie issuance, and server-side token refresh}{figure.caption.13}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Mobile Flow}{17}{section*.14}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4.4}{\ignorespaces Mobile Token Authentication Flow (Future): BFF-mediated Authorization Code with PKCE, secure keystore token storage, and client-driven token refresh.}}{18}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:mobile-tokens-flow}{{4.4}{18}{Mobile Token Authentication Flow (Future): BFF-mediated Authorization Code with PKCE, secure keystore token storage, and client-driven token refresh}{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Session Storage }{19}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Authorization \& Policy Enforcement}{19}{subsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{BFF Middleware: Session Check, JWT Verify, Scope Validation}{19}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{FHIR Server Enforcement}{19}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Doctor–Patient Consent \& Access Grants}{19}{subsection.4.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.4}Session Management \& Revocation}{20}{subsection.4.2.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4.5}{\ignorespaces Token Flow Overview: Multi-client architecture (browser vs. mobile), session/token management, per-session and global logout patterns.}}{21}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:token-flow-overview}{{4.5}{21}{Token Flow Overview: Multi-client architecture (browser vs. mobile), session/token management, per-session and global logout patterns}{figure.caption.19}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.5}Defense-in-Depth}{22}{subsection.4.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Edge}{22}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{API Gateway (nginx)}{22}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{BFF}{22}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Input Validation \& Rate Limiting}{22}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Security Event Logging \& Audit Trail}{23}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Session Revocation \& Logout}{23}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Resource Server (FHIR Policies)}{23}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Implementation \& Setup}{23}{section.4.3}\protected@file@percent }
+\newlabel{sec:security-implementation}{{4.3}{23}{Implementation \& Setup}{section.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Keycloak Configuration}{23}{subsection.4.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Clients, Scopes}{23}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Password Policy}{23}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Backend-for-Frontend (BFF) Security Implementation}{24}{subsection.4.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Session Middleware (Redis), Token Refresh, Token Rotation}{24}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{JWT Verification (JWKS), Scope Checks, Patient Binding}{24}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Input Validation, Error Handling}{24}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Mobile Authentication Endpoints (Future Work)}{24}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{POST /auth/mobile/login:}{25}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{POST /auth/refresh}{25}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{POST /auth/logout ( will be updated for mobile)}{25}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.3}nginx API Gateway}{25}{subsection.4.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{TLS Termination, HSTS, Secure Headers}{25}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Proxy Configuration, Forwarded Headers}{26}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{CORS Configuration}{26}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.4}Container Security \& Deployment}{26}{subsection.4.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.5}Frontend \& Mobile Clients}{26}{subsection.4.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Angular Frontend Architecture}{26}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Route Guards (Authentication Check)}{27}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Authentication Interceptor (401 Handling)}{27}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Credentials Handling (withCredentials Flag)}{27}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Error Handling \& User Feedback}{27}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Current User State Management}{28}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Third-Party Dependencies}{28}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Mobile App (Flutter) Security Architecture}{28}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Environment-Specific Configuration}{28}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.6}Angular Frontend Security Implementation}{29}{subsection.4.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Route Protection \& Guards}{29}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{HTTP Interceptors \& 401 Handling}{29}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Cookie-Based Credentials}{29}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Reactive State Management}{29}{section*.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Error Transparency}{30}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.7}Keycloak}{30}{subsection.4.3.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.8}Redis}{30}{subsection.4.3.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.9}nginx API Gateway}{30}{subsection.4.3.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.10}PostgreSQL}{30}{subsection.4.3.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.11}Node.js Backend-for-Frontend (BFF) Libraries}{31}{subsection.4.3.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Challenges \& Trade-offs}{31}{section.4.4}\protected@file@percent }
+\newlabel{sec:security-challenges}{{4.4}{31}{Challenges \& Trade-offs}{section.4.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}Session Management Across Client Types}{31}{subsection.4.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}Stateless Tokens vs. Revocation Needs}{31}{subsection.4.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.3}Balancing Consent Privacy \& Usability}{32}{subsection.4.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.4}Clock Skew \& Distributed Verification}{32}{subsection.4.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Security Analysis}{32}{section.4.5}\protected@file@percent }
+\newlabel{sec:security-analysis}{{4.5}{32}{Security Analysis}{section.4.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}Attack Surface Analysis}{32}{subsection.4.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}Threat Model \& Residual Risks}{33}{subsection.4.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.3}Mitigations Implemented \& Gaps}{33}{subsection.4.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implemented Mitigations}{33}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Gaps \& Future Work}{34}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Summary}{34}{section.4.6}\protected@file@percent }
+\newlabel{sec:security-summary}{{4.6}{34}{Summary}{section.4.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Identity \& Access (Keycloak + Tokens)}{34}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Browser Access (Sessions + BFF)}{34}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{API Layer (Middleware + Validation)}{34}{section*.57}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Transport \& Edge (TLS + Headers)}{35}{section*.58}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Current State}{35}{section*.59}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Next Steps}{35}{section*.60}\protected@file@percent }
 \@setckpt{Security/security}{
-\setcounter{page}{10}
+\setcounter{page}{36}
 \setcounter{equation}{0}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
@@ -15,12 +108,12 @@
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
 \setcounter{chapter}{4}
-\setcounter{section}{0}
+\setcounter{section}{6}
 \setcounter{subsection}{0}
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{0}
+\setcounter{figure}{5}
 \setcounter{table}{0}
 \setcounter{float@type}{8}
 \setcounter{caption@flags}{2}
@@ -35,10 +128,10 @@
 \setcounter{@pps}{0}
 \setcounter{@ppsavesec}{0}
 \setcounter{@ppsaveapp}{0}
-\setcounter{section@level}{1}
+\setcounter{section@level}{4}
 \setcounter{Item}{0}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{14}
+\setcounter{bookmark@seq@number}{68}
 \setcounter{ALC@unique}{0}
 \setcounter{ALC@line}{0}
 \setcounter{ALC@rem}{0}
