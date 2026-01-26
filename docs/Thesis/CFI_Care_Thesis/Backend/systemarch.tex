@@ -310,31 +310,31 @@ downtime or data loss. Error handling and fault tolerance are designed into
 every layer to ensure reliable operation and graceful degradation under failure
 conditions.
 
-\subsubsection{Layered Error Handling Strategy}
-Errors propagate through the CFI-Care system in a controlled, layered manner.
-At the lowest layer, database operations (PostgreSQL queries, Redis operations)
-can fail due to connection timeouts, query errors, or resource unavailability.
-The Node.js middleware layer implements error handlers that catch these
-exceptions, log them for diagnostics, and transform them into appropriate HTTP
-error responses that safely communicate the failure to clients without exposing
-internal implementation details (such as database error messages or stack
-traces).
+% \subsubsection{Layered Error Handling Strategy}
+% Errors propagate through the CFI-Care system in a controlled, layered manner.
+% At the lowest layer, database operations (PostgreSQL queries, Redis operations)
+% can fail due to connection timeouts, query errors, or resource unavailability.
+% The Node.js middleware layer implements error handlers that catch these
+% exceptions, log them for diagnostics, and transform them into appropriate HTTP
+% error responses that safely communicate the failure to clients without exposing
+% internal implementation details (such as database error messages or stack
+% traces).
 
-The service layer implements domain-specific error handling. When a FHIR server
-call fails, the service layer attempts to determine whether the failure is
-transient (temporary network issue) or persistent (FHIR server down, resource
-not found). For transient failures, the service implements exponential backoff
-retry logic: the first retry occurs after 100 milliseconds, the second after
-200 milliseconds, and subsequent retries double the wait time, capped at a
-maximum of 30 seconds. This approach allows temporary outages to resolve while
-avoiding overwhelming a recovering server with immediate retry attempts. For
-persistent failures, errors are returned to the client immediately rather than
-consuming retry attempts.
+% The service layer implements domain-specific error handling. When a FHIR server
+% call fails, the service layer attempts to determine whether the failure is
+% transient (temporary network issue) or persistent (FHIR server down, resource
+% not found). For transient failures, the service implements exponential backoff
+% retry logic: the first retry occurs after 100 milliseconds, the second after
+% 200 milliseconds, and subsequent retries double the wait time, capped at a
+% maximum of 30 seconds. This approach allows temporary outages to resolve while
+% avoiding overwhelming a recovering server with immediate retry attempts. For
+% persistent failures, errors are returned to the client immediately rather than
+% consuming retry attempts.
 
-The controller layer handles errors from services and formats them
-appropriately for the client. A service that cannot retrieve a patient record
-returns an error code; the controller translates this into a 404 Not Found HTTP
-response with descriptive messaging.
+% The controller layer handles errors from services and formats them
+% appropriately for the client. A service that cannot retrieve a patient record
+% returns an error code; the controller translates this into a 404 Not Found HTTP
+% response with descriptive messaging.
 
 \subsubsection{Fallback Mechanisms and Graceful Degradation}
 When the FHIR server becomes temporarily unavailable, the CFI-Care system
@@ -379,22 +379,22 @@ service recovers.
 % operators that a dependency is failing and requires attention. It facilitates
 % automatic recovery when the dependency becomes healthy again.
 
-\subsubsection{Resilience for Cache Operations}
-Redis provides the caching infrastructure for both session management and data
-caching. If Redis becomes unavailable, the system implements fallback
-strategies. For session caching, a secondary in-memory session store provides a
-fallback mechanism, allowing authentication to continue for users with active
-sessions, though new sessions cannot be created. For data caching, cache misses
-gracefully trigger direct queries to the FHIR server, bypassing the cache
-entirely but maintaining functionality.
+% \subsubsection{Resilience for Cache Operations}
+% Redis provides the caching infrastructure for both session management and data
+% caching. If Redis becomes unavailable, the system implements fallback
+% strategies. For session caching, a secondary in-memory session store provides a
+% fallback mechanism, allowing authentication to continue for users with active
+% sessions, though new sessions cannot be created. For data caching, cache misses
+% gracefully trigger direct queries to the FHIR server, bypassing the cache
+% entirely but maintaining functionality.
 
-Both Redis instances (session store and audit log store) are configured with
-persistence mechanisms. The session Redis instance uses RDB snapshots to
-periodically save state to disk, enabling recovery of active sessions if the
-instance restarts. The audit log Redis instance operates in AOF (Append-Only
-File) mode, ensuring every write is persisted to disk before acknowledging the
-write, guaranteeing that audit logs are never lost even if the Redis instance
-crashes.
+% Both Redis instances (session store and audit log store) are configured with
+% persistence mechanisms. The session Redis instance uses RDB snapshots to
+% periodically save state to disk, enabling recovery of active sessions if the
+% instance restarts. The audit log Redis instance operates in AOF (Append-Only
+% File) mode, ensuring every write is persisted to disk before acknowledging the
+% write, guaranteeing that audit logs are never lost even if the Redis instance
+% crashes.
 
 \subsubsection{Logging and Observability for Error Diagnosis}
 All errors are logged with structured logging that includes timestamp, error

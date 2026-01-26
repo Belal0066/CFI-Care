@@ -111,85 +111,85 @@ or informed event $B$. The system maintains an explicit
 \texttt{node\_relations} table storing parent-child pairs, enabling efficient
 graph traversal for visualization and analysis.
 
-\subsection{Graph Construction Algorithm}
-\label{subsec:graph_construction}
+% \subsection{Graph Construction Algorithm}
+% \label{subsec:graph_construction}
 
-The graph construction logic is encapsulated within the
-\texttt{historyGraphService}, a core backend service invoked whenever a new
-medical event is recorded. The algorithm operates in several stages:
+% The graph construction logic is encapsulated within the
+% \texttt{historyGraphService}, a core backend service invoked whenever a new
+% medical event is recorded. The algorithm operates in several stages:
 
-\subsubsection{Stage 1: Node Creation}
-When a new clinical event is received from the FHIR server (such as a new
-prescription, lab result, or consultation record), the system creates a
-corresponding node in the \texttt{encounter\_nodes} database table. This node
-captures essential event information: the patient to which the event belongs,
-the clinical category of the event (Consultation, Diagnosis, Prescription,
-etc.), the timestamp indicating when the event occurred, a reference ID linking
-back to the source FHIR resource for data provenance, and structured clinical
-details extracted from the FHIR resource including diagnosis codes, medication
-specifications, laboratory values, and other relevant clinical parameters.
+% \subsubsection{Stage 1: Node Creation}
+% When a new clinical event is received from the FHIR server (such as a new
+% prescription, lab result, or consultation record), the system creates a
+% corresponding node in the \texttt{encounter\_nodes} database table. This node
+% captures essential event information: the patient to which the event belongs,
+% the clinical category of the event (Consultation, Diagnosis, Prescription,
+% etc.), the timestamp indicating when the event occurred, a reference ID linking
+% back to the source FHIR resource for data provenance, and structured clinical
+% details extracted from the FHIR resource including diagnosis codes, medication
+% specifications, laboratory values, and other relevant clinical parameters.
 
-\subsubsection{Stage 2: Temporal Scanning and Parent Identification}
-After node creation, the algorithm performs a critical temporal backward scan
-of all existing nodes for the patient to identify potential parent nodes. This
-scan is bounded by three sets of clinical rules that determine what types of
-events can meaningfully be causally related. First, event type rules enforce
-domain-specific constraints: for instance, a Prescription node can only have a
-Consultation, Diagnosis, or another Prescription as a parent, while a
-Consultation cannot have a Prescription as a parent. These rules prevent
-semantically meaningless relationships from being created. Second, temporal
-window constraints ensure that relationships are only established between
-events within a clinically relevant time window. A prescription issued more
-than six months after a consultation is statistically unlikely to be causally
-related unless additional context suggests otherwise. Third, specificity
-matching ensures that the algorithm correctly associates events with their most
-clinically relevant predecessors. For example, a prescription for metformin
-(used in diabetes management) is linked to the most recent Diabetes diagnosis
-rather than to an unrelated hypertension diagnosis, even if both diagnoses
-exist in the patient's history.
+% \subsubsection{Stage 2: Temporal Scanning and Parent Identification}
+% After node creation, the algorithm performs a critical temporal backward scan
+% of all existing nodes for the patient to identify potential parent nodes. This
+% scan is bounded by three sets of clinical rules that determine what types of
+% events can meaningfully be causally related. First, event type rules enforce
+% domain-specific constraints: for instance, a Prescription node can only have a
+% Consultation, Diagnosis, or another Prescription as a parent, while a
+% Consultation cannot have a Prescription as a parent. These rules prevent
+% semantically meaningless relationships from being created. Second, temporal
+% window constraints ensure that relationships are only established between
+% events within a clinically relevant time window. A prescription issued more
+% than six months after a consultation is statistically unlikely to be causally
+% related unless additional context suggests otherwise. Third, specificity
+% matching ensures that the algorithm correctly associates events with their most
+% clinically relevant predecessors. For example, a prescription for metformin
+% (used in diabetes management) is linked to the most recent Diabetes diagnosis
+% rather than to an unrelated hypertension diagnosis, even if both diagnoses
+% exist in the patient's history.
 
-The algorithm identifies the most recent "eligible" parent node based on these
-constraints. In cases where multiple candidates exist with similar temporal
-proximity, the system selects the most clinically specific match, prioritizing
-condition-specific diagnoses over generic symptoms or vice versa depending on
-the event context.
+% The algorithm identifies the most recent "eligible" parent node based on these
+% constraints. In cases where multiple candidates exist with similar temporal
+% proximity, the system selects the most clinically specific match, prioritizing
+% condition-specific diagnoses over generic symptoms or vice versa depending on
+% the event context.
 
-\subsubsection{Stage 3: Edge Creation}
-Once a parent node is identified, a directed edge is created from parent to
-child in the \texttt{node\_relations} table. The edge stores metadata including
-the relationship type (causal, temporal, or associative) and a confidence score
-indicating the algorithm's certainty in the relationship.
+% \subsubsection{Stage 3: Edge Creation}
+% Once a parent node is identified, a directed edge is created from parent to
+% child in the \texttt{node\_relations} table. The edge stores metadata including
+% the relationship type (causal, temporal, or associative) and a confidence score
+% indicating the algorithm's certainty in the relationship.
 
-\subsubsection{Algorithm Pseudocode}
-The following pseudocode formalizes the algorithm:
+% \subsubsection{Algorithm Pseudocode}
+% The following pseudocode formalizes the algorithm:
 
-\begin{verbatim}
-function constructGraphNode(newEvent, patientId):
-    // Stage 1: Create node
-    node = createNode(newEvent, patientId)
-    
-    // Stage 2: Scan for parents
-    existingNodes = queryNodesByPatient(patientId)
-    candidateParents = []
-    
-    for existingNode in existingNodes:
-        if isValidRelationship(newEvent.type, existingNode.type):
-            if isWithinTemporalWindow(newEvent, existingNode):
-                if matchesClinicalContext(newEvent, existingNode):
-                    candidateParents.add(existingNode)
-    
-    // Stage 3: Select and link parent
-    if candidateParents is not empty:
-        parentNode = selectMostRelevantParent(candidateParents)
-        createRelation(parentNode, node)
-    end if
-    
-    // Invalidate cache
-    invalidateGraphCache(patientId)
-    
-    return node
-end function
-\end{verbatim}
+% \begin{verbatim}
+% function constructGraphNode(newEvent, patientId):
+%     // Stage 1: Create node
+%     node = createNode(newEvent, patientId)
+
+%     // Stage 2: Scan for parents
+%     existingNodes = queryNodesByPatient(patientId)
+%     candidateParents = []
+
+%     for existingNode in existingNodes:
+%         if isValidRelationship(newEvent.type, existingNode.type):
+%             if isWithinTemporalWindow(newEvent, existingNode):
+%                 if matchesClinicalContext(newEvent, existingNode):
+%                     candidateParents.add(existingNode)
+
+%     // Stage 3: Select and link parent
+%     if candidateParents is not empty:
+%         parentNode = selectMostRelevantParent(candidateParents)
+%         createRelation(parentNode, node)
+%     end if
+
+%     // Invalidate cache
+%     invalidateGraphCache(patientId)
+
+%     return node
+% end function
+% \end{verbatim}
 
 \subsection{Temporal Branching and Concurrent Episodes}
 \label{subsec:temporal_branching}
