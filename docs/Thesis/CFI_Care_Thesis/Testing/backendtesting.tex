@@ -1,0 +1,177 @@
+\section{Backend Testing Overview}
+
+This section details the automated testing effort for the Node.js backend. The
+suite is built on Jest with Supertest for HTTP contract checks. Controllers,
+services, HTTP clients (axios), Redis, and PostgreSQL clients are mocked to
+isolate behavior where appropriate, while targeted integration tests hit real
+Redis and Postgres instances when available. Test data favor minimal synthetic
+fixtures to keep runs deterministic.
+
+\subsection{Execution Environment}
+The suite runs on Node.js with Jest and Supertest; axios, Redis, and Postgres
+clients are typically mocked, while Redis/Postgres integration tests execute
+when the backing services are reachable via \texttt{REDIS\_URL\_PATIENTS} and
+\texttt{DB\_*}. Network calls are isolated in most suites, IDs and payloads are
+fixed for determinism, and database inserts clean up after themselves.
+
+\subsection{Scope}
+Coverage spans HTTP route contracts for patients, encounters, binary resources,
+and history-graph APIs; service-layer FHIR interactions and caching; Joi-based
+validation middleware; Redis caching helpers with TTLs; Postgres connectivity
+and timeline graph persistence; and end-to-end workflows linking patient
+creation, related-data retrieval, and graph operations.
+
+\subsection{API Route Coverage}
+Route tests exercise patient CRUD, TOON export, and related-data bundles;
+encounter fetch and `\$everything` retrieval with create-by-id; binary PDF
+fetch/create/delete with required-field validation; and history-graph
+initialization, head-node creation, CRUD, seeding, and empty-graph handling.
+
+\subsection{Service and Integration Tests}
+Patient service specs cover cache-first reads with Redis, FHIR fallbacks, 404
+and connectivity errors, create flows (with or without client-specified IDs),
+and `\$everything` bundles. Condition service specs target patient-scoped
+queries, empty bundles, and create/update with explicit IDs. History graph
+service tests remain scaffolded—node/edge CRUD, caching, validation, and
+FHIR/EOC integration are outlined but still lack concrete assertions.
+
+\subsection{Test Design and Data}
+Positive-path cases walk through patient/encounter/condition creation,
+retrieval, and related-data aggregation, including binary uploads and graph
+growth. Negative-path cases cover Joi validation failures, cache misses, 404s
+from FHIR, connection failures, missing IDs, invalid graph categories, and
+empty bundles. Axios and cache helper calls are stubbed per test to keep
+contracts deterministic; the graph service uses a mocked pg client. Transient
+IDs such as \texttt{node-001} or \texttt{pat-e2e-001} repeat across tests, and
+Postgres inserts are cleaned up to avoid residue.
+
+\subsection{End-to-End Workflows}
+The patient workflow proceeds as create \textrightarrow{} fetch
+\textrightarrow{} add condition \textrightarrow{} related-data retrieval,
+asserting state consistency. The history-graph workflow initializes an
+EOC/graph, creates the head node, grows child nodes (with updates and deletes),
+verifies branching, and exercises cache-aware readbacks, including
+invalid-category rejection.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+            node distance=1.6cm and 2.0cm,
+            every node/.style={rectangle, rounded corners, draw=black!70, fill=blue!4, align=center, font=\small, minimum width=2.6cm},
+            arrow/.style={-Latex, thick, draw=black!70}
+        ]
+        \usetikzlibrary{positioning}
+        % Patient workflow
+        \node (p1) {Create\newline Patient};
+        \node[right=of p1] (p2) {Fetch\newline Patient};
+        \node[right=of p2] (p3) {Add\newline Condition};
+        \node[right=of p3] (p4) {Related\newline Data};
+
+        \draw[arrow] (p1) -- (p2);
+        \draw[arrow] (p2) -- (p3);
+        \draw[arrow] (p3) -- (p4);
+
+        \node[above=0.9cm of p2, font=\small\bfseries, draw=none, fill=none] {patient-workflow.e2e (Pass)};
+
+        % History graph workflow
+        \node[below=2.2cm of p1] (h1) {Init\newline Graph/EOC};
+        \node[right=of h1] (h2) {Head\newline Node};
+        \node[right=of h2] (h3) {Add/Update\newline Nodes};
+        \node[right=of h3] (h4) {Branching\newline Verified};
+        \node[right=of h4] (h5) {Cache-aware\newline Readback};
+
+        \draw[arrow] (h1) -- (h2);
+        \draw[arrow] (h2) -- (h3);
+        \draw[arrow] (h3) -- (h4);
+        \draw[arrow] (h4) -- (h5);
+
+        \node[above=0.9cm of h3, font=\small\bfseries, draw=none, fill=none] {historyGraph-workflow.e2e (Pass)};
+    \end{tikzpicture}
+    \caption{Graph view of the two end-to-end suites; edges align to assertions within each test.}
+    \label{fig:test-flows}
+\end{figure}
+
+\subsection{Validation and Middleware}
+Joi schemas enforce required patient fields, formats, and length constraints
+while permitting extra fields. The request-validator middleware is exercised on
+both happy-path forwarding and failure-path messaging.
+
+\subsection{Caching and Redis}
+Cache helper tests span get/set/delete semantics, TTL handling, error
+tolerance, and patient cache invalidation (Redis mocked). Redis integration
+tests, when enabled, hit a live instance to confirm CRUD, TTL expiry, and
+support for strings, lists, and sets via \texttt{REDIS\_URL\_PATIENTS}.
+
+\subsection{Database Checks}
+Postgres smoke tests confirm connectivity, the presence of
+\texttt{timeline\_nodes} and \texttt{node\_edges}, and insert/select
+round-trips with cleanup. A standalone probe script inspects timeline nodes and
+edges to sanity-check graph visualization data.
+
+\subsection{Gaps and Next Steps}
+\begin{enumerate}
+    \item Add concrete assertions to history graph service integration tests (node/edge
+          creation, validation, cache invalidation, FHIR/EOC fallbacks).
+    \item Extend end-to-end negative paths for encounters and conditions, aligning status
+          codes and error bodies.
+    \item Add contract tests to lock TOON export and `\$everything` bundle payload
+          shapes.
+    \item Document and script external dependencies (Redis, Postgres, FHIR stubs) for
+          reliable CI execution.
+\end{enumerate}
+
+\subsection{Test Result Summary}
+Figures~\ref{fig:test-matrix-unit-integration} and~\ref{fig:test-matrix-e2e-db}
+summarize the principal suites and their last known status.
+
+\begin{figure}[h]
+    \centering
+    \begin{tabular}{llc}
+        \toprule
+        Suite                           & Focus                                                & Status  \\
+        \midrule
+        patientRoutes                   & Patient HTTP contracts (CRUD, TOON, related-data)    & Pass    \\
+        encounterRoutes                 & Encounter HTTP contracts and \$everything            & Pass    \\
+        binaryRoutes                    & Binary PDF fetch/create/delete + validation          & Pass    \\
+        patientValidation               & Joi schema for patient payloads                      & Pass    \\
+        validateRequest                 & Middleware pass/fail branches                        & Pass    \\
+        cacheHelper                     & Cache get/set/delete/TTL/invalidation (mocked Redis) & Pass    \\
+        patientService.integration      & Cache-first FHIR access, create, \$everything        & Pass    \\
+        conditionService.integration    & Patient condition queries/create/update              & Pass    \\
+        historyGraphRoutes              & History graph HTTP contracts (init/head CRUD/seed)   & Pass    \\
+        historyGraphService.integration & Graph service behaviors (scaffold, no asserts)       & Pending \\
+        redis                           & Live Redis CRUD/TTL/string-list-set                  & Pass*   \\
+        database                        & Postgres connectivity + timeline inserts             & Pass*   \\
+        \bottomrule
+    \end{tabular}
+    \caption{Unit and integration suite status (Pass* requires Redis/Postgres available).}
+    \label{fig:test-matrix-unit-integration}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{tabular}{llc}
+        \toprule
+        Suite                     & Workflow                                                                                  & Status \\
+        \midrule
+        patient-workflow.e2e      & Create \textrightarrow{} fetch \textrightarrow{} condition \textrightarrow{} related-data & Pass   \\
+        historyGraph-workflow.e2e & Init graph \textrightarrow{} head \textrightarrow{} add/update/delete nodes, branching    & Pass   \\
+        \bottomrule
+    \end{tabular}
+    \caption{End-to-end workflow suite status.}
+    \label{fig:test-matrix-e2e-db}
+\end{figure}
+
+\subsection{Interpretation of Results}
+\begin{itemize}
+    \item Core HTTP surface for patients, encounters, binaries, and history graph is
+          green, indicating stable contracts at the controller/route layer.
+    \item Service-layer caching and FHIR interaction paths are exercised with both cache
+          hits and misses; error handling for 404 and connectivity is verified.
+    \item Live-environment checks for Redis/Postgres pass when backing services are
+          reachable; mark these as conditional (Pass*).
+    \item The main gap is the history graph service integration file, which outlines
+          scenarios but lacks assertions; adding those will close coverage on graph
+          business logic.
+\end{itemize}
+
