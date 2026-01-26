@@ -1,2 +1,51 @@
-\section{Backend}\label{chap:Backend}
+% \section{Backend}\label{chap:Backend}
+\input{Backend/systemarch.tex}
 \input{Backend/fhir.tex}
+% \input{Backend/nodejs.tex}
+% \input{Backend/database.tex}
+
+% \input{Backend/caching.tex}
+\section{Patient History Graph Implementation}
+\label{sec:graph_logic}
+
+A core distinguishing feature of the CFI-Care backend is the Patient History
+Graph, which visualizes a patient's medical journey as a Directed Acyclic Graph
+(DAG). Unlike standard FHIR lists, which present data linearly, this graph
+models causal and temporal relationships between medical events.
+
+\subsection{Graph Construction Algorithm}
+The graph logic is encapsulated within the \texttt{historyGraphService}. When a
+new medical event (Node) is recorded, the system performs a temporal scan of
+existing nodes for that patient. It identifies potential "Parent" nodes based
+on the event date and clinical category. For example, a "Prescription" node is
+automatically linked to the most recent "Consultation" node, creating a
+parent-child relationship in the \texttt{node\_relations} table.
+
+\subsection{Temporal Branching}
+To handle concurrent medical issues, the system supports branching. If a
+patient presents a new distinct symptom, the logic creates a new "Head Node,"
+effectively starting a parallel branch in the history graph. This allows
+clinicians to track multiple episodes of care simultaneously without visual
+clutter.
+
+\section{Performance Optimization}
+\label{sec:backend_optimization}
+
+To ensure low-latency responses for the frontend visualizations, the backend
+implements a specialized Two-Tier Caching Strategy using Redis.
+
+\subsection{Tier 1: Standard Resource Cache}
+The first tier utilizes a generic \texttt{cacheHelper} middleware. It
+intercepts HTTP requests for standard FHIR resources (e.g.,
+\texttt{/api/patients}). If a valid cache entry exists, it is returned
+immediately, bypassing the FHIR server and database entirely. These entries
+typically have a Time-To-Live (TTL) of 24 hours.
+
+\subsection{Tier 2: Specialized Graph Cache}
+The second tier, managed by \texttt{toonNodesCacheHelper}, is designed for the
+high-computation requirements of the history graph. Constructing the graph
+involves complex joins and relationship mapping. Therefore, the pre-calculated
+graph structure (nodes and edges formatted for the visualization library) is
+cached separately. This cache uses an aggressive invalidation strategy: any
+write operation to a patient's history immediately invalidates their specific
+graph cache to ensure data consistency.
