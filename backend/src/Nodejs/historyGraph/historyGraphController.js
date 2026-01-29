@@ -158,7 +158,12 @@ const addNode = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.error("Error in addNode:", error.message);
+    console.error("Error in addNode:", error.message || error);
+    if (error.statusCode) {
+      return res
+        .status(error.statusCode)
+        .json({ errors: error.errors || error.message });
+    }
     res.status(500).json({ error: error.message || "Failed to add node" });
   }
 };
