@@ -138,6 +138,51 @@ function buildErrorResponse(errors, statusCode = 400) {
 }
 
 // ==========================================
+// VALIDATION & ERROR HANDLING
+// ==========================================
+
+const ALLOWED_CATEGORIES = new Set([
+  "Consultation",
+  "Lab",
+  "Imaging",
+  "Prescription",
+  "AISuggestion",
+  "FollowUp",
+  "Allergy",
+]);
+
+const ALLOWED_PRIORITIES = new Set(["Low", "Medium", "High"]);
+const ALLOWED_NORMALITIES = new Set([
+  "Pending",
+  "Normal",
+  "Abnormal",
+  "Unknown",
+]);
+
+function validateNodeData(nodeData) {
+  const errors = {};
+  if (!nodeData.category || !ALLOWED_CATEGORIES.has(nodeData.category)) {
+    errors.category = `Invalid category. Allowed: ${Array.from(ALLOWED_CATEGORIES).join(", ")}`;
+  }
+  if (nodeData.priority && !ALLOWED_PRIORITIES.has(nodeData.priority)) {
+    errors.priority = `Invalid priority. Allowed: ${Array.from(ALLOWED_PRIORITIES).join(", ")}`;
+  }
+  if (nodeData.normality && !ALLOWED_NORMALITIES.has(nodeData.normality)) {
+    errors.normality = `Invalid normality. Allowed: ${Array.from(ALLOWED_NORMALITIES).join(", ")}`;
+  }
+  if (!nodeData.text_1 && !nodeData.title) {
+    errors.title = "Either text_1 or title is required";
+  }
+  if (Object.keys(errors).length > 0) {
+    throw { statusCode: 400, errors };
+  }
+}
+
+function buildErrorResponse(errors, statusCode = 400) {
+  return { statusCode, errors, message: "Validation failed" };
+}
+
+// ==========================================
 // FHIR R5 MAPPING HELPERS
 // ==========================================
 
@@ -467,6 +512,66 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
             },
           ],
         },
+        description: title,
+        start: startTime,
+        end: endTime,
+        participant: [
+          {
+            actor: { reference: `Patient/${patientId}` },
+            status: "accepted",
+          },
+        ],
+        text: {
+          status: "generated",
+          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${title}</div>`,
+        },
+      };
+      const wrapperEncounter = buildEncounter(
+        CATEGORY_TYPE_CODING.FollowUp.code,
+        CATEGORY_TYPE_CODING.FollowUp.display,
+      );
+
+      return {
+        nodeId,
+        primaryResource: appointment,
+        relatedResources: [wrapperEncounter],
+      };
+    }
+
+    return {
+      nodeId,
+      primaryResource: buildEncounter(
+        CATEGORY_TYPE_CODING.FollowUp.code,
+        CATEGORY_TYPE_CODING.FollowUp.display,
+      ),
+      relatedResources: [],
+    };
+  }
+
+  if (category === "Allergy") {
+    const allergy = {
+      resourceType: "AllergyIntolerance",
+      id: nodeId,
+      clinicalStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+            code: "active",
+          },
+        ],
+      },
+      verificationStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+            code: "confirmed",
+          },
+        ],
+      },
+      code: {
+        text: title,
       },
     ],
     subject: { reference: `Patient/${patientId}` },
