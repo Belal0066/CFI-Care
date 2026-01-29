@@ -1,0 +1,19 @@
+services:
+  frontend:
+    container_name: frontend
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    volumes:
+      - ./src:/app
+      - /app/node_modules
+    networks:
+      - nginx-network
+    
+
+networks:
+  nginx-network:
+    name: containers_nginx-network
+    external: true
+

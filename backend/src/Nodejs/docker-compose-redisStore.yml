@@ -1,0 +1,21 @@
+# # docker run -p 6379:6379 --name \authRedis -d redis:7
+
+# services:
+
+#   redisStore:
+#     container_name: redisStore
+#     image: redis:7
+#     restart: unless-stopped
+#     ports:
+#       - 6379:6379
+#     volumes:
+#       - redis_data:/data
+#     networks:
+#       - backend-network
+
+# volumes:
+#   redis_data:
+
+# networks:
+#   backend-network:
+#     driver: bridge
