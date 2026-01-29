@@ -5,6 +5,7 @@ const patientController = require("./patientController");
 
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
+const { requireSession } = require('../middleware/requireSession');
 
 // GET all patients
 router.get("/", requireSession,patientController.getAllPatients);
@@ -15,7 +16,7 @@ const { verifyToken } = require('../middleware/keycloakJWT');
 const requireScopes = require('../middleware/validateScopes');
 const attachForwardedToken = require('../middleware/attachForwardedToken');
 // const requireOwnership = require('../middleware/requireOwnership');
-const { requireSession } = require('../middleware/requireSession');
+
 
 
 

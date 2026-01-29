@@ -11,6 +11,17 @@ const {
   invalidatePatientCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
+const {
+  getToonNode,
+  setToonNode,
+  getToonNodes,
+  setToonNodes,
+  getToonNodeMetadata,
+  setToonNodeMetadata,
+  invalidateToonCacheForPatient,
+  invalidateToonCacheForNode,
+  TOON_CACHE_EXPIRATION,
+} = require("../middleware/toonNodesCacheHelper");
 
 // DB Setup
 const { Client } = require("pg");
@@ -53,6 +64,77 @@ async function ensureDbConnection() {
     console.log("Re-connecting to DB...");
     await client.connect();
   }
+}
+
+// Try to reuse an existing EpisodeOfCare for this patient so all nodes share one EOC
+async function getExistingEocForPatient(patientId) {
+  await ensureDbConnection();
+  const res = await client.query(
+    "SELECT encounter_fhir_id FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE) AND category IN ('Consultation','FollowUp') ORDER BY created_at DESC LIMIT 5",
+    [patientId],
+  );
+
+  for (const row of res.rows) {
+    try {
+      const enc = await encounterService.getEncounterById(
+        row.encounter_fhir_id,
+      );
+      const ref = enc?.episodeOfCare?.[0]?.reference;
+      if (ref) return ref.replace("EpisodeOfCare/", "");
+    } catch (err) {
+      console.log(
+        "Could not fetch encounter for existing EOC check:",
+        err.message,
+      );
+    }
+  }
+  return null;
+}
+
+// ==========================================
+// VALIDATION & ERROR HANDLING
+// ==========================================
+
+const ALLOWED_CATEGORIES = new Set([
+  "Consultation",
+  "Lab",
+  "Imaging",
+  "Prescription",
+  "AISuggestion",
+  "FollowUp",
+  "Allergy",
+  "Historical",
+]);
+
+const ALLOWED_PRIORITIES = new Set(["Low", "Medium", "High"]);
+const ALLOWED_NORMALITIES = new Set([
+  "Pending",
+  "Normal",
+  "Abnormal",
+  "Unknown",
+]);
+
+function validateNodeData(nodeData) {
+  const errors = {};
+  if (!nodeData.category || !ALLOWED_CATEGORIES.has(nodeData.category)) {
+    errors.category = `Invalid category. Allowed: ${Array.from(ALLOWED_CATEGORIES).join(", ")}`;
+  }
+  if (nodeData.priority && !ALLOWED_PRIORITIES.has(nodeData.priority)) {
+    errors.priority = `Invalid priority. Allowed: ${Array.from(ALLOWED_PRIORITIES).join(", ")}`;
+  }
+  if (nodeData.normality && !ALLOWED_NORMALITIES.has(nodeData.normality)) {
+    errors.normality = `Invalid normality. Allowed: ${Array.from(ALLOWED_NORMALITIES).join(", ")}`;
+  }
+  if (!nodeData.text_1 && !nodeData.title) {
+    errors.title = "Either text_1 or title is required";
+  }
+  if (Object.keys(errors).length > 0) {
+    throw { statusCode: 400, errors };
+  }
+}
+
+function buildErrorResponse(errors, statusCode = 400) {
+  return { statusCode, errors, message: "Validation failed" };
 }
 
 // ==========================================
@@ -112,6 +194,7 @@ const CATEGORY_RESOURCE_TYPE = {
   AISuggestion: "Observation",
   FollowUp: "Appointment",
   Allergy: "AllergyIntolerance",
+  Historical: "Encounter", // treated as contextual encounter entry
 };
 
 const CATEGORY_TYPE_CODING = {
@@ -125,6 +208,7 @@ const CATEGORY_TYPE_CODING = {
   },
   FollowUp: { code: "390906007", display: "Follow-up encounter" },
   Allergy: { code: "416098002", display: "Allergy screening" },
+  Historical: { code: "11429006", display: "Consultation" },
 };
 
 const CATEGORY_SERVICE_TYPE = {
@@ -162,6 +246,11 @@ const CATEGORY_SERVICE_TYPE = {
     system: "http://snomed.info/sct",
     code: "408478003",
     display: "Allergy service",
+  },
+  Historical: {
+    system: "http://snomed.info/sct",
+    code: "394802001",
+    display: "General medicine",
   },
 };
 
@@ -247,6 +336,25 @@ function normalizeDate(dateValue) {
   return new Date(dateValue).toISOString();
 }
 
+// Safely format a value to YYYY-MM-DD without timezone drift
+function formatDateOnly(value) {
+  if (!value) return new Date().toISOString().split("T")[0];
+  if (typeof value === "string") {
+    return value.includes("T") ? value.split("T")[0] : value;
+  }
+
+  // For Date objects (or values coercible to Date) preserve the local calendar day
+  const asDate = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(asDate.getTime())) {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  const y = asDate.getFullYear();
+  const m = asDate.getMonth();
+  const d = asDate.getDate();
+  return new Date(Date.UTC(y, m, d)).toISOString().split("T")[0];
+}
+
 function mapNormalityToStatus(normality) {
   switch (normality) {
     case "Pending":
@@ -301,6 +409,16 @@ function mapPriorityToEncounterClass(priority) {
   return { code: "AMB", display: "ambulatory" };
 }
 
+// Escape text for inclusion inside XHTML narrative divs
+function escapeForXhtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 async function upsertFHIRResource(resource) {
   if (!resource?.resourceType || !resource?.id) {
     throw new Error("FHIR resource must include resourceType and id");
@@ -347,6 +465,8 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
   );
   const title = (node.title || node.text_1 || "Untitled").trim();
   const details = node.details || "";
+  const safeTitle = escapeForXhtml(title);
+  const safeDetails = escapeForXhtml(details);
   const priorityObj = mapPriorityToActPriority(priority);
   const encounterClass = mapPriorityToEncounterClass(priority);
   const nodeId = node.id || `enc-${randomUUID()}`; // graph id aligns to Encounter id
@@ -392,6 +512,66 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
             },
           ],
         },
+        description: title,
+        start: startTime,
+        end: endTime,
+        participant: [
+          {
+            actor: { reference: `Patient/${patientId}` },
+            status: "accepted",
+          },
+        ],
+        text: {
+          status: "generated",
+          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${title}</div>`,
+        },
+      };
+      const wrapperEncounter = buildEncounter(
+        CATEGORY_TYPE_CODING.FollowUp.code,
+        CATEGORY_TYPE_CODING.FollowUp.display,
+      );
+
+      return {
+        nodeId,
+        primaryResource: appointment,
+        relatedResources: [wrapperEncounter],
+      };
+    }
+
+    return {
+      nodeId,
+      primaryResource: buildEncounter(
+        CATEGORY_TYPE_CODING.FollowUp.code,
+        CATEGORY_TYPE_CODING.FollowUp.display,
+      ),
+      relatedResources: [],
+    };
+  }
+
+  if (category === "Allergy") {
+    const allergy = {
+      resourceType: "AllergyIntolerance",
+      id: nodeId,
+      clinicalStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+            code: "active",
+          },
+        ],
+      },
+      verificationStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+            code: "confirmed",
+          },
+        ],
+      },
+      code: {
+        text: title,
       },
     ],
     subject: { reference: `Patient/${patientId}` },
@@ -399,6 +579,9 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       start: eventDate,
       end: eventDate,
     },
+    ...(eocId
+      ? { episodeOfCare: [{ reference: `EpisodeOfCare/${eocId}` }] }
+      : {}),
     reason: [
       {
         value: [
@@ -419,7 +602,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
     ],
     text: {
       status: "generated",
-      div: `<div xmlns="http://www.w3.org/1999/xhtml">Encounter: ${title}</div>`,
+      div: `<div xmlns="http://www.w3.org/1999/xhtml">Encounter: ${safeTitle}</div>`,
     },
   });
 
@@ -462,7 +645,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       recordedDate: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Condition: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Condition: ${safeTitle}</div>`,
       },
       ...(details
         ? {
@@ -524,7 +707,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       effectiveDateTime: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Observation: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Observation: ${safeTitle}</div>`,
       },
       ...(details ? { valueString: details } : {}),
       ...(interpretation
@@ -575,7 +758,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       result: [{ reference: `Observation/${observationId}` }],
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Report: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Report: ${safeTitle}</div>`,
       },
       ...(details ? { conclusion: details } : {}),
     };
@@ -614,7 +797,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       description: title,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">ImagingStudy: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">ImagingStudy: ${safeTitle}</div>`,
       },
     };
 
@@ -648,7 +831,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       study: [{ reference: `ImagingStudy/${imagingId}` }],
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Radiology Report: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Radiology Report: ${safeTitle}</div>`,
       },
       ...(details ? { conclusion: details } : {}),
     };
@@ -680,7 +863,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       },
       text: {
         status: "generated",
-        div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">MedicationRequest: ${title}</div>`,
+        div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">MedicationRequest: ${safeTitle}</div>`,
       },
       ...(details ? { note: [{ text: details }] } : {}),
     };
@@ -729,7 +912,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       effectiveDateTime: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">AI Suggestion: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">AI Suggestion: ${safeTitle}</div>`,
       },
       ...(details ? { valueString: details } : {}),
       ...(interpretation
@@ -796,7 +979,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
         ],
         text: {
           status: "generated",
-          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${title}</div>`,
+          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${safeTafeTitle}</div>`,
         },
       };
       const wrapperEncounter = buildEncounter(
@@ -850,7 +1033,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
       recordedDate: eventDate,
       text: {
         status: "generated",
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">Allergy: ${title}</div>`,
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Allergy: ${safeTitle}</div>`,
       },
       ...(details ? { note: [{ text: details }] } : {}),
     };
@@ -966,13 +1149,11 @@ async function getGraphForPatient(patientId, options = {}) {
     sortOrder = "DESC",
   } = options;
 
-  const cacheKey = `historyGraph:patient:${patientId}:${JSON.stringify(options)}`;
-
   try {
-    // Check cache first
-    const cachedData = await getFromCache(cacheKey);
-    if (cachedData) {
-      return cachedData;
+    // Check toon cache first (dedicated cache for formatted nodes)
+    const cachedToonData = await getToonNodes(patientId, options);
+    if (cachedToonData) {
+      return cachedToonData;
     }
 
     await ensureDbConnection();
@@ -1083,9 +1264,7 @@ async function getGraphForPatient(patientId, options = {}) {
       category: row.category || "Consultation",
       priority: row.priority || "Low",
       normality: row.normality || "Normal",
-      dateIssued: row.event_date
-        ? new Date(row.event_date).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
+      dateIssued: formatDateOnly(row.event_date),
       details: row.details || "",
       isDiagnosis: row.is_diagnosis || false,
       isManualBranch: row.is_manual_branch || false,
@@ -1103,8 +1282,18 @@ async function getGraphForPatient(patientId, options = {}) {
         : null,
     };
 
-    // Store in cache
-    await setInCache(cacheKey, result, CACHE_EXPIRATION.PATIENT);
+    // Store in both toon cache (for formatted nodes) and general cache
+    await setToonNodes(
+      patientId,
+      result,
+      options,
+      TOON_CACHE_EXPIRATION.NODE_COLLECTION,
+    );
+    await setInCache(
+      `historyGraph:patient:${patientId}:${JSON.stringify(options)}`,
+      result,
+      CACHE_EXPIRATION.PATIENT,
+    );
 
     return result;
   } catch (error) {
@@ -1220,18 +1409,22 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   // Auto-create EpisodeOfCare if not provided or is 'auto'/'eoc-default'
   let finalEocId = eocId;
   if (!eocId || eocId === "auto" || eocId === "eoc-default") {
-    // Create a new EpisodeOfCare for this patient
-    finalEocId = `eoc-${randomUUID()}`;
-    const eocData = {
-      id: finalEocId,
-      status: "active",
-      patient: { reference: `Patient/${patientId}` },
-    };
-    try {
-      await eocService.createEpisodeOfCareWithSpecificId(eocData);
-      console.log(`Created new EpisodeOfCare: ${finalEocId}`);
-    } catch (err) {
-      throw new Error(`Failed to create EpisodeOfCare: ${err.message}`);
+    finalEocId = await getExistingEocForPatient(patientId);
+
+    if (!finalEocId) {
+      // Create a new EpisodeOfCare for this patient only if none exists
+      finalEocId = `eoc-${randomUUID()}`;
+      const eocData = {
+        id: finalEocId,
+        status: "active",
+        patient: { reference: `Patient/${patientId}` },
+      };
+      try {
+        await eocService.createEpisodeOfCareWithSpecificId(eocData);
+        console.log(`Created new EpisodeOfCare: ${finalEocId}`);
+      } catch (err) {
+        throw new Error(`Failed to create EpisodeOfCare: ${err.message}`);
+      }
     }
   }
 
@@ -1380,8 +1573,9 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     }
   }
 
-  // Invalidate and proactively refresh cache
+  // Invalidate and proactively refresh cache (both general and toon cache)
   await invalidatePatientCache(patientId);
+  await invalidateToonCacheForPatient(patientId);
   // Fetch fresh data to warm up the cache
   await getGraphForPatient(patientId).catch((err) =>
     console.warn("Cache refresh failed after addNode:", err.message),
@@ -1614,6 +1808,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
 
   // Invalidate cache and trigger background refresh
   await invalidatePatientCache(patientId);
+  await invalidateToonCacheForPatient(patientId);
   // Proactively refresh cache in background (non-blocking)
   setImmediate(() => {
     getGraphForPatient(patientId).catch((err) =>
@@ -1836,6 +2031,7 @@ async function deleteNode(patientId, nodeId) {
 
   // Invalidate cache and trigger background refresh
   await invalidatePatientCache(patientId);
+  await invalidateToonCacheForPatient(patientId);
   // Proactively refresh cache in background (non-blocking)
   setImmediate(() => {
     getGraphForPatient(patientId).catch((err) =>
@@ -1882,6 +2078,7 @@ async function restoreNode(patientId, nodeId) {
 
     // Invalidate cache and trigger background refresh
     await invalidatePatientCache(patientId);
+    await invalidateToonCacheForPatient(patientId);
     // Proactively refresh cache in background (non-blocking)
     setImmediate(() => {
       getGraphForPatient(patientId).catch((err) =>
