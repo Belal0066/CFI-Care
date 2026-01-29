@@ -15,7 +15,7 @@ export class ChatGPT implements OnInit {
   ngOnInit(): void {
     // Redirect to ChatGPT
     //   window.open('https://chatgpt.com', '_blank');
-    window.open('https://gemini.google.com', '_blank');
+    window.open('https://bws.taild935b3.ts.net/Clinical_Assistant', '_blank');
 
     // Navigate back to dashboard
     this.router.navigate(['/dashboard']);
