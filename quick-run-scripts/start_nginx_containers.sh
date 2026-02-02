@@ -13,6 +13,6 @@ while ! docker info >/dev/null 2>&1; do
 done
 log_message "Docker is running. Starting containers..."
 
-cd ./security/Containers/
+cd ../security/Containers/
 docker compose -f docker-compose-nginx.yml up
 log_message "Containers started successfully"
