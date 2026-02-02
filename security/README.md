@@ -68,13 +68,15 @@ trivy image --severity HIGH,CRITICAL <image-name>:<tag>
 - To set keycloak local certs in security/Containers/certs/ directory (chmod 644 so containers can read them) :
 
     ``` 
-    sudo mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem kc.localhost 127.0.0.1 ::1
+    mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost 127.0.0.1 ::1
 
-    sudo mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+    mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
 
     openssl pkcs12 -export -in cert.pem -inkey key.pem -out keystore.p12 -name tomcat -password pass:secret
 
-    sudo chmod 644 *.pem 
+    cp $(mkcert -CAROOT)/rootCA.pem ./
+
+    chmod 666 *.pem 
     
     ```
 
