@@ -1,6 +1,6 @@
 #!/bin/bash
 
- cd security/Containers/
+ cd ../security/Containers/
     docker compose -f docker-compose-nginx.yml down 
     docker compose -f docker-compose-kc.yml down 
     docker compose -f docker-compose-vault.yml down
