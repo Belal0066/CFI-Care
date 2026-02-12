@@ -14,6 +14,8 @@ const CACHE_EXPIRATION = {
   MEDICATION_REQUEST: 86400, // 24 hours
   PROCEDURE: 86400, // 24 hours
   SEARCH: 86400, // 24 hours
+  DEFAULT: 86400, // 24 hours - default for new resources
+  SHORT: 1800, // 30 minutes - for frequently changing data like slots
 };
 
 /**
