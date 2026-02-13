@@ -15,6 +15,9 @@ class BookingProvider with ChangeNotifier {
   DateTime? _selectedDate;
   String? _selectedTime;
   final List<AppointmentHistory> _appointments = [];
+  List<Doctor> _doctors = [];
+  bool _isLoadingDoctors = false;
+  String? _doctorsError;
 
   // --- GETTERS (How UI reads data) ---
   SpecialityEventEnum? get selectedSpecialty => _selectedSpecialty;
@@ -22,6 +25,9 @@ class BookingProvider with ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   String? get selectedTime => _selectedTime;
   List<AppointmentHistory> get appointments => _appointments;
+  List<Doctor> get doctors => _doctors;
+  bool get isLoadingDoctors => _isLoadingDoctors;
+  String? get doctorsError => _doctorsError;
 
   // Helper: Get formatted date string for UI (e.g., "Mon 19/1/25")
   String get formattedDate {
@@ -53,10 +59,26 @@ class BookingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadDoctors({String? specialty}) async {
+    if (_isLoadingDoctors) return;
+    _isLoadingDoctors = true;
+    _doctorsError = null;
+    notifyListeners();
+
+    try {
+      _doctors = await repository.getDoctors(specialty: specialty);
+    } catch (e) {
+      _doctorsError = e.toString();
+      _doctors = [];
+    } finally {
+      _isLoadingDoctors = false;
+      notifyListeners();
+    }
+  }
+
   // --- Confirm Booking ---
   Future<void> confirmBooking() async {
     if (_selectedDoctor != null && _selectedTime != null) {
-      
       final newAppointment = AppointmentHistory(
         id: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
         doctor: _selectedDoctor!,

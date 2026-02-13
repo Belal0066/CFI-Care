@@ -7,42 +7,26 @@ class BookingRepositoryImpl {
 
   BookingRepositoryImpl(this.apiService);
 
-  
   // --- GET DOCTORS ---
-  Future<List<Doctor>> getDoctors() async {
-    final rawData = await apiService.fetchDoctors();
+  Future<List<Doctor>> getDoctors({String? specialty}) async {
+    final rawData = await apiService.fetchDoctors(specialty: specialty);
 
     // Map the raw JSON to your Doctor model
-    return rawData.map((json) {
-      // Create Doctor object from JSON
-      return Doctor(
-        id: json['id'].toString(),
-        name: json['name'],
-        title: json['specialty'], 
-        imageUrl: json['image_url'] ?? 'assets/images/default_doc.png',
-        fees: json['fees'] ?? 0,
-        address: json['address'] ?? "Unknown",
-        rating: (json['rating'] ?? 0).toDouble(),
-        schedule: [], 
-        reviews: [],
-        waitingTime: 0, 
-        visitorCount: 0, 
-        specialtyDetail: "", 
-        tags: [], 
-        nextAvailable: ""
-      );
-    }).toList();
+    return rawData
+        .map((json) => Doctor.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
+
   Future<bool> createBooking(AppointmentHistory appointment) async {
     try {
       // This calls your API service (e.g., http.post)
       // We pass the JSON we just created
       final response = await apiService.postData(
         //TODO: change the endpoint to the correct one
-        endpoint: '/appointments', 
+        endpoint: '/appointments',
         data: appointment.toJson(),
       );
-      
+
       // Return true if status code is 200/201
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
@@ -71,5 +55,3 @@ class BookingRepositoryImpl {
     await apiService.createAppointment(bookingJson);
   }
 }
-  
-  
