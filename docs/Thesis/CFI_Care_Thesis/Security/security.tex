@@ -1,0 +1,663 @@
+
+\chapter{Security}\label{chap:Security}
+
+\section{Introduction}\label{sec:security-intro}
+Healthcare information systems are prime targets for security breaches due to
+the commercial value of protected health information (PHI) . CFI-Care platform
+presents multi-layered challenges: securing web-based browser access, mobile
+device authentication, sensitive patient consent grants, and doctor-patient
+access workflows. Also maintaining audit trails is required and so is enabling
+session revocation.
+
+Traditional monolithic security approaches are insufficient for this use case.
+Instead, we adopted a defense-in-depth strategy leveraging modern standards
+(\ac{OAuth} 2.0/OIDC with \ac{JWT}) and distributed validation across the
+\ac{API} gateway (nginx), backend-for-frontend (Node.js/BFF) and \ac{FHIR}
+server for final checks before database access.
+
+\section{Architecture \& Design}\label{sec:security-architecture}
+
+The CFI-Care security architecture follows a defense-in-depth model with
+multiple validation layers. Figure~\ref{fig:security-components} provides an
+overview of the security components and their interactions. Figures
+\ref{fig:browser-tokens-flow}, \ref{fig:mobile-tokens-flow}, and
+\ref{fig:token-flow-overview} illustrate the key authentication and
+authorization flows across browser, mobile workflows. This section details the
+design and implementation principles.
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=\linewidth]{Security/images/ver-component.png}
+        \caption{Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (nginx), Backend-for-Frontend (Node.js), Identity \& Storage (Keycloak, Redis, Postgres), and Resource Server (HAPI FHIR) with their security-focused interactions.}
+        \label{fig:security-components}
+    \end{center}
+\end{figure}
+
+\subsection{Identity \& Access Management}
+\subsubsection{Keycloak Realm \& Clients}
+Keycloak is our chosen identity provider. A dedicated realm hosts a client for
+the web application (via the BFF) and a client for mobile usage. For the
+current browser flow, the BFF obtains tokens using the Resource Owner Password
+grant (password grant) and stores them server-side. Access, refresh, and ID
+tokens are issued as JWTs and validated downstream using JWKS.
+
+\subsubsection{Browser Flow }
+The browser authenticates against a custom login endpoint exposed by the BFF.
+On success, the BFF stores tokens in a Redis-backed session and returns a
+secure, HTTP-only cookie. All subsequent browser requests carry only the
+session cookie (no tokens in the browser).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Security/images/browser-tokens-flow.png}
+    \caption{Browser Token Authentication Flow: User registration, login, and API request handling with session cookies.}
+    \label{fig:browser-tokens-flow}
+\end{figure}
+
+\paragraph{Planned Browser Hardening ( Email Verification)}
+A future iteration will keep the custom Angular UI while hardening login with
+email verification and a MFA option. Tokens remain short-lived, stored in
+Redis-backed sessions for browsers, and refreshed transparently by the BFF. The
+planned flow is captured in Figure~\ref{fig:browser-tokens-flow-future}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Security/images/browser-tokens-flow-future.png}
+    \caption{Planned Browser Flow (Future): Registration with email verification and BFF-mediated credential login, session cookie issuance, and server-side token refresh.}
+    \label{fig:browser-tokens-flow-future}
+\end{figure}
+
+\subsubsection{Mobile Flow}
+For mobile clients (implemented using Flutter), the flow differs from browsers.
+The planned implementation uses a BFF-mediated Authorization Code pattern with
+PKCE, and stateless access tokens. Tokens are stored only in platform-specific
+secure storage (Android Keystore) and sent as \texttt{Authorization: Bearer
+    <token>} in API requests. Token refresh is client-driven via a refresh
+endpoint, access tokens remain short-lived.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Security/images/Mobile-tokens-flow.png}
+    \caption{Mobile Token Authentication Flow (Future): BFF-mediated Authorization Code with PKCE, secure keystore token storage, and client-driven token refresh.}
+    \label{fig:mobile-tokens-flow}
+\end{figure}
+
+\subsubsection{Session Storage }
+Browser sessions are maintained using express-session with RedisStore. The BFF
+saves access/refresh/ID tokens and their expirations. A refresh routine renews
+tokens when close to expiry. Session cookies are configured for Secure +
+HttpOnly, and SameSite according to deployment needs.
+
+\subsection{Authorization \& Policy Enforcement}
+
+\subsubsection{BFF Middleware: Session Check, JWT Verify, Scope Validation}
+\begin{itemize}
+    \item \textbf{Session check (requireSession method)}: verifies presence of user and tokens in the Redis-backed session.
+          Automatically refreshes expired tokens by calling Keycloak's token endpoint and persists the updated tokens back to Redis.
+          Populates \texttt{req.accessToken}, \texttt{req.user}, and \texttt{req.kauth} for downstream middleware.
+    \item \textbf{JWT verification (verifyToken method)}: validates JWT signatures against Keycloak's JWKS endpoint, checks issuer (iss), audience (aud), algorithms, and clock skew tolerance.
+          The Authorization header is populated by \texttt{attachForwardedToken} middleware, which extracts the session token from \texttt{req.accessToken} (set by requireSession) or request headers in general.
+    \item \textbf{Scope checks (validateScopes method)}: parses \texttt{scope} claim and \texttt{realm\_access.roles} from the token. Compares required SMART on FHIR scopes (e.g., \texttt{patient/<id>.rs}) against token scopes using pattern matching.
+          For patient-specific scopes, validates that the \texttt{patient} claim in the token matches the requested resource ID.
+\end{itemize}
+\subsubsection{FHIR Server Enforcement}
+Future work: validate JWTs independently to implement defense in depth,
+leverage FHIR server's built-in SMART on FHIR policy enforcement for
+resource-level access control based on scopes and patient context.
+
+\subsection{Doctor–Patient Consent \& Access Grants}
+The intended model supports patient-granted access for doctors, with grants
+stored in Redis (grant key, scopes, TTL) and mirrored as FHIR Consent
+resources. FHIR Consent resources are created with patient verification (2FA,
+PIN...) and include provisions specifying scoped access (duration for example).
+Access grants are cached in Redis for performance but the FHIR Consent is the
+authoritative source. The BFF verifies an active grant before calling FHIR for
+doctor requests. Future work: finalize consent persistence, link to FHIR
+Consent, and enforce patient binding in scope validation.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\linewidth]{images/Doctor-Patient-access-granting.puml}
+%     \caption{Doctor-Patient Access Granting Flow: Patients grant doctors access to their data with scoped permissions and TTL-based revocation.}
+%     \label{fig:doctor-patient-access}
+% \end{figure}
+
+\subsection{Session Management \& Revocation}
+The BFF exposes logout endpoints:
+\begin{itemize}
+    \item{Per-session logout}: destroys the current session in Redis and revokes refresh tokens at Keycloak's revoke endpoint.
+    \item{Global logout}: removes all user sessions and revokes refresh tokens at Keycloak.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{Security/images/token-flow-overview.png}
+    \caption{Token Flow Overview: Multi-client architecture (browser vs. mobile), session/token management, per-session and global logout patterns.}
+    \label{fig:token-flow-overview}
+\end{figure}
+
+\subsection{Defense-in-Depth}
+\subsubsection{Edge}
+\begin{itemize}
+    \item Browser: session cookies with Secure, HttpOnly, SameSite attributes, route
+          guards, HTTP interceptors for 401 handling.
+    \item Mobile: secure token storage, bearer token auth, client-driven token refresh.
+
+\end{itemize}
+\subsubsection{API Gateway (nginx)}
+\begin{itemize}
+    \item nginx terminates TLS (certs mounted in the container), forces HTTPS (80→443),
+          and proxies \texttt{"/api"} and \texttt{"/auth"} to the BFF, and \texttt{"/"}
+          to the Angular app.
+    \item Forwarded headers are set for correct cookie and session handling.
+    \item Future work: enable HSTS, add common security headers, and tune timeouts.
+\end{itemize}
+\subsubsection{BFF}
+\paragraph{Input Validation \& Rate Limiting}
+All authentication endpoints (login, register) validate input using Joi schemas
+before processing. Login requires valid email and password (min 8). Register
+requires valid email, password with complexity (uppercase, lowercase, digit,
+min 8 chars), and full name (alphanumeric + spaces). Validation errors are
+returned as HTTP 400 with field-level details for client feedback.
+
+Rate limiting is implemented via three Redis-backed limiters using
+\texttt{rate-limit-redis} middleware:
+\begin{itemize}
+    \item \texttt{loginLimiter}: 5 attempts/10 minutes (production) or 100/10 minutes (development so we could keep testing the system).
+          \newline Counts only failed attempts (\texttt{skipSuccessfulRequests: true}).
+    \item \texttt{registerLimiter}: 3 attempts/hour (production) or 100/hour (development).
+    \item \texttt{generalLimiter}: 100 attempts/10 minutes (production) or 1000/10 minutes (development). Applied globally to all API routes.
+\end{itemize}
+Exceeded limits return HTTP 429 (too Many Requests), protecting endpoints from credential enumeration and brute-force attacks.
+
+\paragraph{Security Event Logging \& Audit Trail}
+All authentication events (LOGIN\_SUCCESS, LOGIN\_FAILURE, REGISTER, LOGOUT,
+LOGOUT\_ALL) are logged to Redis sorted sets with timestamps and a 90-day
+retention period. Each audit log entry captures:
+\begin{itemize}
+    \item Event type and timestamp (Unix epoch).
+    \item User ID and email.
+    \item Client IP address and User-Agent header.
+    \item Request ID (UUID) for tracing.
+    \item Metadata.
+\end{itemize}
+Audit logs are queryable by event type or by user, enabling security monitoring and forensic analysis.
+
+\paragraph{Session Revocation \& Logout}
+The BFF tracks all active sessions for each user in Redis. Per-session logout
+(\texttt{"/logout"}) destroys the current session and revokes current session's
+tokens at Keycloak. Global logout (\texttt{"/logout-all"}) clears all stored
+sessions for the user, rendering all active tokens invalid at the BFF layer.
+The frontend can then redirect to (\texttt{"/login"}), ensuring
+re-authentication for subsequent operations.
+
+\subsubsection{Resource Server (FHIR Policies)}
+Future work:
+\begin{itemize}
+    \item enforce JWT validation at FHIR server and apply scope and consent-based rules.
+    \item codify patient-specific access constraints for doctor roles.
+\end{itemize}
+
+% \subsection{Authentication Flow}
+
+% \subsubsection{Web Browser Access}
+
+% \subsubsection{Mobile Device Access}
+
+% \subsection{Authorization Flow}
+% \subsubsection{Patient-Doctor Access Granting}
+
+% \subsubsection{Session Management \& Revocation}
+
+% \subsection{Defense-in-Depth }
+
+\section{Implementation \& Setup}\label{sec:security-implementation}
+\subsection{Keycloak Configuration}
+
+\subsubsection{Clients, Scopes}
+The BFF requests valid scopes. Keycloak is be configured to permit these scopes
+for the client based on the user's role and map these roles to appropriate
+SMART scopes.
+
+\subsubsection{Password Policy}
+Registration validates password complexity (length and character classes) in
+the BFF and matches Keycloak’s password policy.
+
+\subsection{Backend-for-Frontend (BFF) Security Implementation}
+\subsubsection{Session Middleware (Redis), Token Refresh, Token Rotation}
+Express-session with RedisStore persists session state, including user
+identity, access token, refresh token, ID token, and their expiration times. A
+refresh action runs in the requireSession middleware: when a token approaches
+expiration, the BFF automatically sends a refresh token grant to Keycloak's
+token endpoint, obtains a new access token, and persists the updated values
+back to Redis. This refresh is transparent to the frontend.
+
+Session cookies are configured with:
+\begin{itemize}
+    \item \textbf{Secure}: over HTTPS only
+    \item \textbf{HttpOnly}: prevents JavaScript access, mitigating XSS token theft.
+    \item \textbf{SameSite}: set to \texttt{Lax}, blocking CSRF attacks while allowing safe cross-site navigation.
+    \item \textbf{MaxAge}: 1 hour so users must re-authenticate on the browser after inactivity.
+\end{itemize}
+
+\subsubsection{JWT Verification (JWKS), Scope Checks, Patient Binding}
+JWKS-based verification validates token signatures using Keycloak's public key
+endpoint. Checks include:
+\begin{itemize}
+    \item Signature validity (RS256 algorithm).
+    \item Issuer claim (iss) matches Keycloak's realm URL.
+    \item Audience claim (aud) includes the BFF's client ID.
+
+\end{itemize}
+Scope checks compare the token's \texttt{scope} claim against required route scopes using pattern-matching logic that handles wildcards.
+patient-specific scopes require the token's \texttt{patient} claim to match the requested resource Id.
+
+\subsubsection{Input Validation, Error Handling}
+All user input (login email, registration password, full name) is validated
+using Joi schemas before processing. Invalid requests return HTTP 400 with
+field-level error details, enabling the frontend to display specific guidanc.
+Error responses explicitly do not leak sensitive system details, reducing
+information disclosure risks.
+
+\subsubsection{Mobile Authentication Endpoints (Future Work)}
+Three dedicated endpoints support mobile client authentication flows:
+
+% \begin{itemize}
+
+\paragraph{POST /auth/mobile/login:}
+Authenticates against Keycloak using the Resource Owner Password grant. Upon
+success, returns \texttt{\{access\_token, refresh\_token, id\_token,
+    expires\_in, user\}} in the response body. The mobile app stores these tokens
+in secure storage (Keystore) and includes the access token in subsequent API
+requests via \texttt{Authorization: Bearer <token>} headers. Rate limiting and
+input validation (Joi schemas) are enforced. Audit logged as
+\texttt{MOBILE\_LOGIN\_SUCCESS} or \texttt{MOBILE\_LOGIN\_FAILURE} to separate
+browser and mobile authentication for auditing granularity.
+
+\paragraph{POST /auth/refresh}
+Accepts \texttt{\{refresh\_token\}} in the request body and exchanges it for a
+new access token via Keycloak's refresh token grant endpoint. Returns
+\texttt{\{access\_token, refresh\_token, expires\_in\}}. Called client-side by
+the mobile app when the access token expires. Enables stateless token refresh.
+Audit logged as \texttt{TOKEN\_REFRESH} or \texttt{TOKEN\_REFRESH\_FAILURE}.
+
+\paragraph{POST /auth/logout ( will be updated for mobile)}
+Dual-path logout supporting both browser sessions and mobile bearer tokens.
+Mobile path: detects \texttt{Authorization: Bearer} header, revokes tokens at
+Keycloak (via revoke tokens endpoint), and returns \texttt{\{ok: true\}}.
+Browser path: uses \texttt{req.session}, destroys the session, and returns
+\texttt{\{ok: true, logoutUrl\}}. Requires \texttt{refresh\_token} in body for
+Keycloak-side token revocation. Audit will also be logged with client type
+specified to enable distinction between logout types.
+
+% \end{itemize}
+All three endpoints are protected by rate limiters and log to the audit trail
+for security monitoring.
+
+\subsection{nginx API Gateway}
+\subsubsection{TLS Termination, HSTS, Secure Headers}
+TLS is terminated at nginx using valid certificates (self-signed for dev, will
+be CA-signed for production using Let's encrypt). HTTP traffic on port 80 is
+redirected to HTTPS (port 443) to ensure all data in transit is encrypted.
+
+The BFF Express server is configured with Helmet, which sets security headers:
+\begin{itemize}
+    \item \textbf{Content-Security-Policy (CSP)}: restricts script sources to \texttt{'self'}, reducing XSS attack surface.
+    \item \textbf{X-Frame-Options}: prevents clickjacking by restricting iframe embedding.
+    \item \textbf{HSTS (Strict-Transport-Security)}: forces HTTPS for 1 year, preventing downgrade attacks.
+\end{itemize}
+
+\subsubsection{Proxy Configuration, Forwarded Headers}
+nginx proxies requests to the BFF (\texttt{"/api"} and \texttt{"/auth"} routes)
+and the Angular frontend (\texttt{"/"} route). The \texttt{trust proxy} setting
+is enabled in Express, allowing it to correctly interpret
+\texttt{X-Forwarded-For}, \texttt{X-Forwarded-Proto}, and other headers set by
+nginx. This ensures:
+\begin{itemize}
+    \item Session cookies are correctly marked as Secure (based on proxied HTTPS
+          connection).
+    \item Client IP addresses are correctly logged for audit and rate-limiting purposes.
+    \item Session affinity is maintained across the BFF cluster (when we implement cloud
+          deployment and load balancing).
+\end{itemize}
+
+\subsubsection{CORS Configuration}
+CORS is configured at the BFF level to accept requests only from the frontend
+origin. Credentials are included in cross-origin requests, allowing the browser
+to send session cookies. This prevents unauthorized external origins from
+accessing API endpoint.
+
+% \subsection{nginx API Gateway Setup}
+% \subsection{oauth2-proxy Integration}
+
+\subsection{Container Security \& Deployment}
+Docker Compose orchestrates five security services: nginx (TLS gateway),
+Keycloak (identity provider), Postgres (user database), and two Redis instances
+(session store and audit log store). Security practices include:
+\begin{itemize}
+    \item \textbf{Volume Mounts}: TLS certificates are mounted as read-only volumes from the host.
+    \item \textbf{Network Isolation}: Services communicate over a private Docker network; Redis and Postgres are not exposed to external ports (only accessible from BFF and nginx).
+    \item \textbf{Image Security}: we used official base images, most of them scanned for vulnerabilities (CVEs).
+\end{itemize}
+Future work: add resource limits per container, enable Docker user namespaces.
+
+\subsection{Frontend \& Mobile Clients}
+\subsubsection{Angular Frontend Architecture}
+The Angular frontend implements several security layers:
+
+\paragraph{Route Guards (Authentication Check)}
+Protected routes (dashboard, med-graph/:id) are guarded by \texttt{authGuard},
+a route canActivate function that:
+\begin{itemize}
+    \item Calls AuthService.checkAuthStatus() (a custome function that calls our BFF
+          auth/me endpoint) at route activation.
+    \item Verifies the response's \texttt{authenticated} flag.
+    \item If authenticated, allows route access, otherwise redirects to /login.
+\end{itemize}
+The guard injection follows Angular's functional guard pattern (\texttt{CanActivateFn}), using dependency injection for AuthService and Router.
+
+\paragraph{Authentication Interceptor (401 Handling)}
+A global HTTP interceptor (\texttt{authInterceptor}) wraps all outbound HTTP
+requests:
+\begin{itemize}
+    \item Catches HTTP responses with status code 401 (Unauthorized).
+    \item Logs a warning message (console.warn) for debugging.
+    \item Redirects to /login, clearing the current route and forcing re-authentication.
+    \item Re-throws the error after routing, allowing components to handle error states.
+\end{itemize}
+This provides automatic session expiry handling: if the backend session expires or tokens are revoked, the first 401 response triggers a redirect, preventing continued access to stale sessions.
+
+\paragraph{Credentials Handling (withCredentials Flag)}
+All HTTP requests to auth endpoints (/login, /register, /me, /logout,
+/logout-all) include \texttt{withCredentials: true}, instructing Angular's HTTP
+client to:
+\begin{itemize}
+    \item Send session cookies with cross-origin requests.
+    \item Receive Set-Cookie headers from the backend.
+\end{itemize}
+This enables secure session management via HTTP-only cookies, preventing token exposure in typescript.
+\paragraph{Error Handling \& User Feedback}
+The AuthService's \texttt{handleError} method extracts backend error details:
+\begin{itemize}
+    \item For HTTP errors with a \texttt{details} array (validation errors from the BFF),
+          displays field-specific messages.
+    \item For generic server errors, displays a fallback message (``Server error'').
+    \item Logs errors to the browser console for debugging.
+\end{itemize}
+Components using AuthService subscribe to the returned Observable and display errors to users, improving UX on failed login/registration.
+
+\paragraph{Current User State Management}
+
+The AuthService maintains a \newline \texttt{BehaviorSubject<currentUser>}
+observable:
+\begin{itemize}
+    \item Populated on successful login, registration, or checkAuthStatus.
+    \item Cleared on logout or failed authentication.
+    \item Subscribed to by components to display user info (name, email) and show/hide UI
+          elements based on auth state.
+    \item Provides a reactive interface: any component injecting AuthService can
+          subscribe to \texttt{currentUser\$} and react to state changes.
+\end{itemize}
+
+\paragraph{Third-Party Dependencies}
+
+Future work: Pin exact versions in package.json and regularly audit for
+vulnerabilities (using \texttt{npm audit}).
+
+\subsubsection{Mobile App (Flutter) Security Architecture}
+Although not yet fully implemented, the planned mobile architecture includes:
+\begin{itemize}
+    \item \textbf{Secure Token Storage}:
+          \begin{itemize}
+              \item Android: Keystore system.
+          \end{itemize}
+    \item \textbf{Bearer Token Auth}: Each HTTP request includes \texttt{Authorization: Bearer <access\_token>} header.
+    \item \textbf{Token Refresh Logic}: Mobile app implements its own refresh routine (unlike browser, where the BFF handles refresh):
+          \begin{itemize}
+              \item On 401 response, call the BFF's token refresh endpoint.
+              \item Retry the original request with the new token.
+              \item If refresh fails, clear tokens and redirect to login.
+          \end{itemize}
+    \item \textbf{Certificate Pinning} (future work): pin the BFF's TLS cert in the mobile app to prevent MITM attacks by rogue CAs.
+          % \item \textbf{App Transport Security (ATS)}: Enforce HTTPS only and require strong TLS versions (1.2+) by default.
+\end{itemize}
+
+\subsubsection{Environment-Specific Configuration}
+The frontend uses two environment files:
+\begin{itemize}
+    \item \texttt{environment.ts} (development): \texttt{production: false}, \texttt{apiUrl: '/api'}, \texttt{authUrl: '/auth'}. Uses relative paths, which resolve to the development server or proxied backend .
+    \item \texttt{environment.prod.ts} (production): \texttt{production: true}, \texttt{apiUrl: ''}, \texttt{authUrl: ''}. URLs are currently empty to be populated at deployment time.
+\end{itemize}
+This allows the same compiled app to be deployed across environments by injecting the correct API endpoints at runtime (future work: implement environment variable injection at container startup).
+
+\subsection{Angular Frontend Security Implementation}
+\subsubsection{Route Protection \& Guards}
+All protected routes (dashboard, med-graph/:id) are declared with
+\texttt{canActivate: [authGuard]}. The authGuard executes before route
+activation and checks authentication status by calling the BFF's GET /auth/me
+endpoint. If the request returns \texttt{authenticated: false} or fails with
+401, the guard redirects to /login and cancels route activation. This prevents
+unauthorized access to protected pages even if a user manually navigates via
+URL bar.
+
+\subsubsection{HTTP Interceptors \& 401 Handling}
+The global authInterceptor catches 401 responses from any API endpoint. Upon
+401, the interceptor:
+\begin{itemize}
+    \item Logs the unauthorized attempt.
+    \item Immediately navigates to /login.
+    \item Re-throws the error, allowing components to also react.
+\end{itemize}
+This provides a safety net: even if a route guard passes, if the session expires during navigation, the 401 interceptor ensures the user is redirected to re-authenticate.
+
+\subsubsection{Cookie-Based Credentials}
+All auth endpoints use \texttt{withCredentials: true}, ensuring the Angular
+HTTP client:
+\begin{itemize}
+    \item Sends session cookies with every request.
+    \item Accepts Set-Cookie headers from the BFF.
+\end{itemize}
+% Without \texttt{withCredentials}, the browser's same-origin policy blocks automatic cookie transmission, breaking session authentication.
+
+\subsubsection{Reactive State Management}
+The AuthService uses a BehaviorSubject to maintain observable current user
+state. Any component can subscribe to \texttt{currentUser\$} and react to
+authentication changes.
+\subsubsection{Error Transparency}
+Backend validation errors (from /register endpoint) include field-level details
+in the HTTP response's \texttt{error.details} array. The AuthService's
+handleError method extracts and formats these messages, allowing the login
+component to display specific guidance. This improves UX and helps users follow
+password complexity requirements.
+
+\subsection{Keycloak}
+Keycloak serves as the OpenID Connect identity provider. It manages user
+accounts, issues JWT tokens (access, refresh, and ID tokens), maintains public
+JWKS endpoints for token verification, and supports role-based access control
+via realm roles and client roles. In the current setup, the BFF uses the
+Resource Owner Password grant to obtain tokens on behalf of users.
+
+\subsection{Redis}
+Two Redis instances are deployed:
+\begin{itemize}
+    \item \textbf{Session Store}: backing store for express-session. Persists user sessions, access tokens, refresh tokens, and their expiration times with a 1-hour TTL.
+    \item \textbf{Audit Store}: persists authentication events (LOGIN\_SUCCESS, LOGIN\_FAILURE, REGISTER, LOGOUT, LOGOUT\_ALL) as sorted sets. Each entry includes timestamp, user ID, IP, User-Agent, and request ID. Entries expire after 90 days.
+\end{itemize}
+Redis also stores user session tracking sets (all session IDs for each user) to enable logout-all operations.
+
+\subsection{nginx API Gateway}
+Acts as the TLS termination point, HTTP-to-HTTPS redirect, and reverse proxy.
+Sets forwarded headers for correct handling of session cookies and client IP
+logging in the BFF.
+
+\subsection{PostgreSQL}
+Keycloak's backing database, storing user accounts, roles, and credentials.
+
+\subsection{Node.js Backend-for-Frontend (BFF) Libraries}
+
+\begin{itemize}
+    % \item \textbf{\texttt{express}}: HTTP server framework for handling auth, API, and health-check routes.
+    \item \textbf{\texttt{express-session} and \texttt{connect-redis}}: Server-side session management with Redis persistence, enabling stateful auth for browsers.
+    \item \textbf{\texttt{joi}}: Schema validation library for login and registration input (email format, password complexity, full name pattern).
+    \item \textbf{\texttt{rate-limit-redis}}: Rate limiting middleware backed by Redis. Protects endpoints from brute-force attacks.
+    \item \textbf{\texttt{jsonwebtoken}}: JWT creation and verification library (for validation via JWKS).
+    \item \textbf{\texttt{jwks-rsa}}: Fetches and caches Keycloak's public JWKS endpoint. Automatically refreshes keys on signature validation failure.
+    \item \textbf{\texttt{axios}}: HTTP client for outbound calls to Keycloak API.
+    \item \textbf{\texttt{helmet}}: Express middleware that sets security headers
+    \item \textbf{\texttt{cors}}: Middleware for Cross-Origin Resource Sharing, configured to accept requests from the Angular frontend origin only.
+\end{itemize}
+
+\section{Challenges \& Trade-offs}\label{sec:security-challenges}
+
+\subsection{Session Management Across Client Types}
+Browsers use server-side sessions with secure cookies, mobile apps use bearer
+tokens in the Authorization header. Keeping behavior consistent requires:
+\begin{itemize}
+    \item Route guards and 401 interceptors on both client types.
+    \item Unified token refresh logic (automatic for browser via requireSession, manual
+          for mobile via OAuth refresh endpoint).
+    \item Synchronized revocation: per-session logout on the BFF invalidates tokens
+          server-side, mobile clients must also clear cached tokens locally.
+\end{itemize}
+
+\subsection{Stateless Tokens vs. Revocation Needs}
+Access tokens are stateless (signed by Keycloak, verified locally), making them
+scalable. However, true instant revocation (logout-all) for browsers requires
+server-side state (Redis session tracking). The current design trades off
+stateless simplicity for revocation correctness: the BFF maintains session
+state and validates session presence on every request, also for bearer token
+users in future deployments.
+
+\subsection{Balancing Consent Privacy \& Usability}
+Patient-granted access for doctors (consent workflow) must be enforced
+transparently. Overly strict consent checks may block legitimate clinical
+workflows, overly permissive checks may expose PHI. The current design is for
+grants to be stored in Redis (grant key, scopes, TTL) and validated at the BFF,
+and the FHIR server will apply additional constraints based on consent
+resources.
+
+\subsection{Clock Skew \& Distributed Verification}
+JWT validation includes clock skew tolerance (10 seconds) to account for
+distributed clock drift between Keycloak and the BFF. However, if system clocks
+drift beyond this window or if Keycloak's keys rotate, validation failures may
+spike.
+
+\section{Security Analysis}\label{sec:security-analysis}
+
+\subsection{Attack Surface Analysis}
+\begin{itemize}
+    \item \textbf{Token Theft}: mitigated by storing tokens server-side' not in browser memory. HTTP-only cookies prevent JavaScript access via XSS. TLS prevents interception in transit.
+    \item \textbf{Cross-Site Request Forgery}: Session cookies use SameSite=Lax, blocking cross-site submissions. POST endpoints on the BFF do not rely solely on cookies.
+    \item \textbf{Credential Enumeration / Brute-Force}: Rate limiters make password guessing infeasible within the policy window.
+    \item \textbf{Information Disclosure}: Error messages do not leak system internals, where registration validation errors are field-level and generic. Audit logs are server-side and not exposed to unauthenticated clients.
+    \item \textbf{Privilege Level}: Token claims are issued by Keycloak and validated server-side. The BFF doesn't allow clients to modify claims.
+    \item \textbf{Patient Privacy Breach}: Scope checks enforce patient binding so doctors cannot access patients without appropriate scopes/consents. FHIR server applies additional resource-level checks.
+\end{itemize}
+
+\subsection{Threat Model \& Residual Risks}
+Residual risks include:
+\begin{itemize}
+    \item \textbf{Keycloak Compromise}: If Keycloak is breached, all issued tokens become untrustworthy. Mitigated by: securing Keycloak (strong admin passwords, HTTPS only), and monitoring for unusual token patterns.
+    \item \textbf{Denial of Service (DoS)}:Backend could be overwhelmed by excessive requests. Mitigated by: rate limiters on API endpoints.
+    \item \textbf{XSS Attacks}: While tokens are not in browser memory, XSS could still hijack sessions via cookies. Mitigated by: CSP headers, HttpOnly cookies
+    \item \textbf{Credentail Leakage}: Users reusing weak passwords across sites risk credential stuffing attacks. Mitigated by: strong password policies, rate limiting, and future MFA implementation.
+    \item \textbf{Keycloak's Storage of Credentials}: If Keycloak's database is compromised, user credentials may be exposed. Mitigated by: securing Postgres access, Future work: encryption at rest.
+    \item \textbf{Redis Compromise}: Session and audit stores in Redis are unencrypted at rest. Mitigated by: network isolation and future work on Redis encryption.
+    \item \textbf{Scope/Role Misconfiguration}: Overly broad scopes or clinician roles may grant unintended access. Mitigated by: audit logging, Future work: more granular access control through keycloak authorization functionalities.
+    \item \textbf{Consent Enforcement Gaps}: Current consent model is incomplete, doctor-patient consent is not fully enforced at the FHIR server. Mitigated by: future work on FHIR Consent resources and server-side validation.
+\end{itemize}
+
+\subsection{Mitigations Implemented \& Gaps}
+\paragraph{Implemented Mitigations}
+\begin{itemize}
+    \item TLS encryption for all data in transit.
+    \item Session cookies with HttpOnly, Secure, and SameSite flags.
+    \item JWKS-based JWT verification with issuer, audience, and algorithm checks.
+    \item Rate limiting on authentication endpoints (adaptive for dev/prod).
+    \item Input validation for authentication data.
+    \item Audit logging.
+    \item User session tracking for per-session and global logout.
+    \item Security headers via Helmet.
+\end{itemize}
+
+\paragraph{Gaps \& Future Work}
+\begin{itemize}
+    \item \textbf{PKCE (Proof Key for Code Exchange)}: Current flow uses Resource Owner Password grant, future work will migrate to Authorization Code + PKCE for improved security.
+    \item \textbf{Consent Enforcement}: Patient-granted doctor access is not yet implemented or persisted as FHIR Consent resources or validated at the FHIR server.
+    \item \textbf{Redis Encryption}: Session and audit data in Redis are unencrypted at rest, future work includes enabling Redis persistence encryption.
+    \item \textbf{Centralized Audit Dashboard}: Audit logs are stored in Redis, future work includes creating a dedicated UI for viewing and filtering logs as that would improve security monitoring (low priority future work).
+    \item \textbf{Scope / Role Mapping}: Keycloak role-to-SMART-scope mapping needs formalization and documentation.
+    \item \textbf{Additional Headers}: CSP and HSTS are implemented; future work includes adding X-Content-Type-Options, Referrer-Policy, and Permissions-Policy.
+\end{itemize}
+
+\section{Summary}\label{sec:security-summary}
+CFI-Care implements a defense-in-depth security architecture across three
+layers:
+
+\paragraph{Identity \& Access (Keycloak + Tokens)}
+OAuth 2.0 with the Resource Owner Password grant issues JWTs signed by
+Keycloak. Tokens include user identity, scopes, roles, and claims. Keycloak
+serves as the trusted identity provider, issuing and validating credentials.
+
+\paragraph{Browser Access (Sessions + BFF)}
+The BFF stores tokens server-side in Redis-backed sessions, exposing only
+secure, HTTP-only cookies to the browser. A per-request token refresh routine
+ensures tokens never expire, transparently re-authenticating users. This design
+protects tokens from XSS theft and simplifies client-side logic.
+
+\paragraph{API Layer (Middleware + Validation)}
+Every API request flows through multiple middleware checks: session validation
+' , JWT signature verification, and scope/role enforcement. Rate limiters
+protect endpoints from brute-force attacks. Input validation prevents injection
+attacks. Audit logs capture all authentication events for forensic analysis.
+
+\paragraph{Transport \& Edge (TLS + Headers)}
+nginx terminates TLS, enforces HTTPS-only access, and sets forwarded headers.
+The BFF applies Helmet security headers (CSP, HSTS, X-Frame-Options)
+
+\paragraph{Current State}
+The implementation is functional and ready for incremental hardening:
+\begin{itemize}
+    \item All authentication endpoints are secured with rate limiting and input
+          validation.
+    \item Token refresh is automatic and transparent to browsers.
+    \item Per-session and global logout are fully functional.
+    \item Audit trails are captured and retained for 90 days.
+    \item Mobile support is architected for bearer token auth (future implementation).
+\end{itemize}
+
+% \hspace*{2em}In this chapter, we outline the necessary tools and software required to implement SNMP in a simulated environment. We cover the installation and configuration of GNS3, Wireshark, and SnmpB, ensuring a functional setup for SNMP communication and monitoring.
+
+%   \begin{figure}[H]
+%       \centering
+%       \includegraphics[width=0.6\linewidth]{bachelor_thesis_template/Apps/Screenshot 2025-04-04 153853.png}
+%       \caption{SnmpB: first we open snmpB}
+%       \label{fig:enter-label}
+%   \end{figure}
+
+%   \begin{figure}[H]
+%       \centering
+%       \includegraphics[width=1\linewidth]{bachelor_thesis_template/Apps/Screenshot 2025-04-04 153829.png}
+%       \caption{Winpcap \& Wireshark}
+%       \label{fig:enter-label}
+%   \end{figure}
+
+%   \begin{figure}[H]
+%       \centering
+%       \includegraphics[width=1\linewidth]{bachelor_thesis_template/Apps/Screenshot 2025-04-04 153815.png}
+%       \caption{GNS3}
+%       \label{fig:enter-label}
+%   \end{figure}
+
+% section{SnmpB}
+% SnmpB is a versatile SNMP (Simple Network Management Protocol) tool that enables network administrators to monitor and manage network devices. It is often used for network discovery, monitoring, and diagnostics. The tool allows users to retrieve detailed information about the network infrastructure, including the status of devices, performance metrics, and other operational data. SnmpB can be configured to communicate with various network devices that support SNMP, providing a unified interface to track the health and performance of an organization's network. By sending SNMP requests to network devices, administrators can automate the process of monitoring devices and set up alarms for unusual network activities or failures.
+
+% \section{Winpcap}
+% Winpcap is a widely used packet capture and network analysis library for Windows operating systems. It provides the underlying functionality for packet capturing and network monitoring tools, including Wireshark, Nmap, and other network analysis software. Winpcap operates at the data link layer and enables applications to capture raw network packets in real time. This library is essential for anyone who needs to analyze network traffic, troubleshoot network issues, or perform network-related security assessments. Winpcap allows for the filtering, analysis, and storage of captured packets, providing valuable insights into network operations and traffic patterns. It supports various network interfaces and protocols, making it a powerful tool for network professionals.
+
+% \section{Wireshark}
+% Wireshark is one of the most widely recognized network protocol analyzers in the world. It is an open-source tool that provides detailed insights into network traffic, allowing users to capture and interactively browse the traffic running on a computer network. Wireshark supports hundreds of protocols and offers a comprehensive analysis of packet data in real time. It allows network engineers, security professionals, and system administrators to debug network problems, optimize performance, and ensure network security. With its powerful filtering capabilities, Wireshark can capture packets of interest, analyze their contents, and display the communication patterns between devices. This makes it an essential tool for diagnosing issues in both local and wide-area networks.
+
+% \section{GNS3}
+% GNS3 (Graphical Network Simulator-3) is a network simulation tool that allows users to create complex virtual networks for training, testing, and research purposes. Unlike traditional network simulators, GNS3 integrates real networking devices such as routers, switches, and firewalls, allowing users to simulate real-world network environments. The tool is widely used by networking professionals to prepare for certifications such as CCNA and CCNP by providing a platform for hands-on practice without needing physical hardware. GNS3 also supports integration with virtualization platforms like VMware and VirtualBox, making it highly versatile and capable of simulating entire data centers or cloud-based infrastructures. It is an invaluable resource for those looking to gain practical experience in network design and troubleshooting.
+

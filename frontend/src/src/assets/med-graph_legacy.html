@@ -727,7 +727,7 @@
 
   <header>
     <div class="logo-section">
-      <div class="logo">MedFlow</div>
+      <div class="logo">CFI-Care</div>
       <div class="divider"></div>
       <div class="page-title">Patient Journey Dashboard</div>
     </div>
@@ -1154,7 +1154,6 @@
           if (tempNode && event.data.node.id) {
             console.log(`Updating temp node ${event.data.tempId} with real ID ${event.data.node.id}`);
             tempNode.id = event.data.node.id;
-            if (refreshGraph) refreshGraph();
           }
         }
 
@@ -2584,7 +2583,7 @@
         form.style.display = "block";
 
         document.getElementById("saveEditBtn").onclick = () => {
-          const newId = Math.max(...data.map(d => d.id)) + 1;
+          const newId = 'temp-' + Date.now();
 
           // FIXED: Get the checkbox value at save time
           const diagnosisCheckboxAtSave = document.getElementById("editIsDiagnosis");
@@ -2607,6 +2606,9 @@
           expandedNodes.add(parentNode.id);
           refreshGraph();
           form.style.display = "none";
+
+          // Send the new branch node to backend
+          postNodeUpdate("add", newNode, parentNode.id);
         };
       }
 
