@@ -30,7 +30,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private patientApi: PatientApiService
+    private patientApi: PatientApiService,
   ) {}
 
   ngOnInit() {
@@ -99,6 +99,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
         dateIssued: node.dateIssued,
         details: node.details,
         isDiagnosis: node.isDiagnosis || false,
+        isManualBranch: node.isManualBranch || false,
       },
       parentNodeId: parentNodeId || node.father,
     };
@@ -145,6 +146,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
         dateIssued: node.dateIssued,
         details: node.details,
         isDiagnosis: node.isDiagnosis || false,
+        isManualBranch: node.isManualBranch || false,
       },
       // Preserve the parent relationship - only send if we want to change it
       // undefined means "don't change", null means "make it a root node"
@@ -247,7 +249,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
         patientId: this.patientId,
         eocId: this.eocId,
       },
-      '*'
+      '*',
     );
   }
 }

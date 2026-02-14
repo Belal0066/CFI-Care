@@ -61,6 +61,31 @@
   transform: scaleX(-1);
 }
 
+.ai-btn {
+  background-color: white;
+  color: #1e6ed3;
+  border: 2px solid #1e6ed3;
+  padding: 0.375rem 0.75rem;
+  font-size: clamp(0.7rem, 2vw, 0.8rem);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ai-btn:hover {
+  background-color: #f0f7ff;
+  box-shadow: 0 4px 12px rgba(30, 110, 211, 0.3);
+}
+
+.ai-btn i {
+  font-size: 1em;
+}
+
 .user-section {
   display: flex;
   align-items: center;
@@ -100,6 +125,10 @@
   .filter-btn {
     padding: 0.375rem 0.5rem;
   }
+
+  .ai-btn {
+    padding: 0.5rem 1rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -114,6 +143,15 @@
 
   .logout-btn {
     padding: 0.25rem;
+  }
+
+  .ai-text {
+    display: none;
+  }
+
+  .ai-btn {
+    padding: 0.5rem;
+    border: 2px solid #1e6ed3;
   }
 
   .practitioner-name {
