@@ -3,30 +3,39 @@ const router = express.Router();
 const { requireSession } = require("../middleware/requireSession");
 const scheduleController = require("./scheduleController");
 
+// Get schedules by practitioner ID
+router.get(
+  "/practitioner/:practitionerId",
+  scheduleController.getSchedulesByPractitioner,
+);
+
 // Get schedules by actor (e.g., Practitioner/123)
 router.get(
   "/actor/:actorReference",
-  requireSession,
+
   scheduleController.getSchedulesByActor,
 );
 
 // Create schedule with specific ID
 router.put(
   "/",
-  requireSession,
+
   scheduleController.createScheduleWithSpecificId,
 );
 
 // Create schedule (auto-generated ID)
-router.post("/", requireSession, scheduleController.createSchedule);
+router.post("/", scheduleController.createSchedule);
 
 // Get schedule by ID
-router.get("/:id", requireSession, scheduleController.getScheduleById);
+router.get("/:id", scheduleController.getScheduleById);
 
-// Update schedule
-router.post("/:id", requireSession, scheduleController.updateSchedule);
+// Update schedule (PUT)
+router.put("/:id", scheduleController.updateSchedule);
+
+// Update schedule (POST) - alternative method for updates
+router.post("/:id", scheduleController.updateSchedule);
 
 // Delete schedule
-router.delete("/:id", requireSession, scheduleController.deleteSchedule);
+router.delete("/:id", scheduleController.deleteSchedule);
 
 module.exports = router;

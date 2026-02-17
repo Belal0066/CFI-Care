@@ -96,6 +96,74 @@ async function getAppointmentById(appointmentId) {
   }
 }
 
+// Helper: Transform simplified booking data to FHIR Appointment resource
+function transformBookingDataToFHIR(bookingData) {
+  const {
+    patientId,
+    practitionerId,
+    slotId,
+    start,
+    end,
+    appointmentType = "general",
+  } = bookingData;
+
+  // Validate required fields
+  if (!patientId || !practitionerId || !start || !end) {
+    throw new Error(
+      "Missing required fields: patientId, practitionerId, start, end",
+    );
+  }
+
+  // Build the FHIR Appointment resource
+  const fhirAppointment = {
+    resourceType: "Appointment",
+    status: "booked", // Required: must be one of: proposed, pending, booked, arrived, fulfilled, cancelled, noshow, entered-in-error, checked-in, waitlist
+    appointmentType: {
+      coding: [
+        {
+          system: "http://terminology.hl7.org/CodeSystem/v2-0276",
+          code: "ROUTINE",
+          display: "Routine",
+        },
+      ],
+      text: appointmentType,
+    },
+    start: start, // ISO 8601 format required
+    end: end, 
+    participant: [
+      {
+        actor: {
+          reference: `Patient/${patientId}`,
+        },
+        required: false,
+        status: "accepted",
+      },
+      {
+        actor: {
+          reference: `Practitioner/${practitionerId}`,
+        },
+        required: true,
+        status: "accepted",
+      },
+    ],
+    text: {
+      status: "generated",
+      div: `<div xmlns="http://www.w3.org/1999/xhtml"><p>Appointment between Patient/${patientId} and Practitioner/${practitionerId}</p></div>`,
+    },
+  };
+
+  // Add slot reference if provided
+  if (slotId) {
+    fhirAppointment.slot = [
+      {
+        reference: `Slot/${slotId}`,
+      },
+    ];
+  }
+
+  return fhirAppointment;
+}
+
 // Create appointment with specific ID
 async function createAppointmentWithSpecificId(appointmentData) {
   const appointmentId = appointmentData.id;
@@ -144,21 +212,66 @@ async function createAppointmentWithSpecificId(appointmentData) {
 
 // Create appointment (auto-generated ID)
 async function createAppointment(appointmentData) {
-  const fhirAppointmentResource = {
-    resourceType: "Appointment",
-    ...appointmentData,
-  };
+  // Check if this is a simplified booking format or already a FHIR resource
+  const isFHIRFormat =
+    appointmentData.resourceType === "Appointment" &&
+    appointmentData.participant &&
+    appointmentData.status;
+
+  const fhirAppointmentResource = isFHIRFormat
+    ? appointmentData
+    : transformBookingDataToFHIR(appointmentData);
 
   console.log("Attempting to POST appointment to /Appointment");
+  console.log(
+    "FHIR Resource:",
+    JSON.stringify(fhirAppointmentResource, null, 2),
+  );
 
   try {
+  
     const response = await fhirApi.post(
       "/Appointment",
       fhirAppointmentResource,
     );
 
+    const appointmentId = response.data.id;
+    console.log(`Appointment created successfully with ID: ${appointmentId}`);
+
+    if (appointmentData.slotId) {
+      try {
+        console.log(
+          `Attempting to update Slot ${appointmentData.slotId} to busy status`,
+        );
+
+        // Fetch the slot first
+        const slotResponse = await fhirApi.get(
+          `/Slot/${appointmentData.slotId}`,
+        );
+        const slot = slotResponse.data;
+
+        // Update slot status to 'busy'
+        const updatedSlot = {
+          ...slot,
+          status: "busy",
+        };
+
+        await fhirApi.patch(`/Slot/${appointmentData.slotId}`, updatedSlot);
+        console.log(`Slot ${appointmentData.slotId} updated to busy status`);
+
+        // Invalidate slot cache
+        await deleteFromCache(`slot:${appointmentData.slotId}`);
+      } catch (slotError) {
+        console.error(
+          "Warning: Could not update slot status",
+          slotError.message,
+        );
+
+      }
+    }
+
     // Invalidate caches after successful creation
-    await invalidateAppointmentCache(response.data.id, appointmentData);
+    await invalidateAppointmentCache(appointmentId, appointmentData);
 
     return response.data;
   } catch (error) {
@@ -285,4 +398,5 @@ module.exports = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  transformBookingDataToFHIR,
 };

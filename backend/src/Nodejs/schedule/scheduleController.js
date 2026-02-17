@@ -51,6 +51,22 @@ const getSchedulesByActor = async (req, res) => {
   }
 };
 
+const getSchedulesByPractitioner = async (req, res) => {
+  try {
+    const { practitionerId } = req.params;
+    // Convert practitioner ID to FHIR reference format
+    const actorReference = `Practitioner/${practitionerId}`;
+    const schedules = await scheduleService.getSchedulesByActor(actorReference);
+    res.status(200).json(schedules);
+  } catch (error) {
+    console.error(
+      "Error in getSchedulesByPractitioner controller:",
+      error.message,
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const updateSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -84,6 +100,7 @@ const deleteSchedule = async (req, res) => {
 module.exports = {
   getScheduleById,
   getSchedulesByActor,
+  getSchedulesByPractitioner,
   createScheduleWithSpecificId,
   createSchedule,
   updateSchedule,

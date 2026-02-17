@@ -11,7 +11,10 @@ import { AuthService } from '../services/auth/auth.service';
   styleUrl: './top-bar.css',
 })
 export class TopBar {
-  constructor(private router: Router, private authService: AuthService) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+  ) {}
 
   logout(): void {
     localStorage.clear();
@@ -30,11 +33,19 @@ export class TopBar {
       },
       error: () => {
         this.router.navigate(['/login']);
-      }
+      },
     });
   }
 
   navigateToChatGPT(): void {
     this.router.navigate(['/chatgpt']);
+  }
+
+  navigateToAppointments(): void {
+    this.router.navigate(['/appointment-test']);
+  }
+
+  navigateToDashboard(): void {
+    this.router.navigate(['/dashboard']);
   }
 }

@@ -6,6 +6,18 @@
     </div>
 
     <div class="right-section">
+        <!-- Dashboard Button -->
+        <button type="button" class="btn nav-btn" (click)="navigateToDashboard()">
+            <i class="bi bi-house-door"></i>
+            <span class="nav-text">Dashboard</span>
+        </button>
+
+        <!-- Appointments Button -->
+        <button type="button" class="btn nav-btn" (click)="navigateToAppointments()">
+            <i class="bi bi-calendar-check"></i>
+            <span class="nav-text">Appointments</span>
+        </button>
+
         <!-- AI Button -->
         <button type="button" class="btn ai-btn" (click)="navigateToChatGPT()">
             <i class="bi bi-robot"></i>
@@ -15,8 +27,8 @@
         <!-- User Info & Logout -->
         <div class="user-section">
             <div class="btn-group">
-                <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle" 
-                        data-bs-toggle="dropdown" aria-expanded="false">
+                <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown"
+                    aria-expanded="false">
                     <i class="bi bi-box-arrow-right"></i>
                     <span class="logout-text">Logout</span>
                 </button>
@@ -27,7 +39,9 @@
                             Logout (This Device)
                         </button>
                     </li>
-                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
                     <li>
                         <button class="dropdown-item text-danger" type="button" (click)="logoutAll()">
                             <i class="bi bi-power me-2"></i>

@@ -72,6 +72,69 @@ async function getAvailableSlots(practitionerId, date, scheduleId) {
   }
 }
 
+// Fetch free slots for a specific practitioner (by schedule.actor reference)
+async function getSlotsByPractitioner(practitionerId) {
+  try {
+    // Always fetch fresh data - no caching for slot availability
+    // This ensures users always see the most up-to-date slot availability
+
+    // Step 1: Get all schedules for this practitioner
+    console.log(`Fetching schedules for Practitioner/${practitionerId}`);
+    const schedulesResponse = await fhirApi.get(
+      `/Schedule?actor=Practitioner/${practitionerId}`,
+    );
+    const schedulesBundle = schedulesResponse.data;
+
+    if (!schedulesBundle.entry || schedulesBundle.entry.length === 0) {
+      console.log(`No schedules found for Practitioner/${practitionerId}`);
+      return [];
+    }
+
+    // Step 2: For each schedule, fetch free slots
+    const allSlots = [];
+    for (const scheduleEntry of schedulesBundle.entry) {
+      const scheduleId = scheduleEntry.resource.id;
+      console.log(`Fetching free slots for Schedule/${scheduleId}`);
+
+      try {
+        const slotsResponse = await fhirApi.get(
+          `/Slot?schedule=Schedule/${scheduleId}&status=free`,
+        );
+        const slotsBundle = slotsResponse.data;
+
+        if (slotsBundle.entry) {
+          // Extract and simplify the slots
+          const slots = slotsBundle.entry.map((entry) => {
+            const slot = entry.resource;
+            return {
+              id: slot.id,
+              start: slot.start,
+              end: slot.end,
+              status: slot.status,
+            };
+          });
+          allSlots.push(...slots);
+        }
+      } catch (slotError) {
+        console.error(
+          `Error fetching slots for Schedule/${scheduleId}:`,
+          slotError.message,
+        );
+        // Continue with other schedules even if one fails
+      }
+    }
+
+    console.log(
+      `Found ${allSlots.length} free slots for Practitioner/${practitionerId}`,
+    );
+
+    return allSlots;
+  } catch (error) {
+    console.error("FHIR Server Error:", error.message);
+    throw new Error("Could not fetch slots for practitioner.");
+  }
+}
+
 // Fetch slot by ID
 async function getSlotById(slotId) {
   const cacheKey = `slot:${slotId}`;
@@ -270,6 +333,7 @@ async function invalidateSlotCache(slotId, slotData) {
 module.exports = {
   getSlotsBySchedule,
   getAvailableSlots,
+  getSlotsByPractitioner,
   getSlotById,
   createSlotWithSpecificId,
   createSlot,

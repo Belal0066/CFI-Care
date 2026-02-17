@@ -25,7 +25,7 @@ class Doctor {
       id: json['id'] ?? '',
       name: json['name'] ?? 'Unknown Doctor',
       title: json['title'] ?? 'General Practitioner',
-      imageUrl: json['imageUrl'] ?? 'assets/images/default_doctor.png',
+      imageUrl: json['imageUrl'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
       visitorCount: json['visitorCount'] ?? 0,
       specialtyDetail: json['specialtyDetail'] ?? 'General Medicine',

@@ -4,32 +4,30 @@ const { requireSession } = require("../middleware/requireSession");
 const slotController = require("./slotController");
 
 // Get slots by schedule ID (optional status query param: ?status=free)
+router.get("/schedule/:scheduleId", slotController.getSlotsBySchedule);
+
+// Get free slots for a specific practitioner
 router.get(
-  "/schedule/:scheduleId",
-  requireSession,
-  slotController.getSlotsBySchedule,
+  "/practitioner/:practitionerId",
+  slotController.getSlotsByPractitioner,
 );
 
 // Get available slots for practitioner (query params: ?date=2026-02-15&scheduleId=123)
-router.get(
-  "/available/:practitionerId",
-  requireSession,
-  slotController.getAvailableSlots,
-);
+router.get("/available/:practitionerId", slotController.getAvailableSlots);
 
 // Create slot with specific ID
-router.put("/", requireSession, slotController.createSlotWithSpecificId);
+router.put("/", slotController.createSlotWithSpecificId);
 
 // Create slot (auto-generated ID)
-router.post("/", requireSession, slotController.createSlot);
+router.post("/", slotController.createSlot);
 
 // Get slot by ID
-router.get("/:id", requireSession, slotController.getSlotById);
+router.get("/:id", slotController.getSlotById);
 
 // Update slot
-router.post("/:id", requireSession, slotController.updateSlot);
+router.post("/:id", slotController.updateSlot);
 
 // Delete slot
-router.delete("/:id", requireSession, slotController.deleteSlot);
+router.delete("/:id", slotController.deleteSlot);
 
 module.exports = router;

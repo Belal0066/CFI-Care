@@ -11,3 +11,7 @@ docker compose -f docker-compose.yml down
 
 Set-Location "$root/backend/src/FHIR"
 docker compose -f docker-compose.yml down
+Set-Location "$root/frontend"
+docker compose -f docker-compose.yaml down
+
+Write-Host "All containers stopped successfully!" -ForegroundColor Green
