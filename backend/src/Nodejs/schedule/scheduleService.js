@@ -30,10 +30,16 @@ async function getSchedulesByActor(actorReference) {
     const response = await fhirApi.get(`/Schedule?actor=${actorReference}`);
     const bundle = response.data;
 
-    // Store in cache
-    await setInCache(cacheKey, bundle, CACHE_EXPIRATION.DEFAULT);
+    // Extract resources from bundle entries
+    let schedules = [];
+    if (bundle.entry && bundle.entry.length > 0) {
+      schedules = bundle.entry.map((entry) => entry.resource);
+    }
 
-    return bundle;
+    // Store in cache
+    await setInCache(cacheKey, schedules, CACHE_EXPIRATION.DEFAULT);
+
+    return schedules;
   } catch (error) {
     console.error("FHIR Server Error:", error.message);
     throw new Error("Could not fetch schedules.");

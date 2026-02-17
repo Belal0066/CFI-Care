@@ -67,6 +67,17 @@ const getAvailableSlots = async (req, res) => {
   }
 };
 
+const getSlotsByPractitioner = async (req, res) => {
+  try {
+    const { practitionerId } = req.params;
+    const slots = await slotService.getSlotsByPractitioner(practitionerId);
+    res.status(200).json(slots);
+  } catch (error) {
+    console.error("Error in getSlotsByPractitioner controller:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const updateSlot = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,6 +109,7 @@ module.exports = {
   getSlotById,
   getSlotsBySchedule,
   getAvailableSlots,
+  getSlotsByPractitioner,
   createSlotWithSpecificId,
   createSlot,
   updateSlot,

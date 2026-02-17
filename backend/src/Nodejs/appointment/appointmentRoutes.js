@@ -25,7 +25,7 @@ router.put(
 );
 
 // Create appointment (auto-generated ID)
-router.post("/", requireSession, appointmentController.createAppointment);
+router.post("/", appointmentController.createAppointment);
 
 // Get appointment by ID
 router.get("/:id", requireSession, appointmentController.getAppointmentById);
