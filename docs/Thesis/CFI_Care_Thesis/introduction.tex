@@ -1,0 +1,68 @@
+\chapter{Introduction}
+\label{chap:intro}
+\section{The Global Digital Health Revolution}
+\hspace*{2em}Healthcare is shifting from reactive treatment toward proactive, data-driven prevention. The global digital health market was valued at roughly USD 288 billion in 2024 and is projected to approach USD 946 billion by 2030, growing at more than 22\% annually. This acceleration is powered by mobile health, telemedicine, and Artificial Intelligence (AI), which promise cheaper, faster, and more effective care. Yet adoption is uneven: while leading systems deploy AI for personalized care, many Low- and Middle-Income Countries (LMICs) still struggle with basic record keeping because of weak infrastructure, unclear policy, and fragmented data.
+
+\section{The Situation in Egypt}
+\hspace*{2em}Egypt, home to over 106 million people and the largest healthcare market in MENA, has improved outcomes but faces a persistent data void. Records in many Public Health Centers (PHCs) remain paper-based, locked in filing rooms, and rarely interoperable across facilities. Digital systems that do exist often operate in silos, so a patient moving between providers loses continuity of care. Data quality is frequently incomplete or error-prone, and patients seldom provide formal written consent, reflecting limited trust and awareness of data value. This fragmentation prevents AI from learning accurate patterns and delivering benefits to Egyptian patients.
+
+\section{Problem Statement}
+When a patient sees multiple specialists, their medical records scatter across
+disconnected systems. Radiology images sit at one hospital, lab results at
+another, prescriptions at a third. Clinicians piece together incomplete
+histories from memory or phone calls. Patients have no way to track their own
+health trends over time. Care coordination breaks down because nobody has the
+full picture. Egypt needs modern, AI-enabled healthcare but lacks the
+foundational data ecosystem. The core challenges are:
+\begin{itemize}
+      \item \textbf{Fragmentation:} Records scattered across clinics with no single longitudinal home.
+      \item \textbf{Analog Dominance:} Paper-first workflows impede longitudinal tracking and lossless sharing.
+      \item \textbf{Lack of Control:} Patients cannot easily access or share their own histories.
+      \item \textbf{Privacy and Consent Gaps:} No standardized, auditable consent flows.
+      \item \textbf{Missed AI Opportunities:} Absent or inaccessible digital data blocks safe clinical decision support such as Retrieval-Augmented Generation (RAG).
+\end{itemize}
+
+\section{The Proposed Solution: CFI Care}
+\hspace*{2em}\textit{CFI Care} is an AI-powered, collaborative, patient-centric health record platform that unifies medical reports in one secure ecosystem while keeping patients in control.
+\begin{itemize}
+      \item \textbf{Unified Records:} Consolidates data from disparate sources into a single, secure repository with timeline visualization.
+      \item \textbf{Git-Inspired Version Control:} Tracks evolving treatment plans as a medical history graph to reveal branches, merges, and longitudinal trends.
+      \item \textbf{Role-Based Access Control (RBAC):} Lets patients grant time-bound, role-specific access to clinicians or caregivers, creating a clear consent audit trail.
+      \item \textbf{AI Integration (RAG):} Grounds generative summaries and answers in the patient's own records to support safer diagnostics and triage.
+      \item \textbf{Mobile Digitization:} A camera scanner digitizes legacy paper reports, crowdsourcing data ingestion despite PHC device constraints.
+\end{itemize}
+
+\section{Thesis Objectives}
+This thesis aims to design and develop CFI Care to modernize health data
+management in Egypt by:
+\begin{itemize}
+      \item Documenting digital health barriers in Egypt, including infrastructure gaps and
+            consent practices.
+      \item Designing a secure, scalable, and usable architecture for patient-centric
+            records and clinician workflows.
+      \item Implementing robust RBAC and consent enforcement to safeguard privacy while
+            enabling necessary sharing.
+      \item Engineering AI (RAG) services that can interpret medical records and deliver
+            actionable insights.
+      \item Empowering patients with tools for data ownership, appointments, caregiver
+            sharing, and mobile digitization.
+\end{itemize}
+
+\section{Thesis Structure}
+\begin{itemize}
+      \item Chapter~\ref{chap:intro}: Introduction to the global digital health revolution,
+            Egypt's healthcare challenges, and the CFI Care solution.
+      \item Chapter~\ref{chap:LiteratureReview}: Standards (HL7/FHIR), governance,
+            authentication, and security foundations.
+      \item Chapter~\ref{chap:ProposedDesignArchitecture}: CFI Care system architecture
+            including backend, frontend, and mobile components.
+      \item Chapter~\ref{chap:Security}: Defense-in-depth security architecture with OAuth
+            2.0, JWT Tokens, RBAC, Rate Limiting on API endpoints, and audit logging.
+      \item Chapter~\ref{chap:AI}: AI integration using Retrieval-Augmented Generation for
+            clinical decision support.
+      \item Chapter~\ref{chap:TestingAndVerification}: Testing methodology, implementation
+            milestones, and validation.
+      \item Chapter~\ref{chap:conclAndFutureWork}: Conclusion, expected impact, and future
+            enhancements.
+\end{itemize}
+

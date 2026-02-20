@@ -1,0 +1,124 @@
+\documentclass[12pt, a4paper, oneside]{book}
+\usepackage[headings]{fullpage}
+\usepackage{graphics}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subfig}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{appendix}
+\usepackage{acronym}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{ifpdf}
+\usepackage{caption}
+\usepackage{setspace}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+% \documentclass{article}
+\usepackage{listings}
+\usepackage{xcolor}
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage{graphicx}
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[pdfborder={0 0 0}, colorlinks=true, linkcolor=black, citecolor=blue]{hyperref}
+
+\nocite{*}
+
+\newcommand{\submissionDay}{27}
+\newcommand{\submissionMonth}{January}
+\newcommand{\submissionYear}{2026}
+\newcommand{\submissionDate}{\submissionDay~\submissionMonth,~\submissionYear}
+\newcommand{\typeOfThesis}{Graduation Project Thesis}
+
+\newcommand{\titleOfThesisOne}{CFI - Care: Collaborative Flow of Intelligence for Care}
+
+\newcommand{\authorOfThesis}{Mohamed Salah Fathy 21P0117}
+\newcommand{\authorOfThesisTwo}{Youssef Tamer Hossam 21P0138}
+\newcommand{\authorOfThesisThree}{Salma Hisham Wagdy 21P0124}
+\newcommand{\authorOfThesisFour}{Salma Mohamed Yousef 21P0148}
+\newcommand{\authorOfThesisFive}{Belal Anas Awad 21P0072}
+
+\newcommand{\supervisorOne}{Prof Dr Haitham Azmi}
+\newcommand{\supervisorTwo}{}
+\newcommand{\supervisorThree}{}
+
+\newcommand{\includefig}[4]{
+    \begin{figure}[ht]
+     \centering
+      \includegraphics[width=#1\textwidth]{images/#2}
+      \caption{#3}
+      \label{#4}
+    \end{figure}
+}
+
+\newcommand{\includefigWSC}[5]{
+    \begin{figure}[ht]
+     \centering
+      \includegraphics[width=#1\textwidth]{images/#2}
+      \caption[#3]{#4}
+      \label{#5}
+    \end{figure}
+}
+
+\newcommand{\includeeps}[4]{
+\includefig{#1}{#2.eps}{#3}{#4}
+}
+
+\newcommand{\includeepsWSC}[5]{
+\includefigWSC{#1}{#2.eps}{#3}{#4}{#5}
+}
+
+\ifpdf
+\pdfinfo {
+	/Author (\authorOfThesis)
+	/Title (\titleOfThesisOne)
+	/Subject (\typeOfThesis)
+	/Keywords ()
+	/CreationDate (D:20090707085533)
+}
+\fi
+
+\usetikzlibrary{positioning, arrows.meta}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+\pagestyle{plain}
+\pagenumbering{Roman}
+
+\include{ASU_TitlePage}
+
+\tableofcontents
+\clearpage
+\listoffigures
+\include{acknowledgments}
+\include{abstract}
+\clearpage
+
+\pagestyle{headings}
+\pagenumbering{arabic}
+\setlength\parskip{.5\baselineskip plus .2\baselineskip minus .4\baselineskip}
+
+\include{introduction}
+
+\include{LiteratureReview/literatureReview}
+\include{ProposedDesignArchitecture/proposedDesignArchitecture}
+\include{Security/security}
+\include{AI/AI}
+% \include{Diagrams/diagrams}
+\include{Testing/testing}
+\include{conclusion}
+\include{appendix}
+\include{references}
+
+\end{document}

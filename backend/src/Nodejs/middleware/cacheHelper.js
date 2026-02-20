@@ -1,19 +1,19 @@
 const redisClient = require("../redisClient");
 
-// Default cache expiration time in seconds (5 minutes)
-const DEFAULT_EXPIRATION = 300;
+// Default cache expiration time in seconds (24 hours)
+const DEFAULT_EXPIRATION = 86400;
 
 // Cache expiration times for different resource types
 const CACHE_EXPIRATION = {
-  PATIENT: 60, // 1 minute
-  CONDITION: 60, // 1 minute
-  ENCOUNTER: 60, // 1 minute
-  PRACTITIONER: 60, // 1 minute
-  EOC: 60, // 1 minute
-  BINARY: 60, // 1 minute
-  MEDICATION_REQUEST: 60, // 1 minute
-  PROCEDURE: 60, // 1 minute
-  SEARCH: 60, // 1 minute
+  PATIENT: 86400, // 24 hours
+  CONDITION: 86400, // 24 hours
+  ENCOUNTER: 86400, // 24 hours
+  PRACTITIONER: 86400, // 24 hours
+  EOC: 86400, // 24 hours
+  BINARY: 86400, // 24 hours
+  MEDICATION_REQUEST: 86400, // 24 hours
+  PROCEDURE: 86400, // 24 hours
+  SEARCH: 86400, // 24 hours
 };
 
 /**
