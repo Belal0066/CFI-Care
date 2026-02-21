@@ -37,7 +37,6 @@ async function getPatientById(patientId, accessToken) {
     await setInCache(cacheKey, data, CACHE_EXPIRATION.PATIENT);
 
     return data;
-
   } catch (error) {
     if (error.response && error.response.status === 404) {
       throw new Error("Patient not found");
@@ -407,6 +406,98 @@ async function getAllPatients(practitionerId = null) {
   }
 }
 
+// Sync patient to FHIR - create patient with specific ID if not exists
+async function syncPatientToFHIR(patientData) {
+  const {
+    id: patientId,
+    firstName,
+    lastName,
+    email,
+    phone,
+    gender,
+    dob,
+  } = patientData;
+
+  if (!patientId) {
+    throw new Error("Patient ID is required");
+  }
+
+  // Build FHIR Patient resource using provided data or defaults
+  const fhirPatient = {
+    resourceType: "Patient",
+    id: patientId,
+    name: [
+      {
+        use: "official",
+        family: lastName || "Unknown",
+        given: [firstName || "User"],
+      },
+    ],
+    telecom: [],
+    gender: gender || "unknown",
+  };
+
+  // Add email if provided
+  if (email) {
+    fhirPatient.telecom.push({
+      system: "email",
+      value: email,
+      use: "home",
+    });
+  }
+
+  // Add phone if provided
+  if (phone && phone.trim()) {
+    fhirPatient.telecom.push({
+      system: "phone",
+      value: phone,
+      use: "mobile",
+    });
+  }
+
+  // Add birthDate if provided
+  if (dob && dob.trim()) {
+    fhirPatient.birthDate = dob;
+  }
+
+  // Add narrative for FHIR compliance
+  fhirPatient.text = {
+    status: "generated",
+    div: `<div xmlns="http://www.w3.org/1999/xhtml"><p>Patient: ${firstName || "User"} ${lastName || "Unknown"}</p><p>Email: ${email || "N/A"}</p></div>`,
+  };
+
+  console.log(`Syncing patient to FHIR: /Patient/${patientId}`);
+
+  try {
+    const response = await fhirApi.put(`/Patient/${patientId}`, fhirPatient);
+    console.log(`Patient ${patientId} synced to FHIR successfully.`);
+
+    // Invalidate cache
+    await invalidatePatientCache(patientId);
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error("FHIR Server Error Status:", error.response.status);
+      console.error(
+        "FHIR Validation Details:",
+        JSON.stringify(error.response.data, null, 2),
+      );
+
+      const issueText = error.response.data.issue
+        ? error.response.data.issue
+            .map((i) => `${i.diagnostics || i.code}`)
+            .join(", ")
+        : error.response.statusText;
+
+      throw new Error(`Failed to sync patient to FHIR: ${issueText}`);
+    } else {
+      console.error("Network/Server Error:", error.message);
+      throw new Error("Could not connect to FHIR server: " + error.message);
+    }
+  }
+}
+
 module.exports = {
   deletePatientById,
   getPatientByIdAndVersion,
@@ -418,4 +509,5 @@ module.exports = {
   getPatientObservations,
   getPatientEncounters,
   getAllPatients,
+  syncPatientToFHIR,
 };

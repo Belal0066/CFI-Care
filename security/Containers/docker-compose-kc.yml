@@ -15,7 +15,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-     
+
     env_file:
       - ./.env
     volumes:
@@ -23,15 +23,12 @@ services:
     networks:
       - nginx-network
 
-
-
-
   kc.localhost:
     container_name: kc.localhost
     build:
       context: ./services/keycloak
       dockerfile: Dockerfile
-    # image: 
+    # image:
 
     # 'start-dev',
     # 'start',
@@ -44,18 +41,18 @@ services:
     # '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
     # '-Dkeycloak.migration.file=/import/development-realm.json',
 
-    command:
-      [
+    command: [
         # 'start',
-        'start-dev',
+        "start-dev",
+        '--import-realm',
         # '-Dkeycloak.migration.action=import',
         # '-Dkeycloak.migration.provider=singleFile',
         # '-Dkeycloak.migration.realmName=CFI-Care',
         # '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
         # '-Dkeycloak.migration.file=/import/realms.json',
-        '--https-key-store-file=conf/server.keystore',
-        '--https-key-store-password=password',
-        '--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE',
+        "--https-key-store-file=conf/server.keystore",
+        "--https-key-store-password=password",
+        "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
       ]
 
     restart: on-failure:3
@@ -80,8 +77,8 @@ services:
 
       KC_PROXY_HEADERS: forwarded
 
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      # KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
@@ -90,9 +87,7 @@ services:
 
       # KC_HEALTH_ENABLED: true
 
-      
     # read_only: true
-
 
     # tmpfs:
     #   - /opt/keycloak/data
@@ -101,30 +96,34 @@ services:
     # cap_drop:
     # - ALL
 
-    
     env_file:
       - ./.env
-   
+
     # Make sure the certificate and the key (the *.pem files) have the correct permissions -> e.g., sudo chmod 655 *.pem
+    # volumes:
+    #   - '${PWD}/certs/keycloak-cert.pem:/etc/keycloak/certs/cert.pem:ro'
+    #   - '${PWD}/certs/keycloak-key.pem:/etc/keycloak/certs/key.pem:ro'
+    #   - '${PWD}/certs:/opt/keycloak/conf/truststores:ro'
+    #   # - '${PWD}/import/development-realm.json:/import/development-realm.json:ro'
+    #   - '${PWD}/import:/import:ro'
+    #   - '${PWD}/export:/export:rw'
+    #   - '${PWD}/static/mythemes/login:/themes/mytheme/login:rw'
+    #   # - '${PWD}/security/Containers/static/mythemes/resources/css:/themes/mytheme/login/resources/css:rw'
+    #   # - '${PWD}/services/keycloak/scripts/health-check.sh:/opt/keycloak/health-check.sh:ro'
     volumes:
-      - '${PWD}/certs/keycloak-cert.pem:/etc/keycloak/certs/cert.pem:ro'
-      - '${PWD}/certs/keycloak-key.pem:/etc/keycloak/certs/key.pem:ro'
-      - '${PWD}/certs:/opt/keycloak/conf/truststores:ro'
-      # - '${PWD}/import/development-realm.json:/import/development-realm.json:ro'
-      - '${PWD}/import:/import:ro'
-      - '${PWD}/export:/export:rw'
-      - '${PWD}/static/mythemes/login:/themes/mytheme/login:rw'
-      # - '${PWD}/security/Containers/static/mythemes/resources/css:/themes/mytheme/login/resources/css:rw'
-      # - '${PWD}/services/keycloak/scripts/health-check.sh:/opt/keycloak/health-check.sh:ro'
-
-
+      - "./certs/keycloak-cert.pem:/etc/keycloak/certs/cert.pem:ro"
+      - "./certs/keycloak-key.pem:/etc/keycloak/certs/key.pem:ro"
+      - "./certs:/opt/keycloak/conf/truststores:ro"
+      # - './import:/import:ro'
+      - "./import:/opt/keycloak/data/import:ro"
+      - "./export:/export:rw"
+      - "./static/mythemes/login:/themes/mytheme/login:rw"
 
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - nginx-network
-
 
 networks:
   nginx-network:
