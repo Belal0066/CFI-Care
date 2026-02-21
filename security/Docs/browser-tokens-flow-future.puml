@@ -1,0 +1,28 @@
+@startuml Browser Token Flow (Future: Auth Code + Email Verification)
+actor User
+participant Browser
+participant Angular
+participant nginx
+participant BFF as "Node.js BFF"
+participant Redis
+participant Keycloak
+participant FHIR
+
+== Registration (email verification required) ==
+User -> Browser : Sign up
+Browser -> Angular : Navigate to Registration page
+Angular -> Browser : Show registration form
+Browser -> Angular : Fill registration form 
+Angular -> nginx : POST /auth/register
+nginx -> BFF : forward
+BFF -> Keycloak : Create user (emailVerified=false)
+Keycloak -> User : Send verification email (link)
+User -> Keycloak : Click verification link
+Keycloak -> Keycloak : Mark emailVerified=true
+Keycloak -> Browser : Verification success page
+Browser -> Angular : Navigate to Login page
+Angular -> Browser : Show login form
+note right: login isn't automatic as user must verify email first
+
+'
+@enduml
