@@ -16,12 +16,16 @@ services:
 
 
 
+    # volumes:
+    #   - '${PWD}/services/nginx/conf/ssl.conf:/etc/nginx/conf/ssl.conf'
+    #   - '${PWD}/services/nginx/conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template'
+    #   - '${PWD}/certs:/etc/nginx/certs'
+    # # depends_on:
+    # #   - oauth2-proxy
     volumes:
-      - '${PWD}/services/nginx/conf/ssl.conf:/etc/nginx/conf/ssl.conf'
-      - '${PWD}/services/nginx/conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template'
-      - '${PWD}/certs:/etc/nginx/certs'
-    # depends_on:
-    #   - oauth2-proxy
+      - './services/nginx/conf/ssl.conf:/etc/nginx/conf/ssl.conf'
+      - './services/nginx/conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template'
+      - './certs:/etc/nginx/certs'
     
 
     networks:

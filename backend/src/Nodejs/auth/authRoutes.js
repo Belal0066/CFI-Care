@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 
 // const generatePkce = pkcePKG.default;
 // const qs = require('querystring');
@@ -13,93 +13,111 @@ const express = require('express');
 // redisClient.on('error', (err) => console.error('Redis error', err));
 // (async () => { try { await redisClient.connect(); } catch (e) { console.error('Redis connect failed', e); } })();
 
-
-const pkce = require('pkce-challenge');
+const pkce = require("pkce-challenge");
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const axios = require('axios');
-const { requireSession } = require('../middleware/requireSession');
-const { loginLimiter, registerLimiter, logoutAllLimiter } = require('../middleware/rateLimiter');
-const { validateLogin, validateRegister } = require('../middleware/validateInput');
-const { logAuthEvent } = require('../utils/auditLog');
-const { addSessionForUser, removeSessionForUser, getSessionsForUser, clearAllSessionsForUser, destroySessionById } = require('../utils/userSessions');
-
-
+const jwt = require("jsonwebtoken");
+const axios = require("axios");
+const { requireSession } = require("../middleware/requireSession");
+const {
+  loginLimiter,
+  registerLimiter,
+  logoutAllLimiter,
+} = require("../middleware/rateLimiter");
+const {
+  validateLogin,
+  validateRegister,
+} = require("../middleware/validateInput");
+const { logAuthEvent } = require("../utils/auditLog");
+const {
+  addSessionForUser,
+  removeSessionForUser,
+  getSessionsForUser,
+  clearAllSessionsForUser,
+  destroySessionById,
+} = require("../utils/userSessions");
+const practitionerService = require("../practioner/practionerService");
 
 const kcHost = process.env.KC_HOSTNAME;
 const realm = process.env.KEYCLOAK_REALM;
 const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
 const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
-const scopes = process.env.KC_SCOPES || 'openid profile email patient/*.rs';
+const scopes = process.env.KC_SCOPES || "openid profile email patient/*.rs";
 
-//  to implement : rate limiting 
+//  to implement : rate limiting
 
-// /auth/login -> keycloak token endpoint (Direct Access Grants) --> resource owner pass creds? 
-router.post('/login', loginLimiter, validateLogin, async (req, res) => {
-      const { email, password } = req.body;
+// /auth/login -> keycloak token endpoint (Direct Access Grants) --> resource owner pass creds?
+router.post("/login", loginLimiter, validateLogin, async (req, res) => {
+  const { email, password } = req.body;
 
-      if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password required' });
-      }
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password required" });
+  }
 
-      const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-      const body = new URLSearchParams({
-            grant_type: 'password',
-            client_id: clientId,
-            client_secret: clientSecret,
-            username: email,
-            password: password,
-            scope: scopes
-      }).toString();
+  const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+  const body = new URLSearchParams({
+    grant_type: "password",
+    client_id: clientId,
+    client_secret: clientSecret,
+    username: email,
+    password: password,
+    scope: scopes,
+  }).toString();
 
-      try {
-            const { data: tokens } = await axios.post(tokenUrl, body, {
-                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            });
+  try {
+    const { data: tokens } = await axios.post(tokenUrl, body, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
 
-            const { data: userinfo } = await axios.get(
-                  `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
-                  { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-            );
+    const { data: userinfo } = await axios.get(
+      `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+      { headers: { Authorization: `Bearer ${tokens.access_token}` } },
+    );
 
-            // store in session
-            req.session.tokens = {
-                  access: tokens.access_token,
-                  refresh: tokens.refresh_token,
-                  id: tokens.id_token,
-                  exp: Date.now() + tokens.expires_in * 1000,
-                  refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
-            };
-            req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
+    // store in session
+    req.session.tokens = {
+      access: tokens.access_token,
+      refresh: tokens.refresh_token,
+      id: tokens.id_token,
+      exp: Date.now() + tokens.expires_in * 1000,
+      refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
+    };
+    req.session.user = {
+      sub: userinfo.sub,
+      email: userinfo.email,
+      name: userinfo.name,
+    };
 
-            await addSessionForUser(userinfo.sub, req.sessionID);
-            console.log(`[LOGIN] Added session ${req.sessionID} for user ${userinfo.sub}`);
+    await addSessionForUser(userinfo.sub, req.sessionID);
+    console.log(
+      `[LOGIN] Added session ${req.sessionID} for user ${userinfo.sub}`,
+    );
 
-            // log successful login
-            await logAuthEvent('LOGIN_SUCCESS', req, {
-                  userId: userinfo.sub,
-                  email: userinfo.email
-            });
+    // log successful login
+    await logAuthEvent("LOGIN_SUCCESS", req, {
+      userId: userinfo.sub,
+      email: userinfo.email,
+    });
 
-            req.session.save(() => {
-                  res.json({
-                        success: true,
-                        user: req.session.user
-                  });
-            });
-      } catch (e) {
-            console.error('Login failed:', e?.response?.data || e.message);
+    req.session.save(() => {
+      res.json({
+        success: true,
+        user: req.session.user,
+      });
+    });
+  } catch (e) {
+    console.error("Login failed:", e?.response?.data || e.message);
 
-            // Log failed login 
-            await logAuthEvent('LOGIN_FAILURE', req, {
-                  email,
-                  reason: e?.response?.data?.error_description || e.message
-            });
+    // Log failed login
+    await logAuthEvent("LOGIN_FAILURE", req, {
+      email,
+      reason: e?.response?.data?.error_description || e.message,
+    });
 
-            const errorMsg = e?.response?.data?.error_description || 'Invalid credentials';
-            res.status(401).json({ error: errorMsg });
-      }
+    const errorMsg =
+      e?.response?.data?.error_description || "Invalid credentials";
+    res.status(401).json({ error: errorMsg });
+  }
 });
 
 // /auth/register - create user vai Keycloak API
@@ -172,6 +190,40 @@ router.post('/register', registerLimiter, validateRegister, async (req, res) => 
                         `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
                         { headers: { Authorization: `Bearer ${tokens.access_token}` } }
                   );
+
+                  // Create FHIR Practitioner
+        try {
+          const practitionerResource = {
+            resourceType: "Practitioner",
+            id: userinfo.sub, // Use Keycloak ID as FHIR ID
+            active: true,
+            name: [
+              {
+                use: "official",
+                family: lastName,
+                given: [firstName],
+                text: fullName,
+              },
+            ],
+            telecom: [
+              {
+                system: "email",
+                value: email,
+                use: "work",
+              },
+            ],
+          };
+
+          await practitionerService.createPractitionerWithSpecificId(
+            practitionerResource,
+          );
+          console.log(
+            `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
+          );
+        } catch (fhirErr) {
+          console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
+          // Log error but continue session creation so user is not blocked
+        }
 
                   req.session.tokens = {
                         access: tokens.access_token,
@@ -690,7 +742,6 @@ module.exports = router;
 //       }
 // });
 
-
 // async function deleteOauth2ProxySession(req, res) {
 //       try {
 //             const cookieName = process.env.OAUTH_COOKIE_NAME;
@@ -704,9 +755,8 @@ module.exports = router;
 //                   return res.status(400).json({ ok: false, error: 'No oauth2-proxy cookie found' });
 //             }
 
-//             // Signed value may be "value|sig" 
+//             // Signed value may be "value|sig"
 //             const unsignedCandidate = rawCookie.split('|')[0];
-
 
 //             // - v2.{base64(ticketID)}.{base64(secret)}
 //             const parts = unsignedCandidate.split('.');
@@ -753,8 +803,6 @@ module.exports = router;
 //                   } catch (e) { console.error('deleteOauth2ProxySession error deleting matched key:', e && e.message); }
 //             }
 
-
-
 //             return res.json({
 //                   ok: true,
 //                   ticketId,
@@ -787,7 +835,6 @@ module.exports = router;
 
 // router.get('/logout', async (req, res) => {
 
-
 //       try {
 
 //             const kcHost = process.env.KC_HOSTNAME;
@@ -808,7 +855,6 @@ module.exports = router;
 //             const signOutBase = process.env.OAUTH2_PROXY_SIGNOUT_URL;
 //             const fulllogoutURL = `${signOutBase}?rd=${encodeURIComponent(kcLogout)}`;
 //             res.status(302).redirect(fulllogoutURL);
-
 
 //             // const returnTo = kcLogout;
 
@@ -883,7 +929,6 @@ module.exports = router;
 //     });
 // });
 
-
 // router.get('/callback', async (req, res) => {
 //     const { code, state } = req.query;
 
@@ -925,4 +970,3 @@ module.exports = router;
 //         return res.status(500).send('Authentication failed');
 //     }
 // });
-

@@ -6,6 +6,8 @@ import '../../utils/email_password_validators.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 // FIX 1: Import ONLY the main helper
 import '../../database/db_helper.dart';
@@ -34,6 +36,42 @@ class _SignUpState extends State<SignUp> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     super.dispose();
+  }
+
+  // Sync patient to FHIR backend
+  Future<void> _syncPatientToFHIR(
+    String userId,
+    String firstName,
+    String lastName,
+    String email,
+  ) async {
+    const String backendUrl = "http://10.0.2.2:3000/api/patients/sync-fhir";
+
+    final Map<String, dynamic> patientData = {
+      "id": userId,
+      "firstName": firstName,
+      "lastName": lastName,
+      "email": email,
+      "phone": "",
+      "gender": "unknown",
+      "dob": "",
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(patientData),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print("Patient synced to FHIR successfully: $userId");
+      } else {
+        throw Exception("Failed to sync patient: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error syncing patient to FHIR: $e");
+    }
   }
 
   @override
@@ -150,7 +188,20 @@ class _SignUpState extends State<SignUp> {
                     'policyNumber': '',
                   });
 
-                  // 5. Save Session so MyProfile knows who is logged in
+                  // 5. Sync patient to FHIR
+                  try {
+                    await _syncPatientToFHIR(
+                      newUserId,
+                      _firstNameController.text.trim(),
+                      _lastNameController.text.trim(),
+                      email,
+                    );
+                  } catch (e) {
+                    print("Warning: Could not sync patient to FHIR: $e");
+                    // Don't block signup if FHIR sync fails
+                  }
+
+                  // 6. Save Session so MyProfile knows who is logged in
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setString('currentUserId', newUserId);
                   Session.currentUserId = newUserId;
