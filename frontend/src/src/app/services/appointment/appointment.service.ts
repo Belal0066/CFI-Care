@@ -6,7 +6,11 @@ export interface Practitioner {
   id: string;
   name: string;
   title: string;
-  specialty: string;
+  specialty?: string;
+  specialtyDetail?: string;
+  imageUrl?: string;
+  address?: string;
+  nextAvailable?: string;
 }
 
 export interface Schedule {
@@ -75,6 +79,14 @@ export class AppointmentService {
     return this.http.get<any>(`${this.practitionersUrl}/${id}`);
   }
 
+  // Update practitioner
+  updatePractitioner(id: string, practitionerData: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.practitionersUrl}/${id}`,
+      practitionerData,
+    );
+  }
+
   // Get schedules for a practitioner
   getSchedulesByPractitioner(practitionerId: string): Observable<Schedule[]> {
     return this.http.get<Schedule[]>(
@@ -92,11 +104,20 @@ export class AppointmentService {
     return this.http.post<Schedule>(this.schedulesUrl, scheduleData);
   }
 
+  // Update schedule
+  updateSchedule(id: string, scheduleData: any): Observable<Schedule> {
+    return this.http.post<Schedule>(`${this.schedulesUrl}/${id}`, scheduleData);
+  }
+
   // Get slots for a practitioner
-  getSlotsByPractitioner(practitionerId: string): Observable<Slot[]> {
-    return this.http.get<Slot[]>(
-      `${this.slotsUrl}/practitioner/${practitionerId}`,
-    );
+  getSlotsByPractitioner(
+    practitionerId: string,
+    status?: string,
+  ): Observable<Slot[]> {
+    const url = status
+      ? `${this.slotsUrl}/practitioner/${practitionerId}?status=${status}`
+      : `${this.slotsUrl}/practitioner/${practitionerId}`;
+    return this.http.get<Slot[]>(url);
   }
 
   // Get slots for a schedule
@@ -114,6 +135,23 @@ export class AppointmentService {
   // Create a slot
   createSlot(slotData: any): Observable<Slot> {
     return this.http.post<Slot>(this.slotsUrl, slotData);
+  }
+
+  // Update slot
+  updateSlot(slotId: string, slotData: any): Observable<Slot> {
+    return this.http.post<Slot>(`${this.slotsUrl}/${slotId}`, slotData);
+  }
+
+  // Get practitioner roles by practitioner ID
+  getPractitionerRolesByPractitioner(practitionerId: string): Observable<any> {
+    return this.http.get<any>(
+      `/api/practitionerRoles/practitioner/${practitionerId}`,
+    );
+  }
+
+  // Update practitioner role
+  updatePractitionerRole(roleId: string, roleData: any): Observable<any> {
+    return this.http.post<any>(`/api/practitionerRoles/${roleId}`, roleData);
   }
 
   // Update slot status

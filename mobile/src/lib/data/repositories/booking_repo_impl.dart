@@ -11,6 +11,7 @@ class DoctorSlot {
   final String rawStart; // Raw ISO start datetime
   final String rawEnd; // Raw ISO end datetime
   final String status;
+  final String scheduleReference; // Schedule reference (e.g., "Schedule/2157")
 
   DoctorSlot({
     required this.id,
@@ -21,7 +22,33 @@ class DoctorSlot {
     required this.rawStart,
     required this.rawEnd,
     required this.status,
+    required this.scheduleReference,
   });
+}
+
+class DoctorSchedule {
+  final String id;
+  final String startDateTime; // Formatted start date/time
+  final String endDateTime; // Formatted end date/time
+  final String rawStart; // Raw ISO start
+  final String rawEnd; // Raw ISO end
+  final bool active;
+
+  DoctorSchedule({
+    required this.id,
+    required this.startDateTime,
+    required this.endDateTime,
+    required this.rawStart,
+    required this.rawEnd,
+    required this.active,
+  });
+}
+
+class ScheduleWithSlots {
+  final DoctorSchedule schedule;
+  final List<DoctorSlot> slots;
+
+  ScheduleWithSlots({required this.schedule, required this.slots});
 }
 
 class DaySlots {
@@ -81,11 +108,154 @@ class BookingRepositoryImpl {
           rawStart: slot['start'] as String,
           rawEnd: slot['end'] as String,
           status: slot['status'] as String,
+          scheduleReference: slot['schedule']?['reference'] as String? ?? '',
         );
       }).toList();
     } catch (e) {
       print("Error fetching doctor slots: $e");
       throw Exception("Failed to fetch slots for doctor: $e");
+    }
+  }
+
+  // --- GET SCHEDULES WITH SLOTS ---
+  Future<List<ScheduleWithSlots>> getSchedulesWithSlots(String doctorId) async {
+    try {
+      final rawData = await apiService.fetchSchedulesWithSlots(doctorId);
+
+      return rawData.map((item) {
+        final scheduleData = item['schedule'] as Map<String, dynamic>;
+        final slotsData = item['slots'] as List<dynamic>;
+
+        // Parse schedule planning horizon for start/end times
+        final planningHorizon =
+            scheduleData['planningHorizon'] as Map<String, dynamic>?;
+        final rawStart = planningHorizon?['start'] as String? ?? '';
+        final rawEnd = planningHorizon?['end'] as String? ?? '';
+
+        DateTime? startDt;
+        DateTime? endDt;
+        if (rawStart.isNotEmpty) {
+          startDt = DateTime.parse(rawStart).toLocal();
+        }
+        if (rawEnd.isNotEmpty) {
+          endDt = DateTime.parse(rawEnd).toLocal();
+        }
+
+        final schedule = DoctorSchedule(
+          id: scheduleData['id'] as String,
+          startDateTime: startDt != null ? _formatDateTime(startDt) : '',
+          endDateTime: endDt != null ? _formatDateTime(endDt) : '',
+          rawStart: rawStart,
+          rawEnd: rawEnd,
+          active: scheduleData['active'] as bool? ?? true,
+        );
+
+        // Parse slots
+        final slots = slotsData.map((slotData) {
+          final slot = slotData as Map<String, dynamic>;
+          final startDateTime = DateTime.parse(
+            slot['start'] as String,
+          ).toLocal();
+          final endDateTime = DateTime.parse(slot['end'] as String).toLocal();
+
+          return DoctorSlot(
+            id: slot['id'] as String,
+            startTime: _formatTime(startDateTime),
+            endTime: _formatTime(endDateTime),
+            date: _formatDate(startDateTime),
+            rawDate: _formatRawDate(startDateTime),
+            rawStart: slot['start'] as String,
+            rawEnd: slot['end'] as String,
+            status: slot['status'] as String,
+            scheduleReference:
+                slot['scheduleReference'] as String? ??
+                'Schedule/${schedule.id}',
+          );
+        }).toList();
+
+        return ScheduleWithSlots(schedule: schedule, slots: slots);
+      }).toList();
+    } catch (e) {
+      print("Error fetching schedules with slots: $e");
+      throw Exception("Failed to fetch schedules with slots: $e");
+    }
+  }
+
+  Future<List<AppointmentHistory>> getAppointmentsByPatient(
+    String patientId,
+  ) async {
+    try {
+      final bundle = await apiService.fetchAppointmentsByPatient(patientId);
+      final entries = (bundle['entry'] as List<dynamic>?) ?? [];
+      final practitioners = await getDoctors();
+      final practitionersById = <String, Doctor>{
+        for (final doctor in practitioners) doctor.id: doctor,
+      };
+
+      return entries.map((entry) {
+        final resource = entry['resource'] as Map<String, dynamic>;
+
+        final participants =
+            (resource['participant'] as List<dynamic>? ?? const []);
+
+        String practitionerId = '';
+        for (final participant in participants) {
+          final actor = participant['actor'] as Map<String, dynamic>?;
+          final reference = actor?['reference']?.toString() ?? '';
+          if (reference.startsWith('Practitioner/')) {
+            practitionerId = reference.split('/').last;
+            break;
+          }
+        }
+
+        final startRaw = resource['start']?.toString() ?? '';
+        DateTime? startDateTime;
+        if (startRaw.isNotEmpty) {
+          startDateTime = DateTime.tryParse(startRaw)?.toLocal();
+        }
+
+        final dateText = startDateTime != null
+            ? _formatDate(startDateTime)
+            : 'Unknown Date';
+
+        final timeText = startDateTime != null
+            ? _formatTime(startDateTime)
+            : 'Unknown Time';
+
+        final statusText = (resource['status']?.toString() ?? '').toLowerCase();
+        final status = statusText == 'cancelled'
+            ? AppointmentStatus.canceled
+            : AppointmentStatus.upcoming;
+
+        final fallbackDoctor = Doctor(
+          id: practitionerId,
+          name: practitionerId.isNotEmpty ? practitionerId : 'Unknown Doctor',
+          title: 'General Practitioner',
+          imageUrl: '',
+          rating: 0,
+          visitorCount: 0,
+          specialtyDetail: 'General Medicine',
+          address: 'Unknown address',
+          fees: 0,
+          waitingTime: 0,
+          nextAvailable: '',
+          schedule: [],
+          reviews: [],
+        );
+
+        final doctor = practitionersById[practitionerId] ?? fallbackDoctor;
+
+        return AppointmentHistory(
+          id: resource['id']?.toString() ?? '',
+          doctor: doctor,
+          date: dateText,
+          time: timeText,
+          status: status,
+        );
+      }).toList();
+    } catch (e) {
+      print('Error fetching appointments by patient: $e');
+      throw Exception('Failed to fetch appointments for patient: $e');
     }
   }
 
@@ -116,6 +286,13 @@ class BookingRepositoryImpl {
       'Dec',
     ];
     return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+  }
+
+  // Helper function to format full datetime as "Month Day, Year HH:MM AM/PM"
+  String _formatDateTime(DateTime dateTime) {
+    final dateStr = _formatDate(dateTime);
+    final timeStr = _formatTime(dateTime);
+    return '$dateStr $timeStr';
   }
 
   // Helper function to format raw date as "YYYY-MM-DD"
@@ -187,6 +364,16 @@ class BookingRepositoryImpl {
     } catch (e) {
       print("Error booking appointment: $e");
       throw Exception("Failed to book appointment: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
+    try {
+      final result = await apiService.cancelAppointment(appointmentId);
+      return result;
+    } catch (e) {
+      print("Error cancelling appointment: $e");
+      throw Exception("Failed to cancel appointment: $e");
     }
   }
 }

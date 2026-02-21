@@ -6,7 +6,6 @@ const appointmentController = require("./appointmentController");
 // Get appointments by patient ID
 router.get(
   "/patient/:patientId",
-  requireSession,
   appointmentController.getAppointmentsByPatient,
 );
 
@@ -31,7 +30,7 @@ router.post("/", appointmentController.createAppointment);
 router.get("/:id", requireSession, appointmentController.getAppointmentById);
 
 // Update appointment
-router.post("/:id", requireSession, appointmentController.updateAppointment);
+router.post("/:id", appointmentController.updateAppointment);
 
 // Delete appointment
 router.delete("/:id", requireSession, appointmentController.deleteAppointment);

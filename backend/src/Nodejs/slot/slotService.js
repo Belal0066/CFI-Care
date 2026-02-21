@@ -16,6 +16,29 @@ const fhirApi = axios.create({
   },
 });
 
+async function fetchAllBundleEntries(initialPath) {
+  const entries = [];
+  let nextPath = initialPath;
+  let pageGuard = 0;
+
+  while (nextPath && pageGuard < 50) {
+    pageGuard += 1;
+    const response = await fhirApi.get(nextPath);
+    const bundle = response.data || {};
+
+    if (Array.isArray(bundle.entry)) {
+      entries.push(...bundle.entry);
+    }
+
+    const nextLink = (bundle.link || []).find(
+      (link) => link.relation === "next",
+    );
+    nextPath = nextLink?.url || null;
+  }
+
+  return entries;
+}
+
 // Fetch slots by schedule
 async function getSlotsBySchedule(scheduleId, status) {
   const statusParam = status ? `&status=${status}` : "";
@@ -72,13 +95,14 @@ async function getAvailableSlots(practitionerId, date, scheduleId) {
   }
 }
 
-// Fetch free slots for a specific practitioner (by schedule.actor reference)
-async function getSlotsByPractitioner(practitionerId) {
+// Fetch slots for a specific practitioner 
+// Optional status filter 
+async function getSlotsByPractitioner(practitionerId, status) {
   try {
     // Always fetch fresh data - no caching for slot availability
     // This ensures users always see the most up-to-date slot availability
 
-    // Step 1: Get all schedules for this practitioner
+    // Get all schedules for this practitioner
     console.log(`Fetching schedules for Practitioner/${practitionerId}`);
     const schedulesResponse = await fhirApi.get(
       `/Schedule?actor=Practitioner/${practitionerId}`,
@@ -90,31 +114,34 @@ async function getSlotsByPractitioner(practitionerId) {
       return [];
     }
 
-    // Step 2: For each schedule, fetch free slots
+    // For each schedule, fetch slots 
     const allSlots = [];
     for (const scheduleEntry of schedulesBundle.entry) {
       const scheduleId = scheduleEntry.resource.id;
-      console.log(`Fetching free slots for Schedule/${scheduleId}`);
+      const statusQuery = status ? `&status=${status}` : "";
+      console.log(
+        `Fetching ${status || "all"} slots for Schedule/${scheduleId}`,
+      );
 
       try {
-        const slotsResponse = await fhirApi.get(
-          `/Slot?schedule=Schedule/${scheduleId}&status=free`,
+        const slotEntries = await fetchAllBundleEntries(
+          `/Slot?schedule=Schedule/${scheduleId}${statusQuery}`,
         );
-        const slotsBundle = slotsResponse.data;
 
-        if (slotsBundle.entry) {
-          // Extract and simplify the slots
-          const slots = slotsBundle.entry.map((entry) => {
-            const slot = entry.resource;
-            return {
-              id: slot.id,
-              start: slot.start,
-              end: slot.end,
-              status: slot.status,
-            };
-          });
-          allSlots.push(...slots);
-        }
+        // Extract and simplify the slots
+        const slots = slotEntries
+          .map((entry) => entry.resource)
+          .filter((slot) => !!slot)
+          .map((slot) => ({
+            resourceType: "Slot",
+            id: slot.id,
+            schedule: slot.schedule,
+            start: slot.start,
+            end: slot.end,
+            status: slot.status,
+          }));
+
+        allSlots.push(...slots);
       } catch (slotError) {
         console.error(
           `Error fetching slots for Schedule/${scheduleId}:`,
@@ -125,7 +152,7 @@ async function getSlotsByPractitioner(practitionerId) {
     }
 
     console.log(
-      `Found ${allSlots.length} free slots for Practitioner/${practitionerId}`,
+      `Found ${allSlots.length} ${status || "all"} slots for Practitioner/${practitionerId}`,
     );
 
     return allSlots;

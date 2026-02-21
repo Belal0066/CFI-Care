@@ -36,6 +36,7 @@ const {
   destroySessionById,
 } = require("../utils/userSessions");
 const practitionerService = require("../practioner/practionerService");
+const practitionerRoleService = require("../practitionerRole/practitionerRoleService");
 
 const kcHost = process.env.KC_HOSTNAME;
 const realm = process.env.KEYCLOAK_REALM;
@@ -228,6 +229,40 @@ router.post(
           console.log(
             `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
           );
+
+          // Create PractitionerRole
+          try {
+            const practitionerRoleResource = {
+              resourceType: "PractitionerRole",
+              active: true,
+              practitioner: {
+                reference: `Practitioner/${userinfo.sub}`,
+              },
+              code: [
+                {
+                  text: "General Practitioner",
+                },
+              ],
+              specialty: [
+                {
+                  text: "General Practice",
+                },
+              ],
+            };
+
+            await practitionerRoleService.createPractitionerRole(
+              practitionerRoleResource,
+            );
+            console.log(
+              `[REGISTER] Created FHIR PractitionerRole for ${userinfo.sub}`,
+            );
+          } catch (roleErr) {
+            console.error(
+              "[REGISTER] PractitionerRole Creation Failed:",
+              roleErr.message,
+            );
+            // Log error but continue - practitioner is already created
+          }
         } catch (fhirErr) {
           console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
           // Log error but continue session creation so user is not blocked

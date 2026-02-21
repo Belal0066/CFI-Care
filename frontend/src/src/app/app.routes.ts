@@ -5,6 +5,7 @@ import { Dashboard } from './dashboard/dashboard';
 import { authGuard } from './guards/auth.guard';
 import { ChatGPT } from './chatgpt/chatgpt';
 import { AppointmentTestComponent } from './appointment-test/appointment-test.component';
+import { PractitionerProfileTestComponent } from './practitioner-profile-test/practitioner-profile-test.component';
 
 export const routes: Routes = [
   { path: '', component: Login },
@@ -15,6 +16,11 @@ export const routes: Routes = [
   {
     path: 'appointment-test',
     component: AppointmentTestComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'practitioner-profile-test',
+    component: PractitionerProfileTestComponent,
     canActivate: [authGuard],
   },
 ];

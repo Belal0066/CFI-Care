@@ -51,11 +51,15 @@ class DoctorCard extends StatelessWidget {
                                 doctor.imageUrl.contains("http")
                             ? NetworkImage(doctor.imageUrl)
                             : null,
-                        child: const Icon(
-                          Icons.person,
-                          size: 35,
-                          color: Colors.grey,
-                        ),
+                        child:
+                            doctor.imageUrl.isEmpty ||
+                                !doctor.imageUrl.contains("http")
+                            ? const Icon(
+                                Icons.person,
+                                size: 35,
+                                color: Colors.grey,
+                              )
+                            : null,
                       ),
                     ),
                     Positioned(

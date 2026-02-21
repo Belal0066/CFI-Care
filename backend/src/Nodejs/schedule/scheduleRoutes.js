@@ -9,6 +9,12 @@ router.get(
   scheduleController.getSchedulesByPractitioner,
 );
 
+// Get schedules with their slots by practitioner ID 
+router.get(
+  "/practitioner/:practitionerId/with-slots",
+  scheduleController.getSchedulesWithSlotsByPractitioner,
+);
+
 // Get schedules by actor (e.g., Practitioner/123)
 router.get(
   "/actor/:actorReference",

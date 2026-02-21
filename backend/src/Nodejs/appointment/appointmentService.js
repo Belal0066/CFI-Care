@@ -8,6 +8,7 @@ const {
   deleteFromCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
+const slotService = require("../slot/slotService");
 
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
@@ -129,7 +130,7 @@ function transformBookingDataToFHIR(bookingData) {
       text: appointmentType,
     },
     start: start, // ISO 8601 format required
-    end: end, 
+    end: end,
     participant: [
       {
         actor: {
@@ -229,7 +230,6 @@ async function createAppointment(appointmentData) {
   );
 
   try {
-  
     const response = await fhirApi.post(
       "/Appointment",
       fhirAppointmentResource,
@@ -238,35 +238,23 @@ async function createAppointment(appointmentData) {
     const appointmentId = response.data.id;
     console.log(`Appointment created successfully with ID: ${appointmentId}`);
 
-    if (appointmentData.slotId) {
+    const slotIdToUpdate =
+      appointmentData.slotId ||
+      fhirAppointmentResource.slot?.[0]?.reference?.split("/")[1];
+
+    if (slotIdToUpdate) {
       try {
         console.log(
-          `Attempting to update Slot ${appointmentData.slotId} to busy status`,
+          `Attempting to update Slot ${slotIdToUpdate} to busy status`,
         );
 
-        // Fetch the slot first
-        const slotResponse = await fhirApi.get(
-          `/Slot/${appointmentData.slotId}`,
-        );
-        const slot = slotResponse.data;
-
-        // Update slot status to 'busy'
-        const updatedSlot = {
-          ...slot,
-          status: "busy",
-        };
-
-        await fhirApi.patch(`/Slot/${appointmentData.slotId}`, updatedSlot);
-        console.log(`Slot ${appointmentData.slotId} updated to busy status`);
-
-        // Invalidate slot cache
-        await deleteFromCache(`slot:${appointmentData.slotId}`);
+        await slotService.updateSlot(slotIdToUpdate, { status: "busy" });
+        console.log(`Slot ${slotIdToUpdate} updated to busy status`);
       } catch (slotError) {
         console.error(
           "Warning: Could not update slot status",
           slotError.message,
         );
-
       }
     }
 
@@ -316,12 +304,38 @@ async function updateAppointment(appointmentId, appointmentData) {
     id: appointmentId,
   };
 
+  const previousStatus = (existingAppointment.status || "").toLowerCase();
+  const nextStatus = (updateData.status || "").toLowerCase();
+
   try {
     const response = await fhirApi.put(
       `/Appointment/${appointmentId}`,
       updateData,
     );
     const appointment = response.data;
+
+    if (
+      nextStatus === "cancelled" &&
+      previousStatus !== "cancelled" &&
+      existingAppointment.slot?.length
+    ) {
+      const slotReference = existingAppointment.slot[0]?.reference || "";
+      const slotId = slotReference.split("/")[1];
+
+      if (slotId) {
+        try {
+          await slotService.updateSlot(slotId, { status: "free" });
+          console.log(
+            `Slot ${slotId} updated to free status after appointment cancellation`,
+          );
+        } catch (slotError) {
+          console.error(
+            `Warning: Could not update Slot ${slotId} to free after cancellation`,
+            slotError.message,
+          );
+        }
+      }
+    }
 
     // Invalidate caches after successful update
     await invalidateAppointmentCache(appointmentId, appointment);
