@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:medflow/utils/themes/theme.dart';
 import '../widgets/vitals_section.dart';
 import '../viewmodels/major_event_provider.dart';
-import 'event_node_screen.dart'; 
+import 'event_node_screen.dart';
 import '../viewmodels/booking_provider.dart';
 import '../widgets/appointment_card.dart';
 
@@ -20,15 +20,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MajorEventProvider>().fetchEvents();
+      context.read<BookingProvider>().loadAppointmentsForCurrentUser();
     });
   }
 
   Color getStatusColor(String status) {
     switch (status) {
-      case "RESOLVED": return Colors.green;
-      case "CONFLICT": return Colors.orange;
-      case "PLANNED": return Colors.purpleAccent;
-      default: return Colors.grey;
+      case "RESOLVED":
+        return Colors.green;
+      case "CONFLICT":
+        return Colors.orange;
+      case "PLANNED":
+        return Colors.purpleAccent;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -64,7 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Text(
                       "Major Events",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 10),
 
@@ -76,12 +84,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: provider.events.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 3 / 2,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 3 / 2,
+                            ),
                         itemBuilder: (context, index) {
                           final event = provider.events[index];
                           final color = getStatusColor(event.status);
@@ -98,7 +107,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => EventNodesScreen(event: event),
+                                    builder: (_) =>
+                                        EventNodesScreen(event: event),
                                   ),
                                 );
                               },
@@ -123,7 +133,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     // Status Chip
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4,
+                                        horizontal: 8,
+                                        vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
                                         color: color.withValues(alpha: 0.1),
@@ -149,17 +160,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 25),
                     //---- Appointments Section ---
                     if (bookingProvider.appointments.isNotEmpty) ...[
-                    const Text(
-                      "My Appointments",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    // Display list of appointments (Reversed to show newest first)
-                    ...bookingProvider.appointments.reversed.map(
-                      (appt) => AppointmentCard(appointment: appt)
-                    ),
-                    const SizedBox(height: 25),
-                  ],
+                      const Text(
+                        "My Appointments",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Display list of appointments (Reversed to show newest first)
+                      ...bookingProvider.appointments.reversed.map(
+                        (appt) => AppointmentCard(appointment: appt),
+                      ),
+                      const SizedBox(height: 25),
+                    ],
                     // --- VITALS SECTION ---
                     const VitalsSection(),
                   ],

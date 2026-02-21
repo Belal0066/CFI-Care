@@ -81,17 +81,62 @@ class ApiService {
   Future<List<dynamic>> fetchSlotsForDoctor(String doctorId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/slots/practitioner/$doctorId'),
+        Uri.parse('$baseUrl/slots/practitioner/$doctorId?status=free'),
       );
 
       print('[fetchSlotsForDoctor] status=${response.statusCode}');
       print('[fetchSlotsForDoctor] body=${response.body}');
 
       if (response.statusCode == 200) {
-        // Return raw JSON List 
+        // Return raw JSON List
         return json.decode(response.body);
       } else {
         throw Exception("Failed to load slots: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Network Error: $e");
+    }
+  }
+
+  // Fetch schedules with their associated slots for a specific doctor
+  Future<List<dynamic>> fetchSchedulesWithSlots(String doctorId) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/schedules/practitioner/$doctorId/with-slots?status=free',
+        ),
+      );
+
+      print('[fetchSchedulesWithSlots] status=${response.statusCode}');
+      print('[fetchSchedulesWithSlots] body=${response.body}');
+
+      if (response.statusCode == 200) {
+        // Return raw JSON List
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          "Failed to load schedules with slots: ${response.statusCode}",
+        );
+      }
+    } catch (e) {
+      throw Exception("Network Error: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchAppointmentsByPatient(
+    String patientId,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/appointments/patient/$patientId'),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        throw Exception(
+          "Failed to load appointments: ${response.statusCode} ${response.body}",
+        );
       }
     } catch (e) {
       throw Exception("Network Error: $e");
@@ -144,6 +189,24 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception("Failed to book appointment: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Network Error: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/appointments/$appointmentId'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"status": "cancelled"}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        throw Exception("Failed to cancel appointment: ${response.body}");
       }
     } catch (e) {
       throw Exception("Network Error: $e");

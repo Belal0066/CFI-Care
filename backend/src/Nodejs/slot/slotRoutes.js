@@ -6,7 +6,7 @@ const slotController = require("./slotController");
 // Get slots by schedule ID (optional status query param: ?status=free)
 router.get("/schedule/:scheduleId", slotController.getSlotsBySchedule);
 
-// Get free slots for a specific practitioner
+// Get slots for a specific practitioner 
 router.get(
   "/practitioner/:practitionerId",
   slotController.getSlotsByPractitioner,

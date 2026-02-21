@@ -138,10 +138,11 @@ async function updatePractitioner(practitionerId, practitionerData) {
     throw new Error("Practitioner ID is required");
   }
 
-  // Get existing practitioner
+  // Get existing practitioner - fetch RAW FHIR resource 
   let existingPractitioner;
   try {
-    existingPractitioner = await getPractitionerById(practitionerId);
+    const response = await fhirApi.get(`/Practitioner/${practitionerId}`);
+    existingPractitioner = response.data;
   } catch (error) {
     throw new Error(`Practitioner ${practitionerId} not found`);
   }
@@ -318,17 +319,29 @@ async function getPractitionerRoleData(practitionerId) {
     if (bundle.entry && bundle.entry.length > 0) {
       const role = bundle.entry[0].resource;
 
+      const extractCodeableConceptText = (conceptArray, fallback) => {
+        if (!Array.isArray(conceptArray) || conceptArray.length === 0) {
+          return fallback;
+        }
+
+        const concept = conceptArray[0] || {};
+        const codingDisplay = concept?.coding?.[0]?.display;
+        const text = concept?.text;
+
+        return codingDisplay || text || fallback;
+      };
+
       // Extract Specialty
-      const specialty =
-        role.specialty && role.specialty[0] && role.specialty[0].coding
-          ? role.specialty[0].coding[0].display
-          : "Dermatology";
+      const specialty = extractCodeableConceptText(
+        role.specialty,
+        "Dermatology",
+      );
 
       // Extract Title from PractitionerRole if Practitioner lacks it
-      const title =
-        role.code && role.code[0] && role.code[0].coding
-          ? role.code[0].coding[0].display
-          : "Dermatology Specialist";
+      const title = extractCodeableConceptText(
+        role.code,
+        "Dermatology Specialist",
+      );
 
       return { specialtyDetail: specialty, title: title };
     }

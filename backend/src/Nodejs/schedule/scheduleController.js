@@ -67,6 +67,25 @@ const getSchedulesByPractitioner = async (req, res) => {
   }
 };
 
+const getSchedulesWithSlotsByPractitioner = async (req, res) => {
+  try {
+    const { practitionerId } = req.params;
+    const { status } = req.query;
+    const schedulesWithSlots =
+      await scheduleService.getSchedulesWithSlotsByPractitioner(
+        practitionerId,
+        status,
+      );
+    res.status(200).json(schedulesWithSlots);
+  } catch (error) {
+    console.error(
+      "Error in getSchedulesWithSlotsByPractitioner controller:",
+      error.message,
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const updateSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -101,6 +120,7 @@ module.exports = {
   getScheduleById,
   getSchedulesByActor,
   getSchedulesByPractitioner,
+  getSchedulesWithSlotsByPractitioner,
   createScheduleWithSpecificId,
   createSchedule,
   updateSchedule,
