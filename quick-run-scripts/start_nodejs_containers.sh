@@ -12,6 +12,6 @@ done
 while [ "`docker inspect -f {{.State.Health.Status}} redisStore`" != "healthy" ]; do     sleep 2; done
 
 cd ../backend/src/Nodejs/
- docker compose -f docker-compose.yml up  #--build
+ docker compose -f docker-compose.yml up  --build
 
 
