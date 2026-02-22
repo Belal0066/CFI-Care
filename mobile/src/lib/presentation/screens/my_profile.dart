@@ -5,6 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+
+
+// bardo han remove l state mgmt
+import '../../domain/usecases/auth_usecases.dart';
+import 'package:http/http.dart' as http;
+import '../../data/repositories/auth_repo_impl.dart';
+import '../../data/services/datasources/keycloak_remote_data_source.dart';
+
+
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
 
@@ -285,6 +294,7 @@ class _MyProfileState extends State<MyProfile> {
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.clear();
+                    // await AuthUsecases(repo: AuthenticationRepoImpl(datasource: KeycloakRemoteDataSource())).logout();
                     if (context.mounted) {
                       Navigator.pushAndRemoveUntil(
                         context,

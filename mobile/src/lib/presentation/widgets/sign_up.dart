@@ -9,6 +9,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+// bardo remove lel stae mgmt
+import '../../domain/usecases/auth_usecases.dart';
+import 'package:http/http.dart' as http;
+import '../../data/repositories/auth_repo_impl.dart';
+import '../../data/services/datasources/keycloak_remote_data_source.dart';
+
+
 // FIX 1: Import ONLY the main helper
 import '../../database/db_helper.dart';
 
@@ -155,6 +162,8 @@ class _SignUpState extends State<SignUp> {
 
                   final email = _emailController.text.trim();
                   final password = _passController.text.trim();
+                  final firstName = _firstNameController.text.trim();
+                  final lastName = _lastNameController.text.trim();
 
                   // 1. Check duplicate
                   final exists = await DBHelper.emailExists(email);
@@ -199,6 +208,18 @@ class _SignUpState extends State<SignUp> {
                   } catch (e) {
                     print("Warning: Could not sync patient to FHIR: $e");
                     // Don't block signup if FHIR sync fails
+                  }
+
+
+                  //register auth data
+
+                  try{
+                    await AuthUsecases(repo: AuthenticationRepoImpl(datasource: KeycloakRemoteDataSource())).register( firstName
+                    ,lastName, email, password);
+
+                  } catch(e){
+                    Fluttertoast.showToast(msg:"error registering user : $e ");
+
                   }
 
                   // 6. Save Session so MyProfile knows who is logged in

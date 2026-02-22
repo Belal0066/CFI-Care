@@ -7,6 +7,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 
+
+// remove lel stae mgmt
+import '../../domain/usecases/auth_usecases.dart';
+import 'package:http/http.dart' as http;
+import '../../data/repositories/auth_repo_impl.dart';
+import '../../data/services/datasources/keycloak_remote_data_source.dart';
+
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
   @override
@@ -33,7 +40,15 @@ class _SignInState extends State<SignIn> {
       final password = _passController.text.trim();
 
       // 1. Check Database
-      final userId = await DBHelper.validateUser(email, password);
+      // final userId = await DBHelper.validateUser(email, password);
+
+
+
+      // try{
+        final loginData =await AuthUsecases(repo: AuthenticationRepoImpl(datasource: KeycloakRemoteDataSource())).login(email, password);
+        final userId = loginData.sub;
+      // }
+      
 
       if (userId != null) {
         // --- FIX 2: SAVE SESSION ---
