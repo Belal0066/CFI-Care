@@ -145,7 +145,8 @@
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let slot of filteredSlots">
+                <tr *ngFor="let slot of filteredSlots" [class.related-highlight]="isHighlightedSlot(slot)"
+                    [attr.id]="'slot-row-' + slot.id">
                     <td>{{ slot.id }}</td>
                     <td>{{ slot.schedule.reference }}</td>
                     <td>
@@ -160,6 +161,7 @@
                     <td>{{ formatDate(slot.end) }}</td>
                     <td>
                         <button (click)="updateSlot(slot)">Update</button>
+                        <button (click)="openSlotAppointmentTest(slot)">View Related</button>
                     </td>
                 </tr>
             </tbody>

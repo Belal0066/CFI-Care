@@ -106,6 +106,9 @@ function transformBookingDataToFHIR(bookingData) {
     start,
     end,
     appointmentType = "general",
+    comment,
+    symptomsText,
+    documentReferenceIds,
   } = bookingData;
 
   // Validate required fields
@@ -162,7 +165,95 @@ function transformBookingDataToFHIR(bookingData) {
     ];
   }
 
+  const noteParts = [];
+  if (comment && String(comment).trim().length > 0) {
+    noteParts.push(`Patient note: ${String(comment).trim()}`);
+  }
+  if (symptomsText && String(symptomsText).trim().length > 0) {
+    noteParts.push(`Symptoms: ${String(symptomsText).trim()}`);
+  }
+  if (noteParts.length > 0) {
+    fhirAppointment.description = noteParts.join("\n");
+  }
+
+  if (Array.isArray(documentReferenceIds) && documentReferenceIds.length > 0) {
+    fhirAppointment.supportingInformation = documentReferenceIds
+      .filter((id) => id && String(id).trim().length > 0)
+      .map((id) => ({ reference: `DocumentReference/${String(id).trim()}` }));
+  }
+
   return fhirAppointment;
+}
+
+function normalizeAppointmentUpdatePayload(
+  existingAppointment,
+  appointmentData,
+) {
+  const normalized = { ...appointmentData };
+
+  const comment =
+    appointmentData.comment && String(appointmentData.comment).trim().length > 0
+      ? String(appointmentData.comment).trim()
+      : null;
+
+  const symptomsText =
+    appointmentData.symptomsText &&
+    String(appointmentData.symptomsText).trim().length > 0
+      ? String(appointmentData.symptomsText).trim()
+      : null;
+
+  let symptomsFromReasonCode = null;
+  if (
+    Array.isArray(appointmentData.reasonCode) &&
+    appointmentData.reasonCode.length > 0
+  ) {
+    const firstReason = appointmentData.reasonCode[0];
+    if (firstReason && typeof firstReason === "object" && firstReason.text) {
+      symptomsFromReasonCode = String(firstReason.text).trim();
+    }
+  }
+
+  const noteParts = [];
+  if (comment) {
+    noteParts.push(`Patient note: ${comment}`);
+  }
+  if (symptomsText) {
+    noteParts.push(`Symptoms: ${symptomsText}`);
+  } else if (symptomsFromReasonCode) {
+    noteParts.push(`Symptoms: ${symptomsFromReasonCode}`);
+  }
+
+  if (noteParts.length > 0) {
+    normalized.description = noteParts.join("\n");
+  }
+
+  if (
+    Array.isArray(appointmentData.documentReferenceIds) &&
+    appointmentData.documentReferenceIds.length > 0
+  ) {
+    normalized.supportingInformation = appointmentData.documentReferenceIds
+      .filter((id) => id && String(id).trim().length > 0)
+      .map((id) => ({ reference: `DocumentReference/${String(id).trim()}` }));
+  }
+
+  if (
+    !normalized.supportingInformation &&
+    Array.isArray(appointmentData.supportingInformation)
+  ) {
+    normalized.supportingInformation = appointmentData.supportingInformation;
+  }
+
+  delete normalized.comment;
+  delete normalized.symptomsText;
+  delete normalized.documentReferenceIds;
+  delete normalized.reasonCode;
+
+  return {
+    ...existingAppointment,
+    ...normalized,
+    resourceType: "Appointment",
+    id: existingAppointment.id,
+  };
 }
 
 // Create appointment with specific ID
@@ -259,7 +350,7 @@ async function createAppointment(appointmentData) {
     }
 
     // Invalidate caches after successful creation
-    await invalidateAppointmentCache(appointmentId, appointmentData);
+    await invalidateAppointmentCache(appointmentId, fhirAppointmentResource);
 
     return response.data;
   } catch (error) {
@@ -297,12 +388,10 @@ async function updateAppointment(appointmentId, appointmentData) {
   }
 
   // Merge with existing data
-  const updateData = {
-    ...existingAppointment,
-    ...appointmentData,
-    resourceType: "Appointment",
-    id: appointmentId,
-  };
+  const updateData = normalizeAppointmentUpdatePayload(
+    existingAppointment,
+    appointmentData,
+  );
 
   const previousStatus = (existingAppointment.status || "").toLowerCase();
   const nextStatus = (updateData.status || "").toLowerCase();
@@ -338,7 +427,7 @@ async function updateAppointment(appointmentId, appointmentData) {
     }
 
     // Invalidate caches after successful update
-    await invalidateAppointmentCache(appointmentId, appointment);
+    await invalidateAppointmentCache(appointmentId, updateData);
 
     return appointment;
   } catch (error) {
@@ -389,17 +478,39 @@ async function invalidateAppointmentCache(appointmentId, appointmentData) {
   // Invalidate appointment cache
   await deleteFromCache(`appointment:${appointmentId}`);
 
-  // Invalidate patient appointments cache if patient reference exists
-  if (appointmentData.participant) {
+  // Invalidate patient/practitioner appointment list caches from either FHIR participant
+  // or simplified payload fields.
+  const patientIds = new Set();
+  const practitionerIds = new Set();
+
+  if (Array.isArray(appointmentData?.participant)) {
     for (const participant of appointmentData.participant) {
-      if (participant.actor?.reference?.startsWith("Patient/")) {
-        const patientId = participant.actor.reference.split("/")[1];
-        await deleteFromCache(`appointments:patient:${patientId}`);
+      const ref = participant?.actor?.reference || "";
+      if (ref.startsWith("Patient/")) {
+        patientIds.add(ref.split("/")[1]);
       }
-      if (participant.actor?.reference?.startsWith("Practitioner/")) {
-        const practitionerId = participant.actor.reference.split("/")[1];
-        await deleteFromCache(`appointments:practitioner:${practitionerId}`);
+      if (ref.startsWith("Practitioner/")) {
+        practitionerIds.add(ref.split("/")[1]);
       }
+    }
+  }
+
+  if (appointmentData?.patientId) {
+    patientIds.add(String(appointmentData.patientId));
+  }
+  if (appointmentData?.practitionerId) {
+    practitionerIds.add(String(appointmentData.practitionerId));
+  }
+
+  for (const patientId of patientIds) {
+    if (patientId) {
+      await deleteFromCache(`appointments:patient:${patientId}`);
+    }
+  }
+
+  for (const practitionerId of practitionerIds) {
+    if (practitionerId) {
+      await deleteFromCache(`appointments:practitioner:${practitionerId}`);
     }
   }
 }

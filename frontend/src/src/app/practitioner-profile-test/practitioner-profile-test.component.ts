@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../services/auth/auth.service';
 import {
   AppointmentService,
@@ -31,6 +32,7 @@ export class PractitionerProfileTestComponent implements OnInit {
 
   message = '';
   errorMessage = '';
+  highlightedSlotId = '';
 
   // Getter for filtered slots based on selected schedule
   get filteredSlots(): Slot[] {
@@ -69,9 +71,15 @@ export class PractitionerProfileTestComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private appointmentService: AppointmentService,
+    private router: Router,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      this.highlightedSlotId = params.get('highlightSlotId') || '';
+    });
+
     this.loadSignedPractitionerProfile();
   }
 
@@ -152,11 +160,38 @@ export class PractitionerProfileTestComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.slots = data || [];
+
+          if (this.highlightedSlotId) {
+            const targetSlot = this.slots.find(
+              (slot) => slot.id === this.highlightedSlotId,
+            );
+
+            if (targetSlot) {
+              const scheduleRef = targetSlot.schedule?.reference || '';
+              const scheduleId = scheduleRef.includes('/')
+                ? scheduleRef.split('/').pop() || ''
+                : scheduleRef;
+
+              if (scheduleId) {
+                this.newSlotForm.scheduleId = scheduleId;
+              }
+
+              setTimeout(() => {
+                document
+                  .getElementById(`slot-row-${targetSlot.id}`)
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 0);
+            }
+          }
         },
         error: (error) => {
           this.errorMessage = `Failed to load slots: ${error.message}`;
         },
       });
+  }
+
+  isHighlightedSlot(slot: Slot): boolean {
+    return !!this.highlightedSlotId && slot.id === this.highlightedSlotId;
   }
 
   loadPractitionerRole(): void {
@@ -394,6 +429,15 @@ export class PractitionerProfileTestComponent implements OnInit {
       },
       error: (error) => {
         this.errorMessage = `Failed to update slot ${slot.id}: ${error.error?.error || error.message}`;
+      },
+    });
+  }
+
+  openSlotAppointmentTest(slot: Slot): void {
+    this.router.navigate(['/slot-appointment-test'], {
+      queryParams: {
+        slotId: slot.id,
+        practitionerId: this.practitionerId,
       },
     });
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/models/document.dart';
 import '../../domain/repository/document_repository.dart';
@@ -5,18 +6,32 @@ import '../../utils/enums/type_of_event.dart';
 import '../../utils/enums/speciality_event.dart';
 
 class DocumentProvider extends ChangeNotifier {
-  final DocumentRepository repository; // Make sure this is using the Interface or Impl
-
+  final DocumentRepository
+  repository; // Make sure this is using the Interface or Impl
 
   List<DocumentModel> _documents = [];
   bool _isLoading = false;
   String? _error;
+  Timer? _syncTimer;
 
   List<DocumentModel> get documents => _documents;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  DocumentProvider(this.repository);
+  DocumentProvider(this.repository) {
+    _startAutoSyncLoop();
+  }
+
+  void _startAutoSyncLoop() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(seconds: 90), (_) async {
+      try {
+        await repository.syncPendingDocuments();
+      } catch (e) {
+        print('Periodic document sync failed: $e');
+      }
+    });
+  }
 
   // // --- STATE ---
   // final List<DocumentModel> _documents = []; // Stores the list of uploaded docs
@@ -34,10 +49,8 @@ class DocumentProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // We cast repository to the Implementation to access 'getDocuments'
-      // OR you should add 'getDocuments' to your abstract DocumentRepository interface.
-      // Assuming you added it to the Interface:
-      _documents = await (repository as dynamic).getDocuments();
+      await repository.syncPendingDocuments();
+      _documents = await repository.getDocuments();
     } catch (e) {
       _error = e.toString();
       print("Error fetching docs: $e");
@@ -78,6 +91,10 @@ class DocumentProvider extends ChangeNotifier {
       // Add to our local list so we can show it in the app immediately
       _documents.add(newDoc);
 
+      if (!newDoc.isSynced) {
+        await repository.syncPendingDocuments();
+      }
+
       _isLoading = false;
       notifyListeners(); // Update UI to show success
       return true;
@@ -87,5 +104,11 @@ class DocumentProvider extends ChangeNotifier {
       notifyListeners(); // Update UI to show error
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
   }
 }

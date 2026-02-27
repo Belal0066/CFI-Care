@@ -15,13 +15,30 @@ const fhirApi = axios.create({
   },
 });
 
-// Create PDF Binary Resource and change to base64
+function normalizeBase64Data(data) {
+  if (!data || typeof data !== "string") return null;
+  const commaIdx = data.indexOf(",");
+  return commaIdx >= 0 ? data.slice(commaIdx + 1) : data;
+}
+
+async function resolveBinaryData(file, data) {
+  if (data) {
+    return normalizeBase64Data(data);
+  }
+  if (file) {
+    return pdf2base64(file);
+  }
+  throw new Error("Either file path or base64 data is required");
+}
+
+// Create Binary resource from file path or base64
 async function createPDFBinaryResource(
   file,
   id,
   contentType = "application/pdf",
+  data,
 ) {
-  const base64Data = await pdf2base64(file);
+  const base64Data = await resolveBinaryData(file, data);
 
   const binaryResource = {
     resourceType: "Binary",
@@ -86,7 +103,12 @@ async function getPDFBinaryResource(id) {
 }
 
 // Update Binary resource
-async function updateBinary(binaryId, file, contentType = "application/pdf") {
+async function updateBinary(
+  binaryId,
+  file,
+  contentType = "application/pdf",
+  data,
+) {
   if (!binaryId) {
     throw new Error("Binary ID is required");
   }
@@ -100,8 +122,7 @@ async function updateBinary(binaryId, file, contentType = "application/pdf") {
       throw new Error(`Binary ${binaryId} not found`);
     }
 
-    // Convert new file to base64
-    const base64Data = await pdf2base64(file);
+    const base64Data = await resolveBinaryData(file, data);
 
     const updateData = {
       resourceType: "Binary",

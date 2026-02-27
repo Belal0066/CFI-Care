@@ -371,10 +371,26 @@ class ConfirmationScreen extends StatelessWidget {
                       return;
                     }
 
+                    final appointmentId = context
+                        .read<BookingProvider>()
+                        .lastBookedAppointmentId;
+
+                    if (appointmentId == null || appointmentId.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Booking succeeded but appointment ID is missing.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
                     // Navigate
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => ThankYouScreen(
+                          appointmentId: appointmentId,
                           appointmentDate: appointmentDateText,
                           appointmentTime: appointmentTime,
                           fees: doctor.fees,

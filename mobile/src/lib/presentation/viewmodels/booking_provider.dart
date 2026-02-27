@@ -16,6 +16,7 @@ class BookingProvider with ChangeNotifier {
   DateTime? _selectedDate;
   String? _selectedTime;
   DoctorSlot? _selectedSlot;
+  String? _lastBookedAppointmentId;
   final List<AppointmentHistory> _appointments = [];
   List<Doctor> _doctors = [];
   bool _isLoadingDoctors = false;
@@ -38,6 +39,7 @@ class BookingProvider with ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   String? get selectedTime => _selectedTime;
   DoctorSlot? get selectedSlot => _selectedSlot;
+  String? get lastBookedAppointmentId => _lastBookedAppointmentId;
   List<AppointmentHistory> get appointments => _appointments;
   List<Doctor> get doctors => _doctors;
   bool get isLoadingDoctors => _isLoadingDoctors;
@@ -263,6 +265,8 @@ class BookingProvider with ChangeNotifier {
           (bookedAppointment['id'] ?? DateTime.now().millisecondsSinceEpoch)
               .toString();
 
+      _lastBookedAppointmentId = serverAppointmentId;
+
       final newAppointment = AppointmentHistory(
         id: serverAppointmentId,
         doctor: selectedDoctor,
@@ -290,6 +294,28 @@ class BookingProvider with ChangeNotifier {
       return true;
     } catch (e) {
       print("Failed to sync booking to server: $e");
+      return false;
+    }
+  }
+
+  Future<bool> sendNotesToDoctor({
+    required String appointmentId,
+    String? symptomsText,
+    String? doctorNote,
+    List<String>? documentReferenceIds,
+  }) async {
+    try {
+      await repository.updateAppointmentNotes(
+        appointmentId: appointmentId,
+        comment: doctorNote,
+        symptomsText: symptomsText,
+        documentReferenceIds: documentReferenceIds,
+      );
+
+      await loadAppointmentsForCurrentUser();
+      return true;
+    } catch (e) {
+      print('Failed to send notes to doctor: $e');
       return false;
     }
   }
