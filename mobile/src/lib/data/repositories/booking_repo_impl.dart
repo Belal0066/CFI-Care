@@ -350,6 +350,9 @@ class BookingRepositoryImpl {
     required String start,
     required String end,
     required String appointmentType,
+    String? comment,
+    String? symptomsText,
+    List<String>? documentReferenceIds,
   }) async {
     try {
       final result = await apiService.bookAppointment(
@@ -359,11 +362,33 @@ class BookingRepositoryImpl {
         start: start,
         end: end,
         appointmentType: appointmentType,
+        comment: comment,
+        symptomsText: symptomsText,
+        documentReferenceIds: documentReferenceIds,
       );
       return result;
     } catch (e) {
       print("Error booking appointment: $e");
       throw Exception("Failed to book appointment: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> updateAppointmentNotes({
+    required String appointmentId,
+    String? comment,
+    String? symptomsText,
+    List<String>? documentReferenceIds,
+  }) async {
+    try {
+      return await apiService.updateAppointmentNotes(
+        appointmentId: appointmentId,
+        comment: comment,
+        symptomsText: symptomsText,
+        documentReferenceIds: documentReferenceIds,
+      );
+    } catch (e) {
+      print("Error updating appointment notes: $e");
+      throw Exception("Failed to update appointment notes: $e");
     }
   }
 

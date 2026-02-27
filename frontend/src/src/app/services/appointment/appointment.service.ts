@@ -40,10 +40,34 @@ export interface Appointment {
   appointmentType?: any;
   start: string;
   end: string;
+  supportingInformation?: Array<{ reference?: string }>;
   participant: Array<{
     actor: { reference: string };
     status: string;
   }>;
+}
+
+export interface DocumentReferenceResource {
+  resourceType: string;
+  id: string;
+  status?: string;
+  description?: string;
+  date?: string;
+  subject?: { reference?: string };
+  content?: Array<{
+    attachment?: {
+      contentType?: string;
+      title?: string;
+      url?: string;
+    };
+  }>;
+}
+
+export interface BinaryResource {
+  resourceType: string;
+  id: string;
+  contentType?: string;
+  data?: string;
 }
 
 export interface BookAppointmentRequest {
@@ -125,6 +149,11 @@ export class AppointmentService {
     return this.http.get<Slot[]>(`${this.slotsUrl}/schedule/${scheduleId}`);
   }
 
+  // Get slot by ID
+  getSlotById(slotId: string): Observable<Slot> {
+    return this.http.get<Slot>(`${this.slotsUrl}/${slotId}`);
+  }
+
   // Get available slots for a practitioner
   getAvailableSlots(practitionerId: string): Observable<Slot[]> {
     return this.http.get<Slot[]>(
@@ -162,6 +191,16 @@ export class AppointmentService {
   // Get appointments for a patient
   getAppointmentsByPatient(patientId: string): Observable<any> {
     return this.http.get<any>(`${this.appointmentsUrl}/patient/${patientId}`);
+  }
+
+  // Get document references for a patient
+  getDocumentReferencesByPatient(patientId: string): Observable<any> {
+    return this.http.get<any>(`/api/documentReferences/patient/${patientId}`);
+  }
+
+  // Get binary by ID
+  getBinaryById(binaryId: string): Observable<BinaryResource> {
+    return this.http.get<BinaryResource>(`/api/binary/${binaryId}`);
   }
 
   // Get appointments for a practitioner

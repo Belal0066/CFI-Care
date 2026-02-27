@@ -48,6 +48,7 @@ const { generalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || "60mb";
 
 app.set("trust proxy", 1);
 
@@ -64,6 +65,14 @@ app.use(cors(corsOptions));
 app.use(
   express.json({
     type: ["application/json", "application/fhir+json"],
+    limit: BODY_SIZE_LIMIT,
+  }),
+);
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: BODY_SIZE_LIMIT,
   }),
 );
 
