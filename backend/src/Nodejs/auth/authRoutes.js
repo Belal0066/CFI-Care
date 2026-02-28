@@ -357,31 +357,31 @@ async function revokeTokens(refreshToken, accessToken) {
 }
 
 // single logout
-// router.post('/logout', async (req, res) => {
-//       try {
-//             const userId = req.session.user?.sub;
-//             const email = req.session.user?.email;
-//             const refreshToken = req.session.tokens?.refresh;
-//             const accessToken = req.session.tokens?.access;
-//             const frontendReturn = process.env.FRONTEND_HOST;
+router.post('/logout', async (req, res) => {
+      try {
+            const userId = req.session.user?.sub;
+            const email = req.session.user?.email;
+            const refreshToken = req.session.tokens?.refresh;
+            const accessToken = req.session.tokens?.access;
+            const frontendReturn = process.env.FRONTEND_HOST;
 
-//             await removeSessionForUser(userId, req.sessionID);
-//             req.session.destroy(() => { });
+            await removeSessionForUser(userId, req.sessionID);
+            req.session.destroy(() => { });
 
-//             await revokeTokens(refreshToken, accessToken);
+            await revokeTokens(refreshToken, accessToken);
 
-//             // Log 
-//             await logAuthEvent('LOGOUT', req, {
-//                   userId,
-//                   email
-//             });
+            // Log 
+            await logAuthEvent('LOGOUT', req, {
+                  userId,
+                  email
+            });
 
-//             return res.json({ ok: true, logoutUrl: frontendReturn });
-//       } catch (e) {
-//             console.error('logout error', e);
-//             res.status(500).json({ ok: false });
-//       }
-// });
+            return res.json({ ok: true, logoutUrl: frontendReturn });
+      } catch (e) {
+            console.error('logout error', e);
+            res.status(500).json({ ok: false });
+      }
+});
 
 // logout from all devices
 router.post('/logout-all', async (req, res) => {
@@ -461,265 +461,265 @@ router.post('/logout-all', async (req, res) => {
   }
 });
 
-// mobile auth?
+// // mobile auth?
 
-router.post('/mobile-register', registerLimiter, async (req, res) => {
-  const { email, password, firstName, lastName } = req.body;
+// router.post('/mobile-register', registerLimiter, async (req, res) => {
+//   const { email, password, firstName, lastName } = req.body;
 
-  if (!email || !password || !firstName || !lastName) {
-    return res.status(400).json({ error: 'Email, password, and full name required' });
-  }
+//   if (!email || !password || !firstName || !lastName) {
+//     return res.status(400).json({ error: 'Email, password, and full name required' });
+//   }
 
-  try {
-    // access token using client credentials
-    const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-    const adminBody = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret
-    }).toString();
+//   try {
+//     // access token using client credentials
+//     const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//     const adminBody = new URLSearchParams({
+//       grant_type: 'client_credentials',
+//       client_id: clientId,
+//       client_secret: clientSecret
+//     }).toString();
 
-    const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
+//     const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
 
-    // create user
-    // const [firstName, ...lastNameParts] = fullName.trim().split(' ');
-    // const lastName = lastNameParts.join(' ') || firstName;
+//     // create user
+//     // const [firstName, ...lastNameParts] = fullName.trim().split(' ');
+//     // const lastName = lastNameParts.join(' ') || firstName;
 
-    const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
-    const userData = {
-      username: email,
-      email: email,
-      firstName: firstName,
-      lastName: lastName,
-      enabled: true,
-      emailVerified: false,
-      credentials: [{
-        type: 'password',
-        value: password,
-        temporary: false
-      }]
-    };
+//     const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
+//     const userData = {
+//       username: email,
+//       email: email,
+//       firstName: firstName,
+//       lastName: lastName,
+//       enabled: true,
+//       emailVerified: false,
+//       credentials: [{
+//         type: 'password',
+//         value: password,
+//         temporary: false
+//       }]
+//     };
 
-    await axios.post(createUserUrl, userData, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminTokens.access_token}`
-      }
-    });
+//     await axios.post(createUserUrl, userData, {
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${adminTokens.access_token}`
+//       }
+//     });
 
-    // await logAuthEvent('MOBILE_REG_SUCCESS', req, {
-    //       userId: userinfo.sub,
-    //       email: userinfo.email,
-    //       clientType: 'mobile'
-    // });
+//     // await logAuthEvent('MOBILE_REG_SUCCESS', req, {
+//     //       userId: userinfo.sub,
+//     //       email: userinfo.email,
+//     //       clientType: 'mobile'
+//     // });
 
-    //  try {
-    //       const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-    //       const loginBody = new URLSearchParams({
-    //             grant_type: 'password',
-    //             client_id: clientId,
-    //             client_secret: clientSecret,
-    //             username: email,
-    //             password: password,
-    //             scope: scopes
-    //       }).toString();
+//     //  try {
+//     //       const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//     //       const loginBody = new URLSearchParams({
+//     //             grant_type: 'password',
+//     //             client_id: clientId,
+//     //             client_secret: clientSecret,
+//     //             username: email,
+//     //             password: password,
+//     //             scope: scopes
+//     //       }).toString();
 
-    //       const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
-    //             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    //       });
+//     //       const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
+//     //             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     //       });
 
-    //       const { data: userinfo } = await axios.get(
-    //             `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
-    //             { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-    //       );
-    //       await logAuthEvent('MOBILE_Reg_SUCCESS', req, {
-    //             userId: userinfo.sub,
-    //             email: userinfo.email,
-    //             clientType: 'mobile',
-    //             autoLogin: true
-    //       });
+//     //       const { data: userinfo } = await axios.get(
+//     //             `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+//     //             { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+//     //       );
+//     //       await logAuthEvent('MOBILE_Reg_SUCCESS', req, {
+//     //             userId: userinfo.sub,
+//     //             email: userinfo.email,
+//     //             clientType: 'mobile',
+//     //             autoLogin: true
+//     //       });
 
-    res.json({
-      success: true,
+//     res.json({
+//       success: true,
 
-    })
+//     })
 
+//     // }
+//     // catch(tokenerr){
+
+//     // }
+
+
+//   }
+//   catch (regerr) {
+//     console.error('Registration failed:', regerr?.response?.data || regerr.message);
+//     await logAuthEvent('MOBILE_REG_FAILURE', req, {
+//       email,
+//       reason: regerr?.response?.data?.error_description || regerr.message
+//     });
+//     if (regerr?.response?.status === 409) {
+//       return res.status(409).json({ error: 'User already exists' });
+//     }
+//     const errorMsg = regerr?.response?.data?.errorMessage || 'Registration failed';
+//     res.status(400).json({ error: errorMsg });
+
+//   }
+
+
+// });
+
+
+// router.post('/mobile-login', loginLimiter, validateLogin, async (req, res) => {
+//   const { email, password } = req.body;
+
+//   if (!email || !password) {
+//     return res.status(400).json({ error: 'Email and password required' });
+//   }
+
+//   const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//   const body = new URLSearchParams({
+//     grant_type: 'password',
+//     client_id: clientId,
+//     client_secret: clientSecret,
+//     username: email,
+//     password: password,
+//     scope: scopes
+//   }).toString();
+
+//   try {
+//     const { data: tokens } = await axios.post(tokenUrl, body, {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
+
+//     const { data: userinfo } = await axios.get(
+//       `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+//       { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+//     );
+
+//     await logAuthEvent('MOBILE_LOGIN_SUCCESS', req, {
+//       userId: userinfo.sub,
+//       email: userinfo.email,
+//       clientType: 'mobile'
+//     });
+
+//     // return tokens
+//     res.json({
+//       success: true,
+//       access_token: tokens.access_token,
+//       refresh_token: tokens.refresh_token,
+//       id_token: tokens.id_token,
+//       expires_in: tokens.expires_in,
+//       // user: {
+//         sub: userinfo.sub,
+//         email: userinfo.email,
+//         name: userinfo.name
+//       // }
+//     });
+//   } catch (e) {
+//     console.error('Mobile login failed:', e?.response?.data || e.message);
+
+//     await logAuthEvent('MOBILE_LOGIN_FAILURE', req, {
+//       email,
+//       reason: e?.response?.data?.error_description || e.message
+//     });
+
+//     const errorMsg = e?.response?.data?.error_description || 'Invalid credentials';
+//     res.status(401).json({ error: errorMsg });
+//   }
+// });
+
+
+// router.post('/refresh', async (req, res) => {
+//   try {
+//     const { refresh_token } = req.body;
+
+//     if (!refresh_token) {
+//       return res.status(400).json({ error: 'refresh_token required in request body' });
+//     }
+
+//     const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//     const body = new URLSearchParams({
+//       grant_type: 'refresh_token',
+//       client_id: clientId,
+//       client_secret: clientSecret,
+//       refresh_token: refresh_token,
+//     }).toString();
+
+//     const { data: tokens } = await axios.post(tokenUrl, body, {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
+
+//     await logAuthEvent('TOKEN_REFRESH', req, {
+//       reason: 'mobile_refresh_request'
+//     });
+
+//     res.json({
+//       access_token: tokens.access_token,
+//       refresh_token: tokens.refresh_token || refresh_token,
+//       expires_in: tokens.expires_in
+//     });
+//   } catch (e) {
+//     console.error('Token refresh failed:', e?.response?.data || e.message);
+
+//     await logAuthEvent('TOKEN_REFRESH_FAILURE', req, {
+//       reason: e?.response?.data?.error_description || e.message
+//     });
+
+//     res.status(401).json({ error: 'Invalid or expired refresh token' });
+//   }
+// });
+
+// router.post('/logout', async (req, res) => {
+  // try {
+    // // check for token in case of mobile logout
+    // const authHeader = req.get('Authorization');
+    // const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+    // if (bearerToken) {
+    //   const { refresh_token } = req.body;
+
+    //   if (refresh_token) {
+    //     await revokeTokens(refresh_token, bearerToken);
+    //   }
+
+    //   await logAuthEvent('MOBILE_LOGOUT', req, {
+    //     clientType: 'mobile',
+    //     tokenRevoked: !!refresh_token
+    //   });
+
+    //   return res.json({ ok: true });
     // }
-    // catch(tokenerr){
-
-    // }
-
-
-  }
-  catch (regerr) {
-    console.error('Registration failed:', regerr?.response?.data || regerr.message);
-    await logAuthEvent('MOBILE_REG_FAILURE', req, {
-      email,
-      reason: regerr?.response?.data?.error_description || regerr.message
-    });
-    if (regerr?.response?.status === 409) {
-      return res.status(409).json({ error: 'User already exists' });
-    }
-    const errorMsg = regerr?.response?.data?.errorMessage || 'Registration failed';
-    res.status(400).json({ error: errorMsg });
-
-  }
-
-
-});
-
-
-router.post('/mobile-login', loginLimiter, validateLogin, async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-
-  const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-  const body = new URLSearchParams({
-    grant_type: 'password',
-    client_id: clientId,
-    client_secret: clientSecret,
-    username: email,
-    password: password,
-    scope: scopes
-  }).toString();
-
-  try {
-    const { data: tokens } = await axios.post(tokenUrl, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    const { data: userinfo } = await axios.get(
-      `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
-      { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-    );
-
-    await logAuthEvent('MOBILE_LOGIN_SUCCESS', req, {
-      userId: userinfo.sub,
-      email: userinfo.email,
-      clientType: 'mobile'
-    });
-
-    // return tokens
-    res.json({
-      success: true,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      id_token: tokens.id_token,
-      expires_in: tokens.expires_in,
-      // user: {
-        sub: userinfo.sub,
-        email: userinfo.email,
-        name: userinfo.name
-      // }
-    });
-  } catch (e) {
-    console.error('Mobile login failed:', e?.response?.data || e.message);
-
-    await logAuthEvent('MOBILE_LOGIN_FAILURE', req, {
-      email,
-      reason: e?.response?.data?.error_description || e.message
-    });
-
-    const errorMsg = e?.response?.data?.error_description || 'Invalid credentials';
-    res.status(401).json({ error: errorMsg });
-  }
-});
-
-
-router.post('/refresh', async (req, res) => {
-  try {
-    const { refresh_token } = req.body;
-
-    if (!refresh_token) {
-      return res.status(400).json({ error: 'refresh_token required in request body' });
-    }
-
-    const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-    const body = new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refresh_token,
-    }).toString();
-
-    const { data: tokens } = await axios.post(tokenUrl, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    await logAuthEvent('TOKEN_REFRESH', req, {
-      reason: 'mobile_refresh_request'
-    });
-
-    res.json({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || refresh_token,
-      expires_in: tokens.expires_in
-    });
-  } catch (e) {
-    console.error('Token refresh failed:', e?.response?.data || e.message);
-
-    await logAuthEvent('TOKEN_REFRESH_FAILURE', req, {
-      reason: e?.response?.data?.error_description || e.message
-    });
-
-    res.status(401).json({ error: 'Invalid or expired refresh token' });
-  }
-});
-
-router.post('/logout', async (req, res) => {
-  try {
-    // check for token in case of mobile logout
-    const authHeader = req.get('Authorization');
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-    if (bearerToken) {
-      const { refresh_token } = req.body;
-
-      if (refresh_token) {
-        await revokeTokens(refresh_token, bearerToken);
-      }
-
-      await logAuthEvent('MOBILE_LOGOUT', req, {
-        clientType: 'mobile',
-        tokenRevoked: !!refresh_token
-      });
-
-      return res.json({ ok: true });
-    }
 
     // browser logout
-    if (!req.session?.user?.sub) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
+//     if (!req.session?.user?.sub) {
+//       return res.status(401).json({ error: 'Not authenticated' });
+//     }
 
-    const userId = req.session.user.sub;
-    const email = req.session.user.email;
-    const refreshToken = req.session.tokens?.refresh;
-    const accessToken = req.session.tokens?.access;
-    const frontendReturn = process.env.FRONTEND_HOST;
+//     const userId = req.session.user.sub;
+//     const email = req.session.user.email;
+//     const refreshToken = req.session.tokens?.refresh;
+//     const accessToken = req.session.tokens?.access;
+//     const frontendReturn = process.env.FRONTEND_HOST;
 
-    await removeSessionForUser(userId, req.sessionID);
-    req.session.destroy(() => { });
+//     await removeSessionForUser(userId, req.sessionID);
+//     req.session.destroy(() => { });
 
-    await revokeTokens(refreshToken, accessToken);
+//     await revokeTokens(refreshToken, accessToken);
 
-    await logAuthEvent('LOGOUT', req, {
-      userId,
-      email,
-      clientType: 'browser'
-    });
+//     await logAuthEvent('LOGOUT', req, {
+//       userId,
+//       email,
+//       clientType: 'browser'
+//     });
 
-    return res.json({ ok: true, logoutUrl: frontendReturn });
-  } catch (e) {
-    console.error('logout error', e);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
+//     return res.json({ ok: true, logoutUrl: frontendReturn });
+//   } catch (e) {
+//     console.error('logout error', e);
+//     res.status(500).json({ ok: false, error: e.message });
+//   }
+// });
 
 // router.refreshTokens = refreshTokens;
 module.exports = router;

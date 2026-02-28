@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:medflow/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:medflow/presentation/widgets/build_section_profile.dart';
 import 'package:medflow/presentation/screens/sign_in_up.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-
-
-// bardo han remove l state mgmt
-import '../../domain/usecases/auth_usecases.dart';
-import 'package:http/http.dart' as http;
-import '../../data/repositories/auth_repo_impl.dart';
-import '../../data/services/datasources/keycloak_remote_data_source.dart';
 
 
 class MyProfile extends StatefulWidget {
@@ -294,14 +289,14 @@ class _MyProfileState extends State<MyProfile> {
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.clear();
-                    // await AuthUsecases(repo: AuthenticationRepoImpl(datasource: KeycloakRemoteDataSource())).logout();
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignInUp()),
-                        (r) => false,
-                      );
-                    }
+                    await context.read<AuthProvider>().logout();
+                    // if (context.mounted) {
+                    //   Navigator.pushAndRemoveUntil(
+                    //     context,
+                    //     MaterialPageRoute(builder: (_) => const SignInUp()),
+                    //     (r) => false,
+                    //   );
+                    // }
                   },
                 ),
                 const SizedBox(height: 40),
