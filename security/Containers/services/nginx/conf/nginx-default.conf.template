@@ -6,6 +6,10 @@ upstream frontend_angular {
   server frontend:4200;
 }
 
+upstream keycloak_server {
+  server kc.localhost:8443;
+}
+
 server {
 
   server_name localhost;
@@ -54,6 +58,19 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 
+  #keycloak 
+
+  location /keycloak/ {
+   proxy_pass        https://keycloak_server;
+    proxy_set_header  Host               $host;
+    proxy_set_header  X-Real-IP          $remote_addr;
+    proxy_set_header  X-Forwarded-For    $proxy_add_x_forwarded_for;
+    proxy_set_header  X-Forwarded-Host   $host;
+    proxy_set_header  X-Forwarded-Server $host;
+    proxy_set_header  X-Forwarded-Port   $server_port;
+    proxy_set_header  X-Forwarded-Proto  $scheme;
+  }
+
   # Angular
   location / {
     proxy_pass http://frontend_angular;
@@ -68,35 +85,15 @@ server {
 
 }
 
-server {
+#server {
 
-  server_name localhost;
-  listen 443 ssl;
-  include /etc/nginx/conf/ssl.conf;
+#  server_name kc.localhost;
+#  listen 443 ssl;
+#  include /etc/nginx/conf/ssl.conf;
 
-  location /keycloak/ {
-    proxy_pass        https://localhost:8443/;
-    proxy_set_header  Host               $host;
-    proxy_set_header  X-Real-IP          $remote_addr;
-    proxy_set_header  X-Forwarded-For    $proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Host   $host;
-    proxy_set_header  X-Forwarded-Server $host;
-    proxy_set_header  X-Forwarded-Port   $server_port;
-    proxy_set_header  X-Forwarded-Proto  $scheme;
-  }
+  
 
-  location /keycloak/auth/ {
-    proxy_pass        https://localhost:8443/keycloak/auth/;
-    proxy_set_header  Host               $host;
-    proxy_set_header  X-Real-IP          $remote_addr;
-    proxy_set_header  X-Forwarded-For    $proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Host   $host;
-    proxy_set_header  X-Forwarded-Server $host;
-    proxy_set_header  X-Forwarded-Port   $server_port;
-    proxy_set_header  X-Forwarded-Proto  $scheme;
-  }
-
-}
+#}
 
 
 
