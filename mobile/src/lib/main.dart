@@ -35,7 +35,7 @@ void main() async {
   final authRepo = AuthenticationRepoImpl(datasource: authDatasource);
   final authUsecases = AuthUsecases(repo: authRepo);
   final authProvider = AuthProvider(authUsecases);
-  await authProvider.init();
+  authProvider.init();
   
   // 1. Create the API Service (Data Source)
   final apiService = ApiService( 
