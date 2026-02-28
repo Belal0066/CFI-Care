@@ -1,6 +1,6 @@
-import 'package:http/http.dart' as http;
+// import 'package:http/http.dart' as http;
 import '../../../domain/models/auth_model.dart';
-import 'dart:convert';
+// import 'dart:convert';
 
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -35,13 +35,17 @@ class KeycloakRemoteDataSource {
 
       final refresh = response?.refreshToken;
 
-      final access = response?.accessToken ?? '';
+      // final access = response?.accessToken ?? '';
 
-print('[AUTH DEBUG] access exists=${access.isNotEmpty}');
-print('[AUTH DEBUG] refresh is null=${refresh == null}, empty=${(refresh ?? '').isEmpty}');
-print('[AUTH DEBUG] id exists=${(response?.idToken ?? '').isNotEmpty}');
-print('[AUTH DEBUG] access exp=${response?.accessTokenExpirationDateTime}');
-print('[AUTH DEBUG] token type=${response?.tokenType}');
+      // print('[AUTH DEBUG] access exists=${access.isNotEmpty}');
+      // print(
+      //   '[AUTH DEBUG] refresh is null=${refresh == null}, empty=${(refresh ?? '').isEmpty}',
+      // );
+      // print('[AUTH DEBUG] id exists=${(response?.idToken ?? '').isNotEmpty}');
+      // print(
+      //   '[AUTH DEBUG] access exp=${response?.accessTokenExpirationDateTime}',
+      // );
+      // print('[AUTH DEBUG] token type=${response?.tokenType}');
 
       if (refresh == null || refresh.isEmpty) {
         throw Exception('Login succeeded but no refresh token was returned. ');
@@ -57,8 +61,10 @@ print('[AUTH DEBUG] token type=${response?.tokenType}');
         idToken: response.idToken,
       );
 
-      final savedRefresh = await _vault.readRefreshToken();
-print('[AUTH DEBUG] saved refresh null=${savedRefresh == null}, empty=${(savedRefresh ?? '').isEmpty}, len=${savedRefresh?.length ?? 0}');
+      // final savedRefresh = await _vault.readRefreshToken();
+      // print(
+      //   '[AUTH DEBUG] saved refresh null=${savedRefresh == null}, empty=${(savedRefresh ?? '').isEmpty}, len=${savedRefresh?.length ?? 0}',
+      // );
 
       return _mapToSession(
         accessToken: response.accessToken!,

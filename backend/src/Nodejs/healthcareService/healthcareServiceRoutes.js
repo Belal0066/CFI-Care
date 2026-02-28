@@ -1,54 +1,56 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+// const { requireSession } = require("../middleware/requireSession");
+
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const healthcareServiceController = require("./healthcareServiceController");
 
 // Get all healthcare services
 router.get(
   "/",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.getAllHealthcareServices,
 );
 
 // Get healthcare services by organization
 router.get(
   "/organization/:organizationId",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.getHealthcareServicesByOrganization,
 );
 
 // Create healthcare service with specific ID
 router.put(
   "/",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.createHealthcareServiceWithSpecificId,
 );
 
 // Create healthcare service (auto-generated ID)
 router.post(
   "/",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.createHealthcareService,
 );
 
 // Get healthcare service by ID
 router.get(
   "/:id",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.getHealthcareServiceById,
 );
 
 // Update healthcare service
 router.post(
   "/:id",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.updateHealthcareService,
 );
 
 // Delete healthcare service
 router.delete(
   "/:id",
-  requireSession,
+  requireApiAuth,
   healthcareServiceController.deleteHealthcareService,
 );
 
