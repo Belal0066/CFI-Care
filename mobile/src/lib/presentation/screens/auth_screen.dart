@@ -13,30 +13,28 @@ class AuthEntryScreen extends StatefulWidget {
 class _AuthEntryScreenState extends State<AuthEntryScreen> {
   bool _started = false;
 
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-  //   if (_started) return;
-  //   _started = true;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
 
-  //   Future.microtask(() async {
-  //     final auth = context.read<AuthProvider>();
+    Future.microtask(() async {
+      final auth = context.read<AuthProvider>();
 
-  //     if (auth.status == AuthStatus.authenticating ||
-  //         auth.status == AuthStatus.refreshing ||
-  //         auth.status == AuthStatus.authenticated) {
-  //       return;
-  //     }
-
-  //     await auth.login();
-  //   });
-  // }
+      if (auth.status == AuthStatus.unauthenticated &&
+          auth.errorMessage == null) {
+        await auth.login();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
-      builder: (_, auth, __) {
-        final busy = auth.status == AuthStatus.authenticating ||
+      builder: (_, auth, _) {
+        final busy =
+            auth.status == AuthStatus.authenticating ||
             auth.status == AuthStatus.refreshing ||
             auth.status == AuthStatus.unknown;
 
@@ -51,7 +49,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     const Text('Opening login screen..'),
-                  ] else ...[
+                  ] else if (auth.status == AuthStatus.failure) ...[
                     const Text(
                       'login was cancelled or failed.',
                       textAlign: TextAlign.center,
@@ -68,6 +66,11 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                     FilledButton(
                       onPressed: () => context.read<AuthProvider>().login(),
                       child: const Text('Try again'),
+                    ),
+                  ] else ...[
+                    FilledButton(
+                      onPressed: () => context.read<AuthProvider>().login(),
+                      child: const Text('Sign in'),
                     ),
                   ],
                 ],

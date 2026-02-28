@@ -11,8 +11,8 @@ test-login.html
 sign_in.html
 route.html
 
-login/
-css/
+# login/
+# css/
 
 decode_jwt.py
 

@@ -51,13 +51,13 @@ trivy image --severity HIGH,CRITICAL <image-name>:<tag>
     *or* run this command to import the file from its volume :
     
         ```
-            docker exec -i localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realms.json"
+            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realms.json"
         ```
 
 - To export keycloak realms within a single file, start container, then run this command within a terminal :
 
         ```
-            docker exec -i localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json"
+            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json"
 
         ```
 

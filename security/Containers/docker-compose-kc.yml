@@ -117,7 +117,7 @@ services:
       # - './import:/import:ro'
       - "./import:/opt/keycloak/data/import:ro"
       - "./export:/export:rw"
-      - "./static/mythemes/login:/themes/mytheme/login:rw"
+      - "./static/mobile:/opt/keycloak/themes/mobile:ro"
 
     depends_on:
       postgres:
