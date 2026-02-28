@@ -9,11 +9,11 @@
           <img class="cfi-logo-img" src="${url.resourcesPath}/img/cfi-logo.png" alt="CFI-CARE" />
         </div>
         <h2 class="cfi-title">CFI-CARE</h2>
-        <p class="cfi-subtitle">Two-Factor Verification</p>
+        <p class="cfi-subtitle">Your Health, Our Priority</p>
       </div>
 
       <div class="cfi-tabs cfi-tabs-single">
-        <span class="cfi-tab active">OTP Code</span>
+        <span class="cfi-tab active">Input OTP Code</span>
       </div>
 
       <#if message?has_content>
@@ -51,6 +51,25 @@
           <input class="btn btn-primary" name="login" id="kc-login" type="submit" value="${msg("doLogIn")}"/>
         </div>
       </form>
+
+      <div id="cfi-otp-identity-helper" class="cfi-help" style="margin-top: 14px;"></div>
+
+      <script>
+        (function () {
+          var mount = document.getElementById('cfi-otp-identity-helper');
+          if (!mount) return;
+
+          var attemptedUsername = document.getElementById('kc-attempted-username') || document.getElementById('kc-username');
+          var restartLogin = document.getElementById('reset-login');
+
+          if (attemptedUsername) {
+            mount.appendChild(attemptedUsername);
+          }
+          if (restartLogin) {
+            mount.appendChild(restartLogin);
+          }
+        })();
+      </script>
     </div>
   </#if>
 </@layout.registrationLayout>

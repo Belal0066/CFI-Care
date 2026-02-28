@@ -9,7 +9,7 @@
           <img class="cfi-logo-img" src="${url.resourcesPath}/img/cfi-logo.png" alt="CFI-CARE" />
         </div>
         <h2 class="cfi-title">CFI-CARE</h2>
-        <p class="cfi-subtitle">Reset OTP</p>
+        <p class="cfi-subtitle">Your Health, Our Priority</p>
       </div>
 
       <div class="cfi-tabs cfi-tabs-single">
