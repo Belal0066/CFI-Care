@@ -64,10 +64,17 @@ class AuthProvider with ChangeNotifier {
       await _syncUserId(resolvedLocalUserId);
 
       _setState(AuthStatus.authenticated);
+    // } catch (e) {
+    //   _errorMessage = e.toString();
+    //   await _clearLocalSession();
+    //   _setState(AuthStatus.failure);
+    //   _setState(AuthStatus.unauthenticated);
+    // }
+
     } catch (e) {
-      _errorMessage = e.toString();
       await _clearLocalSession();
-      _setState(AuthStatus.failure);
+      _session = null;
+      _errorMessage = null; 
       _setState(AuthStatus.unauthenticated);
     }
   }
