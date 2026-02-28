@@ -7,6 +7,9 @@ abstract class AuthenticationRepository {
   Future<void> logout();
   Future<String?> getValidAccessToken();
 
+  Future<AuthModel> runKeycloakAction(String action);
+  Future<AuthModel> updatePassword();
+
   // Future<AuthModel> login(String email, String pass);
   // Future<bool> register(String fName, String lName , String email, String pass);
   // Future <bool> logout();

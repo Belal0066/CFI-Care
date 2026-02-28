@@ -15,6 +15,10 @@ class AuthUsecases {
 
   Future<String?> getValidAccessToken() => repo.getValidAccessToken();
 
+  Future<AuthModel> runKeycloakAction(String action) =>
+      repo.runKeycloakAction(action);
+  Future<AuthModel> updatePassword() => repo.updatePassword();
+
   // Future<AuthenticationModel> login(String email, String pass) async{
   //     return repo.login(email, pass);
   // }

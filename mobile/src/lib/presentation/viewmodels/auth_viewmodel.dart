@@ -190,4 +190,18 @@ class AuthProvider with ChangeNotifier {
     await prefs.remove('currentUserId');
     Session.currentUserId = null;
   }
+
+  Future<void> configureTotp() async {
+  final session = await _authUsecases.runKeycloakAction('CONFIGURE_TOTP');
+  _session = session;
+  _setState(AuthStatus.authenticated);
+}
+
+Future<void> updatePassword() async {
+  final session = await _authUsecases.updatePassword();
+  _session = session;
+  _setState(AuthStatus.authenticated);
+}
+
+
 }

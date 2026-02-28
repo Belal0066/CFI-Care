@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../widgets/account_sec_section.dart';
 
 
 
@@ -215,7 +216,9 @@ class _MyProfileState extends State<MyProfile> {
                 ),
                 const SizedBox(height: 24),
                 const Divider(),
-
+                
+                AccountSecuritySection(),
+                SizedBox(height: 12),
                 // --- Personal Info Section ---
                 BuildSectionProfile(
                   leading: Icons.person_outline_outlined,

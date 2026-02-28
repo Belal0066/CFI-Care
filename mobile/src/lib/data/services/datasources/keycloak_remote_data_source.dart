@@ -196,6 +196,74 @@ class KeycloakRemoteDataSource {
     );
   }
 
+  Future<AuthModel> runKeycloakAction(String kcAction) async {
+    AuthorizationTokenResponse? response;
+
+    Future<AuthorizationTokenResponse?> _run({List<String>? promptValues}) async {
+      final idTokenHint = await _vault.readIdToken();
+      String? loginHint;
+      if (idTokenHint != null && idTokenHint.isNotEmpty) {
+        final claims = JwtDecoder.decode(idTokenHint);
+        loginHint = claims['email'] as String?;
+      }
+
+      final additionalParameters = <String, String>{'kc_action': kcAction};
+      if (idTokenHint != null && idTokenHint.isNotEmpty) {
+        additionalParameters['id_token_hint'] = idTokenHint;
+      }
+
+      return _appAuth.authorizeAndExchangeCode(
+        AuthorizationTokenRequest(
+          _config.clientId,
+          _config.redirectUri,
+          issuer: _config.issuer,
+          scopes: _config.scopes,
+          additionalParameters: additionalParameters,
+          loginHint: loginHint,
+          promptValues: promptValues,
+        ),
+      );
+    }
+
+    try {
+      // silent attempt
+      response = await _run(promptValues: const ['none']);
+    } catch (e) {
+      final txt = e.toString().toLowerCase();
+      if (!txt.contains('login_required')) {
+        rethrow;
+      }
+    }
+
+    // login again if silent fails
+    if (response == null || response.accessToken == null) {
+      response = await _run();
+    }
+
+    if (response == null || response.accessToken == null) {
+      throw Exception('Action failed: empty token response');
+    }
+
+    final existingRefresh = await _vault.readRefreshToken();
+    final refreshToStore =
+        (response.refreshToken != null && response.refreshToken!.isNotEmpty)
+            ? response.refreshToken
+            : existingRefresh;
+
+    await _saveTokens(
+      accessToken: response.accessToken!,
+      refreshToken: refreshToStore,
+      idToken: response.idToken,
+    );
+
+    return _mapToSession(
+      accessToken: response.accessToken!,
+      refreshToken: refreshToStore,
+      idToken: response.idToken,
+      expiresAt: response.accessTokenExpirationDateTime,
+    );
+  }
+
   // Future<AuthenticationModel> login(String email, String pass) async{
 
   //     final url = Uri.parse('mobile-login');

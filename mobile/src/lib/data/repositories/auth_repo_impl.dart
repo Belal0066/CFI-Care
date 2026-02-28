@@ -39,6 +39,16 @@ class AuthenticationRepoImpl implements AuthenticationRepository {
     }
   }
 
+  @override
+  Future<AuthModel> runKeycloakAction(String action) {
+    return datasource.runKeycloakAction(action);
+  }
+
+  @override
+  Future<AuthModel> updatePassword() {
+    return datasource.runKeycloakAction('UPDATE_PASSWORD');
+  }
+
   // @override
   // Future<bool> register(String fName, String lName , String email, String pass) async{
   //     return datasource.register(fName, lName, email , pass);
