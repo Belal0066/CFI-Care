@@ -58,6 +58,33 @@ body {
   display: none !important;
 }
 
+#kc-username,
+#kc-attempted-username,
+#reset-login,
+#reset-login a {
+  display: block;
+  text-align: center;
+}
+
+#kc-username,
+#kc-attempted-username {
+  color: var(--cfi-muted);
+  font-size: 34px !important;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+#reset-login {
+  margin: 0 0 14px;
+}
+
+#reset-login a {
+  color: var(--cfi-primary-dark);
+  text-decoration: none;
+  font-size: 32px !important;
+  font-weight: 600;
+}
+
 #kc-content,
 #kc-content-wrapper {
   width: 100%;
@@ -566,6 +593,15 @@ body {
   #kc-form-login #rememberMe {
     width: 28px !important;
     height: 28px !important;
+  }
+
+  #kc-username,
+  #kc-attempted-username {
+    font-size: 30px !important;
+  }
+
+  #reset-login a {
+    font-size: 28px !important;
   }
 
   /* .cfi-help {
