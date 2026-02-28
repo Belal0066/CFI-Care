@@ -8,18 +8,65 @@ import '../../../config/app_config.dart';
 class ApiService {
   // 10.0.2.2 safely connects the Android Emulator to your local computer's port 3000 (Node.js HTTP)
   final String baseUrl = AppConfig.apiBaseUrl;
+  
+
+  final Future<String?> Function()? getAccessToken;
+  final Future<String?> Function()? forceRefreshToken;
+  final Future<void> Function()? onUnauthorized;
+
+  ApiService({
+    this.getAccessToken,
+    this.forceRefreshToken,
+    this.onUnauthorized,
+  });
+
+  Future<Map<String, String>> _authHeaders({bool json = true}) async {
+    final token = await getAccessToken?.call();
+    print('[AUTH HDR] token null=${token == null} empty=${(token ?? '').isEmpty} len=${token?.length ?? 0}');
+    final headers = <String, String>{};
+    if (json) headers['Content-Type'] = 'application/json';
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  Future<http.Response> _authorizedRequest(
+    Future<http.Response> Function(Map<String, String> headers) send,
+  ) async {
+    var headers = await _authHeaders();
+    var response = await send(headers);
+
+    if (response.statusCode == 401 && forceRefreshToken != null) {
+      final refreshed = await forceRefreshToken!.call();
+      if (refreshed != null && refreshed.isNotEmpty) {
+        headers = await _authHeaders();
+        headers['Authorization'] = 'Bearer $refreshed';
+        response = await send(headers);
+      }
+    }
+
+    if (response.statusCode == 401) {
+      await onUnauthorized?.call();
+    }
+
+    print('[AUTH REQ] status=${response.statusCode} authSent=${headers.containsKey('Authorization')}');
+    return response;
+  }
+
 
   Future<http.Response> postData({
     required String endpoint,
     required Map<String, dynamic> data,
   }) async {
     try {
-      final response = await http.post(
+      return _authorizedRequest((headers) {
+      return http.post(
         Uri.parse('$baseUrl$endpoint'),
-        headers: {"Content-Type": "application/json"},
+        headers: headers,
         body: json.encode(data),
       );
-      return response;
+    });
     } catch (e) {
       throw Exception("Network Error during POST: $e");
     }
@@ -35,10 +82,17 @@ class ApiService {
   }) async {
     // Note: Make sure this endpoint matches your backend route for document uploads
     // (e.g., /documentReferences based on your index.js)
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$baseUrl/documents'),
-    );
+    // var request = http.MultipartRequest(
+    //   'POST',
+    //   Uri.parse('$baseUrl/documents'),
+    // );
+
+    final token = await getAccessToken?.call();
+
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/documents'));
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
     request.fields['title'] = title;
     request.fields['type'] = type;
@@ -50,6 +104,20 @@ class ApiService {
 
     var streamedResponse = await request.send();
     var response = await http.Response.fromStream(streamedResponse);
+
+
+    if (response.statusCode == 401 && forceRefreshToken != null) {
+      final refreshed = await forceRefreshToken!.call();
+      if (refreshed != null && refreshed.isNotEmpty) {
+        final retry = http.MultipartRequest('POST', Uri.parse('$baseUrl/documents'));
+        retry.headers['Authorization'] = 'Bearer $refreshed';
+        retry.fields.addAll(request.fields);
+        retry.files.add(await http.MultipartFile.fromPath('file', file.path));
+        streamedResponse = await retry.send();
+        response = await http.Response.fromStream(streamedResponse);
+      }
+    }
+
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return json.decode(response.body);
@@ -64,8 +132,9 @@ class ApiService {
       final uri = specialty != null && specialty.isNotEmpty
           ? Uri.parse('$baseUrl/practitioners?specialtyDetail=$specialty')
           : Uri.parse('$baseUrl/practitioners');
-      final response = await http.get(uri);
+      // final response = await http.get(uri);
 
+      final response = await _authorizedRequest((headers) => http.get(uri, headers: headers));
       print('[fetchDoctors] status=${response.statusCode}');
       print('[fetchDoctors] body=${response.body}');
 
@@ -83,9 +152,9 @@ class ApiService {
   // Fetch available slots for a specific doctor
   Future<List<dynamic>> fetchSlotsForDoctor(String doctorId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/slots/practitioner/$doctorId'),
-      );
+      final response = await _authorizedRequest((headers) {
+      return http.get(Uri.parse('$baseUrl/slots/practitioner/$doctorId'), headers: headers);
+    });
 
       print('[fetchSlotsForDoctor] status=${response.statusCode}');
       print('[fetchSlotsForDoctor] body=${response.body}');
@@ -104,11 +173,13 @@ class ApiService {
   // --- 2. SEND API (POST) ---
   Future<void> createAppointment(Map<String, dynamic> bookingData) async {
     try {
-      final response = await http.post(
+      final response = await _authorizedRequest((headers) {
+      return http.post(
         Uri.parse('$baseUrl/appointments'),
-        headers: {"Content-Type": "application/json"},
+        headers: headers,
         body: json.encode(bookingData),
       );
+    });
 
       if (response.statusCode != 201 && response.statusCode != 200) {
         throw Exception("Failed to create appointment");
@@ -137,11 +208,13 @@ class ApiService {
         "appointmentType": appointmentType,
       };
 
-      final response = await http.post(
+      final response = await _authorizedRequest((headers) {
+      return http.post(
         Uri.parse('$baseUrl/appointments'),
-        headers: {"Content-Type": "application/json"},
+        headers: headers,
         body: json.encode(bookingData),
       );
+    });
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return json.decode(response.body);

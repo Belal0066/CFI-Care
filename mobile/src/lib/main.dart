@@ -39,14 +39,15 @@ void main() async {
   
   // 1. Create the API Service (Data Source)
   final apiService = ApiService( 
-    // getAccessToken: () => authUsecases.getValidAccessToken(),
-    // forceRefreshToken: () async {
-    //   final s = await authUsecases.refreshSession();
-    //   return s.accessToken;
-    // },
-    // onUnauthorized: () async {
-    //   await authUsecases.logout();
-    // },
+    getAccessToken: () => authUsecases.getValidAccessToken(),
+    forceRefreshToken: () async {
+      final s = await authUsecases.refreshSession();
+      return s.accessToken;
+    },
+    onUnauthorized: () async {
+      // await authUsecases.logout();
+      debugPrint('[AUTH] skip auto-logout during debug');
+    },
     );
   final pdfService = PdfStorageService();
   final imgService = ImageStorageService();
