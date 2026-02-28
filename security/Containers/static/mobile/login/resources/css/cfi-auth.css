@@ -14,6 +14,8 @@ body,
   min-height: 100%;
   font-size: 20px !important;
   color: var(--cfi-text);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 html {
@@ -22,22 +24,33 @@ html {
 }
 
 body {
-  margin: 0.5;
+  margin: 0 !important;
 }
 
 #kc-content-wrapper,
 .login-pf-page,
 .card-pf {
   overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 .cfi-form-register {
   max-height: none;
+  overflow: visible !important;
 }
 
 #kc-register-form {
-  overflow-y: auto;
+  overflow-y: visible !important;
+  max-height: none !important;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  margin-bottom: max(50px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(50px, env(safe-area-inset-bottom, 0px));
+}
+
+#kc-register-form .form-group:last-child {
+  margin-bottom: max(50px, env(safe-area-inset-bottom, 0px));
 }
 #kc-header,
 #kc-header-wrapper,
