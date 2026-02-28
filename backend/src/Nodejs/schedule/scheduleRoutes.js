@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const scheduleController = require("./scheduleController");
 
 // Get schedules by practitioner ID

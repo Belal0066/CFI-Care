@@ -33,19 +33,36 @@ class KeycloakRemoteDataSource {
             ),
           );
 
+      final refresh = response?.refreshToken;
+
+      final access = response?.accessToken ?? '';
+
+print('[AUTH DEBUG] access exists=${access.isNotEmpty}');
+print('[AUTH DEBUG] refresh is null=${refresh == null}, empty=${(refresh ?? '').isEmpty}');
+print('[AUTH DEBUG] id exists=${(response?.idToken ?? '').isNotEmpty}');
+print('[AUTH DEBUG] access exp=${response?.accessTokenExpirationDateTime}');
+print('[AUTH DEBUG] token type=${response?.tokenType}');
+
+      if (refresh == null || refresh.isEmpty) {
+        throw Exception('Login succeeded but no refresh token was returned. ');
+      }
+
       if (response == null || response.accessToken == null) {
         throw Exception('Auth falied: empty token res');
       }
 
       await _saveTokens(
         accessToken: response.accessToken!,
-        refreshToken: response.refreshToken,
+        refreshToken: refresh,
         idToken: response.idToken,
       );
 
+      final savedRefresh = await _vault.readRefreshToken();
+print('[AUTH DEBUG] saved refresh null=${savedRefresh == null}, empty=${(savedRefresh ?? '').isEmpty}, len=${savedRefresh?.length ?? 0}');
+
       return _mapToSession(
         accessToken: response.accessToken!,
-        refreshToken: response.refreshToken,
+        refreshToken: refresh,
         idToken: response.idToken,
         expiresAt: response.accessTokenExpirationDateTime,
       );

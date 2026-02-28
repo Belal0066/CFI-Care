@@ -1,39 +1,39 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const observationController = require("./observationController");
 
 // Get observations by patient ID
 router.get(
   "/patient/:patientId",
-  requireSession,
+  requireApiAuth,
   observationController.getObservationsByPatient,
 );
 
 // Get observations by patient ID and category (query param: ?category=vital-signs)
 router.get(
   "/patient/:patientId/category",
-  requireSession,
+  requireApiAuth,
   observationController.getObservationsByCategory,
 );
 
 // Create observation with specific ID
 router.put(
   "/",
-  requireSession,
+  requireApiAuth,
   observationController.createObservationWithSpecificId,
 );
 
 // Create observation (auto-generated ID)
-router.post("/", requireSession, observationController.createObservation);
+router.post("/", requireApiAuth, observationController.createObservation);
 
 // Get observation by ID
-router.get("/:id", requireSession, observationController.getObservationById);
+router.get("/:id", requireApiAuth, observationController.getObservationById);
 
 // Update observation
-router.post("/:id", requireSession, observationController.updateObservation);
+router.post("/:id", requireApiAuth, observationController.updateObservation);
 
 // Delete observation
-router.delete("/:id", requireSession, observationController.deleteObservation);
+router.delete("/:id", requireApiAuth, observationController.deleteObservation);
 
 module.exports = router;
