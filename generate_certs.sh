@@ -81,7 +81,7 @@ mkcert -install
 
 # 5. Generate Certificates
 echo -e "${YELLOW}Generating Certificates...${NC}"
-mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem kc.localhost 127.0.0.1 ::1
+mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost 127.0.0.1 ::1
 mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
 
 # 6. Create Java Keystore

@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
+import '../../../config/app_config.dart';
+
+
 class ApiService {
   // 10.0.2.2 safely connects the Android Emulator to your local computer's port 3000 (Node.js HTTP)
-  final String baseUrl = "http://10.0.2.2:3000/api";
+  final String baseUrl = AppConfig.apiBaseUrl;
 
   Future<http.Response> postData({
     required String endpoint,
