@@ -40,13 +40,13 @@ void main() async {
   // 1. Create the API Service (Data Source)
   final apiService = ApiService( 
     getAccessToken: () => authUsecases.getValidAccessToken(),
-    forceRefreshToken: () async {
+    refreshToken: () async {
       final s = await authUsecases.refreshSession();
       return s.accessToken;
     },
     onUnauthorized: () async {
       // await authUsecases.logout();
-      debugPrint('[AUTH] skip auto-logout during debug');
+      // debugPrint('[AUTH] skipped auto-logout during debug for 401 res from backend in case of errors -_-');
     },
     );
   final pdfService = PdfStorageService();

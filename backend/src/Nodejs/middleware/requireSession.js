@@ -3,11 +3,11 @@ const axios = require('axios');
 
 async function requireSession(req, res, next) {
     try {
-        console.log("[requireSession] HIT", {
-            url: req.originalUrl,
-            method: req.method,
-            authHeaderPresent: !!req.headers.authorization,
-        });
+        // console.log("[requireSession] HIT", {
+        //     url: req.originalUrl,
+        //     method: req.method,
+        //     authHeaderPresent: !!req.headers.authorization,
+        // });
         console.log('[requireSession] Session check:', {
             hasSession: !!req.session,
             hasUser: !!req.session?.user,
