@@ -9,6 +9,7 @@
 <#assign isKcActionFlow = loginActionValue?contains('kc_action=') || loginUrlValue?contains('kc_action=')>
 <#assign effectiveShowRegisterTab = showRegisterTab && !(hideRegisterOnKcAction && isKcActionFlow)>
 <#assign effectiveShowTabs = !(hideTabsOnKcAction && isKcActionFlow)>
+<#assign showVerifyIdentityPill = hideTabsOnKcAction && isKcActionFlow>
 <#assign hasKnownUsername = (login.username!'')?has_content>
 <#assign lockUsernameField = lockUsernameOnKcAction && isKcActionFlow && hasKnownUsername>
 <#assign hasCredentialFieldErrors = messagesPerField.existsError('username') || messagesPerField.existsError('password')>
@@ -35,6 +36,10 @@
           </#if>
         </div>
       </#if>
+
+      <div class="cfi-tabs cfi-tabs-single" data-role="verify-identity-pill" <#if !showVerifyIdentityPill>style="display:none;"</#if>>
+        <span class="cfi-tab active">Verify your identity</span>
+      </div>
 
       <#if message?has_content && message.type?? && !hasCredentialFieldErrors>
         <div class="cfi-inline-message cfi-inline-${(message.type!'info')?lower_case}" role="alert" aria-live="polite">
@@ -101,6 +106,11 @@
                 var authTabs = document.querySelectorAll('[data-role="auth-tabs"]');
                 for (var a = 0; a < authTabs.length; a++) {
                   authTabs[a].style.display = 'none';
+                }
+
+                var verifyPills = document.querySelectorAll('[data-role="verify-identity-pill"]');
+                for (var v = 0; v < verifyPills.length; v++) {
+                  verifyPills[v].style.display = 'grid';
                 }
               }
 
