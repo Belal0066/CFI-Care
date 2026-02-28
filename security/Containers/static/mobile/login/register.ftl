@@ -3,7 +3,7 @@
   <#if section = "header">
     
   <#elseif section = "form">
-    <div class="cfi-form">
+    <div class="cfi-form cfi-form-register">
       <div class="cfi-brand">
         <div class="cfi-logo">
           <img class="cfi-logo-img" src="${url.resourcesPath}/img/cfi-logo.png" alt="CFI-CARE" />
@@ -54,7 +54,13 @@
 
         <div class="form-group">
           <label for="password">${msg("password")}</label>
-          <input type="password" id="password" class="form-control" name="password" autocomplete="new-password"/>
+          <div class="cfi-password-wrap">
+            <input type="password" id="password" class="form-control" name="password" autocomplete="new-password"/>
+            <button type="button" class="cfi-password-toggle" data-target="password" aria-label="Show password" aria-pressed="false">
+              <span class="eye-open">Show</span>
+              <span class="eye-closed">Hide</span>
+            </button>
+          </div>
           <#if messagesPerField.existsError('password')>
             <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('password'))?no_esc}</span>
           </#if>
@@ -62,7 +68,13 @@
 
         <div class="form-group">
           <label for="password-confirm">${msg("passwordConfirm")}</label>
-          <input type="password" id="password-confirm" class="form-control" name="password-confirm" autocomplete="new-password"/>
+          <div class="cfi-password-wrap">
+            <input type="password" id="password-confirm" class="form-control" name="password-confirm" autocomplete="new-password"/>
+            <button type="button" class="cfi-password-toggle" data-target="password-confirm" aria-label="Show password" aria-pressed="false">
+              <span class="eye-open">Show</span>
+              <span class="eye-closed">Hide</span>
+            </button>
+          </div>
           <#if messagesPerField.existsError('password-confirm')>
             <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('password-confirm'))?no_esc}</span>
           </#if>
@@ -72,6 +84,24 @@
           <input class="btn btn-primary" type="submit" value="${msg("doRegister")}"/>
         </div>
       </form>
+
+      <script>
+        (function () {
+          var toggles = document.querySelectorAll('.cfi-password-toggle');
+          for (var i = 0; i < toggles.length; i++) {
+            toggles[i].addEventListener('click', function () {
+              var targetId = this.getAttribute('data-target');
+              var input = document.getElementById(targetId);
+              if (!input) return;
+              var isHidden = input.type === 'password';
+              input.type = isHidden ? 'text' : 'password';
+              this.classList.toggle('is-visible', isHidden);
+              this.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+              this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+            });
+          }
+        })();
+      </script>
     </div>
   <#elseif section = "info" >
     <div class="cfi-help">
