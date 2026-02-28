@@ -10,7 +10,7 @@ class AppConfig {
   // Keycloak
   static const keycloakIssuer = String.fromEnvironment(
     'KEYCLOAK_ISSUER',
-    defaultValue: 'https://localhost:8443/realms/CFI-Care',
+    defaultValue: 'https://localhost:8443/keycloak/realms/CFI-Care',
   );
 
   static const keycloakClientId = String.fromEnvironment(
