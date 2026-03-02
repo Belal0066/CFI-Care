@@ -616,24 +616,6 @@ body {
     font-size: 28px !important;
   }
 
-  .cfi-inline-message.cfi-inline-success {
-  max-width: 100%;
-  text-align: center;
-  margin: 10px auto 0;
-  padding: 16px 18px;
-  border-radius: 12px;
-  font-size: 33px !important;
-  line-height: 1.35;
-}
-
-.cfi-inline-message.cfi-inline-success p {
-  margin: 0;
-}
-
-.cfi-form .cfi-inline-message.cfi-inline-success {
-  margin-bottom: 6px;
-}
-
   /* .cfi-help {
     font-size: 35px;
   }
