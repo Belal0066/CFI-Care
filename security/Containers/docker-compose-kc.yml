@@ -118,6 +118,8 @@ services:
       - "./import:/opt/keycloak/data/import:ro"
       - "./export:/export:rw"
       - "./static/mobile:/opt/keycloak/themes/mobile:ro"
+      - "./static/realm:/opt/keycloak/themes/realm:ro"
+      - "./static/browser:/opt/keycloak/themes/browser:ro"
 
     depends_on:
       postgres:
