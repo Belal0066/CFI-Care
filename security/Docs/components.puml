@@ -2,29 +2,87 @@
 skinparam componentStyle rectangle
 
 package "Edge" {
-  [Browser] --> [nginx]
+  [Browser]
+  [Mobile App]
 }
 
-package "Backend" {
-  [NodeJS (BFF)] --> [HAPI FHIR]
-  [NodeJS (BFF)] --> [Keycloak]
-  [HAPI FHIR] --> [Keycloak]
+package "API Gateway" {
+  [nginx] 
 }
 
-Browser -down-> nginx : TLS
-nginx -right-> NodeJS (BFF) : HTTP(s)
-NodeJS (BFF) -right-> HAPI FHIR : Forward user token or exchanged token
-NodeJS (BFF) ..> Keycloak : token-exchange / client_credentials
-HAPI FHIR ..> Keycloak : JWKS / (introspection optional)
+package "Backend-for-Frontend" {
+  [NodeJS (BFF)]
+}
 
-note right of NodeJS (BFF)
-  Validates JWT (JWKS cached)
-  Enforces domain/resource policies
-  Logs audit info
+package "Identity & Storage" {
+  [Keycloak]
+  component "Postgres\n(Keycloak DB)" as Postgres
+  component "Redis\n(Session Store)" as Redis
+  component "Redis Audit\n(Audit Logs)" as RedisAudit
+}
+
+package "Resource Server" {
+  [HAPI FHIR]
+}
+
+Browser --> nginx : HTTPS 443 Session Cookie
+[Mobile App] --> nginx : HTTPS 443 Bearer Token
+nginx --> [NodeJS (BFF)] : HTTP internal Forwarded headers
+
+[NodeJS (BFF)] --> Redis : Store Retrieve session tokens
+[NodeJS (BFF)] --> RedisAudit : Write audit events
+[NodeJS (BFF)] --> Keycloak : Password grant Token refresh Admin logout
+[NodeJS (BFF)] --> [HAPI FHIR] : Forward with Authorization header
+
+Keycloak --> Postgres : User accounts Roles credentials
+[HAPI FHIR] --> Keycloak : JWKS validation
+
+note right of [nginx]
+  TLS termination (443)
+  HTTPS redirect (80→443)
+  Proxy to BFF (/api, /auth)
+  Proxy to Angular (/)
+  Sets forwarded headers
 end note
 
-note right of HAPI FHIR
+note right of [NodeJS (BFF)]
+  Express-session middleware
+  Rate limiting (Redis-backed)
+  Input validation (Joi)
+  Session check (requireSession)
+  JWT verification (JWKS)
+  Scope validation
+  Helmet (CSP, HSTS, X-Frame)
+  CORS (frontend origin only)
+  Audit logging to Redis
+end note
+
+note right of [HAPI FHIR]
   Validates JWT (JWKS)
-  Enforces FHIR policies (scopes/consent)
+  Enforces FHIR policies
+  (scopes/consent)
+  Future: consent-based access
+end note
+
+note right of Redis
+  Session store (RedisStore)
+  Tokens: access, refresh, id
+  TTL: 1 hour per session
+  Tracks all user sessions
+end note
+
+note right of RedisAudit
+  Audit log store
+  Events: LOGIN, LOGOUT, etc.
+  90-day retention (sorted sets)
+  Queryable by user/event type
+end note
+
+note right of Keycloak
+  OIDC/OAuth 2.0 provider
+  User account management
+  RBAC (realm/client roles)
+  JWKS endpoint
+  Password hashing (PBKDF2)
 end note
 @enduml
