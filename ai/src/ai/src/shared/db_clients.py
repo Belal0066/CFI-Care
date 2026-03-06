@@ -1,6 +1,6 @@
 """
-Database Connection Handlers for Twin Engine.
-Implements reliability patterns and connection pooling.
+Database Connection Handlers.
+Implements reliability patterns and connection pooling for the Qdrant vector store.
 """
 from typing import Optional, Dict, Any
 from qdrant_client import QdrantClient
@@ -140,10 +140,5 @@ class QdrantVectorClient:
             return False
 
 
-# Singleton instances
+# Singleton instance
 qdrant_client = QdrantVectorClient()
-
-# FalkorDB is scaffolded but not connected (see context.md §6)
-# Importing falkor_client will succeed but return None.
-# Scripts should check `if falkor_client is not None:` before using.
-falkor_client = None

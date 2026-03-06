@@ -1,6 +1,6 @@
 """
-Ticket 1.4: Ingestion Service (2PC Lite).
-Orchestrates the "Twin Engine" write path with atomicity guarantees.
+Ticket 1.4: Ingestion Service.
+Chunks, embeds, and writes FHIR resources to the Qdrant vector store.
 """
 import logging
 import json
@@ -23,7 +23,7 @@ class IngestionError(Exception):
 
 class IngestionService:
     """
-    Handles the atomic ingestion of FHIR resources into Qdrant and FalkorDB.
+    Handles the ingestion of FHIR resources into Qdrant.
     """
 
     _embedding_model = None

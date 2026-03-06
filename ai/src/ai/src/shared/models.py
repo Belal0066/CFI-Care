@@ -9,13 +9,14 @@ import uuid
 
 class ClinicalEntity(BaseModel):
     """
-    Base class for all clinical entities to ensure Twin Engine Rule compliance.
+    Base class for all clinical entities, ensuring consistent identity linkage
+    between FHIR source data and its Qdrant vector entry.
     """
     class Config:
         extra = 'ignore'
         arbitrary_types_allowed = True
 
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="The UUID that links FHIR, Vector, and Graph.")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="The UUID that links FHIR source data to its Vector store entry.")
     resource_type: str = Field(..., description="FHIR Resource Type (e.g., Patient, Observation)")
     
     # Traceability for HIPAA
@@ -27,21 +28,19 @@ class VectorPayload(BaseModel):
     """
     id: str
     content: str = Field(..., description="Normalized clinical text snapshot.")
-    source_node_id: str = Field(..., description="Link to the Graph Node ID.")
+    source_node_id: str = Field(..., description="Link to the source ingestion node ID.")
     embedding: Optional[List[float]] = Field(None, description="768-dim vector.")
 
 class RetrievedContext(BaseModel):
     """
-    Unified context object returning both the semantic anchor and its graph neighborhood.
-    Used by HybridRetriever (Ticket 2.1).
+    Context object returned by HybridRetriever's dense+sparse vector search.
     """
     anchor_id: str
     anchor_content: str
     score: float
-    graph_context: List[Any] = Field(default_factory=list, description="List of nodes/rels from 1-hop expansion")
     # New fields for encounter-level retrieval
     parent_node_id: Optional[str] = Field(None, description="Encounter/node ID this chunk belongs to")
-    father_id: Optional[str] = Field(None, description="Parent encounter ID for graph traversal")
+    father_id: Optional[str] = Field(None, description="Parent encounter ID for encounter-level grouping")
     date_issued: Optional[str] = Field(None, description="ISO-8601 date of the encounter")
 
 
@@ -67,7 +66,7 @@ class DifferentialDiagnosis(BaseModel):
     diagnosis: str
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence score [0-1]")
     supporting_evidence: List[str] = Field(default_factory=list, description="Evidence supporting this diagnosis")
-    cited_ids: List[str] = Field(default_factory=list, description="UUIDs from graph context")
+    cited_ids: List[str] = Field(default_factory=list, description="UUIDs from retrieved context")
 
 class AuditFailure(BaseModel):
     """

@@ -21,11 +21,10 @@ class ClinicalWorkflow:
     LangGraph orchestrator for clinical reasoning.
     """
     
-    def __init__(self, retrieval_k: int = 5, retrieval_hops: int = 1, prompt_version: str = "v1"):
+    def __init__(self, retrieval_k: int = 5, prompt_version: str = "v1"):
         self.retriever = HybridRetriever()
         self.auditor = ClaimAuditor()
         self.retrieval_k = retrieval_k
-        self.retrieval_hops = retrieval_hops
         self.prompt_version = prompt_version
         
         # Build the workflow graph
@@ -76,7 +75,6 @@ class ClinicalWorkflow:
                 patient_id=state.patient_id,
                 query=state.query,
                 limit=self.retrieval_k,
-                hops=self.retrieval_hops
             )
             
             state.retrieved_contexts = contexts

@@ -129,7 +129,6 @@ class HybridRetriever:
         patient_id: str,
         query: str,
         limit: Optional[int] = None,
-        hops: int = 1,
         score_threshold: Optional[float] = None,
         intent: Optional[str] = None,
     ) -> List[RetrievedContext]:
@@ -218,7 +217,6 @@ class HybridRetriever:
                     anchor_id=str(original_id),
                     anchor_content=hit.payload.get("toon_content", ""),
                     score=score,
-                    graph_context=[],
                     parent_node_id=hit.payload.get("parent_node_id"),
                     father_id=hit.payload.get("father_id"),
                     date_issued=hit.payload.get("date_issued"),

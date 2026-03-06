@@ -54,10 +54,7 @@ def format_contexts_for_prompt(contexts: list) -> str:
         formatted.append(f"[Context {i}] ID: {ctx.anchor_id}")
         formatted.append(f"Score: {ctx.score:.3f}")
         formatted.append(f"Content: {ctx.anchor_content}")
-        
-        if ctx.graph_context:
-            formatted.append(f"Graph Context: {len(ctx.graph_context)} related nodes")
-        
+
         formatted.append("")  # Blank line
     
     return "\n".join(formatted)
