@@ -8,7 +8,8 @@ import '../../mappers/document_fhir_mapper.dart';
 
 class ApiService {
   // 10.0.2.2 safely connects the Android Emulator to your local computer's port 3000 (Node.js HTTP)
-  final String baseUrl = "http://10.0.2.2:3000/api";
+  // final String baseUrl = "http://10.0.2.2:3000/api";
+  final String baseUrl = "http://192.168.1.37:3000/api";
 
   Future<http.Response> postData({
     required String endpoint,
