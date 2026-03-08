@@ -1,5 +1,12 @@
 <#import "template.ftl" as layout>
-<#assign summary = (message.summary!"")>
+
+<#assign summary = ((message.summary)!"")>
+<#assign actionLink = (actionUri!"")>
+<#assign redirectLink = (pageRedirectUri!"")>
+
+<#assign summaryLc = summary?lower_case>
+<#assign isPasswordReset = summaryLc?contains("password") && (summaryLc?contains("updat") || summaryLc?contains("reset"))>
+<#assign isEmailVerify = summaryLc?contains("email") && summaryLc?contains("verif")>
 
 <@layout.registrationLayout displayMessage=false displayInfo=false; section>
   <#if section = "header">
@@ -15,25 +22,41 @@
       </div>
 
       <div class="cfi-tabs cfi-tabs-single">
-        <span class="cfi-tab active">Verification</span>
+        <span class="cfi-tab active">
+          <#if isPasswordReset>Password Updated
+          <#elseif isEmailVerify>Email Verification
+          <#else>Verification
+          </#if>
+        </span>
       </div>
 
-      <#if actionUri?has_content>
-        <#if summary?has_content>
-          <div class="cfi-inline-message cfi-inline-info" role="status" aria-live="polite">
-            ${kcSanitize(summary)?no_esc}
-          </div>
-        </#if>
-
+      <#if actionLink?has_content>
+        <div class="cfi-inline-message cfi-inline-info" role="status" aria-live="polite">
+          ${kcSanitize(summary)?no_esc}
+        </div>
         <div class="form-group" style="margin-top:14px;">
-          <a class="btn btn-primary" href="${actionUri}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">
+          <a class="btn btn-primary" href="${actionLink}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">
             Click here to proceed
           </a>
         </div>
       <#else>
         <div class="cfi-inline-message cfi-inline-success" role="status" aria-live="polite">
-          Your email has been verified.
+          <#if isPasswordReset>
+            Your password has been updated successfully.
+          <#elseif isEmailVerify>
+            Your email has been verified.
+          <#else>
+            Action completed successfully.
+          </#if>
         </div>
+
+        <#if redirectLink?has_content>
+          <div class="form-group" style="margin-top:14px;">
+            <a class="btn btn-primary" href="${redirectLink}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">
+              Continue
+            </a>
+          </div>
+        </#if>
       </#if>
     </div>
   </#if>
