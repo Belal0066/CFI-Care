@@ -4,7 +4,7 @@
 */.secrets/
 # development-realm.json
 # realms.json
-.env
+# .env
 Plan.md
 
 test-login.html

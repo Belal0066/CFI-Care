@@ -83,17 +83,32 @@ class KeycloakRemoteDataSource {
       throw Exception('no refresh token found');
     }
 
-    final TokenResponse? response = await _appAuth.token(
-      TokenRequest(
-        _config.clientId,
-        _config.redirectUri,
-        issuer: _config.issuer,
-        refreshToken: tokenToUse,
-        scopes: _config.scopes,
-      ),
-    );
+    TokenResponse? response;
+    try {
+      response = await _appAuth.token(
+        TokenRequest(
+          _config.clientId,
+          _config.redirectUri,
+          issuer: _config.issuer,
+          refreshToken: tokenToUse,
+          scopes: _config.scopes,
+        ),
+      );
+    } catch (e) {
+      final err = e.toString().toLowerCase();
+      final invalidSession =
+          err.contains('invalid_grant') ||
+          err.contains('offline user session not found') ||
+          err.contains('token_failed');
 
-    if (response == null || response.accessToken == null) {
+      if (invalidSession) {
+        await _vault.clear();
+        throw Exception('session expired, please sign in again');
+      }
+
+      rethrow;
+    }
+    if (response.accessToken == null) {
       throw Exception('Token refresh failed: empty response');
     }
 
@@ -199,7 +214,9 @@ class KeycloakRemoteDataSource {
   Future<AuthModel> runKeycloakAction(String kcAction) async {
     AuthorizationTokenResponse? response;
 
-    Future<AuthorizationTokenResponse?> _run({List<String>? promptValues}) async {
+    Future<AuthorizationTokenResponse?> _run({
+      List<String>? promptValues,
+    }) async {
       final idTokenHint = await _vault.readIdToken();
       String? loginHint;
       if (idTokenHint != null && idTokenHint.isNotEmpty) {
@@ -247,8 +264,8 @@ class KeycloakRemoteDataSource {
     final existingRefresh = await _vault.readRefreshToken();
     final refreshToStore =
         (response.refreshToken != null && response.refreshToken!.isNotEmpty)
-            ? response.refreshToken
-            : existingRefresh;
+        ? response.refreshToken
+        : existingRefresh;
 
     await _saveTokens(
       accessToken: response.accessToken!,

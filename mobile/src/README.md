@@ -21,12 +21,12 @@ samples, guidance on mobile development, and a full API reference.
 
 
 ## Dev-only setup
-<!-- ### running from external device 
+### running from external device 
 - open env file and set ip to host ip (host = running containers)
 - in terminal run :
 ```
-    flutter run --dart-define-from-file=env/dev.json
-``` -->
+    flutter run --dart-define-from-file=env/dev_env.json
+```
 
 ### copy cert to device , adjust tcp 
 #### windows implementation

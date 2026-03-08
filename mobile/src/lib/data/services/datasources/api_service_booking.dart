@@ -14,6 +14,14 @@ class ApiService {
 
   ApiService({this.getAccessToken, this.refreshToken, this.onUnauthorized});
 
+  bool _isSessionRevokedError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('invalid_grant') ||
+        text.contains('offline user session not found') ||
+        text.contains('token_failed') ||
+        text.contains('session expired');
+  }
+
   Future<Map<String, String>> _authHeaders({bool json = true}) async {
     final token = await getAccessToken?.call();
     // print('[AUTH HDR] token null=${token == null} empty=${(token ?? '').isEmpty} len=${token?.length ?? 0}');
@@ -29,6 +37,20 @@ class ApiService {
     Future<http.Response> Function(Map<String, String> headers) send,
   ) async {
     var headers = await _authHeaders();
+
+     if (refreshToken != null) {
+      try {
+        final refreshed = await refreshToken!.call();
+        if (refreshed != null && refreshed.isNotEmpty) {
+          headers['Authorization'] = 'Bearer $refreshed';
+        }
+      } catch (e) {
+        if (_isSessionRevokedError(e)) {
+          await onUnauthorized?.call();
+          throw Exception('Session expired, please sign in again');
+        }
+      }
+    }
 
     if (!headers.containsKey('Authorization')) {
       throw Exception('No access token available');
