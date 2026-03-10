@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ticket 1.4: Ingestion Flow Verification.
-Simulates the ingestion of a patient bundle and validates 2PC behavior.
+Simulates the ingestion of a patient bundle and validates the Qdrant write path.
 """
 import sys
 import uuid
@@ -17,7 +17,7 @@ from fhir.resources.codeableconcept import CodeableConcept
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from ingestion.service import IngestionService, IngestionError
-from shared.db_clients import qdrant_client, falkor_client
+from shared.db_clients import qdrant_client
 
 def create_test_resources():
     pid = str(uuid.uuid4())
@@ -43,7 +43,7 @@ def create_test_resources():
     return pat, enc
 
 def test_happy_path(pat, enc):
-    print("\n--- Testing Happy Path (2PC Commit) ---")
+    print("\n--- Testing Happy Path (Qdrant Write) ---")
     
     try:
         # Ingest Patient
@@ -62,12 +62,10 @@ def test_happy_path(pat, enc):
         return False
 
 def test_rollback_scenario():
-    print("\n--- Testing Rollback Scenario (Graph Failure) ---")
-    
-    # Create a resource destined to fail in Graph
-    # We can simulate this by mocking the falkor client or passing bad cypher input (harder here)
-    # Alternatively, we can assume IngestionService works if Happy Path works, 
-    # and unit test the rollback logic separately. 
+    print("\n--- Testing Rollback Scenario ---")
+
+    # We can assume IngestionService works if Happy Path works, and unit test
+    # rollback/error-handling logic separately.
     # For this system test, we will trust the logic trace if Happy Path works.
     print("(Skipping destructive rollback test on live DB for this script)")
     pass
@@ -94,17 +92,7 @@ def main():
             print(f"✓ Vector records found (Count: {len(points)})")
         else:
             print(f"✗ Vector records missing. Found: {len(points)}")
-            
-        # Check Graph (FalkorDB is currently disconnected — skip if None)
-        if falkor_client is not None:
-            res = falkor_client.execute_query(f"MATCH (n) WHERE n.id IN ['{pat.id}', '{enc.id}'] RETURN n.id")
-            if res and len(res) > 1 and len(res[1]) == 2:
-                print(f"✓ Graph nodes found (Count: {len(res[1])})")
-            else:
-                print(f"✗ Graph nodes missing or incomplete. Result: {res}")
-        else:
-            print("⚠ FalkorDB not connected — skipping graph check")
-            
+
     else:
         print("\n✗ Ingestion Service failed.")
         return 1

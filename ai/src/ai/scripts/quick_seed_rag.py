@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Quick seed script that directly inserts into Qdrant
-Bypasses the full 2PC ingestion (no FalkorDB required)
+Quick seed script that directly inserts sample clinical data into Qdrant,
+bypassing the chunking/embedding pipeline in IngestionService.
 """
 import sys
 from pathlib import Path

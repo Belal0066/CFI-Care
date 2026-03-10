@@ -46,12 +46,6 @@ def check_qdrant() -> bool:
         return False
 
 
-def check_falkordb() -> bool:
-    """Verify FalkorDB is accessible."""
-    print("! FalkorDB is currently DISABLED in the system configuration.")
-    return True # Skip failure when explicitly disabled
-
-
 def main():
     """Run all infrastructure checks."""
     print("=" * 60)
@@ -61,7 +55,6 @@ def main():
     checks = [
         ("HAPI FHIR", check_fhir),
         ("Qdrant Vector DB", check_qdrant),
-        ("FalkorDB Graph DB", check_falkordb),
     ]
     
     results = []

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class IntegratedClinicalPipeline:
     """
-    Complete pipeline: JSON → Preprocessing → Vector/Graph Ingestion
+    Complete pipeline: JSON → Preprocessing → Vector Ingestion
     """
     
     @staticmethod
@@ -58,47 +58,7 @@ class IntegratedClinicalPipeline:
             "source_node_id": node.id,
             "metadata": metadata
         }
-    
-    @staticmethod
-    def prepare_graph_node(node: NormalizedNode) -> Dict[str, Any]:
-        """
-        Convert a NormalizedNode into a graph node structure.
-        This is the format for FalkorDB ingestion.
-        """
-        return {
-            "id": node.id,
-            "label": node.event_tag,
-            "properties": {
-                "text": node.text_primary,
-                "details": node.details,
-                "date": node.date_normalized,
-                "category": node.category,
-                "is_diagnosis": node.is_diagnosis,
-                "diagnosis_type": node.diagnosis_type,
-                "normality": node.normality,
-                "priority": node.priority,
-                "eoc_id": node.eoc_id,
-            }
-        }
-    
-    @staticmethod
-    def prepare_graph_edge(node: NormalizedNode) -> Dict[str, Any]:
-        """
-        Create a graph edge from node to its father.
-        Returns None if node has no father.
-        """
-        if not node.father_id:
-            return None
-        
-        return {
-            "from": node.father_id,
-            "to": node.id,
-            "type": node.relationship_type or "LEADS_TO",
-            "properties": {
-                "temporal_order": node.date_normalized
-            }
-        }
-    
+
     @classmethod
     def process_file(cls, input_file: str, output_dir: str = None) -> Dict[str, Any]:
         """
@@ -130,60 +90,29 @@ class IntegratedClinicalPipeline:
             vector_payloads.append(payload)
         
         logger.info(f"  ✓ Prepared {len(vector_payloads)} vector payloads")
-        
-        # Step 3: Prepare graph nodes
-        logger.info(f"\n[3/4] Preparing graph nodes...")
-        graph_nodes = []
-        for node in result["normalized_nodes"]:
-            graph_node = cls.prepare_graph_node(node)
-            graph_nodes.append(graph_node)
-        
-        logger.info(f"  ✓ Prepared {len(graph_nodes)} graph nodes")
-        
-        # Step 4: Prepare graph edges
-        logger.info(f"\n[4/4] Preparing graph edges...")
-        graph_edges = []
-        for node in result["normalized_nodes"]:
-            edge = cls.prepare_graph_edge(node)
-            if edge:
-                graph_edges.append(edge)
-        
-        logger.info(f"  ✓ Prepared {len(graph_edges)} graph edges")
-        
+
         # Package results
         pipeline_output = {
             "preprocessing_result": result,
             "vector_payloads": vector_payloads,
-            "graph_nodes": graph_nodes,
-            "graph_edges": graph_edges,
             "statistics": {
                 "total_events": len(result["timeline"]),
                 "vector_payloads": len(vector_payloads),
-                "graph_nodes": len(graph_nodes),
-                "graph_edges": len(graph_edges),
                 "root_events": result["statistics"]["root_nodes"],
                 "diagnosis_events": result["statistics"]["diagnosis_count"],
             }
         }
-        
+
         # Optionally save outputs
         if output_dir:
             output_path = Path(output_dir)
             output_path.mkdir(exist_ok=True)
-            
+
             # Save vector payloads
             with open(output_path / "vector_payloads.json", 'w') as f:
                 json.dump(vector_payloads, f, indent=2, default=str)
             logger.info(f"\n  → Saved vector payloads to: {output_path / 'vector_payloads.json'}")
-            
-            # Save graph structure
-            with open(output_path / "graph_structure.json", 'w') as f:
-                json.dump({
-                    "nodes": graph_nodes,
-                    "edges": graph_edges
-                }, f, indent=2, default=str)
-            logger.info(f"  → Saved graph structure to: {output_path / 'graph_structure.json'}")
-            
+
             # Save statistics
             with open(output_path / "pipeline_stats.json", 'w') as f:
                 json.dump(pipeline_output["statistics"], f, indent=2)
@@ -198,17 +127,15 @@ class IntegratedClinicalPipeline:
 
 def simulate_ingestion(pipeline_output: Dict[str, Any]):
     """
-    Simulate the ingestion process (without actually connecting to DBs).
-    Shows what would be ingested where.
+    Simulate the ingestion process (without actually connecting to Qdrant).
+    Shows what would be ingested.
     """
     logger.info("\n" + "=" * 60)
     logger.info("SIMULATED INGESTION")
     logger.info("=" * 60)
-    
+
     vector_payloads = pipeline_output["vector_payloads"]
-    graph_nodes = pipeline_output["graph_nodes"]
-    graph_edges = pipeline_output["graph_edges"]
-    
+
     # Simulate vector ingestion
     logger.info("\n[QDRANT] Would ingest:")
     for i, payload in enumerate(vector_payloads[:3]):  # Show first 3
@@ -219,22 +146,9 @@ def simulate_ingestion(pipeline_output: Dict[str, Any]):
         for key, val in payload['metadata'].items():
             if val:
                 logger.info(f"      {key}: {val}")
-    
+
     if len(vector_payloads) > 3:
         logger.info(f"\n  ... and {len(vector_payloads) - 3} more points")
-    
-    # Simulate graph ingestion
-    logger.info("\n\n[FALKORDB] Would ingest:")
-    logger.info(f"\n  Nodes: {len(graph_nodes)}")
-    logger.info(f"  Edges: {len(graph_edges)}")
-    
-    logger.info("\n  Sample nodes:")
-    for node in graph_nodes[:3]:
-        logger.info(f"    ({node['label']}) {node['properties']['text'][:50]}...")
-    
-    logger.info("\n  Sample edges:")
-    for edge in graph_edges[:3]:
-        logger.info(f"    {edge['from']} -[{edge['type']}]-> {edge['to']}")
 
 
 def demonstrate_querying(pipeline_output: Dict[str, Any]):

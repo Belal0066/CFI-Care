@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ticket 2.2: Clinical Reasoning Workflow (DDx) Verification.
-Tests the LangGraph orchestrator end-to-end with Graph RAG.
+Tests the LangGraph orchestrator end-to-end.
 """
 import sys
 import json
@@ -139,7 +139,6 @@ def test_workflow_happy_path(patient_id: str):
     try:
         workflow = ClinicalWorkflow(
             retrieval_k=5,
-            retrieval_hops=1,
             prompt_version="v1"
         )
         

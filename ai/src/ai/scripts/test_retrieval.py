@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ticket 2.1: Hybrid Retrieval Service Verification.
-Tests the "Anchor & Expand" pattern combining Vector + Graph search.
+Tests dense+sparse vector search with reciprocal rank fusion.
 """
 import sys
 import uuid
@@ -87,14 +87,14 @@ def setup_test_data():
     return patient_id
 
 def test_vector_search(retriever, patient_id):
-    """Test pure vector search (Anchor only)."""
-    print("\n--- Test 1: Vector Search (Semantic Anchor) ---")
-    
+    """Test dense+sparse vector search."""
+    print("\n--- Test 1: Vector Search ---")
+
     query = "elevated glucose levels"
     print(f"Query: '{query}'")
-    
+
     try:
-        results = retriever.search(patient_id, query, limit=2, hops=0)
+        results = retriever.search(patient_id, query, limit=2)
         
         if results:
             print(f"✓ Retrieved {len(results)} results")
@@ -115,24 +115,21 @@ def test_vector_search(retriever, patient_id):
         return False
 
 def test_hybrid_search(retriever, patient_id):
-    """Test hybrid search with graph expansion."""
-    print("\n--- Test 2: Hybrid Search (Anchor + Graph Expansion) ---")
-    
+    """Test hybrid search (dense + sparse fusion) on a different query."""
+    print("\n--- Test 2: Hybrid Search (Dense + Sparse Fusion) ---")
+
     query = "patient vitals and labs"
     print(f"Query: '{query}'")
-    
+
     try:
-        results = retriever.search(patient_id, query, limit=2, hops=1)
-        
+        results = retriever.search(patient_id, query, limit=2)
+
         if results:
-            print(f"✓ Retrieved {len(results)} results with graph context")
+            print(f"✓ Retrieved {len(results)} results")
             for i, ctx in enumerate(results, 1):
                 print(f"  Result {i}:")
                 print(f"    - Anchor ID: {ctx.anchor_id[:8]}...")
                 print(f"    - Score: {ctx.score:.4f}")
-                print(f"    - Graph Context Nodes: {len(ctx.graph_context)}")
-                if ctx.graph_context:
-                    print(f"    - Sample Context: {str(ctx.graph_context[0])[:60]}...")
             return True
         else:
             print("✗ No results returned")
