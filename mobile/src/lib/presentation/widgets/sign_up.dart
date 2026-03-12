@@ -45,9 +45,9 @@ class _SignUpState extends State<SignUp> {
     String lastName,
     String email,
   ) async {
-    // const String backendUrl = "http://10.0.2.2:3000/api/patients/sync-fhir";
+    const String backendUrl = "http://10.0.2.2:3000/api/patients/sync-fhir";
 
-    const String backendUrl = "http://192.168.1.37:3000/api/patients/sync-fhir";
+    // const String backendUrl = "http://192.168.1.37:3000/api/patients/sync-fhir";
 
     final Map<String, dynamic> patientData = {
       "id": userId,

@@ -8,8 +8,8 @@ import '../../mappers/document_fhir_mapper.dart';
 
 class ApiService {
   // 10.0.2.2 safely connects the Android Emulator to your local computer's port 3000 (Node.js HTTP)
-  // final String baseUrl = "http://10.0.2.2:3000/api";
-  final String baseUrl = "http://192.168.1.37:3000/api";
+  final String baseUrl = "http://10.0.2.2:3000/api";
+  // final String baseUrl = "http://192.168.1.37:3000/api";
 
   Future<http.Response> postData({
     required String endpoint,
@@ -41,6 +41,33 @@ class ApiService {
     } catch (e) {
       throw Exception("Network Error during PUT: $e");
     }
+  }
+
+  Future<http.Response> uploadBinaryMultipart({
+    required File file,
+    required String binaryId,
+    required String documentReferenceId,
+    required String patientId,
+    required String contentType,
+  }) async {
+    final request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/binary'));
+
+    request.fields['id'] = binaryId;
+    request.fields['documentReferenceId'] = documentReferenceId;
+    request.fields['patientId'] = patientId;
+    request.fields['contentType'] = contentType;
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'pdf',
+        file.path,
+        filename: file.uri.pathSegments.isNotEmpty
+            ? file.uri.pathSegments.last
+            : 'document.pdf',
+      ),
+    );
+
+    final streamed = await request.send();
+    return http.Response.fromStream(streamed);
   }
 
   TypeOfEventEnum _parseType(String type) {
@@ -93,9 +120,13 @@ class ApiService {
       authorReference: 'Patient/$patientId',
     );
 
-    final binaryResponse = await putData(
-      endpoint: '/binary',
-      data: fhirPayloads.binary,
+    final binaryResponse = await uploadBinaryMultipart(
+      file: file,
+      binaryId: fhirPayloads.binaryId,
+      documentReferenceId: fhirPayloads.documentReferenceId,
+      patientId: patientId,
+      contentType:
+          (fhirPayloads.binary['contentType'] as String?) ?? 'application/pdf',
     );
 
     print('[uploadDocument] /binary status=${binaryResponse.statusCode}');
@@ -110,18 +141,10 @@ class ApiService {
     }
 
     if (binaryResponse.statusCode != 200 && binaryResponse.statusCode != 201) {
-      print(
-        '[uploadDocument] /binary failed, falling back to inline attachment.data',
-      );
-      final attachment =
-          (docRefPayload['content'] as List).first['attachment']
-              as Map<String, dynamic>;
-      attachment.remove('url');
-      attachment['data'] = fhirPayloads.binary['data'];
-      attachment['size'] = await file.length();
+      throw Exception('Binary upload failed: ${binaryResponse.body}');
     }
 
-    final response = await postData(
+    final response = await putData(
       endpoint: '/documentReferences',
       data: docRefPayload,
     );
