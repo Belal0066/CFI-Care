@@ -2,15 +2,16 @@ const binaryService = require("./binaryService");
 
 const createPDFBinaryResource = async (req, res) => {
   try {
-    const { file, data, id, contentType } = req.body;
+    const { file, data, id, contentType, patientId, documentReferenceId } =
+      req.body;
+    const uploadedPdf = req.file;
 
     // Validate inputs
-    if ((!file && !data) || !id) {
-      return res
-        .status(400)
-        .json({
-          error: "Either file path or base64 data, and ID are required",
-        });
+    if ((!file && !data && !uploadedPdf) || !id) {
+      return res.status(400).json({
+        error:
+          "ID and one of file path, base64 data, or multipart pdf are required",
+      });
     }
 
     const newBinaryResource = await binaryService.createPDFBinaryResource(
@@ -18,6 +19,9 @@ const createPDFBinaryResource = async (req, res) => {
       id,
       contentType,
       data,
+      uploadedPdf,
+      patientId,
+      documentReferenceId,
     );
 
     console.log("New Binary resource created successfully.");
@@ -46,12 +50,15 @@ const getPDFBinaryResource = async (req, res) => {
 const updateBinary = async (req, res) => {
   try {
     const { id } = req.params;
-    const { file, data, contentType } = req.body;
+    const { file, data, contentType, patientId, documentReferenceId } =
+      req.body;
+    const uploadedPdf = req.file;
 
-    if (!id || (!file && !data)) {
-      return res
-        .status(400)
-        .json({ error: "ID and either file path or base64 data are required" });
+    if (!id || (!file && !data && !uploadedPdf)) {
+      return res.status(400).json({
+        error:
+          "ID and one of file path, base64 data, or multipart pdf are required",
+      });
     }
 
     const updatedBinary = await binaryService.updateBinary(
@@ -59,6 +66,9 @@ const updateBinary = async (req, res) => {
       file,
       contentType,
       data,
+      uploadedPdf,
+      patientId,
+      documentReferenceId,
     );
     res.status(200).json(updatedBinary);
   } catch (error) {

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import '../../domain/models/document.dart';
 import '../../utils/enums/type_of_event.dart';
@@ -6,11 +5,13 @@ import '../../utils/enums/speciality_event.dart';
 
 class FhirDocumentPayloads {
   final String binaryId;
+  final String documentReferenceId;
   final Map<String, dynamic> binary;
   final Map<String, dynamic> documentReference;
 
   const FhirDocumentPayloads({
     required this.binaryId,
+    required this.documentReferenceId,
     required this.binary,
     required this.documentReference,
   });
@@ -21,14 +22,16 @@ class DocumentFhirMapper {
     required DocumentModel document,
     required String patientId,
     String? binaryId,
+    String? documentReferenceId,
     DateTime? recordedAt,
     String? authorReference,
   }) async {
     final resolvedBinaryId =
         binaryId ?? 'bin-${DateTime.now().millisecondsSinceEpoch}';
+    final resolvedDocumentReferenceId =
+        documentReferenceId ??
+        'docref-${DateTime.now().millisecondsSinceEpoch}';
     final contentType = _detectContentType(document.filePath, document.isPDF);
-    final fileBytes = await File(document.filePath).readAsBytes();
-    final encoded = base64Encode(fileBytes);
     final effectiveDate = (recordedAt ?? DateTime.now())
         .toUtc()
         .toIso8601String();
@@ -37,11 +40,11 @@ class DocumentFhirMapper {
       'resourceType': 'Binary',
       'id': resolvedBinaryId,
       'contentType': contentType,
-      'data': encoded,
     };
 
     final docRef = <String, dynamic>{
       'resourceType': 'DocumentReference',
+      'id': resolvedDocumentReferenceId,
       'status': 'current',
       'subject': {'reference': 'Patient/$patientId'},
       'date': effectiveDate,
@@ -67,6 +70,7 @@ class DocumentFhirMapper {
 
     return FhirDocumentPayloads(
       binaryId: resolvedBinaryId,
+      documentReferenceId: resolvedDocumentReferenceId,
       binary: binaryResource,
       documentReference: docRef,
     );
