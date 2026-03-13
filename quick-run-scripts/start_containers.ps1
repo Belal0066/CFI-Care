@@ -1,6 +1,6 @@
 # 1. Get current directory
 $Dir = $PWD.Path
-
+Write-Host "Current directory: $Dir"
 # 2. Launch tabs
 #    We added "-ExecutionPolicy Bypass" to every line.
 #    This allows the script to run without changing your global PC settings.
