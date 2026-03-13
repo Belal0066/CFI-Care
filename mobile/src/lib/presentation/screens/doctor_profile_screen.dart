@@ -6,6 +6,7 @@ import '../../domain/models/appointments.dart';
 import '../../domain/models/review.dart';
 import '../../data/repositories/booking_repo_impl.dart';
 import 'timeslots_screen.dart';
+import 'confirmation_screen.dart';
 
 class DoctorProfileScreen extends StatefulWidget {
   final Doctor doctor;
@@ -27,9 +28,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<BookingProvider>(context, listen: false);
       print(
-        '[DoctorProfileScreen] Loading slots for doctor: ${widget.doctor.id}',
+        '[DoctorProfileScreen] Loading schedules with slots for doctor: ${widget.doctor.id}',
       );
-      provider.loadDoctorSlots(widget.doctor.id);
+      provider.loadDoctorSchedulesWithSlots(widget.doctor.id);
     });
   }
 
@@ -109,32 +110,32 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                   const SizedBox(height: 12),
                   Consumer<BookingProvider>(
                     builder: (context, provider, child) {
-                      if (provider.isLoadingSlots) {
+                      if (provider.isLoadingSchedules) {
                         return const SizedBox(
-                          height: 155,
+                          height: 200,
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
 
-                      if (provider.slotsError != null) {
+                      if (provider.schedulesError != null) {
                         return SizedBox(
-                          height: 155,
+                          height: 200,
                           child: Center(
                             child: Text(
-                              "Error loading slots: ${provider.slotsError}",
+                              "Error loading schedules: ${provider.schedulesError}",
                               style: const TextStyle(color: Colors.red),
                             ),
                           ),
                         );
                       }
 
-                      final daySlots = provider.slotsByDay;
-                      if (daySlots.isEmpty) {
+                      final schedules = provider.schedulesWithSlots;
+                      if (schedules.isEmpty) {
                         return const SizedBox(
-                          height: 155,
+                          height: 200,
                           child: Center(
                             child: Text(
-                              "No available slots at the moment",
+                              "No available schedules at the moment",
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 14,
@@ -144,20 +145,16 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                         );
                       }
 
-                      return SizedBox(
-                        height: 155,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: daySlots.length,
-                          itemBuilder: (context, index) {
-                            final day = daySlots[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: _buildDayCard(context, day),
-                            );
-                          },
-                        ),
+                      return Column(
+                        children: schedules.map((scheduleWithSlots) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildScheduleCard(
+                              context,
+                              scheduleWithSlots,
+                            ),
+                          );
+                        }).toList(),
                       );
                     },
                   ),
@@ -433,6 +430,135 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleCard(
+    BuildContext context,
+    ScheduleWithSlots scheduleWithSlots,
+  ) {
+    final schedule = scheduleWithSlots.schedule;
+    final slots = scheduleWithSlots.slots;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          childrenPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          leading: Icon(Icons.calendar_today, color: primaryColor, size: 28),
+          title: Text(
+            "Schedule ${schedule.id}",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.blueGrey.shade800,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              Text(
+                "Start: ${schedule.startDateTime}",
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              Text(
+                "End: ${schedule.endDateTime}",
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          children: [
+            if (slots.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "No available slots",
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              )
+            else
+              ...slots.map((slot) => _buildSlotCard(context, slot)).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotCard(BuildContext context, DoctorSlot slot) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.access_time, color: primaryColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${slot.startTime} - ${slot.endTime}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.blueGrey.shade800,
+                  ),
+                ),
+                Text(
+                  slot.date,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<BookingProvider>().selectDoctor(widget.doctor);
+              context.read<BookingProvider>().selectSlot(slot);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConfirmationScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Book",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }

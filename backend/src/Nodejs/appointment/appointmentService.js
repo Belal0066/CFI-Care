@@ -8,6 +8,7 @@ const {
   deleteFromCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
+const slotService = require("../slot/slotService");
 
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
@@ -105,6 +106,9 @@ function transformBookingDataToFHIR(bookingData) {
     start,
     end,
     appointmentType = "general",
+    comment,
+    symptomsText,
+    documentReferenceIds,
   } = bookingData;
 
   // Validate required fields
@@ -129,7 +133,7 @@ function transformBookingDataToFHIR(bookingData) {
       text: appointmentType,
     },
     start: start, // ISO 8601 format required
-    end: end, 
+    end: end,
     participant: [
       {
         actor: {
@@ -161,7 +165,95 @@ function transformBookingDataToFHIR(bookingData) {
     ];
   }
 
+  const noteParts = [];
+  if (comment && String(comment).trim().length > 0) {
+    noteParts.push(`Patient note: ${String(comment).trim()}`);
+  }
+  if (symptomsText && String(symptomsText).trim().length > 0) {
+    noteParts.push(`Symptoms: ${String(symptomsText).trim()}`);
+  }
+  if (noteParts.length > 0) {
+    fhirAppointment.description = noteParts.join("\n");
+  }
+
+  if (Array.isArray(documentReferenceIds) && documentReferenceIds.length > 0) {
+    fhirAppointment.supportingInformation = documentReferenceIds
+      .filter((id) => id && String(id).trim().length > 0)
+      .map((id) => ({ reference: `DocumentReference/${String(id).trim()}` }));
+  }
+
   return fhirAppointment;
+}
+
+function normalizeAppointmentUpdatePayload(
+  existingAppointment,
+  appointmentData,
+) {
+  const normalized = { ...appointmentData };
+
+  const comment =
+    appointmentData.comment && String(appointmentData.comment).trim().length > 0
+      ? String(appointmentData.comment).trim()
+      : null;
+
+  const symptomsText =
+    appointmentData.symptomsText &&
+    String(appointmentData.symptomsText).trim().length > 0
+      ? String(appointmentData.symptomsText).trim()
+      : null;
+
+  let symptomsFromReasonCode = null;
+  if (
+    Array.isArray(appointmentData.reasonCode) &&
+    appointmentData.reasonCode.length > 0
+  ) {
+    const firstReason = appointmentData.reasonCode[0];
+    if (firstReason && typeof firstReason === "object" && firstReason.text) {
+      symptomsFromReasonCode = String(firstReason.text).trim();
+    }
+  }
+
+  const noteParts = [];
+  if (comment) {
+    noteParts.push(`Patient note: ${comment}`);
+  }
+  if (symptomsText) {
+    noteParts.push(`Symptoms: ${symptomsText}`);
+  } else if (symptomsFromReasonCode) {
+    noteParts.push(`Symptoms: ${symptomsFromReasonCode}`);
+  }
+
+  if (noteParts.length > 0) {
+    normalized.description = noteParts.join("\n");
+  }
+
+  if (
+    Array.isArray(appointmentData.documentReferenceIds) &&
+    appointmentData.documentReferenceIds.length > 0
+  ) {
+    normalized.supportingInformation = appointmentData.documentReferenceIds
+      .filter((id) => id && String(id).trim().length > 0)
+      .map((id) => ({ reference: `DocumentReference/${String(id).trim()}` }));
+  }
+
+  if (
+    !normalized.supportingInformation &&
+    Array.isArray(appointmentData.supportingInformation)
+  ) {
+    normalized.supportingInformation = appointmentData.supportingInformation;
+  }
+
+  delete normalized.comment;
+  delete normalized.symptomsText;
+  delete normalized.documentReferenceIds;
+  delete normalized.reasonCode;
+
+  return {
+    ...existingAppointment,
+    ...normalized,
+    resourceType: "Appointment",
+    id: existingAppointment.id,
+  };
 }
 
 // Create appointment with specific ID
@@ -229,7 +321,6 @@ async function createAppointment(appointmentData) {
   );
 
   try {
-  
     const response = await fhirApi.post(
       "/Appointment",
       fhirAppointmentResource,
@@ -238,40 +329,28 @@ async function createAppointment(appointmentData) {
     const appointmentId = response.data.id;
     console.log(`Appointment created successfully with ID: ${appointmentId}`);
 
-    if (appointmentData.slotId) {
+    const slotIdToUpdate =
+      appointmentData.slotId ||
+      fhirAppointmentResource.slot?.[0]?.reference?.split("/")[1];
+
+    if (slotIdToUpdate) {
       try {
         console.log(
-          `Attempting to update Slot ${appointmentData.slotId} to busy status`,
+          `Attempting to update Slot ${slotIdToUpdate} to busy status`,
         );
 
-        // Fetch the slot first
-        const slotResponse = await fhirApi.get(
-          `/Slot/${appointmentData.slotId}`,
-        );
-        const slot = slotResponse.data;
-
-        // Update slot status to 'busy'
-        const updatedSlot = {
-          ...slot,
-          status: "busy",
-        };
-
-        await fhirApi.patch(`/Slot/${appointmentData.slotId}`, updatedSlot);
-        console.log(`Slot ${appointmentData.slotId} updated to busy status`);
-
-        // Invalidate slot cache
-        await deleteFromCache(`slot:${appointmentData.slotId}`);
+        await slotService.updateSlot(slotIdToUpdate, { status: "busy" });
+        console.log(`Slot ${slotIdToUpdate} updated to busy status`);
       } catch (slotError) {
         console.error(
           "Warning: Could not update slot status",
           slotError.message,
         );
-
       }
     }
 
     // Invalidate caches after successful creation
-    await invalidateAppointmentCache(appointmentId, appointmentData);
+    await invalidateAppointmentCache(appointmentId, fhirAppointmentResource);
 
     return response.data;
   } catch (error) {
@@ -309,12 +388,13 @@ async function updateAppointment(appointmentId, appointmentData) {
   }
 
   // Merge with existing data
-  const updateData = {
-    ...existingAppointment,
-    ...appointmentData,
-    resourceType: "Appointment",
-    id: appointmentId,
-  };
+  const updateData = normalizeAppointmentUpdatePayload(
+    existingAppointment,
+    appointmentData,
+  );
+
+  const previousStatus = (existingAppointment.status || "").toLowerCase();
+  const nextStatus = (updateData.status || "").toLowerCase();
 
   try {
     const response = await fhirApi.put(
@@ -323,8 +403,31 @@ async function updateAppointment(appointmentId, appointmentData) {
     );
     const appointment = response.data;
 
+    if (
+      nextStatus === "cancelled" &&
+      previousStatus !== "cancelled" &&
+      existingAppointment.slot?.length
+    ) {
+      const slotReference = existingAppointment.slot[0]?.reference || "";
+      const slotId = slotReference.split("/")[1];
+
+      if (slotId) {
+        try {
+          await slotService.updateSlot(slotId, { status: "free" });
+          console.log(
+            `Slot ${slotId} updated to free status after appointment cancellation`,
+          );
+        } catch (slotError) {
+          console.error(
+            `Warning: Could not update Slot ${slotId} to free after cancellation`,
+            slotError.message,
+          );
+        }
+      }
+    }
+
     // Invalidate caches after successful update
-    await invalidateAppointmentCache(appointmentId, appointment);
+    await invalidateAppointmentCache(appointmentId, updateData);
 
     return appointment;
   } catch (error) {
@@ -375,17 +478,39 @@ async function invalidateAppointmentCache(appointmentId, appointmentData) {
   // Invalidate appointment cache
   await deleteFromCache(`appointment:${appointmentId}`);
 
-  // Invalidate patient appointments cache if patient reference exists
-  if (appointmentData.participant) {
+  // Invalidate patient/practitioner appointment list caches from either FHIR participant
+  // or simplified payload fields.
+  const patientIds = new Set();
+  const practitionerIds = new Set();
+
+  if (Array.isArray(appointmentData?.participant)) {
     for (const participant of appointmentData.participant) {
-      if (participant.actor?.reference?.startsWith("Patient/")) {
-        const patientId = participant.actor.reference.split("/")[1];
-        await deleteFromCache(`appointments:patient:${patientId}`);
+      const ref = participant?.actor?.reference || "";
+      if (ref.startsWith("Patient/")) {
+        patientIds.add(ref.split("/")[1]);
       }
-      if (participant.actor?.reference?.startsWith("Practitioner/")) {
-        const practitionerId = participant.actor.reference.split("/")[1];
-        await deleteFromCache(`appointments:practitioner:${practitionerId}`);
+      if (ref.startsWith("Practitioner/")) {
+        practitionerIds.add(ref.split("/")[1]);
       }
+    }
+  }
+
+  if (appointmentData?.patientId) {
+    patientIds.add(String(appointmentData.patientId));
+  }
+  if (appointmentData?.practitionerId) {
+    practitionerIds.add(String(appointmentData.practitionerId));
+  }
+
+  for (const patientId of patientIds) {
+    if (patientId) {
+      await deleteFromCache(`appointments:patient:${patientId}`);
+    }
+  }
+
+  for (const practitionerId of practitionerIds) {
+    if (practitionerId) {
+      await deleteFromCache(`appointments:practitioner:${practitionerId}`);
     }
   }
 }
