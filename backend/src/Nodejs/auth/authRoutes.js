@@ -36,6 +36,7 @@ const {
   destroySessionById,
 } = require("../utils/userSessions");
 const practitionerService = require("../practioner/practionerService");
+const practitionerRoleService = require("../practitionerRole/practitionerRoleService");
 
 const kcHost = process.env.KC_HOSTNAME;
 const realm = process.env.KEYCLOAK_REALM;
@@ -121,175 +122,269 @@ router.post("/login", loginLimiter, validateLogin, async (req, res) => {
 });
 
 // /auth/register - create user vai Keycloak API
-router.post('/register', registerLimiter, validateRegister, async (req, res) => {
-  const { email, password, fullName } = req.body;
+router.post(
+  "/register",
+  registerLimiter,
+  validateRegister,
+  async (req, res) => {
+    const { email, password, fullName } = req.body;
 
-  if (!email || !password || !fullName) {
-    return res.status(400).json({ error: 'Email, password, and full name required' });
-  }
+    if (!email || !password || !fullName) {
+      return res
+        .status(400)
+        .json({ error: "Email, password, and full name required" });
+    }
 
-  try {
-    // access token using client credentials
-    const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-    const adminBody = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret
-    }).toString();
-
-    const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    // create user
-    const [firstName, ...lastNameParts] = fullName.trim().split(' ');
-    const lastName = lastNameParts.join(' ') || firstName;
-
-    const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
-    const userData = {
-      username: email,
-      email: email,
-      firstName: firstName,
-      lastName: lastName,
-      enabled: true,
-      emailVerified: false,
-      credentials: [{
-        type: 'password',
-        value: password,
-        temporary: false
-      }]
-    };
-
-    await axios.post(createUserUrl, userData, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminTokens.access_token}`
-      }
-    });
-
-    // auto-login after registration
-    // and error handling? or probably just a mistake on my end :/
-    //  but i added this anyways:
-    // if Direct Access Grants are disabled in KC return 201 with a prompt to log in manually instead of failing registration.
     try {
-      const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-      const loginBody = new URLSearchParams({
-        grant_type: 'password',
+      // access token using client credentials
+      const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+      const adminBody = new URLSearchParams({
+        grant_type: "client_credentials",
         client_id: clientId,
         client_secret: clientSecret,
-        username: email,
-        password: password,
-        scope: scopes
       }).toString();
 
-      const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
-      const { data: userinfo } = await axios.get(
-        `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
-        { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-      );
+      // create user
+      const [firstName, ...lastNameParts] = fullName.trim().split(" ");
+      const lastName = lastNameParts.join(" ") || firstName;
 
-      // Create FHIR Practitioner
+      const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
+      const userData = {
+        username: email,
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        enabled: true,
+        emailVerified: false,
+        credentials: [
+          {
+            type: "password",
+            value: password,
+            temporary: false,
+          },
+        ],
+      };
+
+      await axios.post(createUserUrl, userData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminTokens.access_token}`,
+        },
+      });
+
+      // auto-login after registration
+      // and error handling? or probably just a mistake on my end :/
+      //  but i added this anyways:
+      // if Direct Access Grants are disabled in KC return 201 with a prompt to log in manually instead of failing registration.
       try {
-        const practitionerResource = {
-          resourceType: "Practitioner",
-          id: userinfo.sub, // Use Keycloak ID as FHIR ID
-          active: true,
-          name: [
-            {
-              use: "official",
-              family: lastName,
-              given: [firstName],
-              text: fullName,
-            },
-          ],
-          telecom: [
-            {
-              system: "email",
-              value: email,
-              use: "work",
-            },
-          ],
+        const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+        const loginBody = new URLSearchParams({
+          grant_type: "password",
+          client_id: clientId,
+          client_secret: clientSecret,
+          username: email,
+          password: password,
+          scope: scopes,
+        }).toString();
+
+        const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+
+        const { data: userinfo } = await axios.get(
+          `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+          { headers: { Authorization: `Bearer ${tokens.access_token}` } },
+        );
+
+        // Create FHIR Practitioner
+        try {
+          const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+          const loginBody = new URLSearchParams({
+            grant_type: "password",
+            client_id: clientId,
+            client_secret: clientSecret,
+            username: email,
+            password: password,
+            scope: scopes,
+          }).toString();
+
+          const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          });
+
+          const { data: userinfo } = await axios.get(
+            `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+            { headers: { Authorization: `Bearer ${tokens.access_token}` } },
+          );
+
+          // Create FHIR Practitioner
+          try {
+            const practitionerResource = {
+              resourceType: "Practitioner",
+              id: userinfo.sub, // Use Keycloak ID as FHIR ID
+              active: true,
+              name: [
+                {
+                  use: "official",
+                  family: lastName,
+                  given: [firstName],
+                  text: fullName,
+                },
+              ],
+              telecom: [
+                {
+                  system: "email",
+                  value: email,
+                  use: "work",
+                },
+              ],
+            };
+
+            await practitionerService.createPractitionerWithSpecificId(
+              practitionerResource,
+            );
+            console.log(
+              `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
+            );
+
+            // Create PractitionerRole
+            try {
+              const practitionerRoleResource = {
+                resourceType: "PractitionerRole",
+                active: true,
+                practitioner: {
+                  reference: `Practitioner/${userinfo.sub}`,
+                },
+                code: [
+                  {
+                    text: "General Practitioner",
+                  },
+                ],
+                specialty: [
+                  {
+                    text: "General Practice",
+                  },
+                ],
+              };
+
+              await practitionerRoleService.createPractitionerRole(
+                practitionerRoleResource,
+              );
+              console.log(
+                `[REGISTER] Created FHIR PractitionerRole for ${userinfo.sub}`,
+              );
+            } catch (roleErr) {
+              console.error(
+                "[REGISTER] PractitionerRole Creation Failed:",
+                roleErr.message,
+              );
+              // Log error but continue - practitioner is already created
+            }
+          } catch (fhirErr) {
+            console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
+            // Log error but continue session creation so user is not blocked
+          }
+
+          req.session.tokens = {
+            access: tokens.access_token,
+            refresh: tokens.refresh_token,
+            id: tokens.id_token,
+            exp: Date.now() + tokens.expires_in * 1000,
+            refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
+          };
+          req.session.user = {
+            sub: userinfo.sub,
+            email: userinfo.email,
+            name: userinfo.name,
+          };
+
+          await practitionerService.createPractitionerWithSpecificId(
+            practitionerResource,
+          );
+          console.log(
+            `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
+          );
+        } catch (fhirErr) {
+          console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
+          // Log error but continue session creation so user is not blocked
+        }
+
+        req.session.tokens = {
+          access: tokens.access_token,
+          refresh: tokens.refresh_token,
+          id: tokens.id_token,
+          exp: Date.now() + tokens.expires_in * 1000,
+          refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
+        };
+        req.session.user = {
+          sub: userinfo.sub,
+          email: userinfo.email,
+          name: userinfo.name,
         };
 
-        await practitionerService.createPractitionerWithSpecificId(
-          practitionerResource,
-        );
-        console.log(
-          `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
-        );
-      } catch (fhirErr) {
-        console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
-        // Log error but continue session creation so user is not blocked
-      }
+        await addSessionForUser(userinfo.sub, req.sessionID);
 
-      req.session.tokens = {
-        access: tokens.access_token,
-        refresh: tokens.refresh_token,
-        id: tokens.id_token,
-        exp: Date.now() + tokens.expires_in * 1000,
-        refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
-      };
-      req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
-
-      await addSessionForUser(userinfo.sub, req.sessionID);
-
-      await logAuthEvent('REGISTER', req, {
-        userId: userinfo.sub,
-        email: userinfo.email,
-        autoLogin: true
-      });
-
-      return req.session.save(() => {
-        res.status(201).json({
-          success: true,
+        await logAuthEvent("REGISTER", req, {
+          userId: userinfo.sub,
+          email: userinfo.email,
           autoLogin: true,
-          user: req.session.user
         });
-      });
-    } catch (autoLoginErr) {
-      const errData = autoLoginErr?.response?.data || {};
-      // const isUnauthorizedClient = errData.error === 'unauthorized_client';
-      const message = 'User created. You can login now.';
 
-      console.warn('Auto-login after registration skipped:', errData || autoLoginErr.message);
+        return req.session.save(() => {
+          res.status(201).json({
+            success: true,
+            autoLogin: true,
+            user: req.session.user,
+          });
+        });
+      } catch (autoLoginErr) {
+        const errData = autoLoginErr?.response?.data || {};
+        // const isUnauthorizedClient = errData.error === 'unauthorized_client';
+        const message = "User created. You can login now.";
 
-      // log registration without auto-login
-      await logAuthEvent('REGISTER', req, {
-        email,
-        autoLogin: false,
-        reason: errData.error || autoLoginErr.message
-      });
+        console.warn(
+          "Auto-login after registration skipped:",
+          errData || autoLoginErr.message,
+        );
 
-      return res.status(201).json({
-        success: true,
-        autoLogin: false,
-        message,
-        reason: errData.error_description || errData.error || autoLoginErr.message
-      });
+        // log registration without auto-login
+        await logAuthEvent("REGISTER", req, {
+          email,
+          autoLogin: false,
+          reason: errData.error || autoLoginErr.message,
+        });
+
+        return res.status(201).json({
+          success: true,
+          autoLogin: false,
+          message,
+          reason:
+            errData.error_description || errData.error || autoLoginErr.message,
+        });
+      }
+    } catch (e) {
+      console.error("Registration failed:", e?.response?.data || e.message);
+      if (e?.response?.status === 409) {
+        return res.status(409).json({ error: "User already exists" });
+      }
+      const errorMsg = e?.response?.data?.errorMessage || "Registration failed";
+      res.status(400).json({ error: errorMsg });
     }
-  } catch (e) {
-    console.error('Registration failed:', e?.response?.data || e.message);
-    if (e?.response?.status === 409) {
-      return res.status(409).json({ error: 'User already exists' });
-    }
-    const errorMsg = e?.response?.data?.errorMessage || 'Registration failed';
-    res.status(400).json({ error: errorMsg });
-  }
-});
+  },
+);
 
-
-
-router.get('/callback', async (req, res) => {
+router.get("/callback", async (req, res) => {
   const { code, state } = req.query;
   if (!code || state !== req.session.oauth_state) {
-    return res.status(400).send('Invalid state or code');
+    return res.status(400).send("Invalid state or code");
   }
   const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
   const body = new URLSearchParams({
-    grant_type: 'authorization_code',
+    grant_type: "authorization_code",
     client_id: clientId,
     code,
     redirect_uri: redirectUri,
@@ -298,12 +393,12 @@ router.get('/callback', async (req, res) => {
 
   try {
     const { data: tokens } = await axios.post(tokenUrl, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     // might remove later :/
     const { data: userinfo } = await axios.get(
       `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
-      { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+      { headers: { Authorization: `Bearer ${tokens.access_token}` } },
     );
 
     req.session.tokens = {
@@ -313,22 +408,24 @@ router.get('/callback', async (req, res) => {
       exp: Date.now() + tokens.expires_in * 1000,
       refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
     };
-    req.session.user = { sub: userinfo.sub, email: userinfo.email, name: userinfo.name };
+    req.session.user = {
+      sub: userinfo.sub,
+      email: userinfo.email,
+      name: userinfo.name,
+    };
     req.session.save(() => {
-      res.redirect(process.env.FRONTEND_HOST || '/');
+      res.redirect(process.env.FRONTEND_HOST || "/");
     });
   } catch (e) {
-    console.error('token exchange failed', e?.response?.data || e.message);
-    res.status(401).send('auth failed :<');
+    console.error("token exchange failed", e?.response?.data || e.message);
+    res.status(401).send("auth failed :<");
   }
 });
 
-router.get('/me', requireSession, (req, res) => {
-
+router.get("/me", requireSession, (req, res) => {
   if (!req.session.user) return res.status(401).json({ authenticated: false });
   res.json({ authenticated: true, user: req.session.user });
 });
-
 
 async function revokeTokens(refreshToken, accessToken) {
   if (!refreshToken) return;
@@ -339,7 +436,7 @@ async function revokeTokens(refreshToken, accessToken) {
 
   const body = new URLSearchParams({
     token: refreshToken,
-    token_type_hint: 'refresh_token',
+    token_type_hint: "refresh_token",
     client_id: clientId,
     client_secret: clientSecret,
   }).toString();
@@ -347,44 +444,44 @@ async function revokeTokens(refreshToken, accessToken) {
   try {
     await axios.post(revokeUrl, body, {
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/x-www-form-urlencoded"
-      }
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     });
   } catch (err) {
-    console.error('Token revocation error:', err.response?.data || err.message);
+    console.error("Token revocation error:", err.response?.data || err.message);
   }
 }
 
 // single logout
-router.post('/logout', async (req, res) => {
-      try {
-            const userId = req.session.user?.sub;
-            const email = req.session.user?.email;
-            const refreshToken = req.session.tokens?.refresh;
-            const accessToken = req.session.tokens?.access;
-            const frontendReturn = process.env.FRONTEND_HOST;
+router.post("/logout", async (req, res) => {
+  try {
+    const userId = req.session.user?.sub;
+    const email = req.session.user?.email;
+    const refreshToken = req.session.tokens?.refresh;
+    const accessToken = req.session.tokens?.access;
+    const frontendReturn = process.env.FRONTEND_HOST;
 
-            await removeSessionForUser(userId, req.sessionID);
-            req.session.destroy(() => { });
+    await removeSessionForUser(userId, req.sessionID);
+    req.session.destroy(() => {});
 
-            await revokeTokens(refreshToken, accessToken);
+    await revokeTokens(refreshToken, accessToken);
 
-            // Log 
-            await logAuthEvent('LOGOUT', req, {
-                  userId,
-                  email
-            });
+    // Log
+    await logAuthEvent("LOGOUT", req, {
+      userId,
+      email,
+    });
 
-            return res.json({ ok: true, logoutUrl: frontendReturn });
-      } catch (e) {
-            console.error('logout error', e);
-            res.status(500).json({ ok: false });
-      }
+    return res.json({ ok: true, logoutUrl: frontendReturn });
+  } catch (e) {
+    console.error("logout error", e);
+    res.status(500).json({ ok: false });
+  }
 });
 
 // logout from all devices
-router.post('/logout-all', async (req, res) => {
+router.post("/logout-all", async (req, res) => {
   try {
     const userId = req.session.user?.sub;
     const email = req.session.user?.email;
@@ -400,12 +497,11 @@ router.post('/logout-all', async (req, res) => {
     // await removeSessionForUser(userId, req.sessionID);
 
     if (idToken && accessToken) {
-
       const decoded = jwt.decode(idToken);
       const userId = decoded?.sub;
 
       if (!userId) {
-        return res.status(400).json({ ok: false, error: 'Invalid ID token' });
+        return res.status(400).json({ ok: false, error: "Invalid ID token" });
       }
 
       await revokeTokens(refreshToken, accessToken);
@@ -413,50 +509,56 @@ router.post('/logout-all', async (req, res) => {
       // Get admin token to access Keycloak Admin API
       const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
       const adminBody = new URLSearchParams({
-        grant_type: 'client_credentials',
+        grant_type: "client_credentials",
         client_id: clientId,
-        client_secret: clientSecret
+        client_secret: clientSecret,
       }).toString();
 
       const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
       const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
 
-      await axios.post(logoutAllUrl, {}, {
-        headers: {
-          'Authorization': `Bearer ${adminTokens.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await axios.post(
+        logoutAllUrl,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${adminTokens.access_token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       const sessionIds = await getSessionsForUser(userId);
-      console.log(`[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`);
+      console.log(
+        `[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`,
+      );
       for (const sid of sessionIds) {
         await destroySessionById(sid);
       }
       await clearAllSessionsForUser(userId);
 
       await removeSessionForUser(userId, req.sessionID);
-      req.session.destroy(() => { });
+      req.session.destroy(() => {});
 
-      await logAuthEvent('LOGOUT_ALL', req, {
+      await logAuthEvent("LOGOUT_ALL", req, {
         userId: userId,
-        email
+        email,
       });
 
       return res.json({
         ok: true,
-        message: 'Logged out from all devices silently'
+        message: "Logged out from all devices silently",
       });
     }
 
     await removeSessionForUser(userId, req.sessionID);
-    req.session.destroy(() => { });
+    req.session.destroy(() => {});
     return res.json({ ok: true });
   } catch (e) {
-    console.error('global logout error', e?.response?.data || e.message);
+    console.error("global logout error", e?.response?.data || e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -551,7 +653,6 @@ router.post('/logout-all', async (req, res) => {
 
 //     // }
 
-
 //   }
 //   catch (regerr) {
 //     console.error('Registration failed:', regerr?.response?.data || regerr.message);
@@ -567,9 +668,7 @@ router.post('/logout-all', async (req, res) => {
 
 //   }
 
-
 // });
-
 
 // router.post('/mobile-login', loginLimiter, validateLogin, async (req, res) => {
 //   const { email, password } = req.body;
@@ -630,7 +729,6 @@ router.post('/logout-all', async (req, res) => {
 //   }
 // });
 
-
 // router.post('/refresh', async (req, res) => {
 //   try {
 //     const { refresh_token } = req.body;
@@ -672,27 +770,27 @@ router.post('/logout-all', async (req, res) => {
 // });
 
 // router.post('/logout', async (req, res) => {
-  // try {
-    // // check for token in case of mobile logout
-    // const authHeader = req.get('Authorization');
-    // const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+// try {
+// // check for token in case of mobile logout
+// const authHeader = req.get('Authorization');
+// const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-    // if (bearerToken) {
-    //   const { refresh_token } = req.body;
+// if (bearerToken) {
+//   const { refresh_token } = req.body;
 
-    //   if (refresh_token) {
-    //     await revokeTokens(refresh_token, bearerToken);
-    //   }
+//   if (refresh_token) {
+//     await revokeTokens(refresh_token, bearerToken);
+//   }
 
-    //   await logAuthEvent('MOBILE_LOGOUT', req, {
-    //     clientType: 'mobile',
-    //     tokenRevoked: !!refresh_token
-    //   });
+//   await logAuthEvent('MOBILE_LOGOUT', req, {
+//     clientType: 'mobile',
+//     tokenRevoked: !!refresh_token
+//   });
 
-    //   return res.json({ ok: true });
-    // }
+//   return res.json({ ok: true });
+// }
 
-    // browser logout
+// browser logout
 //     if (!req.session?.user?.sub) {
 //       return res.status(401).json({ error: 'Not authenticated' });
 //     }
@@ -723,8 +821,6 @@ router.post('/logout-all', async (req, res) => {
 
 // router.refreshTokens = refreshTokens;
 module.exports = router;
-
-
 
 //  legacy :<<<<
 

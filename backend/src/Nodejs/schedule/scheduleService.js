@@ -8,6 +8,7 @@ const {
   deleteFromCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
+const slotService = require("../slot/slotService");
 
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
@@ -244,9 +245,96 @@ async function invalidateScheduleCache(scheduleId, scheduleData) {
   }
 }
 
+// Get schedules with their associated slots for a practitioner
+async function getSchedulesWithSlotsByPractitioner(practitionerId, slotStatus) {
+  try {
+    // Fetch all schedules for the practitioner
+    const actorReference = `Practitioner/${practitionerId}`;
+    const schedules = await getSchedulesByActor(actorReference);
+
+    if (!schedules || schedules.length === 0) {
+      console.log(`No schedules found for ${actorReference}`);
+      return [];
+    }
+
+    // For each schedule, fetch its slots
+    const schedulesWithSlots = [];
+    for (const schedule of schedules) {
+      const scheduleId = schedule.id;
+      console.log(
+        `Fetching slots for Schedule/${scheduleId} with status: ${slotStatus || "all"}`,
+      );
+
+      try {
+        // Fetch slots for this specific schedule using getSlotsBySchedule
+        const slotsBundle = await slotService.getSlotsBySchedule(
+          scheduleId,
+          slotStatus,
+        );
+
+        // Extract slots from bundle
+        const slots = [];
+        if (slotsBundle.entry && slotsBundle.entry.length > 0) {
+          for (const entry of slotsBundle.entry) {
+            const slot = entry.resource;
+            slots.push({
+              id: slot.id,
+              scheduleReference:
+                slot.schedule?.reference || `Schedule/${scheduleId}`,
+              start: slot.start,
+              end: slot.end,
+              status: slot.status,
+            });
+          }
+        }
+
+        // Add schedule with its slots to result
+        schedulesWithSlots.push({
+          schedule: {
+            id: schedule.id,
+            active: schedule.active,
+            actor: schedule.actor,
+            planningHorizon: schedule.planningHorizon,
+            comment: schedule.comment,
+          },
+          slots: slots,
+        });
+      } catch (slotError) {
+        console.error(
+          `Error fetching slots for Schedule/${scheduleId}:`,
+          slotError.message,
+        );
+        // Still add the schedule but with empty slots array
+        schedulesWithSlots.push({
+          schedule: {
+            id: schedule.id,
+            active: schedule.active,
+            actor: schedule.actor,
+            planningHorizon: schedule.planningHorizon,
+            comment: schedule.comment,
+          },
+          slots: [],
+        });
+      }
+    }
+
+    console.log(
+      `Found ${schedulesWithSlots.length} schedules with slots for ${actorReference}`,
+    );
+    return schedulesWithSlots;
+  } catch (error) {
+    console.error(
+      "Error in getSchedulesWithSlotsByPractitioner:",
+      error.message,
+    );
+    throw new Error("Could not fetch schedules with slots for practitioner.");
+  }
+}
+
 module.exports = {
   getSchedulesByActor,
   getScheduleById,
+  getSchedulesWithSlotsByPractitioner,
   createScheduleWithSpecificId,
   createSchedule,
   updateSchedule,
