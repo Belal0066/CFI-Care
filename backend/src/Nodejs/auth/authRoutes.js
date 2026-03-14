@@ -21,7 +21,6 @@ const { requireSession } = require("../middleware/requireSession");
 const {
   loginLimiter,
   registerLimiter,
-  logoutAllLimiter,
 } = require("../middleware/rateLimiter");
 const {
   validateLogin,
@@ -35,6 +34,11 @@ const {
   clearAllSessionsForUser,
   destroySessionById,
 } = require("../utils/userSessions");
+
+const { requireApiAuth } = require("../middleware/requireApiAuth");
+
+
+
 const practitionerService = require("../practioner/practionerService");
 const practitionerRoleService = require("../practitionerRole/practitionerRoleService");
 
@@ -44,6 +48,7 @@ const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
 const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
 const scopes = process.env.KC_SCOPES || "openid profile email patient/*.rs";
+const targetmobileclient = process.env.targetmobileclient;
 
 //  to implement : rate limiting
 
@@ -148,26 +153,25 @@ router.post(
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
-      // create user
-      const [firstName, ...lastNameParts] = fullName.trim().split(" ");
-      const lastName = lastNameParts.join(" ") || firstName;
+    // create user
+    const [firstName, ...lastNameParts] = fullName.trim().split(' ');
+    const lastName = lastNameParts.join(' ') || firstName;
+    // console.log("first , last names: ",  firstName, lastName)
 
-      const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
-      const userData = {
-        username: email,
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        enabled: true,
-        emailVerified: false,
-        credentials: [
-          {
-            type: "password",
-            value: password,
-            temporary: false,
-          },
-        ],
-      };
+    const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
+    const userData = {
+      firstName: firstName,
+      lastName: lastName,
+      username: email,
+      email: email,
+      enabled: true,
+      emailVerified: true,
+      credentials: [{
+        type: 'password',
+        value: password,
+        temporary: false
+      }]
+    };
 
       await axios.post(createUserUrl, userData, {
         headers: {
@@ -453,115 +457,195 @@ async function revokeTokens(refreshToken, accessToken) {
   }
 }
 
+async function revokeMobileRefreshToken(refreshToken) {
+  if (!refreshToken) return;
+
+  const kcHost = process.env.KC_HOSTNAME;
+  const realm = process.env.KEYCLOAK_REALM;
+  const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
+
+  const body = new URLSearchParams({
+    token: refreshToken,
+    token_type_hint: "refresh_token",
+    client_id: targetmobileclient,
+  }).toString();
+
+  await axios.post(revokeUrl, body, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+}
+
+
 // single logout
-router.post("/logout", async (req, res) => {
+router.post('/logout', async (req, res) => {
   try {
     const userId = req.session.user?.sub;
     const email = req.session.user?.email;
     const refreshToken = req.session.tokens?.refresh;
     const accessToken = req.session.tokens?.access;
     const frontendReturn = process.env.FRONTEND_HOST;
+
 
     await removeSessionForUser(userId, req.sessionID);
     req.session.destroy(() => {});
 
     await revokeTokens(refreshToken, accessToken);
 
-    // Log
-    await logAuthEvent("LOGOUT", req, {
+    // Log 
+    await logAuthEvent('LOGOUT', req, {
       userId,
-      email,
+      email
     });
+
 
     return res.json({ ok: true, logoutUrl: frontendReturn });
   } catch (e) {
-    console.error("logout error", e);
+    console.error('logout error', e);
     res.status(500).json({ ok: false });
   }
 });
 
 // logout from all devices
-router.post("/logout-all", async (req, res) => {
+router.post('/logout-all', requireApiAuth, async (req, res) => {
   try {
-    const userId = req.session.user?.sub;
-    const email = req.session.user?.email;
-    const idToken = req.session.tokens?.id;
-    const refreshToken = req.session.tokens?.refresh;
-    const accessToken = req.session.tokens?.access;
+
+    const userId = req.user?.sub || req.session?.user?.sub;
+    const email = req.user?.email || req.session?.user?.email;
+    if (!userId) return res.status(401).json({ ok: false, error: "Not authenticated" });
+
+    // const idToken = req.session?.tokens?.id;
+    const refreshToken = req.session?.tokens?.refresh || req.body?.refresh_token;
+    const accessToken = req.session?.tokens?.access || req.accessToken;
+    const azp = req.jwt?.azp || null;
     const kcHost = process.env.KC_HOSTNAME;
     const realm = process.env.KEYCLOAK_REALM;
-    const frontendReturn = process.env.FRONTEND_HOST;
+    // const frontendReturn = process.env.FRONTEND_HOST;
 
     // // destroy backend session
     // req.session.destroy(() => { });
     // await removeSessionForUser(userId, req.sessionID);
 
-    if (idToken && accessToken) {
-      const decoded = jwt.decode(idToken);
-      const userId = decoded?.sub;
+    // for mobile
+    // if (!userId) {
+    //   const authHeader = req.headers.authorization || '';
+    //   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    //   if (!bearer) {
+    //     return res.status(401).json({ ok: false, error: 'Missing auth context' });
+    //   }
+    // for mobile
+    // if (!userId) {
+    //   const authHeader = req.headers.authorization || '';
+    //   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    //   if (!bearer) {
+    //     return res.status(401).json({ ok: false, error: 'Missing auth context' });
+    //   }
 
-      if (!userId) {
-        return res.status(400).json({ ok: false, error: "Invalid ID token" });
+    //   const decoded = jwt.decode(bearer);
+    //   userId = decoded?.sub || null;
+    //   email = decoded?.email || null;
+    //   accessToken = bearer;
+
+    //   if (!userId) {
+    //     return res.status(401).json({ ok: false, error: 'Invalid bearer token' });
+    //   }
+    // }
+
+
+    // if (!userId) return res.status(401).json({ ok: false, error: 'Not authenticated' });
+
+    console.log('[LOGOUT_ALL] hasRefreshToken=', !!refreshToken, 'hasAccessToken=', !!accessToken);
+    console.log('[LOGOUT_ALL] tokenClient(azp)=', req.jwt?.azp);
+    if (refreshToken || accessToken) {
+      if (azp === "flutter-app") {
+        await revokeMobileRefreshToken(refreshToken);
+      } else {
+        await revokeTokens(refreshToken, accessToken);
       }
-
-      await revokeTokens(refreshToken, accessToken);
-
-      // Get admin token to access Keycloak Admin API
-      const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-      const adminBody = new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }).toString();
-
-      const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      });
-
-      const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
-
-      await axios.post(
-        logoutAllUrl,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${adminTokens.access_token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const sessionIds = await getSessionsForUser(userId);
-      console.log(
-        `[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`,
-      );
-      for (const sid of sessionIds) {
-        await destroySessionById(sid);
-      }
-      await clearAllSessionsForUser(userId);
-
-      await removeSessionForUser(userId, req.sessionID);
-      req.session.destroy(() => {});
-
-      await logAuthEvent("LOGOUT_ALL", req, {
-        userId: userId,
-        email,
-      });
-
-      return res.json({
-        ok: true,
-        message: "Logged out from all devices silently",
-      });
     }
+    // if (idToken && accessToken) {
 
-    await removeSessionForUser(userId, req.sessionID);
-    req.session.destroy(() => {});
-    return res.json({ ok: true });
+    //   const decoded = jwt.decode(idToken);
+    //   const userId = decoded?.sub;
+
+    //   if (!userId) {
+    //     return res.status(400).json({ ok: false, error: 'Invalid ID token' });
+    //   }
+
+    //   await revokeTokens(refreshToken, accessToken);
+    //   const decoded = jwt.decode(bearer);
+    //   userId = decoded?.sub || null;
+    //   email = decoded?.email || null;
+    //   accessToken = bearer;
+
+    //   if (!userId) {
+    //     return res.status(401).json({ ok: false, error: 'Invalid bearer token' });
+    //   }
+    // }
+
+
+    // if (!userId) return res.status(401).json({ ok: false, error: 'Not authenticated' });
+
+    
+    const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+    const adminBody = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret
+    }).toString();
+
+    const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+
+    const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
+
+    await axios.post(logoutAllUrl, {}, {
+      headers: {
+        'Authorization': `Bearer ${adminTokens.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+
+
+    const sessionIds = await getSessionsForUser(userId);
+    console.log(`[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`);
+    for (const sid of sessionIds) {
+      await destroySessionById(sid);
+    }
+    await clearAllSessionsForUser(userId);
+
+    // await removeSessionForUser(userId, req.sessionID);
+    // req.session.destroy(() => { });
+    if (req.sessionID) await removeSessionForUser(userId, req.sessionID);
+    if (req.session) req.session.destroy(() => { });
+   
+
+    await logAuthEvent('LOGOUT_ALL', req, {
+      userId: userId,
+      email
+    });
+
+
+    return res.json({
+      ok: true,
+      message: 'Logged out from all devices silently'
+    });
+    // }
+
+
+    // await removeSessionForUser(userId, req.sessionID);
+    // req.session.destroy(() => { });
+    // return res.json({ ok: true });
+
   } catch (e) {
     console.error("global logout error", e?.response?.data || e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+module.exports = router;
 
 // // mobile auth?
 
@@ -820,7 +904,7 @@ router.post("/logout-all", async (req, res) => {
 // });
 
 // router.refreshTokens = refreshTokens;
-module.exports = router;
+
 
 //  legacy :<<<<
 
