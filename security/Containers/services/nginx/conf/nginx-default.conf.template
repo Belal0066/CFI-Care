@@ -25,6 +25,12 @@ server {
   listen 443 ssl default_server;
   include /etc/nginx/conf/ssl.conf;
 
+  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header Content-Security-Policy "frame-ancestors 'self'; object-src 'none'; base-uri 'self';" always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  proxy_cookie_flags ~ secure httponly samesite=lax;
+  server_tokens off;
+  proxy_hide_header Server;
 
   #keeping it just in case lol
  # location = /oauth2/auth {
@@ -42,6 +48,12 @@ server {
   #}
 
   location /api/ {
+
+    limit_except GET POST PUT DELETE OPTIONS {
+    deny all;
+  }
+
+
     # API routes protected via backend requireSession middleware
     proxy_pass http://backend_node;
     proxy_set_header Host $host;
@@ -51,6 +63,11 @@ server {
   }
 
   location /auth/ {
+
+    limit_except GET POST OPTIONS {
+    deny all;
+  }
+
     proxy_pass http://backend_node;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -73,6 +90,12 @@ server {
 
   # Angular
   location / {
+
+    limit_except GET HEAD OPTIONS {
+    deny all;
+  }
+
+
     proxy_pass http://frontend_angular;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
