@@ -47,20 +47,6 @@ services:
       - clinical_net
 
   # ---------------------------------------------------------------------------
-  # 3. FalkorDB (Graph Engine)
-  # ---------------------------------------------------------------------------
-  falkordb:
-    image: falkordb/falkordb:latest
-    container_name: clinical_graph
-    ports:
-      - "6379:6379"
-      # - "4000:4000" # Optional UI port if enabled
-    volumes:
-      - falkor_data:/data
-    networks:
-      - clinical_net
-
-  # ---------------------------------------------------------------------------
   # Note: MedGemma is served via Ollama (locally installed, not dockerized)
   # See README.md for Ollama setup instructions
   # ---------------------------------------------------------------------------
@@ -72,4 +58,3 @@ networks:
 volumes:
   fhir_data:
   qdrant_data:
-  falkor_data:
