@@ -235,7 +235,7 @@ class ApiService {
       throw Exception('Binary upload failed: ${binaryResponse.body}');
     }
 
-    final response = await putData(
+    var response = await putData(
       endpoint: '/documentReferences',
       data: docRefPayload,
     );
