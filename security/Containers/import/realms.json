@@ -3,7 +3,7 @@
   "realm" : "CFI-Care",
   "displayName" : "",
   "displayNameHtml" : "",
-  "notBefore" : 1772286458,
+  "notBefore" : 0,
   "defaultSignatureAlgorithm" : "RS256",
   "revokeRefreshToken" : false,
   "refreshTokenMaxReuse" : 0,
@@ -549,6 +549,28 @@
     "notBefore" : 0,
     "groups" : [ ]
   }, {
+    "id" : "a43487da-b887-4371-a930-396af9e9417e",
+    "username" : "nessus@mail.com",
+    "firstName" : "nessus",
+    "lastName" : "test",
+    "email" : "nessus@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1773362618592,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "9dc44157-4389-4b86-8dc9-e1bbde3e7ec3",
+      "type" : "password",
+      "createdDate" : 1773362618630,
+      "secretData" : "{\"value\":\"t6YV9FnhL88YM3mY0HN66keQ0R3b2eyqW3+V+8qX+l4=\",\"salt\":\"bGIUCeQouftmUtbMjoduBg==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "notBefore" : 1773486196,
+    "groups" : [ ]
+  }, {
     "id" : "d91a9a20-067d-4da5-bfa9-21487a5c4710",
     "username" : "patient1",
     "email" : "patient1@mail.com",
@@ -734,6 +756,28 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "notBefore" : 1768945213,
+    "groups" : [ ]
+  }, {
+    "id" : "2db32ace-4d6c-4b16-830d-d48eb30f7412",
+    "username" : "salmate3btawe@mail.com",
+    "firstName" : "salma",
+    "lastName" : "salma",
+    "email" : "salmate3btawe@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1773614792619,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "56bdfd8f-62a5-4d42-9fb8-9decef2417ca",
+      "type" : "password",
+      "createdDate" : 1773614792712,
+      "secretData" : "{\"value\":\"nx2QumI2Wt/IQQxpopl3oXnBmYawf/n01962HKZ/uV0=\",\"salt\":\"IIPmggp1A5Ll8NKiy1c78Q==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "notBefore" : 0,
     "groups" : [ ]
   }, {
     "id" : "dc3315b3-694d-4007-a5a1-f02dea2d3db5",
@@ -2496,8 +2540,8 @@
     "credentials" : [ {
       "id" : "73dc3cd1-5fad-4696-ab5f-05e73b5ef949",
       "type" : "password",
-      "createdDate" : 1772484097828,
-      "secretData" : "{\"value\":\"SBz9e5yqmr3R/847VbdXm/soCKB0UHHkHgeYfYbFfa8=\",\"salt\":\"dp1z/duXzV8Lm1JAf7Or1A==\",\"additionalParameters\":{}}",
+      "createdDate" : 1772934441583,
+      "secretData" : "{\"value\":\"+6/Lsd2dVeFPTHtMDh3OhwkS3HJhTtIlDix7hg9GtEo=\",\"salt\":\"SQsorhJsj4YVsLuC+bdOcA==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     }, {
       "id" : "e2cb7f8f-b9ff-42dd-aea5-3b735d75c43d",
@@ -2517,7 +2561,7 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
-    "notBefore" : 0,
+    "notBefore" : 1772937132,
     "groups" : [ ]
   }, {
     "id" : "eb815d46-5fdc-4e21-9fba-eb4f0ccede30",
@@ -3961,7 +4005,7 @@
       "providerId" : "declarative-user-profile",
       "subComponents" : { },
       "config" : {
-        "kc.user.profile.config" : [ "{\"attributes\":[{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"person-name-prohibited-characters\":{\"error-message\":\"\"}},\"annotations\":{},\"required\":{\"roles\":[\"admin\",\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"person-name-prohibited-characters\":{\"error-message\":\"\"}},\"annotations\":{},\"required\":{\"roles\":[\"admin\",\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"user\"]},\"multivalued\":false},{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}" ]
+        "kc.user.profile.config" : [ "{\"attributes\":[{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"person-name-prohibited-characters\":{\"error-message\":\"\"},\"length\":{\"min\":\"0\",\"max\":\"255\"}},\"annotations\":{},\"required\":{\"roles\":[\"admin\",\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"person-name-prohibited-characters\":{\"error-message\":\"\"},\"length\":{\"min\":\"0\",\"max\":\"255\"}},\"annotations\":{},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}" ]
       }
     } ],
     "org.keycloak.keys.KeyProvider" : [ {
