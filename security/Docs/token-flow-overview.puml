@@ -37,7 +37,7 @@ MobileApp -> MobileApp : Store tokens in Keystore
 == Browser API Request ==
 Browser -> nginx : GET /api/patients (cookie)
 nginx -> BFF : forward with cookie
-BFF -> BFF : requireSession (validate session)
+BFF -> BFF : vValidate session
 BFF -> Redis : Get tokens from session
 BFF -> BFF : attachForwardedToken (session → header)
 BFF -> BFF : verifyToken (JWKS validation)

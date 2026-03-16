@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 const conditionController = require("./conditionController");
-const { requireSession } = require('../middleware/requireSession');
+const { requireApiAuth } = require('../middleware/requireApiAuth');
 
 
-router.get("/patient/:patientId", requireSession, conditionController.getConditionsByPatientId);
-router.get("/:id", requireSession, conditionController.getConditionById);
-router.put("/", requireSession, conditionController.createConditionWithSpecificId);
+router.get("/patient/:patientId", requireApiAuth, conditionController.getConditionsByPatientId);
+router.get("/:id", requireApiAuth, conditionController.getConditionById);
+router.put("/", requireApiAuth, conditionController.createConditionWithSpecificId);
 router.post("/:id", conditionController.updateCondition);
 router.delete("/:id", conditionController.deleteCondition);
 module.exports = router;

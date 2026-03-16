@@ -1,35 +1,35 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const imagingStudyController = require("./imagingStudyController");
 
 // Get imaging studies by patient ID (optional query param: ?modality=...)
 router.get(
   "/patient/:patientId",
-  requireSession,
+  requireApiAuth,
   imagingStudyController.getImagingStudiesByPatient,
 );
 
 // Create imaging study with specific ID
 router.put(
   "/",
-  requireSession,
+  requireApiAuth,
   imagingStudyController.createImagingStudyWithSpecificId,
 );
 
 // Create imaging study (auto-generated ID)
-router.post("/", requireSession, imagingStudyController.createImagingStudy);
+router.post("/", requireApiAuth, imagingStudyController.createImagingStudy);
 
 // Get imaging study by ID
-router.get("/:id", requireSession, imagingStudyController.getImagingStudyById);
+router.get("/:id", requireApiAuth, imagingStudyController.getImagingStudyById);
 
 // Update imaging study
-router.post("/:id", requireSession, imagingStudyController.updateImagingStudy);
+router.post("/:id", requireApiAuth, imagingStudyController.updateImagingStudy);
 
 // Delete imaging study
 router.delete(
   "/:id",
-  requireSession,
+  requireApiAuth,
   imagingStudyController.deleteImagingStudy,
 );
 

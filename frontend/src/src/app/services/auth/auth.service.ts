@@ -4,6 +4,10 @@ import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
+// for logout to call both backend and oauth
+import { switchMap } from 'rxjs/operators';
+
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -46,91 +50,140 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<any>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
+  // constructor(private http: HttpClient) {
+  //   // check authN status on service init
+  //   this.checkAuthStatus();
+  // }
+
   constructor(private http: HttpClient) {
-    // check authN status on service init
-    this.checkAuthStatus();
+    // this.initSessionAndAuthState();
   }
 
-  //  login
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/login`, { 
-      email, 
-      password 
-    }, {
-      withCredentials: true // include cookies in requests
-    }).pipe(
-      tap(response => {
-        if (response.success) {
-          this.currentUserSubject.next(response.user);
-        }
-      }),
-      catchError(this.handleError)
-    );
+  // private initSessionAndAuthState(): void {
+  //   this.http.get<{ success: boolean; user?: any }>(`${this.API_URL}/session-init`, {
+  //     withCredentials: true
+  //   }).subscribe({
+  //     next: () => this.checkAuthStatus().subscribe(),
+  //     error: () => this.checkAuthStatus().subscribe()
+  //   });
+  // }
+
+  loginWithOAuth(returnTo: string = '/dashboard'): void {
+    window.location.assign(`/oauth2/start?rd=${encodeURIComponent(returnTo)}`);
   }
 
-//  register
-  register(email: string, password: string, fullName: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/register`, {
-      email,
-      password,
-      fullName
-    }, {
-      withCredentials: true // include cookies in requests
-    }).pipe(
-      tap(response => {
-        if (response.success) {
-          this.currentUserSubject.next(response.user);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
+  //   //  login
+  //   login(email: string, password: string): Observable<AuthResponse> {
+  //     return this.http.post<AuthResponse>(`${this.API_URL}/login`, { 
+  //       email, 
+  //       password 
+  //     }, {
+  //       withCredentials: true // include cookies in requests
+  //     }).pipe(
+  //       tap(response => {
+  //         if (response.success) {
+  //           this.currentUserSubject.next(response.user);
+  //         }
+  //       }),
+  //       catchError(this.handleError)
+  //     );
+  //   }
+
+  // //  register
+  //   register(email: string, password: string, fullName: string): Observable<AuthResponse> {
+  //     return this.http.post<AuthResponse>(`${this.API_URL}/register`, {
+  //       email,
+  //       password,
+  //       fullName
+  //     }, {
+  //       withCredentials: true // include cookies in requests
+  //     }).pipe(
+  //       tap(response => {
+  //         if (response.success) {
+  //           this.currentUserSubject.next(response.user);
+  //         }
+  //       }),
+  //       catchError(this.handleError)
+  //     );
+  //   }
 
   // check authN stat
   checkAuthStatus(): Observable<AuthStatusResponse> {
-    return this.http.get<AuthStatusResponse>(`${this.API_URL}/me`, {
-      withCredentials: true
-    }).pipe(
-      tap(response => {
-        if (response.authenticated && response.user) {
-          this.currentUserSubject.next(response.user);
-        } else {
-          this.currentUserSubject.next(null);
-        }
-      }),
-      catchError(error => {
-        this.currentUserSubject.next(null);
-        return throwError(() => error);
+    return this.http
+      .get<{ success: boolean; user?: any }>(`${this.API_URL}/session-init`, {
+        withCredentials: true,
       })
-    );
+      .pipe(
+        switchMap(() =>
+          this.http.get<AuthStatusResponse>(`${this.API_URL}/me`, {
+            withCredentials: true,
+          })
+        ),
+        tap((response) => {
+          if (response.authenticated && response.user) {
+            this.currentUserSubject.next(response.user);
+          } else {
+            this.currentUserSubject.next(null);
+          }
+        }),
+        catchError((error) => {
+          this.currentUserSubject.next(null);
+          return throwError(() => error);
+        })
+      );
   }
+  // checkAuthStatus(): Observable<AuthStatusResponse> {
+  //   return this.http.get<AuthStatusResponse>(`${this.API_URL}/me`, {
+  //     withCredentials: true
+  //   }).pipe(
+  //     tap(response => {
+  //       if (response.authenticated && response.user) {
+  //         this.currentUserSubject.next(response.user);
+  //       } else {
+  //         this.currentUserSubject.next(null);
+  //       }
+  //     }),
+  //     catchError(error => {
+  //       this.currentUserSubject.next(null);
+  //       return throwError(() => error);
+  //     })
+  //   );
+  // }
 
 
   getCurrentUser() {
     return this.currentUserSubject.value;
   }
 
- 
+
   isAuthenticated(): boolean {
     return this.currentUserSubject.value !== null;
   }
 
- 
-  logout() {
-    this.currentUserSubject.next(null);
-    return this.http.post(`${this.API_URL}/logout`, {}, {
-      withCredentials: true
-    }).pipe(
-      catchError(this.handleError)
-    );
-  }
+logout(): void {
+  this.currentUserSubject.next(null);
+  window.location.assign('/auth/logout');
+}
+
+
+  // logout(): Observable<any> {
+  //   return this.http.post('/oauth2/sign_out', {}, { withCredentials: true });
+  // }
+  // logout() {
+  //   this.currentUserSubject.next(null);
+  //   return this.http.post(`${this.API_URL}/logout`, {}, {
+  //     withCredentials: true
+  //   }).pipe(
+  //     catchError(this.handleError)
+  //   );
+  // }
 
   // Logout from ALL devices/sessions
   logoutAll(): Observable<any> {
     this.currentUserSubject.next(null);
     return this.http.post<{ ok: boolean; message?: string }>(
-      `${this.API_URL}/logout-all`, 
-      {}, 
+      `${this.API_URL}/logout-all`,
+      {},
       { withCredentials: true }
     ).pipe(
       catchError(this.handleError)
@@ -138,10 +191,10 @@ export class AuthService {
   }
 
   // Handle HTTP errors
-  
+
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An error occurred';
-    
+
     if (error.error instanceof ErrorEvent) {
       // Client-side error
       errorMessage = `Error: ${error.error.message}`;

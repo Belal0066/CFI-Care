@@ -1,0 +1,62 @@
+@startuml
+skinparam actorStyle AWESOME
+autonumber
+
+actor "Patient \n(Data Owner)" as U1
+participant "Application" as App
+
+participant "Backend" as BE
+
+participant "Audit Log Cache" as AuditLog
+
+
+database "Access Redis" as Cache
+database "Access Grant Database" as DB
+
+participant nginx
+participant "Browser" as FE
+actor "Practitioner" as U2
+
+== Phase 1: Handshake Generation ==
+U1 -> App : Tap "Generate Access Code" button
+App -> BE: POST /handshake/create
+BE -> BE: Generate temp code
+BE -> Cache : SET code:<code> 600 Patient_ID
+BE -> App: Return <code>
+App -> U1: Display Code
+
+== Phase 2: Handshake Verification ==
+U1 -> U2: Share <code> (Out-of-Band)
+U2 -> FE: Enter <code>
+FE -> BE : POST /handshake/verify {code: <code>}
+BE -> Cache: GET code:<code>
+alt Code Found
+    Cache -> BE: Return Patient_ID
+    BE -> FE: HTTP 200 "Request Sent"
+    
+    BE -> U1: Push Notification for request
+else Code Not Found / Expired
+    BE -> FE: HTTP 404 "Invalid Code"
+end
+
+== Phase 3: JIT Access Grant ==
+U1 -> App: Tap "Approve"
+App -> BE: POST /handshake/approve
+BE -> BE: Generate Access grant
+BE -> DB: insert grant {Patinet_ID, Practitioner_ID, expiry}
+BE-> AuditLog : log successful creation of grant
+BE -> App: Success
+' BE -> FE: Display "Access Granted"
+BE -> FE: Forward  Grant to be stored in session
+
+== Phase 4: Cross-Session Token Retrieval ==
+U2 -> FE: successfully logs in 
+FE -> BE: GET practitioner/active-grants {ID: ID_Token}
+
+BE -> DB: SELECT * FROM active_grants WHERE Practitioner_ID = ID
+DB -> BE: List of valid tokens
+BE->BE : Map tokens' Patient IDs to Patients' main data
+BE -> FE: Forward tokens , main data
+FE -> FE: Store tokens in Session Mem
+FE -> U2: Display Patients list
+@enduml

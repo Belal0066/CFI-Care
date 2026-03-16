@@ -1,10 +1,10 @@
 const jwt = require('jsonwebtoken');
 const jwksRsa = require('jwks-rsa');
 
-const KEYCLOAK_BASE_URL =process.env.KC_HOSTNAME;
+// const KEYCLOAK_BASE_URL =process.env.KC_HOSTNAME;
 const REALM = process.env.KEYCLOAK_REALM;
-const ISSUER = `${KEYCLOAK_BASE_URL}/realms/${REALM}`;
-const JWKS_URI = `${ISSUER}/protocol/openid-connect/certs`;
+const ISSUER = process.env.KC_ISSUER || `${process.env.KC_HOSTNAME}/realms/${REALM}`;
+const JWKS_URI = process.env.KC_JWKS_URI; //|| `${ISSUER}/protocol/openid-connect/certs`;
 
 const client = jwksRsa({
     jwksUri: JWKS_URI,
@@ -27,7 +27,16 @@ const getKey = (header, callback) => {
     });
 }
 
+function normalizeAudiences(aud) {
+  return String(aud || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
 const verifyToken = (expectedAudience) => {
+
+    const audiences = normalizeAudiences(expectedAudience);
     return function (req, res, next) {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -35,7 +44,7 @@ const verifyToken = (expectedAudience) => {
         }
         const token = authHeader.slice(7);
         jwt.verify(token, getKey, {
-            audience: expectedAudience,
+            audience: audiences,
             issuer: ISSUER,
             algorithms: ['RS256'],
             clockTolerance: parseInt(process.env.ALLOWED_CLOCK_SKEW) || 30 // in seconds

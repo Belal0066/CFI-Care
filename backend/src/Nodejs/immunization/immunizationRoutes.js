@@ -1,38 +1,38 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const immunizationController = require("./immunizationController");
 
 // Get all immunizations
-router.get("/", requireSession, immunizationController.getAllImmunizations);
+router.get("/", requireApiAuth, immunizationController.getAllImmunizations);
 
 // Get immunizations by patient ID
 router.get(
   "/patient/:patientId",
-  requireSession,
+  requireApiAuth,
   immunizationController.getImmunizationsByPatient,
 );
 
 // Create immunization with specific ID
 router.put(
   "/",
-  requireSession,
+  requireApiAuth,
   immunizationController.createImmunizationWithSpecificId,
 );
 
 // Create immunization (auto-generated ID)
-router.post("/", requireSession, immunizationController.createImmunization);
+router.post("/", requireApiAuth, immunizationController.createImmunization);
 
 // Get immunization by ID
-router.get("/:id", requireSession, immunizationController.getImmunizationById);
+router.get("/:id", requireApiAuth, immunizationController.getImmunizationById);
 
 // Update immunization
-router.post("/:id", requireSession, immunizationController.updateImmunization);
+router.post("/:id", requireApiAuth, immunizationController.updateImmunization);
 
 // Delete immunization
 router.delete(
   "/:id",
-  requireSession,
+  requireApiAuth,
   immunizationController.deleteImmunization,
 );
 
