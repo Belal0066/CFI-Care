@@ -1,25 +1,25 @@
 const express = require("express");
 const router = express.Router();
 const historyGraphController = require("./historyGraphController");
-const { requireSession } = require('../middleware/requireSession');
+const { requireApiAuth } = require('../middleware/requireApiAuth');
 
-router.put("/initialize", requireSession, historyGraphController.InitalizeHistoryGraph);
+router.put("/initialize", requireApiAuth, historyGraphController.InitalizeHistoryGraph);
 
 router.put(
   "/head-node/:patientId/:eocId",
-  requireSession, 
+  requireApiAuth, 
   historyGraphController.createheadNodeEncounter
 );
 
-router.get("/:patientId", requireSession, historyGraphController.getGraphData);
+router.get("/:patientId", requireApiAuth, historyGraphController.getGraphData);
 
-router.post("/seed/:patientId", requireSession, historyGraphController.createSampleData);
+router.post("/seed/:patientId", requireApiAuth, historyGraphController.createSampleData);
 
-router.post("/addNode", requireSession, historyGraphController.addNode);
-router.put("/addNode", requireSession, historyGraphController.addNode);
+router.post("/addNode", requireApiAuth, historyGraphController.addNode);
+router.put("/addNode", requireApiAuth, historyGraphController.addNode);
 
-router.put("/updateNode", requireSession, historyGraphController.updateNode);
+router.put("/updateNode", requireApiAuth, historyGraphController.updateNode);
 
-router.delete("/:patientId/:nodeId", requireSession, historyGraphController.deleteNode);
+router.delete("/:patientId/:nodeId", requireApiAuth, historyGraphController.deleteNode);
 
 module.exports = router;

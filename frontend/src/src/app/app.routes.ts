@@ -7,7 +7,8 @@ import { ChatGPT } from './chatgpt/chatgpt';
 import { AppointmentTestComponent } from './appointment-test/appointment-test.component';
 
 export const routes: Routes = [
-  { path: '', component: Login },
+  // { path: '', component: Login },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: 'login', component: Login },
   { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
   { path: 'med-graph/:id', component: MedGraph, canActivate: [authGuard] },

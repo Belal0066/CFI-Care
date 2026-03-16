@@ -1,14 +1,14 @@
 
 const axios = require('axios');
 
-async function requireSession(req, res, next) {
+async function requireApiAuth(req, res, next) {
     try {
-        // console.log("[requireSession] HIT", {
+        // console.log("[requireApiAuth] HIT", {
         //     url: req.originalUrl,
         //     method: req.method,
         //     authHeaderPresent: !!req.headers.authorization,
         // });
-        console.log('[requireSession] Session check:', {
+        console.log('[requireApiAuth] Session check:', {
             hasSession: !!req.session,
             hasUser: !!req.session?.user,
             hasTokens: !!req.session?.tokens,
@@ -16,7 +16,7 @@ async function requireSession(req, res, next) {
         });
 
         if (!req.session || !req.session.user || !req.session.tokens) {
-            console.log('[requireSession] Rejecting - missing session data');
+            console.log('[requireApiAuth] Rejecting - missing session data');
             return res.status(401).json({ error: 'Not authenticated' });
         }
 
@@ -53,7 +53,7 @@ async function requireSession(req, res, next) {
 
         return next();
     } catch (err) {
-        console.error('requireSession error:', err && err.message);
+        console.error('requireApiAuth error:', err && err.message);
         return res.status(500).json({ error: 'Auth check failed' });
     }
 }
@@ -81,4 +81,4 @@ async function refreshTokens(req) {
 
 
 
-module.exports = { requireSession, refreshTokens };
+module.exports = { requireApiAuth, refreshTokens };

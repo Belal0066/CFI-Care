@@ -1,47 +1,47 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const diagnosticReportController = require("./diagnosticReportController");
 
 // Get diagnostic reports by patient ID (optional query param: ?category=...)
 router.get(
   "/patient/:patientId",
-  requireSession,
+  requireApiAuth,
   diagnosticReportController.getDiagnosticReportsByPatient,
 );
 
 // Create diagnostic report with specific ID
 router.put(
   "/",
-  requireSession,
+  requireApiAuth,
   diagnosticReportController.createDiagnosticReportWithSpecificId,
 );
 
 // Create diagnostic report (auto-generated ID)
 router.post(
   "/",
-  requireSession,
+  requireApiAuth,
   diagnosticReportController.createDiagnosticReport,
 );
 
 // Get diagnostic report by ID
 router.get(
   "/:id",
-  requireSession,
+  requireApiAuth,
   diagnosticReportController.getDiagnosticReportById,
 );
 
 // Update diagnostic report
 router.post(
   "/:id",
-  requireSession,
+  requireApiAuth,
   diagnosticReportController.updateDiagnosticReport,
 );
 
 // Delete diagnostic report
 router.delete(
   "/:id",
-  requireSession,
+  requireApiAuth,
   diagnosticReportController.deleteDiagnosticReport,
 );
 

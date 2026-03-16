@@ -1,4 +1,4 @@
-upstream backend_node{
+upstream backend_node {
   server nodejs:3000;
 }
 
@@ -26,53 +26,143 @@ server {
   include /etc/nginx/conf/ssl.conf;
 
 
-  #keeping it just in case lol
- # location = /oauth2/auth {
-  
+  location /oauth2/ {
+    proxy_pass http://oauth2-proxy:4180;
 
+    proxy_pass_request_body off;
+
+    proxy_set_header Content-Length "";
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Cookie $http_cookie;
+    proxy_set_header Authorization $http_authorization;
+    proxy_set_header X-Auth-Request-Redirect $request_uri;
+  }
+
+
+  location = /oauth2/auth {
+    internal;
 
 
     # Proxy for AuthN server
-   # proxy_pass              http://oauth2-proxy:4180;
+    proxy_pass http://oauth2-proxy:4180;
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
 
-    #proxy_set_header        Host                   $host;
-    #proxy_set_header        X-Real-IP              $remote_addr;
-    #proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    #proxy_set_header X-Forwarded-Proto $scheme;
-  #}
+    proxy_set_header X-Forwarded-Uri $request_uri;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Cookie $http_cookie;
+    proxy_set_header Authorization $http_authorization;
 
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+  }
+
+  location = /oauth2/sign_out {
+    # if ($request_method != POST) {
+    #   return 405;
+    # }
+
+    # Proxy for AuthN server
+    proxy_pass http://oauth2-proxy:4180;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+
+  # backend APIs
   location /api/ {
-    # API routes protected via backend requireSession middleware
-    proxy_pass http://backend_node;
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/start;
+
+    auth_request_set $user $upstream_http_x_auth_request_user;
+    auth_request_set $email $upstream_http_x_auth_request_email;
+    auth_request_set $token $upstream_http_x_auth_request_access_token;
+
+    # sanitize
+    proxy_set_header X-Auth-Request-User "";
+    proxy_set_header X-Auth-Request-Email "";
+    proxy_set_header X-Auth-Request-Access-Token "";
+
+    proxy_set_header X-Auth-Request-User $user;
+    proxy_set_header X-Auth-Request-Email $email;
+    proxy_set_header X-Auth-Request-Access-Token $token;
+
+    proxy_set_header Authorization "";
+    proxy_set_header Authorization "Bearer $token";
+
+
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Auth-Request-Access-Token "";
+    proxy_set_header X-Auth-Request-Access-Token $token;
+
+    proxy_pass http://backend_node;
   }
 
+  # location /api/ {
+  #   # API routes protected via backend requireSession middleware
+  #   proxy_pass http://backend_node;
+  #   proxy_set_header Host $host;
+  #   proxy_set_header X-Real-IP $remote_addr;
+  #   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  #   proxy_set_header X-Forwarded-Proto $scheme;
+  # }
+
+  # backend auth
   location /auth/ {
-    proxy_pass http://backend_node;
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/start;
+
+    auth_request_set $user $upstream_http_x_auth_request_user;
+    auth_request_set $email $upstream_http_x_auth_request_email;
+    auth_request_set $token $upstream_http_x_auth_request_access_token;
+    auth_request_set $id_token $upstream_http_authorization;
+
+
+    proxy_set_header X-Auth-Request-User $user;
+    proxy_set_header X-Auth-Request-Email $email;
+    proxy_set_header X-Auth-Request-Access-Token $token;
+    proxy_set_header X-Auth-Request-Id-Token $id_token;
+
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_pass http://backend_node;
   }
 
-  #keycloak 
 
+  # location /auth/ {
+  #   proxy_pass http://backend_node;
+  #   proxy_set_header Host $host;
+  #   proxy_set_header X-Real-IP $remote_addr;
+  #   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  #   proxy_set_header X-Forwarded-Proto $scheme;
+  # }
+  #keycloak
   location /keycloak/ {
-   proxy_pass        https://keycloak_server;
-    proxy_set_header  Host               $host;
-    proxy_set_header  X-Real-IP          $remote_addr;
-    proxy_set_header  X-Forwarded-For    $proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Host   $host;
-    proxy_set_header  X-Forwarded-Server $host;
-    proxy_set_header  X-Forwarded-Port   $server_port;
-    proxy_set_header  X-Forwarded-Proto  $scheme;
+    proxy_pass https://keycloak_server;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Server $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-Proto $scheme;
   }
 
-  # Angular
   location / {
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/start;
+
+    # oauth2-proxy headers (after successful auth)
     proxy_pass http://frontend_angular;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -83,6 +173,18 @@ server {
     proxy_set_header Connection "upgrade";
   }
 
+
+  # # Angular
+  # location / {
+  #   proxy_pass http://frontend_angular;
+  #   proxy_set_header Host $host;
+  #   proxy_set_header X-Real-IP $remote_addr;
+  #   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  #   proxy_set_header X-Forwarded-Proto $scheme;
+  #   proxy_http_version 1.1;
+  #   proxy_set_header Upgrade $http_upgrade;
+  #   proxy_set_header Connection "upgrade";
+  # }
 }
 
 #server {
@@ -90,25 +192,17 @@ server {
 #  server_name kc.localhost;
 #  listen 443 ssl;
 #  include /etc/nginx/conf/ssl.conf;
-
-  
-
 #}
-
-
-
-
-  # location / {
-  #   proxy_set_header  Host               $host;
-  #   proxy_set_header  X-Real-IP          $remote_addr;
-  #   proxy_set_header  X-Forwarded-For    $proxy_add_x_forwarded_for;
-  #   proxy_set_header  X-Forwarded-Host   $host:443;
-  #   proxy_set_header  X-Forwarded-Server $host;
-  #   proxy_set_header  X-Forwarded-Port   443;
-  #   proxy_set_header  X-Forwarded-Proto  https;
-  #   proxy_pass        http://hapi-fhir:8080/;
-  # }
-
+# location / {
+#   proxy_set_header  Host               $host;
+#   proxy_set_header  X-Real-IP          $remote_addr;
+#   proxy_set_header  X-Forwarded-For    $proxy_add_x_forwarded_for;
+#   proxy_set_header  X-Forwarded-Host   $host:443;
+#   proxy_set_header  X-Forwarded-Server $host;
+#   proxy_set_header  X-Forwarded-Port   443;
+#   proxy_set_header  X-Forwarded-Proto  https;
+#   proxy_pass        http://hapi-fhir:8080/;
+# }
 # https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-http/
 # https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-subrequest-authentication
 # https://github.com/deskoh/nginx-oauth2-proxy-demo/blob/master/nginx/nginx.conf

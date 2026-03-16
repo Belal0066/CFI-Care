@@ -5,7 +5,7 @@ while ! docker info >/dev/null 2>&1; do
 done
 
 cd ../frontend/
-    docker compose -f docker-compose.yaml up #--build
+    docker compose -f docker-compose.yaml up --build
 
 
 # cd frontend/src/

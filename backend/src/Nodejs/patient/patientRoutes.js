@@ -5,10 +5,10 @@ const patientController = require("./patientController");
 
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 
 // GET all patients
-router.get("/", requireSession, patientController.getAllPatients);
+router.get("/", requireApiAuth, patientController.getAllPatients);
 //Authz tokens
 const { verifyToken } = require("../middleware/keycloakJWT");
 
@@ -30,13 +30,13 @@ router.post("/sync-fhir", patientController.syncPatientToFHIR);
 
 router.get(
   "/toon-everything/:id",
-  requireSession,
+  requireApiAuth,
   attachForwardedToken,
   patientController.toonPatientEverything,
 );
 router.get(
   "/",
-  requireSession,
+  requireApiAuth,
   attachForwardedToken,
   patientController.getCurrentPatient,
 );
@@ -52,7 +52,7 @@ router.put(
 
 router.get(
   "/:id",
-  requireSession,
+  requireApiAuth,
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   requireScopes(["patient/*.rs"]),
@@ -62,21 +62,21 @@ router.get(
 //still need to add scopes :/
 router.get(
   "/:id/related-data",
-  requireSession,
+  requireApiAuth,
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   patientController.getPatientAllRelatedData,
 );
 router.get(
   "/:id/observations",
-  requireSession,
+  requireApiAuth,
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   patientController.getPatientObservations,
 );
 router.get(
   "/:id/encounters",
-  requireSession,
+  requireApiAuth,
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   patientController.getPatientEncounters,

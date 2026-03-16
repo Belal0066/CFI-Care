@@ -1,26 +1,26 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require("../middleware/requireSession");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const appointmentController = require("./appointmentController");
 
 // Get appointments by patient ID
 router.get(
   "/patient/:patientId",
-  requireSession,
+  requireApiAuth,
   appointmentController.getAppointmentsByPatient,
 );
 
 // Get appointments by practitioner ID
 router.get(
   "/practitioner/:practitionerId",
-  requireSession,
+  requireApiAuth,
   appointmentController.getAppointmentsByPractitioner,
 );
 
 // Create appointment with specific ID
 router.put(
   "/",
-  requireSession,
+  requireApiAuth,
   appointmentController.createAppointmentWithSpecificId,
 );
 
@@ -28,12 +28,12 @@ router.put(
 router.post("/", appointmentController.createAppointment);
 
 // Get appointment by ID
-router.get("/:id", requireSession, appointmentController.getAppointmentById);
+router.get("/:id", requireApiAuth, appointmentController.getAppointmentById);
 
 // Update appointment
-router.post("/:id", requireSession, appointmentController.updateAppointment);
+router.post("/:id", requireApiAuth, appointmentController.updateAppointment);
 
 // Delete appointment
-router.delete("/:id", requireSession, appointmentController.deleteAppointment);
+router.delete("/:id", requireApiAuth, appointmentController.deleteAppointment);
 
 module.exports = router;

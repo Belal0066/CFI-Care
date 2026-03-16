@@ -49,7 +49,7 @@ note right of [NodeJS (BFF)]
   Express-session middleware
   Rate limiting (Redis-backed)
   Input validation (Joi)
-  Session check (requireSession)
+  Session check 
   JWT verification (JWKS)
   Scope validation
   Helmet (CSP, HSTS, X-Frame)

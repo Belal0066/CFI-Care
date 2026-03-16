@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const practitonerController = require("./practionerController");
-// const { requireSession } = require("../middleware/requireSession");
 const { requireApiAuth } = require("../middleware/requireApiAuth");
 
 
