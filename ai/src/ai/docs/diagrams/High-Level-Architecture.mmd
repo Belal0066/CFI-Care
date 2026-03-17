@@ -30,8 +30,6 @@ graph TD
             QDB[(Qdrant Vector DB<br/>clinical_snapshots)]
             PSC[PatientStateCompiler<br/>Diagnoses · Medications<br/>Allergies · Status]
             PS[(PatientState<br/>Immutable Snapshot)]
-            GK[GraphMapper<br/>Cypher Generation]
-            FDB[(FalkorDB<br/>Scaffolded / Not Connected)]
 
             DS --> JSN
             DS --> FHIR
@@ -43,8 +41,6 @@ graph TD
             PSC --> PS
             DC --> EMB
             EMB --> QDB
-            CPP --> GK
-            GK --> FDB
         end
 
         subgraph RL [Retrieval Layer]
@@ -90,7 +86,6 @@ graph TD
 
     style MCP stroke-dasharray: 5 5
     style MCPS stroke-dasharray: 5 5
-    style FDB fill:#E0E0E0,stroke:#999,stroke-width:1px,stroke-dasharray: 5 5
 
     style Clinician fill:#E0F7FA,stroke:#00838F,stroke-width:2px
     style Dashboard fill:#E3F2FD,stroke:#1E88E5,stroke-width:2px
@@ -119,5 +114,3 @@ graph TD
     style MCPS fill:#ECEFF1,stroke:#37474F,stroke-width:2px
     style LLM fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
     style GC fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
-
-    linkStyle 12 stroke:#999,stroke-dasharray: 5 5
