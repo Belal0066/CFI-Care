@@ -1,6 +1,6 @@
 # MedGemma Clinical AI System
 
-A highly sophisticated, end-to-end Clinical Decision Support System (CDSS) powered by **MedGemma 1.5 4B**. This system implements a "Twin Engine" RAG (Retrieval-Augmented Generation) architecture, combining local vector/graph storage with real-time internet medical evidence.
+A highly sophisticated, end-to-end Clinical Decision Support System (CDSS) powered by **MedGemma 1.5 4B**. This system implements a vector-based RAG (Retrieval-Augmented Generation) architecture, combining local hybrid vector search with real-time internet medical evidence.
 
 ## 🚀 Quick Start
 
@@ -26,10 +26,9 @@ Monitor the health of your clinical infrastructure in real-time.
 *   **API Backend**: Orchestrates RAG and query rewriting.
 *   **MedGemma LLM**: The core inference engine (llama.cpp).
 *   **Qdrant**: Vector Database for patient snapshots.
-*   **FalkorDB**: Graph Database for clinical relationships.
 *   **MCP Server**: Internet retrieval engine for PubMed/FDA.
 
-### 📥 Data Ingestion (The Twin Engine)
+### 📥 Data Ingestion
 The system requires clinical data to provide context-aware answers.
 *   **Remote Redis Sync**: The primary production path. Pulls data from the Cloud Redis instance and indexes it locally.
 *   **File Upload**: Drag and drop FHIR JSON bundles directly into the system.

@@ -19,7 +19,7 @@ Scanned medical reports (PDF) → OCR → structured extraction → deterministi
 
 ## Clinical AI System — RAG / Graph Copilot
 
-Deterministic, citation-backed clinical reasoning over longitudinal patient data, built on a "Twin Engine" (Qdrant vector search + FalkorDB graph) architecture.
+Deterministic, citation-backed clinical reasoning over longitudinal patient data, built on hybrid (dense + sparse) vector search over Qdrant.
 
 - **Start here:** [src/ai/README.md](src/ai/README.md)
 - **Launch guide:** [src/ai/LAUNCH.md](src/ai/LAUNCH.md)

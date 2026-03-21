@@ -7,7 +7,7 @@ and, until now, never lived on the same branch:
   Turns a scanned medical document into FHIR resources.
 - **`ai/src/ai/`** — Clinical RAG / "Clinical-Graph Copilot". Reads FHIR data
   for a patient and answers clinical questions over it (retrieval + reasoning),
-  backed by Qdrant (vector) and FalkorDB (graph).
+  backed by Qdrant hybrid (dense + sparse) vector search.
 
 ## Relationship between the two subsystems
 
@@ -79,7 +79,6 @@ isn't rediscovered as a surprise later.
 | Port | Service | Subsystem |
 |---|---|---|
 | 6333 / 6334 | Qdrant (vector search) | ai/src/ai |
-| 6379 | FalkorDB (graph) | ai/src/ai |
 | 7862 | OCR service | ai/src/DOC2FHIR |
 | 8000 | MedGemma LLM (Ollama) | ai/src/ai |
 | 8001 | Gateway (FastAPI, production API) | ai/src/DOC2FHIR |
