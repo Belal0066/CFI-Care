@@ -158,6 +158,8 @@ app.post("/timing", (req, res) => {
 // Apply general rate limiting to all routes
 app.use(generalLimiter);
 
+
+// app.use("/auth/provisioning", provisioningRoutes);
 app.use("/auth", authRoutes);
 
 app.use("/api", requireApiAuth);

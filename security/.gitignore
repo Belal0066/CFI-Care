@@ -19,3 +19,10 @@ decode_jwt.py
 *.json
 
 /test_mobile/*
+
+
+# keycloak fhir prov
+
+**/target/
+**/*.class
+
