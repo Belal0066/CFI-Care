@@ -92,13 +92,34 @@ HttpOnly, and SameSite according to deployment needs.
 
 \subsubsection{BFF Middleware: Session Check, JWT Verify, Scope Validation}
 \begin{itemize}
-    \item \textbf{API auth routing (requireApiAuth method)}: Bearer-only enforcement: Requests without \texttt{Authorization: Bearer <token>} are rejected with 401,valid bearer tokens are verified by JWT middleware.
-    \item \textbf{Session bootstrap (\texttt{/auth/session-init})}: creates/updates a BFF session record for user context and global logout coordination, based on trusted headers from nginx/\texttt{oauth2-proxy}, It's not the primary API authorization mechanism
+    \item \textbf{API auth routing (requireApiAuth method)}: Bearer-only enforcement: Requests without \texttt{Authorization: Bearer <token>} are rejected with 401.
+    \item \textbf{Session bootstrap (\texttt{/auth/session-init})}: creates/updates a BFF session record for user context and global logout coordination, based on trusted headers from nginx/\texttt{oauth2-proxy}, It's not the primary authorization mechanism
+    \item \textbf{Provisioning caller restriction (\texttt{requireProvisionerClient})}: for provisioning endpoint calls, the BFF only accepts service tokens where \texttt{azp/client\_id == KC\_PROVISIONER\_CLIENT\_ID}.
     \item \textbf{JWT verification (requireBearerJwt method)}: validates JWT signatures against Keycloak's JWKS endpoint, checks issuer (iss), allowed audiences (aud), algorithm (RS256), and clock skew tolerance.
           The Authorization header is forwarded by nginx as \texttt{Bearer <access\_token>} from \texttt{oauth2-proxy} auth results.
     \item \textbf{Scope checks (validateScopes method)}: parses \texttt{scope} claim and \\ \texttt{realm\_access.roles} from the token. Compares required SMART on FHIR scopes (e.g., \texttt{patient/<id>.rs}) against token scopes using pattern matching.
           For patient-specific scopes, validates that the \texttt{patient} claim in the token matches the requested resource ID.
 \end{itemize}
+
+\subsubsection{Registration Provisioning via Keycloak Event Listener}
+FHIR resource provisioning on user registration is triggered by a custom Keycloak Event Listener (\texttt{REGISTER} event).  
+The listener obtains a client-credentials access token from Keycloak and calls:
+\texttt{POST /auth/provisioning/keycloak-register}.
+
+The endpoint is protected in two layers:
+\begin{itemize}
+    \item JWT validation (\texttt{requireApiAuth})
+    \item caller-client allowlist check (\texttt{requireProvisionerClient})
+\end{itemize}
+
+Resource type is selected from the registration client ID:
+\begin{itemize}
+    \item \texttt{KC\_BROWSER\_CLIENT\_IDS} $\rightarrow$ \texttt{Practitioner}
+    \item \texttt{KC\_MOBILE\_CLIENT\_IDS} $\rightarrow$ \texttt{Patient}
+\end{itemize}
+Unknown mappings are rejected with HTTP 400
+
+
 \subsubsection{FHIR Server Enforcement}
 Future work: validate JWTs independently to implement defense in depth,
 leverage FHIR server's built-in SMART on FHIR policy enforcement for
@@ -153,22 +174,22 @@ The BFF exposes logout endpoints:
     \item Future work: tune timeouts.
 \end{itemize}
 \subsubsection{BFF}
-\paragraph{Input Validation \& Rate Limiting}
-All authentication endpoints (login, register) validate input using Joi schemas
-before processing. Login requires valid email and password (min 8). Register
-requires valid email, password with complexity (uppercase, lowercase, digit,
-min 8 chars), and full name (alphanumeric + spaces). Validation errors are
-returned as HTTP 400 with field-level details for client feedback.
+% \paragraph{Input Validation \& Rate Limiting}
+% All authentication endpoints (login, register) validate input using Joi schemas
+% before processing. Login requires valid email and password (min 8). Register
+% requires valid email, password with complexity (uppercase, lowercase, digit,
+% min 8 chars), and full name (alphanumeric + spaces). Validation errors are
+% returned as HTTP 400 with field-level details for client feedback.
 
-Rate limiting is implemented via three Redis-backed limiters using
-\texttt{rate-limit-redis} middleware:
-\begin{itemize}
-    \item \texttt{loginLimiter}: 5 attempts/10 minutes (production) or 100/10 minutes (development so we could keep testing the system).
-          \newline Counts only failed attempts (\texttt{skipSuccessfulRequests: true}).
-    \item \texttt{registerLimiter}: 3 attempts/hour (production) or 100/hour (development).
-    \item \texttt{generalLimiter}: 100 attempts/10 minutes (production) or 1000/10 minutes (development). Applied globally to all API routes.
-\end{itemize}
-Exceeded limits return HTTP 429 (too Many Requests), protecting endpoints from credential enumeration and brute-force attacks.
+% Rate limiting is implemented via three Redis-backed limiters using
+% \texttt{rate-limit-redis} middleware:
+% \begin{itemize}
+%     \item \texttt{loginLimiter}: 5 attempts/10 minutes (production) or 100/10 minutes (development so we could keep testing the system).
+%           \newline Counts only failed attempts (\texttt{skipSuccessfulRequests: true}).
+%     \item \texttt{registerLimiter}: 3 attempts/hour (production) or 100/hour (development).
+%     \item \texttt{generalLimiter}: 100 attempts/10 minutes (production) or 1000/10 minutes (development). Applied globally to all API routes.
+% \end{itemize}
+% Exceeded limits return HTTP 429 (too Many Requests), protecting endpoints from credential enumeration and brute-force attacks.
 
 \paragraph{Security Event Logging \& Audit Trail}
 All authentication events (LOGIN\_SUCCESS, LOGIN\_FAILURE, REGISTER, LOGOUT,
@@ -446,12 +467,12 @@ ensuring the Angular HTTP client:
 The AuthService uses a BehaviorSubject to maintain observable current user
 state. Any component can subscribe to \texttt{currentUser\$} and react to
 authentication changes.
-\subsubsection{Error Transparency}
-Backend validation errors (from /register endpoint) include field-level details
-in the HTTP response's \texttt{error.details} array. The AuthService's
-handleError method extracts and formats these messages, allowing the login
-component to display specific guidance. This improves UX and helps users follow
-password complexity requirements.
+% \subsubsection{Error Transparency}
+% Backend validation errors (from /register endpoint) include field-level details
+% in the HTTP response's \texttt{error.details} array. The AuthService's
+% handleError method extracts and formats these messages, allowing the login
+% component to display specific guidance. This improves UX and helps users follow
+% password complexity requirements.
 
 \subsection{Keycloak}
 Keycloak serves as the OpenID Connect identity provider. It manages user
@@ -605,12 +626,12 @@ The BFF applies Helmet security headers (CSP, HSTS, X-Frame-Options)
 \paragraph{Current State}
 The implementation is functional and ready for incremental hardening:
 \begin{itemize}
-    \item All authentication endpoints are secured with rate limiting and input
-          validation.
+    % \item All authentication endpoints are secured with rate limiting and input validation.
     \item Browser authentication continuity is maintained through gateway-managed OIDC session handling.
+    \item Mobile authentication is implemented with Authorization Code + PKCE, secure token storage, and refresh/retry handling.
+    \item Registration provisioning is automated via Keycloak Event Listener to BFF provisioning endpoint.
     \item Per-session and global logout are fully functional.
     \item Audit trails are captured and retained for 90 days.
-    \item Mobile authentication is implemented with Authorization Code + PKCE, secure token storage, and refresh/retry handling.
 \end{itemize}
 
 % \hspace*{2em}In this chapter, we outline the necessary tools and software required to implement SNMP in a simulated environment. We cover the installation and configuration of GNS3, Wireshark, and SnmpB, ensuring a functional setup for SNMP communication and monitoring.

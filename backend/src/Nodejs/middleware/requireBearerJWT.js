@@ -28,19 +28,19 @@ function requireBearerJwt(req, res, next) {
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
 
   if (!token) {
-    console.log("[JWT-DEBUG] no token ");
+    // console.log("[JWT-DEBUG] no token ");
     return res.status(401).json({ error: "missing bearer token" });
   }
 
   // debugging stuff :/
-  const decoded = jwt.decode(token, { complete: true });
-  console.log("[JWT-DEBUG] Token header:", decoded?.header);
-  console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
+  // const decoded = jwt.decode(token, { complete: true });
+  // console.log("[JWT-DEBUG] Token header:", decoded?.header);
+  // console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
 
 
   const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew, ...(allowedAudiences.length ? { audience: allowedAudiences } : {}) };
 
-  console.log("[JWT-VERIFY] Options:", { allowedIssuers, allowedAudiences: allowedAudiences.length ? allowedAudiences : "none" });
+  // console.log("[JWT-VERIFY] Options:", { allowedIssuers, allowedAudiences: allowedAudiences.length ? allowedAudiences : "none" });
 
 
   jwt.verify(
@@ -53,10 +53,10 @@ function requireBearerJwt(req, res, next) {
     // },
     (err, payload) => {
       if (err) {
-        console.error("[JWT-VERIFY] FAILED:", err.name, err.message);
+        // console.error("[JWT-VERIFY] FAILED:", err.name, err.message);
         return res.status(401).json({ error: "Invalid token", detail: err.message });
       }
-      console.log("[JWT-VERIFY] SUCCESS, azp:", payload.azp, "client_id:", payload.client_id);
+      console.log("[JWT-VERIFY] SUCCESS, azp:", payload.azp);
       req.jwt = payload;
       req.user = { sub: payload.sub, email: payload.email };
       req.accessToken = token;
