@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject , of} from 'rxjs';
+import { catchError, tap, map, shareReplay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 // for logout to call both backend and oauth
@@ -50,14 +50,10 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<any>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  // constructor(private http: HttpClient) {
-  //   // check authN status on service init
-  //   this.checkAuthStatus();
-  // }
+  private sessionInitOnce$?: Observable<void>;
 
-  constructor(private http: HttpClient) {
-    // this.initSessionAndAuthState();
-  }
+
+  constructor(private http: HttpClient) {}
 
   // private initSessionAndAuthState(): void {
   //   this.http.get<{ success: boolean; user?: any }>(`${this.API_URL}/session-init`, {
@@ -72,83 +68,48 @@ export class AuthService {
     window.location.assign(`/oauth2/start?rd=${encodeURIComponent(returnTo)}`);
   }
 
-  //   //  login
-  //   login(email: string, password: string): Observable<AuthResponse> {
-  //     return this.http.post<AuthResponse>(`${this.API_URL}/login`, { 
-  //       email, 
-  //       password 
-  //     }, {
-  //       withCredentials: true // include cookies in requests
-  //     }).pipe(
-  //       tap(response => {
-  //         if (response.success) {
-  //           this.currentUserSubject.next(response.user);
-  //         }
-  //       }),
-  //       catchError(this.handleError)
-  //     );
-  //   }
 
-  // //  register
-  //   register(email: string, password: string, fullName: string): Observable<AuthResponse> {
-  //     return this.http.post<AuthResponse>(`${this.API_URL}/register`, {
-  //       email,
-  //       password,
-  //       fullName
-  //     }, {
-  //       withCredentials: true // include cookies in requests
-  //     }).pipe(
-  //       tap(response => {
-  //         if (response.success) {
-  //           this.currentUserSubject.next(response.user);
-  //         }
-  //       }),
-  //       catchError(this.handleError)
-  //     );
-  //   }
 
   // check authN stat
   checkAuthStatus(): Observable<AuthStatusResponse> {
-    return this.http
-      .get<{ success: boolean; user?: any }>(`${this.API_URL}/session-init`, {
-        withCredentials: true,
-      })
-      .pipe(
-        switchMap(() =>
-          this.http.get<AuthStatusResponse>(`${this.API_URL}/me`, {
-            withCredentials: true,
-          })
-        ),
-        tap((response) => {
-          if (response.authenticated && response.user) {
-            this.currentUserSubject.next(response.user);
-          } else {
-            this.currentUserSubject.next(null);
-          }
-        }),
-        catchError((error) => {
-          this.currentUserSubject.next(null);
-          return throwError(() => error);
-        })
-      );
+  return this.http.get<AuthStatusResponse>(`${this.API_URL}/me`, {
+    withCredentials: true,
+  }).pipe(
+    tap((response) => {
+      this.currentUserSubject.next(response.authenticated ? response.user ?? null : null);
+      if (!response.authenticated) {
+        this.sessionInitOnce$ = undefined;
+      }
+    }),
+    catchError((error) => {
+      this.currentUserSubject.next(null);
+      this.sessionInitOnce$ = undefined;
+      return throwError(() => error);
+    })
+  );
+}
+
+
+  initSessionOnce(): Observable<void> {
+    if (!this.sessionInitOnce$) {
+      this.sessionInitOnce$ = this.http.get<{ success: boolean }>(`${this.API_URL}/session-init`, { withCredentials: true }).pipe(
+          map(() => void 0),
+          catchError(() => of(void 0)),
+          shareReplay(1)
+        );
+    }
+    return this.sessionInitOnce$;
   }
-  // checkAuthStatus(): Observable<AuthStatusResponse> {
-  //   return this.http.get<AuthStatusResponse>(`${this.API_URL}/me`, {
-  //     withCredentials: true
-  //   }).pipe(
-  //     tap(response => {
-  //       if (response.authenticated && response.user) {
-  //         this.currentUserSubject.next(response.user);
-  //       } else {
-  //         this.currentUserSubject.next(null);
-  //       }
-  //     }),
-  //     catchError(error => {
-  //       this.currentUserSubject.next(null);
-  //       return throwError(() => error);
-  //     })
-  //   );
-  // }
+
+  ensureSessionInitializedIfAuth(): Observable<boolean> {
+    return this.checkAuthStatus().pipe(
+      switchMap((res) => {
+        if (!res.authenticated) return of(false);
+        return this.initSessionOnce().pipe(map(() => true));
+      })
+    );
+  }
+
 
 
   getCurrentUser() {
@@ -160,23 +121,12 @@ export class AuthService {
     return this.currentUserSubject.value !== null;
   }
 
-logout(): void {
-  this.currentUserSubject.next(null);
-  window.location.assign('/auth/logout');
-}
+  logout(): void {
+    this.currentUserSubject.next(null);
+    this.sessionInitOnce$ = undefined;
+    window.location.assign('/auth/logout');
+  }
 
-
-  // logout(): Observable<any> {
-  //   return this.http.post('/oauth2/sign_out', {}, { withCredentials: true });
-  // }
-  // logout() {
-  //   this.currentUserSubject.next(null);
-  //   return this.http.post(`${this.API_URL}/logout`, {}, {
-  //     withCredentials: true
-  //   }).pipe(
-  //     catchError(this.handleError)
-  //   );
-  // }
 
   // Logout from ALL devices/sessions
   logoutAll(): Observable<any> {
