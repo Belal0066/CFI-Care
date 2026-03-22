@@ -28,6 +28,7 @@ const regProvisioningRoutes = require("./regProvisioningRoute");
 router.use("/provisioning", regProvisioningRoutes);
 
 const kcHost = process.env.KC_HOSTNAME;
+const internal = process.env.KC_HOSTNAME_INTERNAL;
 const realm = process.env.KEYCLOAK_REALM;
 const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
@@ -207,7 +208,7 @@ router.post('/logout-all', async (req, res) => {
     }
 
     // admin logout for all user's sessions
-    const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+    const adminTokenUrl = `${internal}/realms/${realm}/protocol/openid-connect/token`;
     const adminBody = new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: clientId,
@@ -218,7 +219,7 @@ router.post('/logout-all', async (req, res) => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
+    const logoutAllUrl = `${internal}/admin/realms/${realm}/users/${userId}/logout`;
     await axios.post(logoutAllUrl, {}, {
       headers: {
         Authorization: `Bearer ${adminTokens.access_token}`,

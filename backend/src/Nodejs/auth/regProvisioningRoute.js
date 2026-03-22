@@ -66,7 +66,7 @@ async function createFhirByType(resourceType, resource) {
 
 // called by keycloak event-listener 
 router.post("/keycloak-register", requireApiAuth, requireProvisionerClient, async (req, res) => {
-  console.log("[PROVISION] Request received:", { url: req.url, body: req.body });
+  // console.log("[PROVISION] Request received:", { url: req.url, body: req.body });
   try {
     const {
       eventType, // must be REGISTER
@@ -78,7 +78,7 @@ router.post("/keycloak-register", requireApiAuth, requireProvisionerClient, asyn
       registrationClientId
     } = req.body || {};
 
-    console.log("[PROVISION] Parsed fields:", { eventType, userId, email, registrationClientId });
+    // console.log("[PROVISION] Parsed fields:", { eventType, userId, email, registrationClientId });
 
 
     if (eventType !== "REGISTER") return res.status(200).json({ ignored: true });

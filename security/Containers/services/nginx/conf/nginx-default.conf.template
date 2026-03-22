@@ -29,12 +29,14 @@ server {
   location /oauth2/ {
     proxy_pass http://oauth2-proxy:4180;
 
-    proxy_pass_request_body off;
+    # proxy_pass_request_body off;
 
     proxy_set_header Content-Length "";
 
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Cookie $http_cookie;
     proxy_set_header Authorization $http_authorization;
     proxy_set_header X-Auth-Request-Redirect $request_uri;
@@ -182,20 +184,29 @@ server {
     proxy_set_header Connection "upgrade";
   }
 
+  location = /oauth2/callback {
+    if ($arg_error = temporarily_unavailable) {
+    return 302 /oauth2/start?rd=/dashboard;
+  }
 
-#   # for registration in FHIR
-#   location /provisioning/ {
+    proxy_pass http://oauth2-proxy:4180;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Cookie $http_cookie;
+  }
 
+  #   # for registration in FHIR
+  #   location /provisioning/ {
 
-#   proxy_pass http://backend_node;
-#   proxy_set_header Host $host;
-#   proxy_set_header X-Real-IP $remote_addr;
-#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#   proxy_set_header X-Forwarded-Proto $scheme;
-
-#   proxy_set_header Authorization $http_authorization;
-# }
-
+  #   proxy_pass http://backend_node;
+  #   proxy_set_header Host $host;
+  #   proxy_set_header X-Real-IP $remote_addr;
+  #   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  #   proxy_set_header X-Forwarded-Proto $scheme;
+  #   proxy_set_header Authorization $http_authorization;
+  # }
   # # Angular
   # location / {
   #   proxy_pass http://frontend_angular;
