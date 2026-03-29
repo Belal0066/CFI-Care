@@ -402,8 +402,7 @@ allergy_docs = retriever.get_allergy_events()
 ### Immediate (Ready Now)
 1. ✅ Vector embedding generation (FastEmbed)
 2. ✅ Qdrant ingestion with metadata
-3. ✅ FalkorDB graph creation
-4. ✅ LLM integration with MedGemma
+3. ✅ LLM integration with MedGemma
 
 ### Future Enhancements
 1. **SNOMED CT Mapping:** Link clinical terms to standard codes

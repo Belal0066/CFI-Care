@@ -145,7 +145,7 @@ log_level: str = "INFO"
 | File | Purpose |
 |------|---------|
 | [scripts/launch_medgemma_rag.sh](scripts/launch_medgemma_rag.sh) | **Master launcher** - starts all services |
-| [scripts/quick_seed_rag.py](scripts/quick_seed_rag.py) | **Quick data seeding** (no FalkorDB needed) |
+| [scripts/quick_seed_rag.py](scripts/quick_seed_rag.py) | **Quick data seeding** |
 | [src/ui/streamlit_rag_app.py](src/ui/streamlit_rag_app.py) | **Interactive web UI** |
 | [src/retrieval/medgemma_rag.py](src/retrieval/medgemma_rag.py) | **RAG pipeline** |
 | [src/shared/config.py](src/shared/config.py) | **Configuration** (fixed) |

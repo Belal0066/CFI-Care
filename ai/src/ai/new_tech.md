@@ -210,7 +210,6 @@ Raw JSON / FHIR
 | Local llama.cpp | `http://localhost:8000` | `medgemma-1.5-4b-it-Q6_K.gguf` | `llm_backend="local"` |
 | Lightning AI | configurable | `google/medgemma-27b-it` | `llm_backend="lightning"` |
 | Qdrant | `localhost:6333` | — | `clinical_snapshots` collection |
-| FalkorDB | `localhost:6379` | — | Disabled (`falkor_client=None`) |
 | FastEmbed | CPU | `bge-base-en-v1.5` + `Splade_PP_en_v1` | Embedded |
 
 ### 7. Database Schema
@@ -224,7 +223,7 @@ Raw JSON / FHIR
 
 **Payload fields:**
 - `id`, `patient_id`, `resource_type`, `toon_content`, `fhir_raw`
-- `source_node_id` (for cross-ref with FalkorDB)
+- `source_node_id` (links to the ingestion node ID)
 
 ### 8. Safety & Domain Boundaries
 
@@ -348,11 +347,10 @@ src/
 │   ├── preprocessor.py          # ClinicalPreprocessor, NormalizedNode
 │   ├── patient_state.py         # PatientState, PatientStateCompiler
 │   ├── service.py               # IngestionService
-│   ├── toon.py                  # ToonNormalizer (FHIR→text)
-│   └── graph.py                 # GraphMapper (FalkorDB Cypher)
+│   └── toon.py                  # ToonNormalizer (FHIR→text)
 ├── shared/
 │   ├── config.py                # InfraConfig (singleton)
-│   ├── db_clients.py            # QdrantVectorClient, falkor_client
+│   ├── db_clients.py            # QdrantVectorClient
 │   └── models.py                # RetrievedContext, ClinicalState, etc.
 ├── api/
 │   ├── FastAPI_Backend.py       # Full demo backend

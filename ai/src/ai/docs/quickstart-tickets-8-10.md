@@ -290,9 +290,8 @@ assert response.confidence in ["High", "Medium", "Low", "Insufficient"]
 
 1. **No Vector Search**: Uses rule-based filtering, not semantic similarity
 2. **No Token Management**: Doesn't limit docs for LLM context windows
-3. **No Graph Traversal**: Doesn't use FalkorDB relationships
-4. **Simple Deduplication**: Manual node_id-based (ClinicalDocument not hashable)
-5. **No Caching**: Retrieval results not cached
+3. **Simple Deduplication**: Manual node_id-based (ClinicalDocument not hashable)
+4. **No Caching**: Retrieval results not cached
 
 ## Next Steps
 

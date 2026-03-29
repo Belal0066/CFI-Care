@@ -225,13 +225,12 @@ python scripts/test_medgemma_rag.py --interactive
  **FHIR R4**: Data in Qdrant follows FHIR structure  
  **Strict Typing**: Pydantic V2 models throughout  
  **Traceability**: Full context metadata for audit logs  
- **Twin Engine**: Uses Qdrant (graph expansion via FalkorDB can be added)  
+ **Hybrid Vector Search**: Dense + sparse retrieval via Qdrant  
  **Error Handling**: Graceful fallbacks, detailed logging  
 
 ##  Next Steps
 
-1. **Graph Expansion**: Integrate FalkorDB for hybrid retrieval
-2. **Reranking**: Add cross-encoder for context reranking
+1. **Reranking**: Add cross-encoder for context reranking
 3. **Streaming**: Real-time response streaming
 4. **Memory**: Multi-turn conversations
 5. **Fine-tuning**: Domain-specific retrieval optimization

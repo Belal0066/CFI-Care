@@ -228,13 +228,8 @@ Comprehensive test suite: `scripts/test_preprocessor.py`
    - Embedding input: `text_primary` + `details`
    - Metadata: `event_tag`, `diagnosis_type`, `date_normalized`
 
-2. **Graph Ingestion (FalkorDB)**
-   - Uses: `graph_structure` (nodes + edges)
-   - Node properties: All `NormalizedNode` fields
-   - Edge creation: Based on `father_id` and `relationship_type`
-
-3. **Clinical Reasoner**
-   - Uses: `timeline` + `graph_structure`
+2. **Clinical Reasoner**
+   - Uses: `timeline`
    - Query focus: Filter by `event_tag` or `diagnosis_type`
    - Temporal reasoning: Use `date_issued` for change tracking
 
@@ -252,11 +247,6 @@ for node in result["timeline"]:
     content = f"{node.text_primary}\n{node.details}"
     embedding = IngestionService.get_embedding(content)
     # Store in Qdrant with metadata
-
-# Step 3: Ingest to graph DB
-for node in result["normalized_nodes"]:
-    # Create node in FalkorDB
-    # Create edge if node.father_id exists
 ```
 
 ## Key Design Decisions

@@ -6,15 +6,14 @@ Ticket 2.1 Implementation Summary
 
 ### 1. Core Components
 - **HybridRetriever Service** (src/retrieval/service.py)
-  - Implements "Anchor & Expand" pattern
+  - Dense + sparse vector search with reciprocal rank fusion
   - Uses lokeshch19/ModernPubMedBERT for embeddings (768-dim)
-  - Combines Qdrant vector search with FalkorDB graph traversal
   - Patient-ID filtering for HIPAA compliance
 
 ### 2. Data Models
 - **RetrievedContext** (src/shared/models.py)
   - Standardized output format for hybrid retrieval
-  - Contains anchor content, score, and graph context
+  - Contains anchor content and score
 
 ### 3. Infrastructure Updates
 - **docker-compose.yml**
@@ -56,11 +55,11 @@ Query: "elevated glucose"
     ↓
 [Embedding Model] → 768-dim vector
     ↓
-[Qdrant Search] → Anchor Nodes (UUID_A, UUID_B, UUID_C)
+[Qdrant Search] → Dense + Sparse candidates (UUID_A, UUID_B, UUID_C)
     ↓
-[FalkorDB Expansion] → MATCH (n {id: UUID})-[r*1..2]-(context)
+[Reciprocal Rank Fusion] → merged, re-ranked results
     ↓
-[RetrievedContext] → {anchor + graph_neighborhood}
+[RetrievedContext] → {anchor content + score}
 ```
 
 ## Testing
@@ -106,11 +105,10 @@ ollama list | grep medgemma
   - Runs efficiently on RTX 2070
   - ~1-2s inference time for reasoning tasks
 - **Vector Search**: Sub-100ms for <10k vectors
-- **Graph Expansion**: <50ms for 1-2 hop traversal
 
 ## Compliance
 
- Twin Engine Rule: All retrieval maintains UUID linkage
+ Identity linkage: All retrieval maintains UUID linkage to source FHIR data
  Patient Isolation: Qdrant filters enforce patient_id boundaries
  Traceability: All context includes source FHIR references
  Type Safety: Pydantic models throughout

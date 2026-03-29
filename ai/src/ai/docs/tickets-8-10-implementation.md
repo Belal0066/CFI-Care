@@ -295,17 +295,15 @@ from src.agent.clinical_reasoning import ClinicalReasoner, ClinicalResponse, Cit
 
 1. **No Semantic Search**: Current implementation uses rule-based filtering, not vector similarity
 2. **No Token Management**: Does not implement max_docs parameter for LLM token limits
-3. **No Graph Traversal**: Does not use FalkorDB relationships for evidence chains
-4. **Simple Deduplication**: Manual node_id-based dedup (ClinicalDocument not hashable)
-5. **No Caching**: Retrieval results not cached
+3. **Simple Deduplication**: Manual node_id-based dedup (ClinicalDocument not hashable)
+4. **No Caching**: Retrieval results not cached
 
 ### Next Steps
 
 1. **Integrate Vector Search** (Qdrant): Add semantic similarity to retrieval strategies
 2. **Add Token Management**: Implement max_docs truncation for LLM context windows
-3. **Graph Traversal**: Use FalkorDB to find causal relationships
-4. **Response Caching**: Cache retrieval results for repeated queries
-5. **Confidence Calibration**: Tune confidence scoring based on data completeness metrics
+3. **Response Caching**: Cache retrieval results for repeated queries
+4. **Confidence Calibration**: Tune confidence scoring based on data completeness metrics
 
 ### Success Criteria
 

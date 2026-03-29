@@ -263,9 +263,8 @@ docker-compose down qdrant
 
 ###  Clinical Infrastructure Compliant
 - **FHIR R4** data structures
-- **Twin Engine** (Qdrant + FalkorDB ready)
+- **Hybrid vector search** (Qdrant dense + sparse)
 - **Strict typing** (Pydantic V2)
-- **2PC Lite** ingestion with rollback
 - **Audit logging** for HIPAA
 
 ###  Production Ready
@@ -310,7 +309,6 @@ docker-compose down qdrant
 
 ### Short-term
 - [ ] Add your own clinical data
-- [ ] Integrate FalkorDB for graph expansion
 - [ ] Add reranking for better context
 - [ ] Implement streaming responses
 

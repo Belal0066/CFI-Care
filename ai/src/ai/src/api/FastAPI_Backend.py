@@ -301,7 +301,7 @@ def health_check():
 @app.post("/ingest", response_model=IngestResponse)
 def trigger_ingestion():
     """
-    Pull data from Remote Redis -> Standard Ingestion Service (Twin Engine)
+    Pull data from Remote Redis -> Standard Ingestion Service
     Uses IngestionService to ensure consistency with the rest of the RAG system.
     """
     if not state.redis_client:

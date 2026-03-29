@@ -9,7 +9,6 @@ The Clinical RAG System has a Streamlit web interface with 4 main pages:
 ### 1. System Status
 Monitor health of all services:
 - Qdrant (Vector DB)
-- FalkorDB (Graph DB)  
 - MedGemma LLM Server
 - Backend API
 

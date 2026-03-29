@@ -21,7 +21,7 @@ graph TD
     
     B -.->|Uses| K[HybridRetriever]
     E -.->|Uses| L[MedGemma via Ollama]
-    F -.->|Uses| M[FalkorDB + Regex]
+    F -.->|Uses| M[Regex + Semantic Matching]
 ```
 
 ## 3. State Machine Design
@@ -77,7 +77,7 @@ class ClinicalState(BaseModel):
 - **Input**: `differential_diagnoses`, `retrieved_contexts`
 - **Action**:
   1. Extract all medical claims (lab values, dates, symptoms)
-  2. Verify each claim exists in `retrieved_contexts` or FalkorDB
+  2. Verify each claim exists in `retrieved_contexts`
   3. Use regex + semantic matching
 - **Output**: Set `audit_passed` (bool) and `audit_failures` (list)
 - **Exit**: If failed, route to `reject`; else route to `format_output`
@@ -318,12 +318,11 @@ httpx>=0.26.0
 
 ### 9.1 HIPAA Traceability
 - Every state transition logged with `reasoning_trace`
-- Final output includes `metadata.graph_context_ids` for audit
 - Logs stored in append-only format
 
 ### 9.2 Patient Data Isolation
 - State objects never stored permanently (except experiment logs in dev)
-- All FalkorDB/Qdrant queries filtered by `patient_id`
+- All Qdrant queries filtered by `patient_id`
 
 ### 9.3 Hallucination Prevention
 - Strict audit prevents ungrounded claims from reaching clinician

@@ -453,11 +453,6 @@ Click "Load Default Data" button
 - [ ] Combine rule-based + vector retrieval
 - [ ] Tune similarity thresholds
 
-### Phase 2: Graph Database
-- [ ] Add FalkorDB for causal relationships
-- [ ] Implement graph traversal for evidence chains
-- [ ] Enhance differential diagnosis reasoning
-
 ### Phase 3: LLM Integration
 - [ ] Connect MedGemma for response generation
 - [ ] Implement streaming responses

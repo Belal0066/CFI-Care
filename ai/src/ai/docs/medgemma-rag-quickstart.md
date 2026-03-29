@@ -310,7 +310,6 @@ First run will download ModernPubMedBERT (~400MB). Wait for download to complete
 
 ## Next Steps
 
-- Add graph context expansion (FalkorDB integration)
 - Implement reranking for better context selection
 - Add streaming support for real-time responses
 - Multi-turn conversation with memory
