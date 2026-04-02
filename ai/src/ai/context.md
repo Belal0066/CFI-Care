@@ -14,7 +14,6 @@
 | **Data Standard** | HL7 FHIR R4 |
 | **LLM** | MedGemma 1.5 4B (local llama.cpp) **or** MedGemma 27B (Lightning AI remote) |
 | **Vector DB** | Qdrant (dense + sparse hybrid search) |
-| **Graph DB** | FalkorDB (scaffolded but **not connected** — see §6) |
 | **Current Phase** | Agentic RAG operational; Deterministic pipeline (Tickets 4-10) validated 23/23 |
 | **Launcher** | `./launch.sh --local` (llama.cpp 4B) or `./launch.sh --lightning` (Lightning AI 27B) |
 
@@ -38,7 +37,6 @@ graph TB
 
     subgraph "Storage Layer"
         Q[(Qdrant<br/>Vector DB port 6333)]
-        F[(FalkorDB<br/>Graph DB port 6379<br/>NOT CONNECTED)]
     end
 
     subgraph "Retrieval Pipeline<br/>src/retrieval/"
@@ -81,7 +79,6 @@ graph TB
     P --> T
     T --> I
     I --> Q
-    I -.-> F
 
     U --> CR
     CR --> CL
@@ -158,7 +155,7 @@ flowchart LR
 /home/belal/AI_System/
 ├── .env.example                     # Template for environment variables
 ├── .gitignore
-├── docker-compose.yml               # Qdrant + FalkorDB + HAPI FHIR + PostgreSQL
+├── docker-compose.yml               # Qdrant + HAPI FHIR + PostgreSQL
 ├── launch.sh                        # Master launcher: Qdrant → llama.cpp → Backend → MCP
 ├── launch_dashboard.sh              # Streamlit UI launcher (port 8511)
 ├── utils.sh                         # CLI utils: seed, test-rag, test-mcp, status, logs, stop
@@ -176,8 +173,7 @@ flowchart LR
 │   │   ├── preprocessor.py          #     ClinicalPreprocessor — JSON→NormalizedNode
 │   │   ├── patient_state.py         #     PatientStateCompiler — timeline→PatientState
 │   │   ├── toon.py                  #     ToonNormalizer — FHIR→TOON strings
-│   │   ├── service.py               #     IngestionService — 2PC Lite → Qdrant
-│   │   └── graph.py                 #     GraphMapper — FHIR→Cypher (DEAD CODE)
+│   │   └── service.py               #     IngestionService → Qdrant
 │   │
 │   ├── retrieval/                   #   Retrieval & RAG
 │   │   ├── __init__.py              #     (disabled: __all__ = [])
@@ -247,8 +243,7 @@ flowchart LR
 │   ├── test_ui_pipeline.py          #   Full UI pipeline integration
 │   ├── test_vision.py               #   Image processing tests
 │   ├── verify_infra.py              #   Infrastructure validation
-│   ├── ...                          #   (see full list in repository)
-│   └── setup_graph_schema.py        #   Cannot run (falkor_client missing)
+│   └── ...                          #   (see full list in repository)
 │
 ├── Data/                            # Patient JSON data + test outputs
 │   ├── data.json                    #   Primary input: 10-encounter patient timeline
@@ -280,7 +275,7 @@ flowchart LR
 |------|-------------|-------|-------------|
 | `config.py` | `InfraConfig`, `config` (singleton) | 58 | Pydantic V2 settings: Qdrant host/port, Ollama/llama.cpp URLs, embedding model, FHIR base, logging. Reads from `.env`. **Missing field:** `mcp_server_url` (see §8 Bug #2). |
 | `db_clients.py` | `QdrantVectorClient`, `qdrant_client` (singleton) | 144 | Qdrant connection with hybrid collection creation (dense `text-dense` 768-dim COSINE + sparse `text-sparse`). Provides `upsert_point()` and `health_check()`. |
-| `models.py` | `ClinicalEntity`, `VectorPayload`, `RetrievedContext`, `DifferentialDiagnosis`, `AuditFailure`, `ClinicalState` | 92 | Pydantic V1 (downgraded for FHIR compat). Base models for Twin Engine, agent, and audit. |
+| `models.py` | `ClinicalEntity`, `VectorPayload`, `RetrievedContext`, `DifferentialDiagnosis`, `AuditFailure`, `ClinicalState` | 92 | Pydantic V1 (downgraded for FHIR compat). Base models for ingestion, agent, and audit. |
 
 ### 4.2 `src/ingestion/` — Data Ingestion Pipeline
 
@@ -289,8 +284,7 @@ flowchart LR
 | `preprocessor.py` | `ClinicalPreprocessor`, `NormalizedNode`, `ClinicalCategory`, `DiagnosisType`, `EventTag` | 477 | ✅ Active. Deterministic normalization of clinical JSON nodes. Parses timestamps, classifies diagnoses, tags events (6 types). Method: `preprocess_timeline(data)`. |
 | `patient_state.py` | `PatientStateCompiler`, `PatientState` | 463 | ✅ Active. Compiles sorted timeline → immutable patient snapshot (active/resolved/differential diagnoses, medications, allergies, clinical status). Method: `compile_state(nodes, eoc_id)`. |
 | `toon.py` | `ToonNormalizer` | ~200 | ✅ Active. FHIR R4 resources → TOON (Token-Oriented Object Notation) natural language strings. Methods: `normalize_patient()`, `normalize_encounter()`, `normalize_observation()`, `normalize_condition()`. |
-| `service.py` | `IngestionService`, `IngestionError` | 278 | ✅ Active. 2PC Lite ingestion: accepts FHIR Bundle/resource/dict → FastEmbed dense (bge-base-en-v1.5) + sparse (SPLADE) → upsert to Qdrant. Key methods: `get_embedding()`, `get_sparse_embedding()`, `ingest_resource()`. Data source can be Redis or file. |
-| `graph.py` | `GraphMapper` | 166 | ❌ **Dead code.** Generates Cypher queries for FalkorDB but is **never called** from any active code path. No FalkorDB client exists in `db_clients.py`. |
+| `service.py` | `IngestionService`, `IngestionError` | 278 | ✅ Active. Ingestion: accepts FHIR Bundle/resource/dict → FastEmbed dense (bge-base-en-v1.5) + sparse (SPLADE) → upsert to Qdrant. Key methods: `get_embedding()`, `get_sparse_embedding()`, `ingest_resource()`. Data source can be Redis or file. |
 
 ### 4.3 `src/retrieval/` — Retrieval & RAG
 
@@ -299,7 +293,7 @@ flowchart LR
 | `query_understanding.py` | `QueryIntent` (enum, 10 intents), `QueryContext`, `IntentClassifier`, `QueryRewriter` | 448 | ✅ Active. Rule-based intent classification using regex (10 clinical intents + UNKNOWN). `QueryContext` has `original_query`, `intent`, `rewritten_query`, `confidence`, retrieval hints. **No `query_normalized` field** (see §8 Bug #3). |
 | `indexing.py` | `DocumentBuilder`, `ClinicalDocument`, `ContextualRetriever` | ~400 | ✅ Active. Converts NormalizedNode → ClinicalDocument with rich metadata (15+ fields). `ContextualRetriever` provides query-scoped bounded retrieval. |
 | `context_retrieval.py` | `ContextRetriever`, `RetrievalStrategy`, `RetrievalContext` | 526 | ✅ Active. Intent-based retrieval with 8 strategies: SUMMARY, DIAGNOSIS, DIFFERENTIAL, MEDICATION, CHANGE_TRACKING, TREND_ANALYSIS, RATIONALE, TIMELINE, OUTCOME. Each has a strategy method. |
-| `service.py` | `HybridRetriever` | 125 | ✅ Active. Qdrant hybrid search (dense + sparse with RRF). Method: `search(patient_id, query, limit, hops)`. Returns `List[RetrievedContext]`. Falls back to dense-only if fusion fails. |
+| `service.py` | `HybridRetriever` | 125 | ✅ Active. Qdrant hybrid search (dense + sparse with RRF). Method: `search(patient_id, query, limit)`. Returns `List[RetrievedContext]`. Falls back to dense-only if fusion fails. |
 | `medgemma_rag.py` | `MedGemmaRAG`, `medgemma_rag` (singleton) | 306 | ✅ Active. End-to-end RAG: query → embed (FastEmbed) → Qdrant search → llama.cpp generation → parsed response. Methods: `query()`, `retrieve_context()`, `parse_response()`. |
 
 ### 4.4 `src/agent/` — Agent & Reasoning
@@ -459,7 +453,6 @@ sequenceDiagram
 | **Lightning AI / MedGemma 27B** | remote | ❌ | ✅ `launch.sh --lightning` step 2 (connectivity check) | ✅ **Remote backend.** 128K context, SGLang serving. Model: `google/medgemma-27b-it`. Used when `LLM_BACKEND=lightning`. |
 | **FastAPI Backend** | 8001 | ❌ | ✅ `launch.sh` step 3 (`uv run uvicorn`) | ✅ **Fully wired.** Hub-and-Spoke. `/health`, `/ingest`, `/chat`, `/patient/{id}`. |
 | **MCP Server** | 8002 | ❌ | ✅ `launch.sh` step 4 (`uv run uvicorn`) | ✅ **Fully wired.** LangGraph medical internet retrieval. PubMed/OpenFDA/MedlinePlus. |
-| **FalkorDB** (Graph Engine) | 6379 | ✅ `falkordb` service | ❌ **Not started by launch.sh** | ❄️ **Scaffolded, disconnected.** Cypher code in `src/ingestion/graph.py` never called. No FalkorDB client in `db_clients.py`. `verify_infra.py:51` says "FalkorDB is currently DISABLED". |
 | **HAPI FHIR** | 8080 | ✅ `hapi-fhir` + `fhir-db` (PostgreSQL) | ❌ **Not started by launch.sh** | ❄️ **Defined but unused.** Actual data source is hardcoded Redis cloud instance (`FastAPI_Backend.py:52-54`). FHIR parsing code exists but data comes from JSON files / Redis. |
 | **Redis Cloud** | 19534 | ❌ | N/A (external) | ⚠️ **Production data source.** Hardcoded credentials in `FastAPI_Backend.py:52-54` — security concern. |
 | **Ollama** | 11434 | ❌ | ❌ Not started | ⚠️ **Alternative LLM backend.** `src/agent/llm_client.py` targets Ollama, but `launch.sh` uses llama.cpp. Config has `use_llamacpp=True` by default. |
@@ -467,14 +460,6 @@ sequenceDiagram
 | **Streamlit (streamlit_rag_app.py)** | 8501 | ❌ | ❌ Not in launch chain | ⚠️ Legacy, redundant with dashboard.py. |
 | **SGLang** | 30000 | ❌ | ❌ Not started | ❄️ Config exists (`use_sglang: bool = False`). Not deployed. |
 | **Prometheus Metrics** | N/A | ❌ | ❌ No deployment | ❄️ `prometheus_fastapi_instrumentator` imported in FastAPI but not configured for production. |
-
-### FalkorDB Disconnection — Root Cause
-- `src/shared/db_clients.py` — **no FalkorDB client class** (only QdrantVectorClient)
-- `src/ingestion/service.py` — never calls `GraphMapper`, only writes to Qdrant
-- `src/ingestion/graph.py` — Cypher code exists but **nobody imports it**
-- `scripts/setup_graph_schema.py:4` — tries `from src.shared.db_clients import falkor_client` → **crash**
-- `scripts/sync_check.py:4` — same import → **crash**
-- `scripts/verify_infra.py:51` — prints `"FalkorDB is currently DISABLED"`
 
 ---
 
@@ -630,14 +615,11 @@ query_context = QueryContext(
 | File | Lines | Reason | Superseded By |
 |------|-------|--------|---------------|
 | `src/agent/workflow.py` | 258 | Old LangGraph DDx workflow (ClinicalWorkflow + HybridRetriever + ClaimAuditor + DDx) | `src/agent/graph/workflow.py` |
-| `src/ingestion/graph.py` | 166 | FalkorDB Cypher generator — never called, no FalkorDB client exists | Nothing (future work) |
 | `src/MCPs/remote_client.py` | 74 | Obsolete MCP SSE client | `mcps/main.py` (FastAPI/SSE) |
 | `src/ui/pages_disabled/1_System_Status.py` | ~150 | Replaced by dashboard.py unified tabbed UI | `src/ui/dashboard.py` |
 | `src/ui/pages_disabled/2_Data_Ingestion.py` | ~200 | Same | `src/ui/dashboard.py` |
 | `src/ui/pages_disabled/3_Clinical_Assistant.py` | ~200 | Same | `src/ui/dashboard.py` |
 | `src/ui/pages_disabled/4_Clinical_Reasoning.py` | ~350 | Had `date_unix` bug (fixed in FIXES_APPLIED.md), now replaced | `src/ui/dashboard.py` |
-| `scripts/sync_check.py` | 105 | FalkorDB sync check — cannot run (falkor_client import fails) | Nothing (future work) |
-| `scripts/setup_graph_schema.py` | 45 | FalkorDB schema setup — same import crash | Nothing (future work) |
 | `scripts/run_ingest_local.py` | 64 | Standalone debug script | `src/ingestion/service.py` |
 | `fake_ollama.py` | 85 | Compatibility shim, not in launch chain | N/A |
 | `scripts/launch_medgemma_rag.sh` | ~100 | Old launcher, superseded by `launch.sh` | `launch.sh` |
@@ -683,7 +665,6 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 
 ### 10.3 What's NOT Tested
 - The active `src/agent/graph/workflow.py` agentic graph has **no dedicated test suite**. It's only exercised through `dashboard.py` manual interaction.
-- FalkorDB code is **untestable** (no client).
 - `src/api/medgemma_rag_api.py` is **untestable** (broken import).
 
 ---
@@ -695,7 +676,7 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 #### Epic 2: Core Agentic RAG (Current Milestone)
 | Ticket | Status | Description |
 |--------|--------|-------------|
-| 2.1 Hybrid Retrieval | ⚠️ Partial | Vector search works; graph traversal (k-hop expansion via FalkorDB) is future |
+| 2.1 Hybrid Retrieval | ✅ Done | Dense + sparse vector search with RRF fusion |
 | 2.2 LangGraph DDx | ✅ Done | Agentic graph built and compiled (`src/agent/graph/workflow.py`) |
 | 2.3 MCP-1 Deterministic Vitals Tool | ❌ Not started | MCP tool returning Plotly vitals charts from FHIR Observation arrays |
 
@@ -715,7 +696,6 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 | 4.4 MCP-3 FHIR Document Factory | ❌ Not started | Bundle final note + reasoning + visualizations into FHIR Composition |
 
 ### From SYSTEM_READY.md "Next Steps"
-- ❌ **FalkorDB reconnection** — Add FalkorDB client to `db_clients.py`, connect `GraphMapper`, enable in `launch.sh`
 - ❌ **Rate limiting + caching + audit logging + monitoring**
 
 ### From Code Comments

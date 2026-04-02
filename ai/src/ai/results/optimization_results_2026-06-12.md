@@ -19,7 +19,6 @@ After a comprehensive optimization sweep across embedding model selection, hybri
 
 ### 1. Infrastructure Fixes
 - **Hybrid Search (`src/retrieval/service.py`)**: Rewrote with manual RRF (Reciprocal Rank Fusion) compatible with qdrant-client v1.7.0 (no Prefetch/FusionQuery API). Uses `NamedSparseVector` for sparse search via SPLADE embeddings.
-- **FalkorDB (`src/shared/db_clients.py`)**: Added `falkor_client = None` stub for graceful degradation.
 - **Config (`src/shared/config.py`)**: Default embedding model corrected from `ModernPubMedBERT` to `BAAI/bge-base-en-v1.5`.
 
 ### 2. Embedding Model Evaluation
@@ -56,7 +55,6 @@ New configuration module with all tunable parameters: prefetch_multiplier, rrf_r
 ## Limitations
 - 10-doc corpus insufficient for meaningful Recall@K differentiation
 - Qdrant hybrid search works but adds ~100ms latency at this scale
-- FalkorDB remains disconnected (known limitation, documented)
 - 6 intent reasoners in ClinicalReasoner not yet implemented (out of scope)
 - Lightning AI endpoint 404 on chat completions (endpoint path config issue)
 

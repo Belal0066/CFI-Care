@@ -949,7 +949,6 @@ All services run on a single host:
 | llama.cpp (LLM) | 8000 |
 | Qdrant | 6333 (REST), 6334 (gRPC) |
 | HAPI FHIR | 8080 |
-| FalkorDB | 6379 (disconnected) |
 | FastAPI Backend | 8002 |
 
 ---
@@ -1004,18 +1003,6 @@ All services run on a single host:
 | **Date** | 2026-06-12 |
 | **Owner** | Belal |
 
-## ADR-005: FalkorDB Disabled (Graph Store)
-
-| Field | Value |
-|---|---|
-| **Decision** | FalkorDB client is `None`; graph storage and querying is disabled |
-| **Alternatives** | Enable FalkorDB with Cypher schema defined in `GraphMapper` |
-| **Chosen Option** | Disabled |
-| **Reasoning** | FalkorDB is not available in the current environment; graph relationships are approximated via `father_id` traversal in `ContextRetriever.get_graph_neighborhood()`. |
-| **Tradeoffs** | No native graph traversal (e.g., shortest path, subgraph matching); acceptable for 10-doc timeline |
-| **Date** | 2026-06-11 |
-| **Owner** | Belal |
-
 ---
 
 # Appendix B – File Map
@@ -1051,15 +1038,14 @@ src/
 ├── ingestion/                      # Data ingestion pipeline
 │   ├── preprocessor.py             # ClinicalPreprocessor, NormalizedNode
 │   ├── patient_state.py            # PatientState, PatientStateCompiler
-│   ├── service.py                  # IngestionService (2PC Lite; FHIR→Qdrant;
+│   ├── service.py                  # IngestionService (FHIR→Qdrant;
 │   │                               #   boolean flag injection, DocumentChunker integration)
-│   ├── toon.py                     # ToonNormalizer (FHIR→natural language, 30-50% reduction)
-│   └── graph.py                    # GraphMapper (FalkorDB Cypher; disabled)
+│   └── toon.py                     # ToonNormalizer (FHIR→natural language, 30-50% reduction)
 │
 ├── shared/                         # Shared infrastructure
 │   ├── config.py                   # InfraConfig (singleton; URL normalization,
 │   │                               #   bge-base-en-v1.5 default embedding)
-│   ├── db_clients.py               # QdrantVectorClient, falkor_client=None
+│   ├── db_clients.py               # QdrantVectorClient
 │   └── models.py                   # RetrievedContext, DifferentialDiagnosis, ClinicalState
 │
 ├── api/                            # API layer
@@ -1111,6 +1097,5 @@ scripts/                            # Test & benchmark scripts
 | Clinical Reasoning Citations Grounded | ✅ |
 | Non-Goals Respected (no guidelines, no cross-patient) | ✅ |
 | MCP Safety Policies Enforced | ✅ |
-| FalkorDB Graceful Degradation | ✅ |
 | Lightweight API Operational | ✅ |
 | Total Test Coverage | 129/129 (4 test suites) |

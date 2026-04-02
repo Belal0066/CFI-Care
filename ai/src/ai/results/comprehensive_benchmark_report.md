@@ -158,7 +158,7 @@ The Ragas 0.4.3 integration with GPT-5 mini is fully implemented and verified (c
 
 | Test | Status | Duration | Notes |
 |------|--------|----------|-------|
-| **verify_infra** | ✅ PASS | 1s | HAPI FHIR, Qdrant, FalkorDB (disabled) |
+| **verify_infra** | ✅ PASS | 1s | HAPI FHIR, Qdrant |
 | **check_medgemma_setup** | ⏰ TIMEOUT | 60s | Pre-existing: checks for llama.cpp on port 8000, not our config |
 | **test_agent_graph** | ✅ 38/38 | — | Routing, audit, graph invocation |
 | **test_hybrid_retrieval** | ✅ 20/20 | — | Intent filters, payload fields, fallback |
@@ -171,8 +171,8 @@ The Ragas 0.4.3 integration with GPT-5 mini is fully implemented and verified (c
 | **evaluate_faithfulness** | ✅ PASS | 5s | Faithfulness=1.000, Hallucination=0.000 |
 | **evaluate_retrieval_recall** | ✅ PASS | 1s | Recall@3=0.408 (below target) |
 | **evaluate_agent_latency** | ✅ 6/6 | — | P95=1.5s warm (within target) |
-| **test_retrieval** | ❌ FAIL | 4s | **Pre-existing:** FalkorDB import (`falkor_client` not found) |
-| **test_ingestion** | ❌ FAIL | 1s | **Pre-existing:** FHIR validation errors, FalkorDB missing |
+| **test_retrieval** | ❌ FAIL | 4s | **Pre-existing:** missing dependency import |
+| **test_ingestion** | ❌ FAIL | 1s | **Pre-existing:** FHIR validation errors |
 | **test_toon** | ❌ FAIL | 1s | **Pre-existing:** TOON format mismatch |
 | **test_ddx** | ❌ FAIL | 5s | **Pre-existing:** Ollama dependency, not our backend |
 | **test_vision** | ⏭️ PARTIAL | 14s | **Pre-existing:** No image argument provided |
@@ -185,8 +185,8 @@ The Ragas 0.4.3 integration with GPT-5 mini is fully implemented and verified (c
 | Test | Root Cause |
 |------|-----------|
 | `check_medgemma_setup` | Script checks for llama.cpp on port 8000 (our 4B is on a different port/protocol) |
-| `test_retrieval` | `falkor_client` not defined in `src/shared/db_clients/__init__.py` |
-| `test_ingestion` | Same FalkorDB import + FHIR Pydantic v2 validation errors |
+| `test_retrieval` | Missing dependency import in `src/shared/db_clients/__init__.py` |
+| `test_ingestion` | Same import error + FHIR Pydantic v2 validation errors |
 | `test_toon` | `python-toon` library format mismatch with our TOON output style |
 | `test_ddx` | Targets Ollama's `llm_client.py`, not our active LLM backend |
 | `test_vision` | No image argument provided |

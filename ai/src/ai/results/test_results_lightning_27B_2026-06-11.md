@@ -19,7 +19,7 @@
 | **Skipped (pre-existing infra issues)** | | **3 failures + 1 partial are pre-existing bugs** |
 | **True LLM-bacend failures** | | **1 (test_mcp_flow)** |
 
-> **Key finding:** 5 of the 6 failures and 1 of the partials are **pre-existing infrastructure issues** (FalkorDB missing client, Ollama-only test, Qdrant vector config mismatch). Only `test_mcp_flow` failed due to the actual Lightning AI integration (query optimization couldn't extract patient context). The Lightning AI 27B model itself served all LLM inferences successfully.
+> **Key finding:** 5 of the 6 failures and 1 of the partials are **pre-existing infrastructure issues** (missing dependency import, Ollama-only test, Qdrant vector config mismatch). Only `test_mcp_flow` failed due to the actual Lightning AI integration (query optimization couldn't extract patient context). The Lightning AI 27B model itself served all LLM inferences successfully.
 
 ---
 
@@ -32,8 +32,8 @@
 | **test_data_json_parsing** | ✅ PASS | 0s | — |
 | **test_preprocessor** | ✅ PASS | 0s | — |
 | **test_toon** | ❌ FAIL | 1s | **Pre-existing:** `python-toon` TOON format mismatch — unrelated to backend. |
-| **test_ingestion** | ❌ FAIL | 1s | **Pre-existing (known Bug):** Imports `falkor_client` from `shared.db_clients` which doesn't exist (FalkorDB disconnected — §6 in context.md). |
-| **test_retrieval** | ❌ FAIL | 4s | **Pre-existing (known Bug):** Same `falkor_client` import error as `test_ingestion`. |
+| **test_ingestion** | ❌ FAIL | 1s | **Pre-existing (known Bug):** Imports a symbol from `shared.db_clients` that doesn't exist. |
+| **test_retrieval** | ❌ FAIL | 4s | **Pre-existing (known Bug):** Same import error as `test_ingestion`. |
 | **validate_system** | ✅ PASS | 5s | — (All 23 deterministic tests passed) |
 | **integration_tickets_4_7** | ✅ PASS | 0s | — |
 | **integration_tickets_8_10** | ✅ PASS | 4s | — |
@@ -119,7 +119,7 @@ These are **not related to the Lightning AI migration**:
 
 | Issue | Affected Tests | context.md Reference | Fix |
 |-------|---------------|---------------------|-----|
-| **FalkorDB not connected** — `falkor_client` doesn't exist in `db_clients.py` | test_ingestion, test_retrieval | §6 (FalkorDB Disconnection) | Add FalkorDB client, or update import to be conditional |
+| **Missing dependency import** — stale reference to a removed symbol in test scripts | test_ingestion, test_retrieval | — | Remove the stale import |
 | **check_medgemma_setup targets llama.cpp** — Hardcoded port 8000 check | check_medgemma_setup | — | Update script to check `active_llm_base_url` instead |
 | **test_ddx targets Ollama** — Uses `llm_client.py` which wraps Ollama API | test_ddx | — | Update to use the active LLM backend resolution |
 | **Qdrant collection missing vector params** — `clinical_embeddings` misconfigured | test_medgemma_rag (partial), test_vision (partial) | — | Recreate collection with proper named vectors |
@@ -156,7 +156,6 @@ Infrastructure:
   Qdrant:     localhost:6333 (3 collections: clinical_embeddings, clinical_snapshots, demo_clinical_collection)
   FastAPI:    localhost:8001 (operational, mode: demo)
   MCP Server: localhost:8002 (operational)
-  FalkorDB:   DISABLED (not connected)
   HAPI FHIR:  localhost:8080 (FHIR 5.0.0)
 
 Lightning AI:
@@ -174,8 +173,7 @@ Python Environment:
 
 ## Recommendations
 
-1. **Fix FalkorDB import** (`db_clients.py`) — Make `falkor_client` import conditional with graceful fallback to unblock ingestion and retrieval tests.
-2. **Fix Qdrant collection config** — Recreate `clinical_embeddings` with proper named vector params for dense (768-dim) + sparse vectors.
-3. **Update test scripts** — Make `check_medgemma_setup`, `test_ddx`, and others backend-agnostic by reading `config.active_llm_base_url` instead of hardcoded ports.
-4. **Fix MCP query extraction** — Address Bug #3 in `src/agent/graph/nodes.py:341-346` (non-existent `query_normalized` field) and ensure patient context flows into MCP query optimization.
+1. **Fix Qdrant collection config** — Recreate `clinical_embeddings` with proper named vector params for dense (768-dim) + sparse vectors.
+2. **Update test scripts** — Make `check_medgemma_setup`, `test_ddx`, and others backend-agnostic by reading `config.active_llm_base_url` instead of hardcoded ports.
+3. **Fix MCP query extraction** — Address Bug #3 in `src/agent/graph/nodes.py:341-346` (non-existent `query_normalized` field) and ensure patient context flows into MCP query optimization.
 5. **Re-run with proper Qdrant config** — Once the vector params are fixed, re-run the RAG-dependent tests to validate the full pipeline with Lightning AI 27B end-to-end.
