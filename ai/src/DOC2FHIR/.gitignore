@@ -42,6 +42,7 @@ local_settings.py
 *.log
 logs/
 run_logs/
+.gateway_runtime/
 
 # === Project outputs, uploads, large models ===
 outputs/
@@ -50,6 +51,8 @@ OCR/outputs/
 OCR/uploads/
 
 OCR/models/
+
+*.gguf
 
 # === Jupyter ===
 .ipynb_checkpoints/
