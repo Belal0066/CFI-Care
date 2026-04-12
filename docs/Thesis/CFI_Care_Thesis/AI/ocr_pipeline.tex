@@ -6,7 +6,7 @@ To address the challenge of integrating paper-based medical records and scanned 
 \subsection{System Architecture and Inference Backend}
 \label{subsec:ocr_backend}
 
-The pipeline follows a decoupled architecture consisting of a high-performance inference backend and a Python-based processing frontend. The core intelligence is powered by the \texttt{PaddleOCR-VL-1.5-0.9B model, served via an official vLLM container. 
+The pipeline follows a decoupled architecture consisting of a high-performance inference backend and a Python-based processing frontend. The core intelligence is powered by the \texttt{PaddleOCR-VL-1.5-0.9B model}, served via an official vLLM container. 
 
 \begin{itemize}
     \item \textbf{Model Selection:} The \texttt{PaddleOCR-VL-1.5-0.9B} model was chosen for its optimization in document understanding and joint layout analysis.
@@ -24,7 +24,7 @@ The pipeline follows a decoupled architecture consisting of a high-performance i
 The processing pipeline handles document ingestion, preprocessing, and semantic extraction through the following stages:
 
 \begin{enumerate}
-    % \item \textbf{Preprocessing:} PDF} documents are rendered at 110 DPI} to maintain legibility while keeping visual token counts manageable. Images are automatically downscaled (typically between 960px and 2048px) to fit within the VLM}'s visual context window.
+    % \item \textbf{Preprocessing:} PDF documents are rendered at 110 DPI} to maintain legibility while keeping visual token counts manageable. Images are automatically downscaled (typically between 960px and 2048px) to fit within the VLM}'s visual context window.
     \item \textbf{Core Extraction:} The system performs joint layout analysis and text recognition to identify hierarchical table structures and medical units (e.g., mg/dL, mmol/L).
     \item \textbf{Output Format:} The pipeline generates:
     \begin{itemize}
@@ -52,7 +52,7 @@ Extracting raw text via OCR is insufficient for clinical interoperability. We im
 Relying solely on LLMs for FHIR generation often results in "hallucinated" clinical codes (LOINC, SNOMED) or syntactically invalid JSON. Our architecture mitigates this by separating intent from assembly:
 
 \begin{itemize}
-    \item \textbf{Stage 1: Guided LLM Extraction:} The \texttt{Qwen2.5-3B model is restricted strictly to parsing the OCR text into a flat, intermediate JSON schema. This stage uses explicit schema enforcement and an adaptive retry mechanism with increasing temperature if parsing fails.
+    \item \textbf{Stage 1: Guided LLM Extraction:} The \texttt{Qwen2.5-3B} model is restricted strictly to parsing the OCR text into a flat, intermediate JSON schema. This stage uses explicit schema enforcement and an adaptive retry mechanism with increasing temperature if parsing fails.
     \item \textbf{Stage 2: Deterministic FHIR Builder:} A rule-based Python layer handles the mapping of extracted test names to authoritative LOINC codes and translates units to UCUM standards. This stage eliminates the risk of generative hallucination in medical coding.
 \end{itemize}
 
