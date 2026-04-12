@@ -8,6 +8,7 @@ package "Edge" {
 
 package "API Gateway" {
   [nginx] 
+  [oauth2-proxy]
 }
 
 package "Backend-for-Frontend" {
@@ -16,6 +17,7 @@ package "Backend-for-Frontend" {
 
 package "Identity & Storage" {
   [Keycloak]
+  component "Keycloak Registration\nEvent Listener" as Listener
   component "Postgres\n(Keycloak DB)" as Postgres
   component "Redis\n(Session Store)" as Redis
   component "Redis Audit\n(Audit Logs)" as RedisAudit
@@ -26,16 +28,28 @@ package "Resource Server" {
 }
 
 Browser --> nginx : HTTPS 443 Session Cookie
-[Mobile App] --> nginx : HTTPS 443 Bearer Token
-nginx --> [NodeJS (BFF)] : HTTP internal Forwarded headers
+Browser --> [oauth2-proxy] : Browser auth via gateway
+[oauth2-proxy] --> Keycloak : OIDC Auth Code + PKCE
+[oauth2-proxy] --> nginx : Auth result + token context
+nginx --> [NodeJS (BFF)] : Forwarded headers + bearer context
+
+
+' [Mobile App] --> nginx : HTTPS 443 Bearer Token
+' nginx --> [NodeJS (BFF)] : HTTP internal Forwarded headers
 
 [NodeJS (BFF)] --> Redis : Store Retrieve session tokens
 [NodeJS (BFF)] --> RedisAudit : Write audit events
-[NodeJS (BFF)] --> Keycloak : Password grant Token refresh Admin logout
-[NodeJS (BFF)] --> [HAPI FHIR] : Forward with Authorization header
+' [NodeJS (BFF)] --> Keycloak : Password grant Token refresh Admin logout
+[NodeJS (BFF)] --> Keycloak : JWKS check
+' [NodeJS (BFF)] --> [HAPI FHIR] : Forward with Authorization header
 
-Keycloak --> Postgres : User accounts Roles credentials
-[HAPI FHIR] --> Keycloak : JWKS validation
+' Keycloak --> Postgres : User accounts Roles credentials
+' [HAPI FHIR] --> Keycloak : JWKS validation
+
+Keycloak --> Listener : "REGISTER" event
+Listener -> Keycloak : Client credentials grant
+Keycloak --> Listener : Service access token
+Listener -> [NodeJS (BFF)] : Post to the registration endpoint
 
 note right of [nginx]
   TLS termination (443)
