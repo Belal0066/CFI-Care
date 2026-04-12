@@ -1,18 +1,18 @@
 \section{Medical Report OCR \& Structured Data Extraction}
 \label{sec:ocr_pipeline}
 
-To address the challenge of integrating paper-based medical records and scanned clinical laboratory reports into our digital system, we developed a high-precision \ac{OCR}, LLM-based data extraction pipeline. This system leverages vision-language models (\ac{VLM}s) to handle complex document structures, such as nested tables and specific medical units, converting unstructured visual data into structured \ac{JSON} and \ac{HL7} \ac{FHIR} R4 resources.
+To address the challenge of integrating paper-based medical records and scanned clinical laboratory reports into our digital system, we developed a high-precision OCR, LLM-based data extraction pipeline. This system leverages vision-language models (VLMs) to handle complex document structures, such as nested tables and specific medical units, converting unstructured visual data into structured JSON and HL7 FHIR R4 resources.
 
 \subsection{System Architecture and Inference Backend}
 \label{subsec:ocr_backend}
 
-The pipeline follows a decoupled architecture consisting of a high-performance inference backend and a Python-based processing frontend. The core intelligence is powered by the \texttt{PaddleOCR-VL-1.5-0.9B} model, served via an official \ac{vLLM} container. 
+The pipeline follows a decoupled architecture consisting of a high-performance inference backend and a Python-based processing frontend. The core intelligence is powered by the \texttt{PaddleOCR-VL-1.5-0.9B model, served via an official vLLM container. 
 
 \begin{itemize}
-    \item \textbf{Model Selection:} The \texttt{PaddleOCR-VL-1.5-0.9B} model was chosen for its optimization in document understanding and joint layout analysis.
-    \item \textbf{Hardware Optimization:} To ensure deployment feasibility on consumer-grade hardware (8GB \ac{VRAM} \ac{GPU}s), several optimization techniques are employed:
+    \item \textbf{Model Selection:} The \texttt{PaddleOCR-VL-1.5-0.9B model was chosen for its optimization in document understanding and joint layout analysis.
+    \item \textbf{Hardware Optimization:} To ensure deployment feasibility on consumer-grade hardware (8GB VRAM GPUs), several optimization techniques are employed:
     \begin{itemize}
-        \item \textbf{Memory Management:} \ac{GPU} memory utilization is capped at 70\% to prevent Out-of-Memory (\ac{OOM}) errors during peak inference.
+        \item \textbf{Memory Management:} GPU memory utilization is capped at 70\% to prevent Out-of-Memory (OOM) errors during peak inference.
         \item \textbf{Eager Execution:} \texttt{enforce\_eager=True} is used to reduce overhead on lower-end architectures.
         \item \textbf{Token Constraints:} The maximum model length is restricted to 4096 tokens to balance the context window against the memory footprint.
     \end{itemize}
@@ -24,7 +24,7 @@ The pipeline follows a decoupled architecture consisting of a high-performance i
 The processing pipeline handles document ingestion, preprocessing, and semantic extraction through the following stages:
 
 \begin{enumerate}
-    % \item \textbf{Preprocessing:} \ac{PDF} documents are rendered at 110 \ac{DPI} to maintain legibility while keeping visual token counts manageable. Images are automatically downscaled (typically between 960px and 2048px) to fit within the \ac{VLM}'s visual context window.
+    % \item \textbf{Preprocessing:} PDF} documents are rendered at 110 DPI} to maintain legibility while keeping visual token counts manageable. Images are automatically downscaled (typically between 960px and 2048px) to fit within the VLM}'s visual context window.
     \item \textbf{Core Extraction:} The system performs joint layout analysis and text recognition to identify hierarchical table structures and medical units (e.g., mg/dL, mmol/L).
     \item \textbf{Output Format:} The pipeline generates:
     \begin{itemize}
@@ -37,23 +37,23 @@ The processing pipeline handles document ingestion, preprocessing, and semantic 
 \section{OCR Clinical Lab Report output to HL7 FHIR R4 Pipeline}
 \label{sec:fhir_pipeline}
 
-Extracting raw text via \ac{OCR} is insufficient for clinical interoperability. We implemented a two-stage hybrid pipeline to transform unstructured summaries into highly structured \ac{HL7} \ac{FHIR} R4 transaction Bundles. This approach combines the natural language understanding (\ac{NLU}) of a localized \ac{LLM} (\texttt{Qwen2.5-3B-Instruct}) with deterministic Python logic.
+Extracting raw text via OCR is insufficient for clinical interoperability. We implemented a two-stage hybrid pipeline to transform unstructured summaries into highly structured HL7} FHIR R4 transaction Bundles. This approach combines the natural language understanding (NLU) of a localized LLM (\texttt{Qwen2.5-3B-Instruct}) with deterministic Python logic.
 
 \subsection{The Multi-Stage Transformation Strategy}
 \label{subsec:two_stage_fhir}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\linewidth]{AI/OCR-FHIR_Mapper.png.jpeg}
+    \includegraphics[width=1\linewidth]{AI/OCR-FHIR_Mapper.png}
     % \caption{Interface of the MedMCP system demonstrating a Local RAG (Retrieval-Augmented Generation) response. The output includes synthesized clinical guidelines supported by specific evidence sources and PMIDs.}
     \label{fig:OCR-FHIR_Mapper}
 \end{figure}
 
-Relying solely on \ac{LLM}s for \ac{FHIR} generation often results in "hallucinated" clinical codes (LOINC, SNOMED) or syntactically invalid \ac{JSON}. Our architecture mitigates this by separating intent from assembly:
+Relying solely on LLMs for FHIR generation often results in "hallucinated" clinical codes (LOINC, SNOMED) or syntactically invalid JSON. Our architecture mitigates this by separating intent from assembly:
 
 \begin{itemize}
-    \item \textbf{Stage 1: Guided LLM Extraction:} The \texttt{Qwen2.5-3B} model is restricted strictly to parsing the \ac{OCR} text into a flat, intermediate \ac{JSON} schema. This stage uses explicit schema enforcement and an adaptive retry mechanism with increasing temperature if parsing fails.
-    \item \textbf{Stage 2: Deterministic FHIR Builder:} A rule-based Python layer handles the mapping of extracted test names to authoritative \ac{LOINC} codes and translates units to \ac{UCUM} standards. This stage eliminates the risk of generative hallucination in medical coding.
+    \item \textbf{Stage 1: Guided LLM Extraction:} The \texttt{Qwen2.5-3B model is restricted strictly to parsing the OCR text into a flat, intermediate JSON schema. This stage uses explicit schema enforcement and an adaptive retry mechanism with increasing temperature if parsing fails.
+    \item \textbf{Stage 2: Deterministic FHIR Builder:} A rule-based Python layer handles the mapping of extracted test names to authoritative LOINC codes and translates units to UCUM standards. This stage eliminates the risk of generative hallucination in medical coding.
 \end{itemize}
 
 \subsection{Terminology Mapping and Validation}
@@ -62,15 +62,15 @@ Relying solely on \ac{LLM}s for \ac{FHIR} generation often results in "hallucina
 The deterministic builder implements several medical-grade validation logic:
 \begin{enumerate}
     \item \textbf{LOINC Mapping:} Test names (e.g., "Total Leukocyte Count") are mapped via a hardcoded dictionary to authoritative codes (e.g., 6690-2).
-    \item \textbf{Unit Scaling:} Values are mathematically scaled to \ac{UCUM} standards (e.g., scaling "lakhs/cumm" by 100 to map to standard units).
+    \item \textbf{Unit Scaling:} Values are mathematically scaled to UCUM standards (e.g., scaling "lakhs/cumm" by 100 to map to standard units).
     % \item \textbf{Interpretation Cross-Validation:} The system extracts "High/Low" flags from the report but also re-calculates them using numeric values and reference ranges. Any disagreement triggers a warning, with the calculated value acting as the source of truth.
 \end{enumerate}
 
 \subsection{Bundle Assembly and Strict Audit}
 \label{subsec:fhir_audit}
 
-The final output is a \ac{FHIR} transaction Bundle containing \texttt{Patient}, \texttt{DiagnosticReport}, \texttt{Organization}, \texttt{Practitioner}, and multiple \texttt{Observation} resources. Before submission, the bundle undergoes two layers of validation:
+The final output is a FHIR transaction Bundle containing \texttt{Patient}, \texttt{DiagnosticReport}, \texttt{Organization}, \texttt{Practitioner}, and multiple \texttt{Observation} resources. Before submission, the bundle undergoes two layers of validation:
 \begin{itemize}
-    \item \textbf{Structural Validation:} Using \texttt{fhir.resources} (Pydantic v2) to ensure adherence to the \ac{HL7} \ac{FHIR} R4 schema.
-    \item \textbf{Semantic Validation:} Custom business rules ensure clinical integrity (e.g., no dangling references, mandatory \ac{LOINC} codes, and secure mapping of patient gender).
+    \item \textbf{Structural Validation:} Using \texttt{fhir.resources} (Pydantic v2) to ensure adherence to the HL7} FHIR R4 schema.
+    \item \textbf{Semantic Validation:} Custom business rules ensure clinical integrity (e.g., no dangling references, mandatory LOINC codes, and secure mapping of patient gender).
 \end{itemize}
