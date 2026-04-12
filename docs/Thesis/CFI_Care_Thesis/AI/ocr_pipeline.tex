@@ -9,7 +9,7 @@ To address the challenge of integrating paper-based medical records and scanned 
 The pipeline follows a decoupled architecture consisting of a high-performance inference backend and a Python-based processing frontend. The core intelligence is powered by the \texttt{PaddleOCR-VL-1.5-0.9B model, served via an official vLLM container. 
 
 \begin{itemize}
-    \item \textbf{Model Selection:} The \texttt{PaddleOCR-VL-1.5-0.9B model was chosen for its optimization in document understanding and joint layout analysis.
+    \item \textbf{Model Selection:} The \texttt{PaddleOCR-VL-1.5-0.9B} model was chosen for its optimization in document understanding and joint layout analysis.
     \item \textbf{Hardware Optimization:} To ensure deployment feasibility on consumer-grade hardware (8GB VRAM GPUs), several optimization techniques are employed:
     \begin{itemize}
         \item \textbf{Memory Management:} GPU memory utilization is capped at 70\% to prevent Out-of-Memory (OOM) errors during peak inference.
