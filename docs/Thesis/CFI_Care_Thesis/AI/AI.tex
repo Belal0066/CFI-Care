@@ -99,6 +99,8 @@ The system rejects the standard "fixed-size chunking" strategy in favor of \text
     \item \textbf{Semantic Indexing:} All nodes are embedded using \textbf{ModernPubMedBERT}, a domain-specific transformer fine-tuned on biomedical literature, ensuring that "Renal Failure" and "High Creatinine" map to the same vector space.
 \end{itemize}
 
+\input{AI/ocr_pipeline.tex}
+
 \subsection{Generation, Reasoning \& Agentic Workflow}
 The core logic is governed by a \textbf{LangGraph} state machine.
 \begin{itemize}
