@@ -1,9 +1,9 @@
 # Low-VRAM vLLM backend settings for 8GB-class GPUs (e.g. RTX 2070)
 # Keys map directly to vLLM CLI args after underscore->dash conversion.
 
-gpu_memory_utilization: 0.7
-max_model_len: 4096
-max_num_batched_tokens: 4096
-max_num_seqs: 4
+gpu_memory_utilization: 0.35
+max_model_len: 1536
+max_num_batched_tokens: 1024
+max_num_seqs: 1
 enforce_eager: True
 api_server_count: 1
