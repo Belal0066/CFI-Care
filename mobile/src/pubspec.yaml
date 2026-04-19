@@ -74,6 +74,10 @@ dependencies:
   path_provider_platform_interface: ^2.1.2
   plugin_platform_interface: ^2.1.8
   firebase_core: ^4.4.0
+  # flutter_health_connect: ^1.2.3
+  sensors_plus: ^7.0.0
+  image_cropper: ^11.0.0
+  health: ^13.3.1
 
 dev_dependencies:
   flutter_test:
