@@ -68,6 +68,14 @@ adb reverse tcp:8443 tcp:8443
 
 Run these commands in a PowerShell terminal at the project root directory. Make sure your emulator is already running so the `adb reverse` command executes successfully.
 
+Fast path (recommended):
+
+```powershell
+.\quick-run-scripts\setup_mobile_certs.ps1
+```
+
+Manual steps (if needed):
+
 ```powershell
 # Get the mkcert CA root directory path
 $MkcertRoot = mkcert -CAROOT
@@ -80,3 +88,7 @@ Copy-Item -Path "$MkcertRoot\rootCA.pem" -Destination "mobile\src\android\app\sr
 
 # Forward the public port for dev on Keycloak 
 adb reverse tcp:8443 tcp:8443
+adb reverse tcp:3000 tcp:3000
+
+adb devices
+adb push ".\security\Containers\certs\rootCA.pem" /sdcard/Download/rootCA.pem

@@ -42,7 +42,7 @@ class ApiService {
   ) async {
     var headers = await _authHeaders();
 
-     if (refreshToken != null) {
+    if (refreshToken != null) {
       try {
         final refreshed = await refreshToken!.call();
         if (refreshed != null && refreshed.isNotEmpty) {
@@ -73,7 +73,7 @@ class ApiService {
           await onUnauthorized?.call(); // refresh gave no token
         }
       } catch (e) {
-         await onUnauthorized?.call();
+        await onUnauthorized?.call();
       }
     }
 
@@ -107,12 +107,13 @@ class ApiService {
     required Map<String, dynamic> data,
   }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(data),
-      );
-      return response;
+      return _authorizedRequest((headers) {
+        return http.put(
+          Uri.parse('$baseUrl$endpoint'),
+          headers: headers,
+          body: json.encode(data),
+        );
+      });
     } catch (e) {
       throw Exception("Network Error during PUT: $e");
     }
@@ -126,6 +127,10 @@ class ApiService {
     required String contentType,
   }) async {
     final request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/binary'));
+    final token = await getAccessToken?.call();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
     request.fields['id'] = binaryId;
     request.fields['documentReferenceId'] = documentReferenceId;
@@ -318,11 +323,14 @@ class ApiService {
   // Fetch schedules with their associated slots for a specific doctor
   Future<List<dynamic>> fetchSchedulesWithSlots(String doctorId) async {
     try {
-      final response = await http.get(
-        Uri.parse(
-          '$baseUrl/schedules/practitioner/$doctorId/with-slots?status=free',
-        ),
-      );
+      final response = await _authorizedRequest((headers) {
+        return http.get(
+          Uri.parse(
+            '$baseUrl/schedules/practitioner/$doctorId/with-slots?status=free',
+          ),
+          headers: headers,
+        );
+      });
 
       print('[fetchSchedulesWithSlots] status=${response.statusCode}');
       print('[fetchSchedulesWithSlots] body=${response.body}');
@@ -344,9 +352,12 @@ class ApiService {
     String patientId,
   ) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/appointments/patient/$patientId'),
-      );
+      final response = await _authorizedRequest((headers) {
+        return http.get(
+          Uri.parse('$baseUrl/appointments/patient/$patientId'),
+          headers: headers,
+        );
+      });
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -364,9 +375,12 @@ class ApiService {
     String patientId,
   ) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/documentReferences/patient/$patientId'),
-      );
+      final response = await _authorizedRequest((headers) {
+        return http.get(
+          Uri.parse('$baseUrl/documentReferences/patient/$patientId'),
+          headers: headers,
+        );
+      });
 
       print('[fetchDocumentReferencesByPatient] status=${response.statusCode}');
       print('[fetchDocumentReferencesByPatient] body=${response.body}');

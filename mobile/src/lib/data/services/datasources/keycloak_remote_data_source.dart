@@ -1,11 +1,13 @@
-// import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http;
 import '../../../domain/models/auth_model.dart';
 // import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 import '../../../config/keycloak_config.dart';
+import '../../../config/app_config.dart';
 import 'secure_token_local_data_source.dart';
 
 class KeycloakRemoteDataSource {
@@ -66,14 +68,53 @@ class KeycloakRemoteDataSource {
       //   '[AUTH DEBUG] saved refresh null=${savedRefresh == null}, empty=${(savedRefresh ?? '').isEmpty}, len=${savedRefresh?.length ?? 0}',
       // );
 
-      return _mapToSession(
+      final session = _mapToSession(
         accessToken: response.accessToken!,
         refreshToken: refresh,
         idToken: response.idToken,
         expiresAt: response.accessTokenExpirationDateTime,
       );
+
+      await _syncPatientToFhir(session);
+
+      return session;
     } on FlutterAppAuthUserCancelledException {
       throw Exception('Login cancelled by user');
+    }
+  }
+
+  Future<void> _syncPatientToFhir(AuthModel session) async {
+    final fullName = (session.name ?? '').trim();
+    final parts = fullName.isEmpty
+        ? const <String>[]
+        : fullName.split(RegExp(r'\s+'));
+
+    final firstName = parts.isNotEmpty ? parts.first : 'User';
+    final lastName = parts.length > 1 ? parts.skip(1).join(' ') : '';
+
+    final payload = {
+      'id': session.subject,
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': session.email ?? '',
+      'phone': '',
+      'gender': 'unknown',
+      'dob': '',
+    };
+
+    final response = await http.post(
+      Uri.parse('${AppConfig.apiBaseUrl}/patients/sync-fhir'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${session.accessToken}',
+      },
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+        'Failed to sync patient to FHIR: ${response.statusCode} ${response.body}',
+      );
     }
   }
 
@@ -120,12 +161,16 @@ class KeycloakRemoteDataSource {
       idToken: response.idToken,
     );
 
-    return _mapToSession(
+    final session = _mapToSession(
       accessToken: response.accessToken!,
       refreshToken: newRefresh,
       idToken: response.idToken,
       expiresAt: response.accessTokenExpirationDateTime,
     );
+
+    await _syncPatientToFhir(session);
+
+    return session;
   }
 
   Future<AuthModel?> restoreSession() async {
@@ -142,7 +187,10 @@ class KeycloakRemoteDataSource {
       expiresAt: null,
     );
 
-    if (!session.isAccessTokenExpired) return session;
+    if (!session.isAccessTokenExpired) {
+      await _syncPatientToFhir(session);
+      return session;
+    }
 
     if (refresh == null || refresh.isEmpty) return null;
 
