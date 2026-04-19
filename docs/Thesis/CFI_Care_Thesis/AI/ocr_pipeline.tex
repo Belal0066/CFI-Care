@@ -37,7 +37,7 @@ The processing pipeline handles document ingestion, preprocessing, and semantic 
 \section{OCR Clinical Lab Report output to HL7 FHIR R4 Pipeline}
 \label{sec:fhir_pipeline}
 
-Extracting raw text via OCR is insufficient for clinical interoperability. We implemented a two-stage hybrid pipeline to transform unstructured summaries into highly structured HL7} FHIR R4 transaction Bundles. This approach combines the natural language understanding (NLU) of a localized LLM (\texttt{Qwen2.5-3B-Instruct}) with deterministic Python logic.
+Extracting raw text via OCR is insufficient for clinical interoperability. We implemented a two-stage hybrid pipeline to transform unstructured summaries into highly structured HL7 FHIR R4 transaction Bundles. This approach combines the natural language understanding (NLU) of a localized LLM (\texttt{Qwen2.5-3B-Instruct}) with deterministic Python logic.
 
 \subsection{The Multi-Stage Transformation Strategy}
 \label{subsec:two_stage_fhir}
@@ -71,6 +71,6 @@ The deterministic builder implements several medical-grade validation logic:
 
 The final output is a FHIR transaction Bundle containing \texttt{Patient}, \texttt{DiagnosticReport}, \texttt{Organization}, \texttt{Practitioner}, and multiple \texttt{Observation} resources. Before submission, the bundle undergoes two layers of validation:
 \begin{itemize}
-    \item \textbf{Structural Validation:} Using \texttt{fhir.resources} (Pydantic v2) to ensure adherence to the HL7} FHIR R4 schema.
+    \item \textbf{Structural Validation:} Using \texttt{fhir.resources} (Pydantic v2) to ensure adherence to the HL7 FHIR R4 schema.
     \item \textbf{Semantic Validation:} Custom business rules ensure clinical integrity (e.g., no dangling references, mandatory LOINC codes, and secure mapping of patient gender).
 \end{itemize}
