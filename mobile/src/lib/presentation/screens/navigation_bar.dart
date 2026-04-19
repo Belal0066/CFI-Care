@@ -5,12 +5,12 @@ import 'package:medflow/presentation/screens/my_profile.dart';
 import 'package:medflow/presentation/screens/home_screen.dart';
 import 'package:medflow/presentation/screens/search_doctor_speciality.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_core/firebase_core.dart';
-import '../../utils/themes/theme.dart';
-import '../screens/home_screen.dart';
-import '../screens/search_doctor_speciality.dart';
-import '../screens/documents_screen.dart';
-import '../screens/my_profile.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import '../../utils/themes/theme.dart';
+// import '../screens/home_screen.dart';
+// import '../screens/search_doctor_speciality.dart';
+// import '../screens/documents_screen.dart';
+// import '../screens/my_profile.dart';
 
 
 
@@ -41,7 +41,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> setupInteractedMessage() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // 1. Request Permission
+    // Request Permission
     NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
@@ -52,11 +52,11 @@ class _MyAppState extends State<MyApp> {
       print('User granted permission');
     }
 
-    // 2. Get Token (Check console for this!)
+    // Get Token 
     String? token = await messaging.getToken();
     print("FCM Token: $token");
 
-    // 3. Listen for Foreground Messages
+    // Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Got a message whilst in the foreground!');
       if (message.notification != null) {

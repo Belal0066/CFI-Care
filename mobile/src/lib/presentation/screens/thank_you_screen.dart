@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../domain/models/doctors.dart';
 import '../widgets/attach_file.dart';
 import '../viewmodels/add_document_viewmodel.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class ThankYouScreen extends StatefulWidget {
   final Doctor doctor;
@@ -9,7 +11,6 @@ class ThankYouScreen extends StatefulWidget {
   final String appointmentTime;
   final int fees;
   final DocumentAddViewModel viewModel;
-
 
   const ThankYouScreen({
     super.key,
@@ -326,31 +327,86 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
                   ),
                   const SizedBox(height: 8),
                   // Attach File Buttons
-            const Text(
-              "Attach File",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                buildAttachButton(
-                  Icons.picture_as_pdf,
-                  "PDF",
-                  widget.viewModel.pickPDF,
-                ),
-                buildAttachButton(
-                  Icons.image,
-                  "Image",
-                  widget.viewModel.pickImage,
-                ),
-                buildAttachButton(
-                  Icons.camera_alt,
-                  "Scan",
-                  widget.viewModel.scanDocument,
-                ),
-              ],
-            ),
+                  const Text(
+                    "Attach File",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      buildAttachButton(
+                        Icons.picture_as_pdf,
+                        "PDF",
+                        widget.viewModel.pickPDF,
+                      ),
+                      buildAttachButton(
+                        Icons.image,
+                        "Image",
+                        widget.viewModel.pickImage,
+                      ),
+                      buildAttachButton(
+                        Icons.camera_alt,
+                        "Scan",
+                        () => widget.viewModel.scanDocument(context),
+                      ),
+                      // The Enhanced Scan Button
+                      // StreamBuilder<AccelerometerEvent>(
+                      //   stream: accelerometerEventStream(),
+                      //   builder: (context, snapshot) {
+                      //     double x = snapshot.data?.x ?? 0;
+                      //     double y = snapshot.data?.y ?? 0;
+
+                      //     // Define "Level" (Usually between -0.5 and 0.5 for a flat surface)
+                      //     bool isLevel = x.abs() < 0.6 && y.abs() < 0.6;
+
+                      //     return Column(
+                      //       children: [
+                      //         // The Level Bubble indicator above the button
+                      //         Container(
+                      //           width: 40,
+                      //           height: 40,
+                      //           decoration: BoxDecoration(
+                      //             shape: BoxShape.circle,
+                      //             border: Border.all(
+                      //               color: isLevel ? Colors.green : Colors.grey,
+                      //             ),
+                      //           ),
+                      //           child: Center(
+                      //             child: Transform.translate(
+                      //               offset: Offset(
+                      //                 x * 2,
+                      //                 y * 2,
+                      //               ), // Move bubble based on tilt
+                      //               child: Icon(
+                      //                 Icons.circle,
+                      //                 size: 12,
+                      //                 color: isLevel
+                      //                     ? Colors.green
+                      //                     : Colors.redAccent,
+                      //               ),
+                      //             ),
+                      //           ),
+                      //         ),
+                      //         const SizedBox(height: 4),
+                      //         buildAttachButton(
+                      //           Icons.camera_alt,
+                      //           isLevel ? "Scan Now" : "Level Phone",
+                      //           isLevel
+                      //               ? widget.viewModel.scanDocument
+                      //               : () {
+                      //                   Fluttertoast.showToast(
+                      //                     msg:
+                      //                         "Please hold phone flat over the document",
+                      //                   );
+                      //                 },
+                      //         ),
+                      //       ],
+                      //     );
+                      //   },
+                      // ),
+                    ],
+                  ),
                 ],
               ),
             ),

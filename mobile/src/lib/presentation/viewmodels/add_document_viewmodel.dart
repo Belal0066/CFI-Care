@@ -4,11 +4,14 @@ import '../../utils/enums/type_of_event.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
+// import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../data/services/permission_handler_widget.dart';
+import '../widgets/scanner_with_spirit_level.dart';
+import '../widgets/multiple_page_scanner.dart';
+
 
 class DocumentAddViewModel extends ChangeNotifier {
 
@@ -92,24 +95,41 @@ class DocumentAddViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> scanDocument() async {
-    // Note: ensure your handlePermission function is imported correctly
+  // Future<void> scanDocument() async {
+  //   final hasPermission = await handlePermission(Permission.camera, "Camera");
+  //   if (!hasPermission) return;
+
+  //   try {
+  //     final scanner = FlutterDocScanner();
+  //     final scanned = await scanner.getScannedDocumentAsPdf(page: 4);
+
+  //     if (scanned != null && scanned['pdfUri'] != null) {
+  //       String path = scanned['pdfUri'].toString().replaceFirst("file://", "");
+
+  //       await _copyFileToAppDir(path, isPDF: true);
+  //     }
+  //   } catch (e) {
+  //     Fluttertoast.showToast(msg: "Scan failed: $e");
+  //   }
+  // }
+
+Future<void> scanDocument(BuildContext context) async { 
     final hasPermission = await handlePermission(Permission.camera, "Camera");
     if (!hasPermission) return;
 
     try {
-      final scanner = FlutterDocScanner();
-      final scanned = await scanner.getScannedDocumentAsPdf(page: 4);
+      final String? resultPath = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MultiPageScanner()),
+      );
 
-      if (scanned != null && scanned['pdfUri'] != null) {
-        String path = scanned['pdfUri'].toString().replaceFirst("file://", "");
-
-        await _copyFileToAppDir(path, isPDF: true);
+      if (resultPath != null) {
+        await _copyFileToAppDir(resultPath, isPDF:  true);
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "Scan failed: $e");
     }
-  }
+}
 
   void clearFile() {
     filePath = null;
