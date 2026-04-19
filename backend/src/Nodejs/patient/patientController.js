@@ -265,7 +265,16 @@ const getAllPatients = async (req, res) => {
 // Sync patient to FHIR (create if not exists)
 const syncPatientToFHIR = async (req, res) => {
   try {
-    const patientData = req.body;
+    const subject = req.user?.sub || req.session?.user?.sub || null;
+    if (!subject) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const patientData = {
+      ...(req.body || {}),
+      id: subject,
+    };
+
     const newPatient = await patientService.syncPatientToFHIR(patientData);
     console.log("Patient synced to FHIR successfully.");
     res.status(201).json(newPatient);
