@@ -7,7 +7,8 @@ import '../../utils/enums/type_of_event.dart';
 import '../../utils/enums/speciality_event.dart';
 import '../viewmodels/add_document_viewmodel.dart'; // <--- The Form Logic (Renamed from DocumentAddViewModel)
 import '../viewmodels/document_provider.dart'; // <--- The Data Logic
-import 'attach_file.dart'; 
+import 'attach_file.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class DocumentAddSheet extends StatefulWidget {
   // We pass the Form ViewModel so the sheet can access input state
@@ -156,12 +157,18 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                     decoration: const InputDecoration(
                       labelText: "Type",
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
                     ),
                     items: TypeOfEventEnum.values.map((e) {
                       return DropdownMenuItem(
                         value: e,
-                        child: Text(e.name.toUpperCase(), style: const TextStyle(fontSize: 12)),
+                        child: Text(
+                          e.name.toUpperCase(),
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       );
                     }).toList(),
                     onChanged: (v) {
@@ -176,7 +183,10 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                     decoration: const InputDecoration(
                       labelText: "Speciality",
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
                     ),
                     isExpanded: true,
                     items: SpecialityEventEnum.values.map((e) {
@@ -199,14 +209,79 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
             const SizedBox(height: 24),
 
             // --- ATTACH BUTTONS ---
-            const Text("Attach File", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              "Attach File",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                buildAttachButton(Icons.picture_as_pdf, "PDF", widget.viewModel.pickPDF),
-                buildAttachButton(Icons.image, "Image", widget.viewModel.pickImage),
-                buildAttachButton(Icons.camera_alt, "Scan", widget.viewModel.scanDocument),
+                buildAttachButton(
+                  Icons.picture_as_pdf,
+                  "PDF",
+                  widget.viewModel.pickPDF,
+                ),
+                buildAttachButton(
+                  Icons.image,
+                  "Image",
+                  widget.viewModel.pickImage,
+                ),
+                buildAttachButton(Icons.camera_alt, "Scan", () => widget.viewModel.scanDocument(context),),
+                // StreamBuilder<AccelerometerEvent>(
+                //   stream: accelerometerEventStream(),
+                //   builder: (context, snapshot) {
+                //     double x = snapshot.data?.x ?? 0;
+                //     double y = snapshot.data?.y ?? 0;
+
+                //     // Define "Level" (Usually between -0.5 and 0.5 for a flat surface)
+                //     bool isLevel = x.abs() < 0.6 && y.abs() < 0.6;
+
+                //     return Column(
+                //       children: [
+                //         // The Level Bubble indicator above the button
+                //         Container(
+                //           width: 40,
+                //           height: 40,
+                //           decoration: BoxDecoration(
+                //             shape: BoxShape.circle,
+                //             border: Border.all(
+                //               color: isLevel ? Colors.green : Colors.grey,
+                //             ),
+                //           ),
+                //           child: Center(
+                //             child: Transform.translate(
+                //               offset: Offset(
+                //                 x * 2,
+                //                 y * 2,
+                //               ), // Move bubble based on tilt
+                //               child: Icon(
+                //                 Icons.circle,
+                //                 size: 12,
+                //                 color: isLevel
+                //                     ? Colors.green
+                //                     : Colors.redAccent,
+                //               ),
+                //             ),
+                //           ),
+                //         ),
+                //         const SizedBox(height: 4),
+                //         buildAttachButton(
+                //           Icons.camera_alt,
+                //           isLevel ? "Scan Now" : "Level Phone",
+                //           isLevel
+                //               ? widget.viewModel.scanDocument
+                //               : () {
+                //                   Fluttertoast.showToast(
+                //                     msg:
+                //                         "Please hold phone flat over the document",
+                //                   );
+                //                 },
+                //         ),
+                //       ],
+                //     );
+                //   },
+                // ),
               ],
             ),
 
@@ -223,7 +298,9 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                 child: Row(
                   children: [
                     Icon(
-                      widget.viewModel.isPdf ? Icons.picture_as_pdf : Icons.image,
+                      widget.viewModel.isPdf
+                          ? Icons.picture_as_pdf
+                          : Icons.image,
                       color: Colors.blue,
                     ),
                     const SizedBox(width: 8),
@@ -253,22 +330,26 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                 onPressed: () async {
                   // 1. Validation
                   if (!widget.viewModel.isValid) {
-                    Fluttertoast.showToast(msg: "Please provide a title and select a file.");
+                    Fluttertoast.showToast(
+                      msg: "Please provide a title and select a file.",
+                    );
                     return;
                   }
 
                   // 2. CALL THE PROVIDER (Not the ViewModel)
                   // We extract the data from the ViewModel and pass it to the Provider
-                  final success = await context.read<DocumentProvider>().addDocument(
-                    title: widget.viewModel.title,
-                    summary: widget.viewModel.summary,
-                    details: widget.viewModel.details,
-                    isPdf: widget.viewModel.isPdf,
-                    tempFilePath: widget.viewModel.filePath!,
-                    time: widget.viewModel.selectedTime,
-                    type: widget.viewModel.selectedType,
-                    speciality: widget.viewModel.selectedSpeciality,
-                  );
+                  final success = await context
+                      .read<DocumentProvider>()
+                      .addDocument(
+                        title: widget.viewModel.title,
+                        summary: widget.viewModel.summary,
+                        details: widget.viewModel.details,
+                        isPdf: widget.viewModel.isPdf,
+                        tempFilePath: widget.viewModel.filePath!,
+                        time: widget.viewModel.selectedTime,
+                        type: widget.viewModel.selectedType,
+                        speciality: widget.viewModel.selectedSpeciality,
+                      );
 
                   // 3. Handle Success
                   if (success && context.mounted) {
@@ -279,16 +360,24 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 // Show loading spinner from Provider state
                 child: docProvider.isLoading
                     ? const SizedBox(
-                        height: 24, 
-                        width: 24, 
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
-                    : const Text("Save Document", style: TextStyle(fontSize: 16)),
+                    : const Text(
+                        "Save Document",
+                        style: TextStyle(fontSize: 16),
+                      ),
               ),
             ),
             const SizedBox(height: 16),

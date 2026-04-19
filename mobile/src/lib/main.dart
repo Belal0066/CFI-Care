@@ -10,12 +10,13 @@ import 'data/services/pdf_storage_service.dart';
 import 'data/services/image_storage_service.dart';
 import 'data/repositories/document_repository_impl.dart';
 import 'presentation/viewmodels/document_provider.dart';
-import 'data/repositories/vitals_repo.dart';
 import 'presentation/viewmodels/vitals_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'domain/repository/major_event_repo.dart';
 import 'presentation/viewmodels/major_event_provider.dart';
+import 'domain/repository/vitals_repository_impl.dart';
+import 'data/services/datasources/health_connect_data_source.dart';
 
 
 @pragma('vm:entry-point')
@@ -32,15 +33,15 @@ void main() async {
   MediaStore.appFolder = 'CFICareDocs';
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  // 1. Create the API Service (Data Source)
+  // Create the API Service (Data Source)
   final apiService = ApiService();
   final pdfService = PdfStorageService();
   final imgService = ImageStorageService();
 
-  // 2. Create the Repository
+  // Create the Repository
   final bookingRepo = BookingRepositoryImpl(apiService);
   final docRepo = DocumentRepositoryImpl(pdfService, imgService, apiService);
-  final vitalsRepo = VitalsRepository();
+  final vitalsRepo = VitalsRepositoryImpl(HealthConnectDataSource());
   final eventRepo = MajorEventRepository();
 
   runApp(
