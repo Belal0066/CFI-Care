@@ -3,13 +3,18 @@ const axios = require('axios');
 
 async function requireSession(req, res, next) {
     try {
+        // console.log("[requireSession] HIT", {
+        //     url: req.originalUrl,
+        //     method: req.method,
+        //     authHeaderPresent: !!req.headers.authorization,
+        // });
         console.log('[requireSession] Session check:', {
             hasSession: !!req.session,
             hasUser: !!req.session?.user,
             hasTokens: !!req.session?.tokens,
             sessionID: req.sessionID
         });
-        
+
         if (!req.session || !req.session.user || !req.session.tokens) {
             console.log('[requireSession] Rejecting - missing session data');
             return res.status(401).json({ error: 'Not authenticated' });
@@ -36,7 +41,7 @@ async function requireSession(req, res, next) {
 
         req.accessToken = req.session.tokens.access;
         req.user = req.session.user;
-        
+
         // for now
         req.kauth = {
             token: {
@@ -45,7 +50,7 @@ async function requireSession(req, res, next) {
                 }
             }
         };
-        
+
         return next();
     } catch (err) {
         console.error('requireSession error:', err && err.message);

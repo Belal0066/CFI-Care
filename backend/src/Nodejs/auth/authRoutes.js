@@ -21,7 +21,6 @@ const { requireSession } = require("../middleware/requireSession");
 const {
   loginLimiter,
   registerLimiter,
-  logoutAllLimiter,
 } = require("../middleware/rateLimiter");
 const {
   validateLogin,
@@ -35,6 +34,11 @@ const {
   clearAllSessionsForUser,
   destroySessionById,
 } = require("../utils/userSessions");
+
+const { requireApiAuth } = require("../middleware/requireApiAuth");
+
+
+
 const practitionerService = require("../practioner/practionerService");
 const practitionerRoleService = require("../practitionerRole/practitionerRoleService");
 
@@ -44,6 +48,7 @@ const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
 const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
 const scopes = process.env.KC_SCOPES || "openid profile email patient/*.rs";
+const targetmobileclient = process.env.targetmobileclient;
 
 //  to implement : rate limiting
 
@@ -148,26 +153,25 @@ router.post(
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
-      // create user
-      const [firstName, ...lastNameParts] = fullName.trim().split(" ");
-      const lastName = lastNameParts.join(" ") || firstName;
+    // create user
+    const [firstName, ...lastNameParts] = fullName.trim().split(' ');
+    const lastName = lastNameParts.join(' ') || firstName;
+    // console.log("first , last names: ",  firstName, lastName)
 
-      const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
-      const userData = {
-        username: email,
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        enabled: true,
-        emailVerified: false,
-        credentials: [
-          {
-            type: "password",
-            value: password,
-            temporary: false,
-          },
-        ],
-      };
+    const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
+    const userData = {
+      firstName: firstName,
+      lastName: lastName,
+      username: email,
+      email: email,
+      enabled: true,
+      emailVerified: true,
+      credentials: [{
+        type: 'password',
+        value: password,
+        temporary: false
+      }]
+    };
 
       await axios.post(createUserUrl, userData, {
         headers: {
@@ -202,25 +206,104 @@ router.post(
 
         // Create FHIR Practitioner
         try {
-          const practitionerResource = {
-            resourceType: "Practitioner",
-            id: userinfo.sub, // Use Keycloak ID as FHIR ID
-            active: true,
-            name: [
-              {
-                use: "official",
-                family: lastName,
-                given: [firstName],
-                text: fullName,
-              },
-            ],
-            telecom: [
-              {
-                system: "email",
-                value: email,
-                use: "work",
-              },
-            ],
+          const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+          const loginBody = new URLSearchParams({
+            grant_type: "password",
+            client_id: clientId,
+            client_secret: clientSecret,
+            username: email,
+            password: password,
+            scope: scopes,
+          }).toString();
+
+          const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          });
+
+          const { data: userinfo } = await axios.get(
+            `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+            { headers: { Authorization: `Bearer ${tokens.access_token}` } },
+          );
+
+          // Create FHIR Practitioner
+          try {
+            const practitionerResource = {
+              resourceType: "Practitioner",
+              id: userinfo.sub, // Use Keycloak ID as FHIR ID
+              active: true,
+              name: [
+                {
+                  use: "official",
+                  family: lastName,
+                  given: [firstName],
+                  text: fullName,
+                },
+              ],
+              telecom: [
+                {
+                  system: "email",
+                  value: email,
+                  use: "work",
+                },
+              ],
+            };
+
+            await practitionerService.createPractitionerWithSpecificId(
+              practitionerResource,
+            );
+            console.log(
+              `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
+            );
+
+            // Create PractitionerRole
+            try {
+              const practitionerRoleResource = {
+                resourceType: "PractitionerRole",
+                active: true,
+                practitioner: {
+                  reference: `Practitioner/${userinfo.sub}`,
+                },
+                code: [
+                  {
+                    text: "General Practitioner",
+                  },
+                ],
+                specialty: [
+                  {
+                    text: "General Practice",
+                  },
+                ],
+              };
+
+              await practitionerRoleService.createPractitionerRole(
+                practitionerRoleResource,
+              );
+              console.log(
+                `[REGISTER] Created FHIR PractitionerRole for ${userinfo.sub}`,
+              );
+            } catch (roleErr) {
+              console.error(
+                "[REGISTER] PractitionerRole Creation Failed:",
+                roleErr.message,
+              );
+              // Log error but continue - practitioner is already created
+            }
+          } catch (fhirErr) {
+            console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
+            // Log error but continue session creation so user is not blocked
+          }
+
+          req.session.tokens = {
+            access: tokens.access_token,
+            refresh: tokens.refresh_token,
+            id: tokens.id_token,
+            exp: Date.now() + tokens.expires_in * 1000,
+            refresh_exp: Date.now() + tokens.refresh_expires_in * 1000,
+          };
+          req.session.user = {
+            sub: userinfo.sub,
+            email: userinfo.email,
+            name: userinfo.name,
           };
 
           await practitionerService.createPractitionerWithSpecificId(
@@ -229,40 +312,6 @@ router.post(
           console.log(
             `[REGISTER] Created FHIR Practitioner for ${userinfo.sub}`,
           );
-
-          // Create PractitionerRole
-          try {
-            const practitionerRoleResource = {
-              resourceType: "PractitionerRole",
-              active: true,
-              practitioner: {
-                reference: `Practitioner/${userinfo.sub}`,
-              },
-              code: [
-                {
-                  text: "General Practitioner",
-                },
-              ],
-              specialty: [
-                {
-                  text: "General Practice",
-                },
-              ],
-            };
-
-            await practitionerRoleService.createPractitionerRole(
-              practitionerRoleResource,
-            );
-            console.log(
-              `[REGISTER] Created FHIR PractitionerRole for ${userinfo.sub}`,
-            );
-          } catch (roleErr) {
-            console.error(
-              "[REGISTER] PractitionerRole Creation Failed:",
-              roleErr.message,
-            );
-            // Log error but continue - practitioner is already created
-          }
         } catch (fhirErr) {
           console.error("[REGISTER] FHIR Creation Failed:", fhirErr.message);
           // Log error but continue session creation so user is not blocked
@@ -298,10 +347,8 @@ router.post(
         });
       } catch (autoLoginErr) {
         const errData = autoLoginErr?.response?.data || {};
-        const isUnauthorizedClient = errData.error === "unauthorized_client";
-        const message = isUnauthorizedClient
-          ? "User created. Direct Access Grants are disabled for this client; please log in manually."
-          : "User created. Please log in.";
+        // const isUnauthorizedClient = errData.error === 'unauthorized_client';
+        const message = "User created. You can login now.";
 
         console.warn(
           "Auto-login after registration skipped:",
@@ -410,118 +457,454 @@ async function revokeTokens(refreshToken, accessToken) {
   }
 }
 
+async function revokeMobileRefreshToken(refreshToken) {
+  if (!refreshToken) return;
+
+  const kcHost = process.env.KC_HOSTNAME;
+  const realm = process.env.KEYCLOAK_REALM;
+  const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
+
+  const body = new URLSearchParams({
+    token: refreshToken,
+    token_type_hint: "refresh_token",
+    client_id: targetmobileclient,
+  }).toString();
+
+  await axios.post(revokeUrl, body, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+}
+
+
 // single logout
-router.post("/logout", async (req, res) => {
+router.post('/logout', async (req, res) => {
   try {
     const userId = req.session.user?.sub;
     const email = req.session.user?.email;
     const refreshToken = req.session.tokens?.refresh;
     const accessToken = req.session.tokens?.access;
     const frontendReturn = process.env.FRONTEND_HOST;
+
 
     await removeSessionForUser(userId, req.sessionID);
     req.session.destroy(() => {});
 
     await revokeTokens(refreshToken, accessToken);
 
-    // Log
-    await logAuthEvent("LOGOUT", req, {
+    // Log 
+    await logAuthEvent('LOGOUT', req, {
       userId,
-      email,
+      email
     });
+
 
     return res.json({ ok: true, logoutUrl: frontendReturn });
   } catch (e) {
-    console.error("logout error", e);
+    console.error('logout error', e);
     res.status(500).json({ ok: false });
   }
 });
 
 // logout from all devices
-router.post("/logout-all", async (req, res) => {
+router.post('/logout-all', requireApiAuth, async (req, res) => {
   try {
-    const userId = req.session.user?.sub;
-    const email = req.session.user?.email;
-    const idToken = req.session.tokens?.id;
-    const refreshToken = req.session.tokens?.refresh;
-    const accessToken = req.session.tokens?.access;
+
+    const userId = req.user?.sub || req.session?.user?.sub;
+    const email = req.user?.email || req.session?.user?.email;
+    if (!userId) return res.status(401).json({ ok: false, error: "Not authenticated" });
+
+    // const idToken = req.session?.tokens?.id;
+    const refreshToken = req.session?.tokens?.refresh || req.body?.refresh_token;
+    const accessToken = req.session?.tokens?.access || req.accessToken;
+    const azp = req.jwt?.azp || null;
     const kcHost = process.env.KC_HOSTNAME;
     const realm = process.env.KEYCLOAK_REALM;
-    const frontendReturn = process.env.FRONTEND_HOST;
+    // const frontendReturn = process.env.FRONTEND_HOST;
 
     // // destroy backend session
     // req.session.destroy(() => { });
     // await removeSessionForUser(userId, req.sessionID);
 
-    if (idToken && accessToken) {
-      const decoded = jwt.decode(idToken);
-      const userId = decoded?.sub;
+    // for mobile
+    // if (!userId) {
+    //   const authHeader = req.headers.authorization || '';
+    //   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    //   if (!bearer) {
+    //     return res.status(401).json({ ok: false, error: 'Missing auth context' });
+    //   }
+    // for mobile
+    // if (!userId) {
+    //   const authHeader = req.headers.authorization || '';
+    //   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    //   if (!bearer) {
+    //     return res.status(401).json({ ok: false, error: 'Missing auth context' });
+    //   }
 
-      if (!userId) {
-        return res.status(400).json({ ok: false, error: "Invalid ID token" });
+    //   const decoded = jwt.decode(bearer);
+    //   userId = decoded?.sub || null;
+    //   email = decoded?.email || null;
+    //   accessToken = bearer;
+
+    //   if (!userId) {
+    //     return res.status(401).json({ ok: false, error: 'Invalid bearer token' });
+    //   }
+    // }
+
+
+    // if (!userId) return res.status(401).json({ ok: false, error: 'Not authenticated' });
+
+    console.log('[LOGOUT_ALL] hasRefreshToken=', !!refreshToken, 'hasAccessToken=', !!accessToken);
+    console.log('[LOGOUT_ALL] tokenClient(azp)=', req.jwt?.azp);
+    if (refreshToken || accessToken) {
+      if (azp === "flutter-app") {
+        await revokeMobileRefreshToken(refreshToken);
+      } else {
+        await revokeTokens(refreshToken, accessToken);
       }
-
-      await revokeTokens(refreshToken, accessToken);
-
-      // Get admin token to access Keycloak Admin API
-      const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
-      const adminBody = new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }).toString();
-
-      const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      });
-
-      const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
-
-      await axios.post(
-        logoutAllUrl,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${adminTokens.access_token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const sessionIds = await getSessionsForUser(userId);
-      console.log(
-        `[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`,
-      );
-      for (const sid of sessionIds) {
-        await destroySessionById(sid);
-      }
-      await clearAllSessionsForUser(userId);
-
-      await removeSessionForUser(userId, req.sessionID);
-      req.session.destroy(() => {});
-
-      await logAuthEvent("LOGOUT_ALL", req, {
-        userId: userId,
-        email,
-      });
-
-      return res.json({
-        ok: true,
-        message: "Logged out from all devices silently",
-      });
     }
+    // if (idToken && accessToken) {
 
-    await removeSessionForUser(userId, req.sessionID);
-    req.session.destroy(() => {});
-    return res.json({ ok: true });
+    //   const decoded = jwt.decode(idToken);
+    //   const userId = decoded?.sub;
+
+    //   if (!userId) {
+    //     return res.status(400).json({ ok: false, error: 'Invalid ID token' });
+    //   }
+
+    //   await revokeTokens(refreshToken, accessToken);
+    //   const decoded = jwt.decode(bearer);
+    //   userId = decoded?.sub || null;
+    //   email = decoded?.email || null;
+    //   accessToken = bearer;
+
+    //   if (!userId) {
+    //     return res.status(401).json({ ok: false, error: 'Invalid bearer token' });
+    //   }
+    // }
+
+
+    // if (!userId) return res.status(401).json({ ok: false, error: 'Not authenticated' });
+
+    
+    const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+    const adminBody = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret
+    }).toString();
+
+    const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+
+    const logoutAllUrl = `${kcHost}/admin/realms/${realm}/users/${userId}/logout`;
+
+    await axios.post(logoutAllUrl, {}, {
+      headers: {
+        'Authorization': `Bearer ${adminTokens.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+
+
+    const sessionIds = await getSessionsForUser(userId);
+    console.log(`[LOGOUT_ALL] Destroying ${sessionIds.length} sessions for user ${userId}`);
+    for (const sid of sessionIds) {
+      await destroySessionById(sid);
+    }
+    await clearAllSessionsForUser(userId);
+
+    // await removeSessionForUser(userId, req.sessionID);
+    // req.session.destroy(() => { });
+    if (req.sessionID) await removeSessionForUser(userId, req.sessionID);
+    if (req.session) req.session.destroy(() => { });
+   
+
+    await logAuthEvent('LOGOUT_ALL', req, {
+      userId: userId,
+      email
+    });
+
+
+    return res.json({
+      ok: true,
+      message: 'Logged out from all devices silently'
+    });
+    // }
+
+
+    // await removeSessionForUser(userId, req.sessionID);
+    // req.session.destroy(() => { });
+    // return res.json({ ok: true });
+
   } catch (e) {
     console.error("global logout error", e?.response?.data || e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// router.refreshTokens = refreshTokens;
 module.exports = router;
+
+// // mobile auth?
+
+// router.post('/mobile-register', registerLimiter, async (req, res) => {
+//   const { email, password, firstName, lastName } = req.body;
+
+//   if (!email || !password || !firstName || !lastName) {
+//     return res.status(400).json({ error: 'Email, password, and full name required' });
+//   }
+
+//   try {
+//     // access token using client credentials
+//     const adminTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//     const adminBody = new URLSearchParams({
+//       grant_type: 'client_credentials',
+//       client_id: clientId,
+//       client_secret: clientSecret
+//     }).toString();
+
+//     const { data: adminTokens } = await axios.post(adminTokenUrl, adminBody, {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
+
+//     // create user
+//     // const [firstName, ...lastNameParts] = fullName.trim().split(' ');
+//     // const lastName = lastNameParts.join(' ') || firstName;
+
+//     const createUserUrl = `${kcHost}/admin/realms/${realm}/users`;
+//     const userData = {
+//       username: email,
+//       email: email,
+//       firstName: firstName,
+//       lastName: lastName,
+//       enabled: true,
+//       emailVerified: false,
+//       credentials: [{
+//         type: 'password',
+//         value: password,
+//         temporary: false
+//       }]
+//     };
+
+//     await axios.post(createUserUrl, userData, {
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${adminTokens.access_token}`
+//       }
+//     });
+
+//     // await logAuthEvent('MOBILE_REG_SUCCESS', req, {
+//     //       userId: userinfo.sub,
+//     //       email: userinfo.email,
+//     //       clientType: 'mobile'
+//     // });
+
+//     //  try {
+//     //       const loginTokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//     //       const loginBody = new URLSearchParams({
+//     //             grant_type: 'password',
+//     //             client_id: clientId,
+//     //             client_secret: clientSecret,
+//     //             username: email,
+//     //             password: password,
+//     //             scope: scopes
+//     //       }).toString();
+
+//     //       const { data: tokens } = await axios.post(loginTokenUrl, loginBody, {
+//     //             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     //       });
+
+//     //       const { data: userinfo } = await axios.get(
+//     //             `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+//     //             { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+//     //       );
+//     //       await logAuthEvent('MOBILE_Reg_SUCCESS', req, {
+//     //             userId: userinfo.sub,
+//     //             email: userinfo.email,
+//     //             clientType: 'mobile',
+//     //             autoLogin: true
+//     //       });
+
+//     res.json({
+//       success: true,
+
+//     })
+
+//     // }
+//     // catch(tokenerr){
+
+//     // }
+
+//   }
+//   catch (regerr) {
+//     console.error('Registration failed:', regerr?.response?.data || regerr.message);
+//     await logAuthEvent('MOBILE_REG_FAILURE', req, {
+//       email,
+//       reason: regerr?.response?.data?.error_description || regerr.message
+//     });
+//     if (regerr?.response?.status === 409) {
+//       return res.status(409).json({ error: 'User already exists' });
+//     }
+//     const errorMsg = regerr?.response?.data?.errorMessage || 'Registration failed';
+//     res.status(400).json({ error: errorMsg });
+
+//   }
+
+// });
+
+// router.post('/mobile-login', loginLimiter, validateLogin, async (req, res) => {
+//   const { email, password } = req.body;
+
+//   if (!email || !password) {
+//     return res.status(400).json({ error: 'Email and password required' });
+//   }
+
+//   const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//   const body = new URLSearchParams({
+//     grant_type: 'password',
+//     client_id: clientId,
+//     client_secret: clientSecret,
+//     username: email,
+//     password: password,
+//     scope: scopes
+//   }).toString();
+
+//   try {
+//     const { data: tokens } = await axios.post(tokenUrl, body, {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
+
+//     const { data: userinfo } = await axios.get(
+//       `${kcHost}/realms/${realm}/protocol/openid-connect/userinfo`,
+//       { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+//     );
+
+//     await logAuthEvent('MOBILE_LOGIN_SUCCESS', req, {
+//       userId: userinfo.sub,
+//       email: userinfo.email,
+//       clientType: 'mobile'
+//     });
+
+//     // return tokens
+//     res.json({
+//       success: true,
+//       access_token: tokens.access_token,
+//       refresh_token: tokens.refresh_token,
+//       id_token: tokens.id_token,
+//       expires_in: tokens.expires_in,
+//       // user: {
+//         sub: userinfo.sub,
+//         email: userinfo.email,
+//         name: userinfo.name
+//       // }
+//     });
+//   } catch (e) {
+//     console.error('Mobile login failed:', e?.response?.data || e.message);
+
+//     await logAuthEvent('MOBILE_LOGIN_FAILURE', req, {
+//       email,
+//       reason: e?.response?.data?.error_description || e.message
+//     });
+
+//     const errorMsg = e?.response?.data?.error_description || 'Invalid credentials';
+//     res.status(401).json({ error: errorMsg });
+//   }
+// });
+
+// router.post('/refresh', async (req, res) => {
+//   try {
+//     const { refresh_token } = req.body;
+
+//     if (!refresh_token) {
+//       return res.status(400).json({ error: 'refresh_token required in request body' });
+//     }
+
+//     const tokenUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/token`;
+//     const body = new URLSearchParams({
+//       grant_type: 'refresh_token',
+//       client_id: clientId,
+//       client_secret: clientSecret,
+//       refresh_token: refresh_token,
+//     }).toString();
+
+//     const { data: tokens } = await axios.post(tokenUrl, body, {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
+
+//     await logAuthEvent('TOKEN_REFRESH', req, {
+//       reason: 'mobile_refresh_request'
+//     });
+
+//     res.json({
+//       access_token: tokens.access_token,
+//       refresh_token: tokens.refresh_token || refresh_token,
+//       expires_in: tokens.expires_in
+//     });
+//   } catch (e) {
+//     console.error('Token refresh failed:', e?.response?.data || e.message);
+
+//     await logAuthEvent('TOKEN_REFRESH_FAILURE', req, {
+//       reason: e?.response?.data?.error_description || e.message
+//     });
+
+//     res.status(401).json({ error: 'Invalid or expired refresh token' });
+//   }
+// });
+
+// router.post('/logout', async (req, res) => {
+// try {
+// // check for token in case of mobile logout
+// const authHeader = req.get('Authorization');
+// const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+// if (bearerToken) {
+//   const { refresh_token } = req.body;
+
+//   if (refresh_token) {
+//     await revokeTokens(refresh_token, bearerToken);
+//   }
+
+//   await logAuthEvent('MOBILE_LOGOUT', req, {
+//     clientType: 'mobile',
+//     tokenRevoked: !!refresh_token
+//   });
+
+//   return res.json({ ok: true });
+// }
+
+// browser logout
+//     if (!req.session?.user?.sub) {
+//       return res.status(401).json({ error: 'Not authenticated' });
+//     }
+
+//     const userId = req.session.user.sub;
+//     const email = req.session.user.email;
+//     const refreshToken = req.session.tokens?.refresh;
+//     const accessToken = req.session.tokens?.access;
+//     const frontendReturn = process.env.FRONTEND_HOST;
+
+//     await removeSessionForUser(userId, req.sessionID);
+//     req.session.destroy(() => { });
+
+//     await revokeTokens(refreshToken, accessToken);
+
+//     await logAuthEvent('LOGOUT', req, {
+//       userId,
+//       email,
+//       clientType: 'browser'
+//     });
+
+//     return res.json({ ok: true, logoutUrl: frontendReturn });
+//   } catch (e) {
+//     console.error('logout error', e);
+//     res.status(500).json({ ok: false, error: e.message });
+//   }
+// });
+
+// router.refreshTokens = refreshTokens;
+
 
 //  legacy :<<<<
 

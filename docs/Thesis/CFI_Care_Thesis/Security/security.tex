@@ -69,16 +69,16 @@ planned flow is captured in Figure~\ref{fig:browser-tokens-flow-future}.
 
 \subsubsection{Mobile Flow}
 For mobile clients (implemented using Flutter), the flow differs from browsers.
-The planned implementation uses a BFF-mediated Authorization Code pattern with
-PKCE, and stateless access tokens. Tokens are stored only in platform-specific
-secure storage (Android Keystore) and sent as \texttt{Authorization: Bearer
-    <token>} in API requests. Token refresh is client-driven via a refresh
-endpoint, access tokens remain short-lived.
+The implemented flow uses Authorization Code with PKCE through Keycloak AppAuth
+integration, and stateless access tokens. Tokens are stored in platform-
+specific secure storage (Android Keystore) and sent as
+\texttt{Authorization: Bearer <token>} in API requests. Token refresh is
+client-driven and access tokens remain short-lived.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{Security/images/Mobile-tokens-flow.png}
-    \caption{Mobile Token Authentication Flow (Future): BFF-mediated Authorization Code with PKCE, secure keystore token storage, and client-driven token refresh.}
+    \caption{Mobile Token Authentication Flow: Authorization Code with PKCE, secure keystore token storage, and client-driven token refresh.}
     \label{fig:mobile-tokens-flow}
 \end{figure}
 
@@ -92,10 +92,11 @@ HttpOnly, and SameSite according to deployment needs.
 
 \subsubsection{BFF Middleware: Session Check, JWT Verify, Scope Validation}
 \begin{itemize}
+    \item \textbf{API auth routing (requireApiAuth method)}: routes requests with \texttt{Authorization: Bearer} to JWT verification middleware, and routes session-cookie requests to session middleware.
     \item \textbf{Session check (requireSession method)}: verifies presence of user and tokens in the Redis-backed session.
           Automatically refreshes expired tokens by calling Keycloak's token endpoint and persists the updated tokens back to Redis.
           Populates \texttt{req.accessToken}, \texttt{req.user}, and \texttt{req.kauth} for downstream middleware.
-    \item \textbf{JWT verification (verifyToken method)}: validates JWT signatures against Keycloak's JWKS endpoint, checks issuer (iss), audience (aud), algorithms, and clock skew tolerance.
+    \item \textbf{JWT verification (requireBearerJwt method)}: validates JWT signatures against Keycloak's JWKS endpoint, checks issuer (iss), allowed audiences (aud), algorithm (RS256), and clock skew tolerance.
           The Authorization header is populated by \texttt{attachForwardedToken} middleware, which extracts the session token from \texttt{req.accessToken} (set by requireSession) or request headers in general.
     \item \textbf{Scope checks (validateScopes method)}: parses \texttt{scope} claim and \texttt{realm\_access.roles} from the token. Compares required SMART on FHIR scopes (e.g., \texttt{patient/<id>.rs}) against token scopes using pattern matching.
           For patient-specific scopes, validates that the \texttt{patient} claim in the token matches the requested resource ID.
@@ -246,7 +247,8 @@ endpoint. Checks include:
 \begin{itemize}
     \item Signature validity (RS256 algorithm).
     \item Issuer claim (iss) matches Keycloak's realm URL.
-    \item Audience claim (aud) includes the BFF's client ID.
+    \item Audience claim (aud) matches allowed audience list configured in the backend.
+    \item Clock skew tolerance configured in middleware.
 
 \end{itemize}
 Scope checks compare the token's \texttt{scope} claim against required route scopes using pattern-matching logic that handles wildcards.
@@ -259,40 +261,20 @@ field-level error details, enabling the frontend to display specific guidanc.
 Error responses explicitly do not leak sensitive system details, reducing
 information disclosure risks.
 
-\subsubsection{Mobile Authentication Endpoints (Future Work)}
-Three dedicated endpoints support mobile client authentication flows:
+\subsubsection{Mobile Authentication Integration}
+Mobile authentication is implemented in the Flutter app using Keycloak AppAuth
+(Authorization Code + PKCE). The app stores \texttt{access},
+\texttt{refresh}, and \texttt{id} tokens in secure storage and attaches bearer
+tokens to API requests.
 
-% \begin{itemize}
+The app performs client-side refresh when needed and retries protected
+requests. If refresh fails, the app clears session state and redirects to
+login.
 
-\paragraph{POST /auth/mobile/login:}
-Authenticates against Keycloak using the Resource Owner Password grant. Upon
-success, returns \texttt{\{access\_token, refresh\_token, id\_token,
-    expires\_in, user\}} in the response body. The mobile app stores these tokens
-in secure storage (Keystore) and includes the access token in subsequent API
-requests via \texttt{Authorization: Bearer <token>} headers. Rate limiting and
-input validation (Joi schemas) are enforced. Audit logged as
-\texttt{MOBILE\_LOGIN\_SUCCESS} or \texttt{MOBILE\_LOGIN\_FAILURE} to separate
-browser and mobile authentication for auditing granularity.
-
-\paragraph{POST /auth/refresh}
-Accepts \texttt{\{refresh\_token\}} in the request body and exchanges it for a
-new access token via Keycloak's refresh token grant endpoint. Returns
-\texttt{\{access\_token, refresh\_token, expires\_in\}}. Called client-side by
-the mobile app when the access token expires. Enables stateless token refresh.
-Audit logged as \texttt{TOKEN\_REFRESH} or \texttt{TOKEN\_REFRESH\_FAILURE}.
-
-\paragraph{POST /auth/logout ( will be updated for mobile)}
-Dual-path logout supporting both browser sessions and mobile bearer tokens.
-Mobile path: detects \texttt{Authorization: Bearer} header, revokes tokens at
-Keycloak (via revoke tokens endpoint), and returns \texttt{\{ok: true\}}.
-Browser path: uses \texttt{req.session}, destroys the session, and returns
-\texttt{\{ok: true, logoutUrl\}}. Requires \texttt{refresh\_token} in body for
-Keycloak-side token revocation. Audit will also be logged with client type
-specified to enable distinction between logout types.
-
-% \end{itemize}
-All three endpoints are protected by rate limiters and log to the audit trail
-for security monitoring.
+For in-app account security actions, the app invokes Keycloak
+\texttt{kc\_action} flows (e.g., \texttt{UPDATE\_PASSWORD},
+\texttt{CONFIGURE\_TOTP}) and updates local tokens from the returned auth
+response.
 
 \subsection{nginx API Gateway}
 \subsubsection{TLS Termination, HSTS, Secure Headers}
@@ -405,19 +387,21 @@ Future work: Pin exact versions in package.json and regularly audit for
 vulnerabilities (using \texttt{npm audit}).
 
 \subsubsection{Mobile App (Flutter) Security Architecture}
-Although not yet fully implemented, the planned mobile architecture includes:
+The implemented mobile architecture includes:
 \begin{itemize}
     \item \textbf{Secure Token Storage}:
           \begin{itemize}
               \item Android: Keystore system.
           \end{itemize}
     \item \textbf{Bearer Token Auth}: Each HTTP request includes \texttt{Authorization: Bearer <access\_token>} header.
+    \item \textbf{Authorization Code + PKCE}: Implemented through Keycloak AppAuth.
     \item \textbf{Token Refresh Logic}: Mobile app implements its own refresh routine (unlike browser, where the BFF handles refresh):
           \begin{itemize}
-              \item On 401 response, call the BFF's token refresh endpoint.
+              \item On 401 response, perform refresh grant.
               \item Retry the original request with the new token.
               \item If refresh fails, clear tokens and redirect to login.
           \end{itemize}
+    \item \textbf{Account Security Actions}: In-app flows for \texttt{UPDATE\_PASSWORD} and \texttt{CONFIGURE\_TOTP} are executed using Keycloak \texttt{kc\_action}.
     \item \textbf{Certificate Pinning} (future work): pin the BFF's TLS cert in the mobile app to prevent MITM attacks by rogue CAs.
           % \item \textbf{App Transport Security (ATS)}: Enforce HTTPS only and require strong TLS versions (1.2+) by default.
 \end{itemize}
@@ -474,8 +458,9 @@ password complexity requirements.
 Keycloak serves as the OpenID Connect identity provider. It manages user
 accounts, issues JWT tokens (access, refresh, and ID tokens), maintains public
 JWKS endpoints for token verification, and supports role-based access control
-via realm roles and client roles. In the current setup, the BFF uses the
-Resource Owner Password grant to obtain tokens on behalf of users.
+via realm roles and client roles. In the current setup, browser login is
+handled through BFF-mediated credentials flow, while mobile login uses
+Authorization Code + PKCE via AppAuth.
 
 \subsection{Redis}
 Two Redis instances are deployed:
@@ -582,7 +567,7 @@ Residual risks include:
 
 \paragraph{Gaps \& Future Work}
 \begin{itemize}
-    \item \textbf{PKCE (Proof Key for Code Exchange)}: Current flow uses Resource Owner Password grant, future work will migrate to Authorization Code + PKCE for improved security.
+    \item \textbf{PKCE for Browser Flow}: Mobile PKCE is implemented. Browser flow migration to Authorization Code + PKCE remains future work.
     \item \textbf{Consent Enforcement}: Patient-granted doctor access is not yet implemented or persisted as FHIR Consent resources or validated at the FHIR server.
     \item \textbf{Redis Encryption}: Session and audit data in Redis are unencrypted at rest, future work includes enabling Redis persistence encryption.
     \item \textbf{Centralized Audit Dashboard}: Audit logs are stored in Redis, future work includes creating a dedicated UI for viewing and filtering logs as that would improve security monitoring (low priority future work).
@@ -595,9 +580,10 @@ CFI-Care implements a defense-in-depth security architecture across three
 layers:
 
 \paragraph{Identity \& Access (Keycloak + Tokens)}
-OAuth 2.0 with the Resource Owner Password grant issues JWTs signed by
-Keycloak. Tokens include user identity, scopes, roles, and claims. Keycloak
-serves as the trusted identity provider, issuing and validating credentials.
+OAuth 2.0/OIDC issues JWTs signed by Keycloak. Browser and mobile follow
+different integration paths: browser via BFF session-based flow, mobile via
+Authorization Code + PKCE. Tokens include user identity, scopes, roles, and
+claims.
 
 \paragraph{Browser Access (Sessions + BFF)}
 The BFF stores tokens server-side in Redis-backed sessions, exposing only
@@ -606,10 +592,10 @@ ensures tokens never expire, transparently re-authenticating users. This design
 protects tokens from XSS theft and simplifies client-side logic.
 
 \paragraph{API Layer (Middleware + Validation)}
-Every API request flows through multiple middleware checks: session validation
-' , JWT signature verification, and scope/role enforcement. Rate limiters
-protect endpoints from brute-force attacks. Input validation prevents injection
-attacks. Audit logs capture all authentication events for forensic analysis.
+Every API request flows through middleware checks: bearer JWT verification or
+session validation, then scope/role enforcement. Rate limiters protect
+endpoints from brute-force attacks. Input validation prevents injection
+attacks. Audit logs capture authentication events for forensic analysis.
 
 \paragraph{Transport \& Edge (TLS + Headers)}
 nginx terminates TLS, enforces HTTPS-only access, and sets forwarded headers.
@@ -623,7 +609,7 @@ The implementation is functional and ready for incremental hardening:
     \item Token refresh is automatic and transparent to browsers.
     \item Per-session and global logout are fully functional.
     \item Audit trails are captured and retained for 90 days.
-    \item Mobile support is architected for bearer token auth (future implementation).
+    \item Mobile authentication is implemented with Authorization Code + PKCE, secure token storage, and refresh/retry handling.
 \end{itemize}
 
 % \hspace*{2em}In this chapter, we outline the necessary tools and software required to implement SNMP in a simulated environment. We cover the installation and configuration of GNS3, Wireshark, and SnmpB, ensuring a functional setup for SNMP communication and monitoring.

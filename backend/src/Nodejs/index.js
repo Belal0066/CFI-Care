@@ -35,6 +35,8 @@ const deviceRoutes = require("./device/deviceRoutes");
 const relatedPersonRoutes = require("./relatedPerson/relatedPersonRoutes");
 
 const authRoutes = require("./auth/authRoutes");
+const { requireApiAuth } = require("./middleware/requireApiAuth");
+
 const session = require("express-session");
 
 const redisClient = require("./utils/redisCli");
@@ -93,29 +95,29 @@ app.use(
 // app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
 
 //timing middleware
-app.use((req, res, next) => {
-  try {
-    req._id =
-      typeof randomUUID === "function"
-        ? randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  } catch (e) {
-    req._id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  }
-  res.setHeader("X-Request-Id", req._id);
-  req._startHrTime = process.hrtime.bigint();
-  res.on("finish", () => {
-    try {
-      const ms = Number(process.hrtime.bigint() - req._startHrTime) / 1e6;
-      console.log(
-        `[req ${req._id}] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms.toFixed(2)}ms`,
-      );
-    } catch (err) {
-      console.log(`[req ${req._id}] completed (timing failed)`);
-    }
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   try {
+//     req._id =
+//       typeof randomUUID === "function"
+//         ? randomUUID()
+//         : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+//   } catch (e) {
+//     req._id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+//   }
+//   res.setHeader("X-Request-Id", req._id);
+//   req._startHrTime = process.hrtime.bigint();
+//   res.on("finish", () => {
+//     try {
+//       const ms = Number(process.hrtime.bigint() - req._startHrTime) / 1e6;
+//       console.log(
+//         `[req ${req._id}] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms.toFixed(2)}ms`,
+//       );
+//     } catch (err) {
+//       console.log(`[req ${req._id}] completed (timing failed)`);
+//     }
+//   });
+//   next();
+// });
 
 app.use(
   session({
@@ -166,6 +168,8 @@ app.post("/timing", (req, res) => {
 app.use(generalLimiter);
 
 app.use("/auth", authRoutes);
+
+app.use("/api", requireApiAuth);
 
 app.use("/api/medicationRequests", medicationRequestRoutes);
 app.use("/api/patients", patientRoutes);

@@ -45,11 +45,11 @@ services:
         # 'start',
         "start-dev",
         '--import-realm',
-        # '-Dkeycloak.migration.action=import',
-        # '-Dkeycloak.migration.provider=singleFile',
-        # '-Dkeycloak.migration.realmName=CFI-Care',
-        # '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
-        # '-Dkeycloak.migration.file=/import/realms.json',
+        '-Dkeycloak.migration.action=import',
+        '-Dkeycloak.migration.provider=singleFile',
+        '-Dkeycloak.migration.realmName=CFI-Care',
+        '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
+        '-Dkeycloak.migration.file=/opt/keycloak/data/import/realms.json',
         "--https-key-store-file=conf/server.keystore",
         "--https-key-store-password=password",
         "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
@@ -117,11 +117,26 @@ services:
       # - './import:/import:ro'
       - "./import:/opt/keycloak/data/import:ro"
       - "./export:/export:rw"
-      - "./static/mythemes/login:/themes/mytheme/login:rw"
+      - "./static/mobile:/opt/keycloak/themes/mobile:ro"
+      - "./static/realm:/opt/keycloak/themes/realm:ro"
+      - "./static/browser:/opt/keycloak/themes/browser:ro"
 
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - nginx-network
+
+
+  mailhog:
+    image: mailhog/mailhog
+    logging:
+      driver: 'none'  # disable saving logs
+    ports:
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+    env_file:
+      - ./.env
     networks:
       - nginx-network
 

@@ -42,8 +42,8 @@ Write-Host "Setting up mkcert CA..." -ForegroundColor Yellow
 
 # 5. Generate Certificates
 Write-Host "Generating Certificates..." -ForegroundColor Yellow
-& mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem kc.localhost 127.0.0.1 ::1
-& mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+& mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost 127.0.0.1 ::1 host.docker.internal
+& mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1 host.docker.internal
 
 # 6. Create Java Keystore
 Write-Host "Creating Java Keystore..." -ForegroundColor Yellow

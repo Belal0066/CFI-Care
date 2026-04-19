@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:medflow/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:medflow/presentation/widgets/build_section_profile.dart';
 import 'package:medflow/presentation/screens/sign_in_up.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../widgets/account_sec_section.dart';
+
+
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -211,7 +216,9 @@ class _MyProfileState extends State<MyProfile> {
                 ),
                 const SizedBox(height: 24),
                 const Divider(),
-
+                
+                AccountSecuritySection(),
+                SizedBox(height: 12),
                 // --- Personal Info Section ---
                 BuildSectionProfile(
                   leading: Icons.person_outline_outlined,
@@ -285,13 +292,14 @@ class _MyProfileState extends State<MyProfile> {
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.clear();
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignInUp()),
-                        (r) => false,
-                      );
-                    }
+                    await context.read<AuthProvider>().logout();
+                    // if (context.mounted) {
+                    //   Navigator.pushAndRemoveUntil(
+                    //     context,
+                    //     MaterialPageRoute(builder: (_) => const SignInUp()),
+                    //     (r) => false,
+                    //   );
+                    // }
                   },
                 ),
                 const SizedBox(height: 40),
