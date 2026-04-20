@@ -146,7 +146,7 @@ class DownstreamAdapter:
             DownstreamError: On service errors
         """
         start_time = time.time()
-        url = f"{self.base_url}/v1/docfhir/"
+        url = self.base_url
 
         payload = {
             "job_id": job_id,

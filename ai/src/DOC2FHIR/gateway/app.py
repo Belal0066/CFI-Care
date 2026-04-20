@@ -439,6 +439,15 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                 except Exception:
                     fhir_bundle = None
 
+        ocr_output = None
+        if job.ocr_output_path:
+            ocr_path = Path(job.ocr_output_path)
+            if ocr_path.exists():
+                try:
+                    ocr_output = json.loads(ocr_path.read_text())
+                except Exception:
+                    ocr_output = None
+
         validation = _validate_fhir_bundle(fhir_bundle)
         stage_metrics = _extract_stage_metrics(events)
 
@@ -459,10 +468,72 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                 metadata=job.metadata,
             ).model_dump(mode="json"),
             "events": events,
+            "ocr_output": ocr_output,
             "fhir_bundle": fhir_bundle,
             "fhir_validation": validation,
             "stage_metrics": stage_metrics,
         }
+
+    @app.post(
+        "/v1/document/{job_id}/push-to-hapi",
+        tags=["Documents"],
+        responses={404: {"model": ErrorResponse}},
+    )
+    async def push_to_hapi(job_id: str, repo: JobRepository = Depends(get_repository)):
+        """Push the saved FHIR bundle directly to HAPI FHIR JPA Server.
+
+        Useful when the downstream delivery failed (e.g. Node.js not running)
+        but you want to test the FHIR bundle against HAPI FHIR.
+        """
+        job = repo.get_job_by_id(job_id)
+
+        if not job.fhir_output_path:
+            raise HTTPException(
+                status_code=400,
+                detail="No FHIR bundle available for this job. Mapping stage not completed.",
+            )
+
+        fhir_path = Path(job.fhir_output_path)
+        if not fhir_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"FHIR output file not found: {fhir_path}",
+            )
+
+        try:
+            fhir_bundle = json.loads(fhir_path.read_text())
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to parse FHIR bundle: {exc}",
+            )
+
+        from .adapters.hapi_fhir import HapiFhirDownstreamAdapter, HapiFhirDownstreamError
+
+        adapter = HapiFhirDownstreamAdapter(
+            base_url=settings.hapi_fhir_base_url,
+            timeout_sec=settings.downstream_stage_timeout_sec,
+            max_retries=2,
+        )
+
+        try:
+            result = await adapter.deliver_fhir_bundle(
+                job_id=job_id,
+                fhir_bundle=fhir_bundle,
+            )
+            return {
+                "success": True,
+                "status_code": result.status_code,
+                "delivery_time_sec": result.delivery_time_sec,
+                "created_resources": result.created_resources,
+                "response_body": result.response_body,
+            }
+        except HapiFhirDownstreamError as exc:
+            return {
+                "success": False,
+                "error": exc.message,
+                "retry_allowed": exc.retry_allowed,
+            }
 
     @app.get("/v1/metrics", tags=["System"])
     async def get_runtime_metrics():
