@@ -1,2 +1,76 @@
-*.md
+# Byte-compiled / cached files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+*/venv/
+*/.venv/
+
+# Mapper/venv artifacts
+mapper/bin/
+mapper/lib/
+mapper/Lib/
+mapper/include/
+mapper/pyvenv.cfg
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Logs and runtime files
+*.log
+logs/
 *.pid
+*.sock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Testing
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Environment files (keep examples in repo)
+.env
+llama-server.env
+
+# Model/data outputs (large files)
+data/
+outputs/
+models/
+**/models/
+**/outputs/
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.safetensors
+*.onnx
+*.h5
+
+# Caches
+.cache/
+.tmp/
+
+# Streamlit
+.streamlit/
