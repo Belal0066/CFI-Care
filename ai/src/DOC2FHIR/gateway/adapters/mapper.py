@@ -150,7 +150,7 @@ class MapperAdapter:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a healthcare data mapping expert. Convert the provided medical document text into a valid FHIR R4 JSON bundle. Return only valid JSON, no markdown. DO NOT output any reasoning, thinking process or explanations. Start immediately with {",
+                        "content": "You are a healthcare data mapping expert. Convert the provided medical document text into a valid FHIR R4 JSON bundle. Return only valid JSON, no markdown. DO NOT output any reasoning, thinking process or explanations. Start immediately with {. The Bundle MUST be of type 'transaction' and each entry MUST have a 'request' block with method 'POST' and url matching the resource type. Do not use non-standard resource types like ClinicalNote. Use valid FHIR R4 resources like DocumentReference, DiagnosticReport, Patient, Observation, Condition, or Medication. For DocumentReference, use status 'current', NOT 'final'. For DiagnosticReport, use status 'final'. If generating a 'text.div' narrative, it MUST be wrapped in exactly ONE root <div xmlns=\"http://www.w3.org/1999/xhtml\"> element, with no multiple xml roots.",
                     },
                     {
                         "role": "user",
@@ -158,7 +158,7 @@ class MapperAdapter:
                     },
                 ],
                 "temperature": 0.1,  # Low temperature for deterministic output
-                "max_tokens": 4000,
+                "max_tokens": 8000,
             }
 
             with httpx.Client(timeout=self.timeout_sec) as client:
@@ -230,8 +230,9 @@ class MapperAdapter:
         """
         lines = [
             "Convert the following medical document text into a FHIR R4 JSON bundle.",
-            "Include appropriate resources (Patient, Observation, Condition, Medication, etc.).",
+            "Include appropriate resources (Patient, Observation, Condition, Medication, DocumentReference, DiagnosticReport, etc.).",
             "Ensure all resources have valid identifiers and required fields.",
+            "Never use hallucinated resource types like 'ClinicalNote'.",
             "Return ONLY valid JSON.",
             "",
             "Medical Document Text:",
@@ -249,51 +250,119 @@ class MapperAdapter:
         return "\n".join(lines)
 
     def _extract_and_validate_fhir(self, response_text: str) -> dict[str, Any]:
-        """Extract and validate FHIR bundle from response.
-
-        Args:
-            response_text: Raw response from Mapper
-
-        Returns:
-            Validated FHIR bundle dictionary
-
-        Raises:
-            MapperValidationError: If bundle is invalid
-        """
+        """Extract and validate FHIR bundle from response."""
         import json
+        import uuid
+        import re
 
-        # Try to extract JSON from response (might be wrapped in markdown)
         text = response_text.strip()
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
+        
+        # Try to extract JSON from markdown code block first
+        match = re.search(r'```(?:json)?\s*(\{.*\}|\[.*\])\s*```', text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+        else:
+            # Fallback: find the outermost JSON object in case there's leading/trailing text
+            start_idx = text.find('{')
+            end_idx = text.rfind('}')
+            list_start_idx = text.find('[')
+            list_end_idx = text.rfind(']')
+            
+            # Use whichever bounds look like they enclose the outer structure
+            if start_idx != -1 and end_idx != -1 and (list_start_idx == -1 or start_idx < list_start_idx):
+                text = text[start_idx:end_idx+1]
+            elif list_start_idx != -1 and list_end_idx != -1:
+                text = text[list_start_idx:list_end_idx+1]
 
         try:
             bundle = json.loads(text)
         except json.JSONDecodeError as exc:
             raise MapperValidationError(
-                f"Failed to parse FHIR response as JSON: {str(exc)}",
+                f"Failed to parse FHIR response as JSON: {str(exc)}\nSnippet: {text[:100]}...",
                 original_error=exc,
             ) from exc
 
-        # Basic FHIR validation
-        if not isinstance(bundle, dict):
-            raise MapperValidationError(
-                "FHIR bundle must be a JSON object",
-            )
+        if not isinstance(bundle, dict) or "resourceType" not in bundle:
+            raise MapperValidationError("FHIR bundle must be a JSON object with resourceType")
 
-        # Validate it looks like a FHIR bundle
-        if "resourceType" not in bundle:
-            raise MapperValidationError(
-                "FHIR bundle missing resourceType",
-            )
+        if bundle.get("resourceType") == "Bundle":
+            bundle["type"] = "transaction"
+            entries = bundle.get("entry", [])
+            if isinstance(entries, list):
+                ref_map = {}
+                valid_entries = []
+                
+                # 1. Assign URN UUIDs
+                for entry in entries:
+                    res = entry.get("resource")
+                    if not isinstance(res, dict): continue
+                    
+                    res_type = res.get("resourceType")
+                    if not res_type: continue
+                        
+                    new_uuid = str(uuid.uuid4())
+                    urn = f"urn:uuid:{new_uuid}"
+                    
+                    old_id = str(res.get("id", ""))
+                    old_full_url = str(entry.get("fullUrl", ""))
+                    if old_id:
+                        ref_map[old_id] = urn
+                        ref_map[f"{res_type}/{old_id}"] = urn
+                        ref_map[f"#{old_id}"] = urn
+                    if old_full_url:
+                        ref_map[old_full_url] = urn
+                        
+                    res["id"] = new_uuid
+                    entry["fullUrl"] = urn
+                    entry["request"] = {"method": "POST", "url": res_type}
+                    valid_entries.append(entry)
+                    
+                bundle["entry"] = valid_entries
+                
+                # 2. Re-map references and remove dangling ones
+                def sanitize_refs(node):
+                    if isinstance(node, dict):
+                        to_delete = []
+                        for k, v in list(node.items()):
+                            if k == "reference" and isinstance(v, str):
+                                if v in ref_map:
+                                    node[k] = ref_map[v]
+                                elif not v.startswith("urn:uuid:") and not v.startswith("http"):
+                                    to_delete.append(k)
+                            elif isinstance(v, (dict, list)):
+                                sanitize_refs(v)
+                        for k in to_delete:
+                            del node[k]
+                    elif isinstance(node, list):
+                        for item in node:
+                            sanitize_refs(item)
+                
+                sanitize_refs(bundle)
 
-        expected_type = bundle.get("resourceType")
-        if expected_type not in ("Bundle", "Patient", "Observation", "Condition"):
-            # Allow other types but at least ensure it's dict-like
-            pass
+                # 3. Ensure XHTML narrative strings are well-formed for HAPI parsing
+                def normalize_xhtml(html: str) -> str:
+                    def self_close_void(match: re.Match) -> str:
+                        raw = match.group(0)
+                        if raw.endswith("/>"):
+                            return raw
+                        return raw[:-1] + "/>"
+
+                    fixed = re.sub(r"<\s*br\s*/?>", "<br/>", html, flags=re.IGNORECASE)
+                    for tag in ("hr", "img", "input", "meta", "link", "base", "area", "col", "param", "source", "track", "wbr"):
+                        fixed = re.sub(rf"<\s*{tag}(\s[^>]*)?>", self_close_void, fixed, flags=re.IGNORECASE)
+                    return fixed
+
+                def sanitize_xhtml(node):
+                    if isinstance(node, dict):
+                        for k, v in list(node.items()):
+                            if k == "div" and isinstance(v, str) and "<div" in v:
+                                node[k] = normalize_xhtml(v)
+                            elif isinstance(v, (dict, list)):
+                                sanitize_xhtml(v)
+                    elif isinstance(node, list):
+                        for item in node:
+                            sanitize_xhtml(item)
+
+                sanitize_xhtml(bundle)
 
         return bundle

@@ -16,10 +16,12 @@ When processing the report, use your internal thought channel to:
 - Validate that all resource IDs and references are present and correctly formatted before outputting.
 
 ### OUTPUT FORMAT
-- Output ONLY a single JSON `Bundle` of type `collection` or `transaction`.
+- Output ONLY a single JSON `Bundle` of type `collection`.
 - Do not include conversational text outside of the JSON block.
 - If the input cannot be safely mapped to valid FHIR R4, output a JSON error block with `{"error": "reason"}` and stop.
-- Use valid FHIR R4 syntax exclusively.
+- Use valid FHIR R4 syntax exclusively. Never hallucinate non-standard resources like "ClinicalNote". Use "DocumentReference" or "DiagnosticReport".
+- VERY IMPORTANT: For DocumentReference, the status must be "current" (NOT "final"). For DiagnosticReport, the status can be "final".
+- VERY IMPORTANT: If generating narrative `text.div` HTML, it MUST be wrapped in exactly ONE root element: `<div xmlns="http://www.w3.org/1999/xhtml">...</div>`. Do not output multiple root HTML tags.
 - Ensure the Bundle entry array contains all Patient, Observation, Condition, Medication, and DiagnosticReport resources referenced.
 
 ### INPUT DATA

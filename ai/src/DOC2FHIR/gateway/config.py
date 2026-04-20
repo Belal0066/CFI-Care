@@ -33,6 +33,8 @@ class GatewaySettings:
     ocr_base_url: str = "http://127.0.0.1:7862"
     mapper_base_url: str = "http://127.0.0.1:8080"
     downstream_docfhir_url: str = "http://127.0.0.1:3000/v1/docfhir/"
+    downstream_type: str = "nodejs"
+    hapi_fhir_base_url: str = "http://127.0.0.1:8090/fhir"
     request_timeout_sec: int = 600
     max_background_tasks: int = 1
     queue_max_size: int = 32
@@ -65,6 +67,8 @@ class GatewaySettings:
             ocr_base_url=os.getenv("DOC2FHIR_OCR_BASE_URL", cls.ocr_base_url),
             mapper_base_url=os.getenv("DOC2FHIR_MAPPER_BASE_URL", cls.mapper_base_url),
             downstream_docfhir_url=os.getenv("DOC2FHIR_DOWNSTREAM_DOCFHIR_URL", cls.downstream_docfhir_url),
+            downstream_type=os.getenv("DOC2FHIR_DOWNSTREAM_TYPE", cls.downstream_type),
+            hapi_fhir_base_url=os.getenv("DOC2FHIR_HAPI_FHIR_BASE_URL", cls.hapi_fhir_base_url),
             request_timeout_sec=int(os.getenv("DOC2FHIR_GATEWAY_REQUEST_TIMEOUT_SEC", str(cls.request_timeout_sec))),
             max_background_tasks=int(os.getenv("DOC2FHIR_GATEWAY_MAX_BACKGROUND_TASKS", str(cls.max_background_tasks))),
             queue_max_size=int(os.getenv("DOC2FHIR_GATEWAY_QUEUE_MAX_SIZE", str(cls.queue_max_size))),
@@ -96,6 +100,8 @@ class GatewaySettings:
             "ocr_base_url": self.ocr_base_url,
             "mapper_base_url": self.mapper_base_url,
             "downstream_docfhir_url": self.downstream_docfhir_url,
+            "downstream_type": self.downstream_type,
+            "hapi_fhir_base_url": self.hapi_fhir_base_url,
             "request_timeout_sec": self.request_timeout_sec,
             "max_background_tasks": self.max_background_tasks,
             "queue_max_size": self.queue_max_size,

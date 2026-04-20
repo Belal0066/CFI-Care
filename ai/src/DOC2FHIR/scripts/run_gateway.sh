@@ -13,7 +13,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
 fi
 
 # shellcheck disable=SC1090
+set -a
 source "$ENV_FILE"
+set +a
 
 mkdir -p "${DOC2FHIR_GATEWAY_RUNTIME_DIR:-$ROOT_DIR/.gateway_runtime}/uploads"
 

@@ -12,6 +12,7 @@ from typing import Any, Optional
 from .adapters.downstream import DownstreamAdapter, DownstreamError
 from .adapters.mapper import MapperAdapter, MapperError
 from .adapters.ocr import OCRAdapter, OCRError
+from .adapters.hapi_fhir import HapiFhirDownstreamAdapter, HapiFhirDownstreamError
 from .config import GatewaySettings
 from .models import JobStatus
 from .observability import StructuredLogger, record_job_error, record_job_metric
@@ -42,7 +43,7 @@ class JobOrchestrator:
         settings: GatewaySettings,
         ocr_adapter: Optional[OCRAdapter] = None,
         mapper_adapter: Optional[MapperAdapter] = None,
-        downstream_adapter: Optional[DownstreamAdapter] = None,
+        downstream_adapter: Optional[DownstreamAdapter | HapiFhirDownstreamAdapter] = None,
     ):
         """Initialize orchestrator.
 
@@ -51,7 +52,7 @@ class JobOrchestrator:
             settings: Gateway configuration
             ocr_adapter: Optional custom OCR adapter
             mapper_adapter: Optional custom Mapper adapter
-            downstream_adapter: Optional custom Downstream adapter
+            downstream_adapter: Optional custom Downstream adapter (Node.js or HAPI FHIR)
         """
         self.repository = repository
         self.settings = settings
@@ -64,12 +65,28 @@ class JobOrchestrator:
             timeout_sec=settings.request_timeout_sec,
         )
         dead_letter_dir = settings.runtime_dir / "dead_letters"
-        self.downstream_adapter = downstream_adapter or DownstreamAdapter(
-            base_url=settings.downstream_docfhir_url,
-            timeout_sec=30,
-            dead_letter_dir=str(dead_letter_dir),
+        self.downstream_adapter = downstream_adapter or self._build_downstream_adapter(
+            settings, str(dead_letter_dir),
         )
         self._gpu_semaphore = asyncio.Semaphore(max(1, settings.gpu_max_concurrency))
+
+    @staticmethod
+    def _build_downstream_adapter(
+        settings: GatewaySettings,
+        dead_letter_dir: str,
+    ) -> DownstreamAdapter | HapiFhirDownstreamAdapter:
+        if settings.downstream_type == "hapi_fhir":
+            return HapiFhirDownstreamAdapter(
+                base_url=settings.hapi_fhir_base_url,
+                timeout_sec=settings.downstream_stage_timeout_sec,
+                max_retries=3,
+                dead_letter_dir=dead_letter_dir,
+            )
+        return DownstreamAdapter(
+            base_url=settings.downstream_docfhir_url,
+            timeout_sec=30,
+            dead_letter_dir=dead_letter_dir,
+        )
 
     async def process_job(self, job_id: str) -> None:
         """Process a single job through the pipeline.
@@ -340,12 +357,8 @@ class JobOrchestrator:
     ) -> None:
         """Run downstream delivery stage.
 
-        Args:
-            job_id: Job ID
-            mapper_output: Output from mapper stage
-            metadata: Optional job metadata
-            progress: Current progress percentage
-            log: Optional structured logger
+        Supports both sync (DownstreamAdapter for Node.js) and
+        async (HapiFhirDownstreamAdapter for HAPI FHIR) backends.
 
         Raises:
             DownstreamError: If delivery fails after retries
@@ -357,11 +370,18 @@ class JobOrchestrator:
             fhir_bundle = mapper_output.get("fhir_bundle", {})
             log.info("Starting downstream delivery")
 
-            downstream_result = self.downstream_adapter.deliver_fhir_bundle(
-                job_id,
-                fhir_bundle,
-                metadata,
-            )
+            if isinstance(self.downstream_adapter, HapiFhirDownstreamAdapter):
+                downstream_result = await self.downstream_adapter.deliver_fhir_bundle(
+                    job_id,
+                    fhir_bundle,
+                    metadata,
+                )
+            else:
+                downstream_result = self.downstream_adapter.deliver_fhir_bundle(
+                    job_id,
+                    fhir_bundle,
+                    metadata,
+                )
 
             record_job_metric(job_id, "downstream", downstream_result.delivery_time_sec)
 
@@ -385,7 +405,7 @@ class JobOrchestrator:
                     retry_allowed=False,
                 )
 
-        except DownstreamError as exc:
+        except (DownstreamError, HapiFhirDownstreamError) as exc:
             log.error("Downstream delivery failed", exception=exc)
             record_job_error(job_id, "downstream_error")
             self.repository.update_job_stage(
@@ -393,7 +413,7 @@ class JobOrchestrator:
                 state=JobStatus.FAILED,
                 detail=f"Downstream delivery failed: {exc.message}",
                 error_code="downstream_error",
-                error_message=exc.message,
+                error_message=str(exc.message)[:500],
                 finished_at=datetime.now(timezone.utc).isoformat(),
             )
             raise
