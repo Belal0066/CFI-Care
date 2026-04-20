@@ -173,7 +173,7 @@ class OCRAdapter:
             OCRError: On service or format errors
         """
         start_time = time.time()
-        url = f"{self.base_url}/ocr"
+        url = f"{self.base_url}/parse_api"
 
         try:
             with open(file_path, "rb") as f:

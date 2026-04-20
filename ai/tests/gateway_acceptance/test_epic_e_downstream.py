@@ -177,5 +177,5 @@ def test_E4_orchestrator_terminal_state_rules(tmp_path: Path):
     asyncio.run(bad_orch.process_job("job_e4_fail"))
     failed = repo.get_job_by_id("job_e4_fail")
     assert failed.state == JobStatus.FAILED
-    assert failed.error_code == "internal_error"
+    assert failed.error_code == "downstream_error"
     assert "boom" in (failed.error_message or "")

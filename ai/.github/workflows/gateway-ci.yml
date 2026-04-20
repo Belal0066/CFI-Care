@@ -1,0 +1,43 @@
+name: Gateway CI
+
+on:
+  push:
+    paths:
+      - 'src/DOC2FHIR/**'
+      - 'tests/**'
+      - '.github/workflows/gateway-ci.yml'
+  pull_request:
+    paths:
+      - 'src/DOC2FHIR/**'
+      - 'tests/**'
+      - '.github/workflows/gateway-ci.yml'
+
+jobs:
+  gateway-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/DOC2FHIR
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install lightweight CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn httpx pydantic pytest
+
+      - name: Lint gate (syntax/compile)
+        run: python -m compileall gateway
+
+      - name: Acceptance tests gate
+        run: pytest -q ../../tests/gateway_acceptance
+
+      - name: Pipeline smoke gate
+        run: bash scripts/smoke_gateway.sh

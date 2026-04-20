@@ -1,0 +1,28 @@
+# Core ML frameworks
+paddlepaddle-gpu
+paddleocr
+torch
+torchvision
+transformers
+accelerate
+ultralytics
+
+# FastAPI and web
+fastapi
+uvicorn[standard]
+python-multipart
+aiofiles
+
+# Image processing
+Pillow
+opencv-python-headless
+pymupdf
+pdf2image
+
+# Data handling
+numpy
+pydantic
+
+# Utilities
+loguru
+python-dotenv
