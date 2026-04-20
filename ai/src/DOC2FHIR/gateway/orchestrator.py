@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+import asyncio
 import logging
 import time
 from datetime import datetime, timezone
@@ -18,6 +18,19 @@ from .observability import StructuredLogger, record_job_error, record_job_metric
 from .repository import JobRepository, JobNotFoundError
 
 logger = logging.getLogger(__name__)
+
+
+class ServerBusyError(RuntimeError):
+    """Raised when GPU lock contention exceeds configured timeout."""
+
+
+class StageTimeoutError(TimeoutError):
+    """Raised when a processing stage exceeds its configured timeout."""
+
+    def __init__(self, stage: str, timeout_sec: int):
+        super().__init__(f"{stage} exceeded timeout of {timeout_sec}s")
+        self.stage = stage
+        self.timeout_sec = timeout_sec
 
 
 class JobOrchestrator:
@@ -56,6 +69,7 @@ class JobOrchestrator:
             timeout_sec=30,
             dead_letter_dir=str(dead_letter_dir),
         )
+        self._gpu_semaphore = asyncio.Semaphore(max(1, settings.gpu_max_concurrency))
 
     async def process_job(self, job_id: str) -> None:
         """Process a single job through the pipeline.
@@ -84,8 +98,14 @@ class JobOrchestrator:
                 progress=10.0,
             )
 
-            # Run OCR stage
-            ocr_output = await self._run_ocr_stage(job_id, job.upload_path, log)
+            # Run OCR stage with global GPU lock.
+            ocr_output = await self._run_gpu_bound_stage(
+                job_id,
+                stage_name="ocr",
+                stage_timeout_sec=self.settings.ocr_stage_timeout_sec,
+                operation=lambda: self._run_ocr_stage(job_id, job.upload_path, log),
+                log=log,
+            )
             progress = 40.0
 
             # Transition to Mapping
@@ -96,12 +116,21 @@ class JobOrchestrator:
                 progress=progress,
             )
 
-            # Run Mapper stage
-            fhir_output = await self._run_mapper_stage(job_id, ocr_output["extracted_text"], job.metadata, log)
+            # Run Mapper stage with global GPU lock.
+            fhir_output = await self._run_gpu_bound_stage(
+                job_id,
+                stage_name="mapper",
+                stage_timeout_sec=self.settings.mapper_stage_timeout_sec,
+                operation=lambda: self._run_mapper_stage(job_id, ocr_output["extracted_text"], job.metadata, log),
+                log=log,
+            )
             progress = 70.0
 
             # Deliver to downstream
-            await self._run_downstream_stage(job_id, fhir_output, job.metadata, progress, log)
+            await asyncio.wait_for(
+                self._run_downstream_stage(job_id, fhir_output, job.metadata, progress, log),
+                timeout=self.settings.downstream_stage_timeout_sec,
+            )
 
             # Mark as completed
             self.repository.update_job_stage(
@@ -116,6 +145,39 @@ class JobOrchestrator:
             record_job_metric(job_id, "end_to_end", elapsed_sec)
             log.info("Job processing completed", elapsed_sec=elapsed_sec)
 
+        except ServerBusyError as exc:
+            log.warning("Job delayed due to GPU contention", detail=str(exc))
+            record_job_error(job_id, "server_busy")
+            self.repository.update_job_stage(
+                job_id,
+                state=JobStatus.SERVER_BUSY,
+                detail=str(exc),
+                error_code="server_busy",
+                error_message=str(exc),
+            )
+        except StageTimeoutError as exc:
+            log.error("Stage timeout", stage=exc.stage, timeout_sec=exc.timeout_sec)
+            record_job_error(job_id, "stage_timeout")
+            self.repository.update_job_stage(
+                job_id,
+                state=JobStatus.FAILED,
+                detail=f"Stage timeout: {exc.stage}",
+                error_code="stage_timeout",
+                error_message=str(exc),
+                finished_at=datetime.now(timezone.utc).isoformat(),
+            )
+        except asyncio.TimeoutError:
+            timeout = self.settings.downstream_stage_timeout_sec
+            log.error("Downstream stage timeout", timeout_sec=timeout)
+            record_job_error(job_id, "downstream_timeout")
+            self.repository.update_job_stage(
+                job_id,
+                state=JobStatus.FAILED,
+                detail="Stage timeout: downstream",
+                error_code="stage_timeout",
+                error_message=f"downstream exceeded timeout of {timeout}s",
+                finished_at=datetime.now(timezone.utc).isoformat(),
+            )
         except JobNotFoundError:
             log.error(f"Job not found during processing")
             raise
@@ -123,7 +185,32 @@ class JobOrchestrator:
             elapsed_sec = time.time() - start_time
             log.error("Job processing failed", exception=exc, elapsed_sec=elapsed_sec)
             record_job_error(job_id, type(exc).__name__)
-            self._handle_job_error(job_id, exc, log)
+            current_job = self.repository.get_job_by_id(job_id)
+            if current_job.state not in {JobStatus.FAILED, JobStatus.SERVER_BUSY, JobStatus.COMPLETED}:
+                self._handle_job_error(job_id, exc, log)
+
+    async def _run_gpu_bound_stage(
+        self,
+        job_id: str,
+        stage_name: str,
+        stage_timeout_sec: int,
+        operation,
+        log: StructuredLogger,
+    ) -> dict[str, Any]:
+        """Run an OCR/Mapper stage under shared GPU contention controls."""
+        try:
+            await asyncio.wait_for(self._gpu_semaphore.acquire(), timeout=self.settings.gpu_lock_timeout_sec)
+        except asyncio.TimeoutError as exc:
+            raise ServerBusyError(
+                f"Server busy: GPU lock contention while waiting for {stage_name} stage"
+            ) from exc
+
+        try:
+            return await asyncio.wait_for(operation(), timeout=stage_timeout_sec)
+        except asyncio.TimeoutError as exc:
+            raise StageTimeoutError(stage_name, stage_timeout_sec) from exc
+        finally:
+            self._gpu_semaphore.release()
 
     async def _run_ocr_stage(self, job_id: str, upload_path: str, log: StructuredLogger) -> dict[str, Any]:
         """Run OCR processing stage.

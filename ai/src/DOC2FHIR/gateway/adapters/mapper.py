@@ -150,7 +150,7 @@ class MapperAdapter:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a healthcare data mapping expert. Convert the provided medical document text into a valid FHIR R4 JSON bundle. Return only valid JSON, no markdown.",
+                        "content": "You are a healthcare data mapping expert. Convert the provided medical document text into a valid FHIR R4 JSON bundle. Return only valid JSON, no markdown. DO NOT output any reasoning, thinking process or explanations. Start immediately with {",
                     },
                     {
                         "role": "user",
@@ -175,7 +175,13 @@ class MapperAdapter:
                     retry_allowed=False,
                 )
 
-            raw_response = result["choices"][0].get("message", {}).get("content", "")
+            # Gemma might put the answer in reasoning_content if it was cut off or confused.
+            msg = result["choices"][0].get("message", {})
+            raw_content = msg.get("content", "")
+            reasoning_content = msg.get("reasoning_content", "")
+            
+            raw_response = raw_content if raw_content.strip() else reasoning_content
+
             if not raw_response:
                 raise MapperError(
                     "No content in Mapper response",

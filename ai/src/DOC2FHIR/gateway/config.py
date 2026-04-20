@@ -35,6 +35,12 @@ class GatewaySettings:
     downstream_docfhir_url: str = "http://127.0.0.1:3000/v1/docfhir/"
     request_timeout_sec: int = 600
     max_background_tasks: int = 1
+    queue_max_size: int = 32
+    gpu_max_concurrency: int = 1
+    gpu_lock_timeout_sec: int = 5
+    ocr_stage_timeout_sec: int = 300
+    mapper_stage_timeout_sec: int = 600
+    downstream_stage_timeout_sec: int = 60
     default_correlation_prefix: str = "job"
 
     @classmethod
@@ -61,6 +67,14 @@ class GatewaySettings:
             downstream_docfhir_url=os.getenv("DOC2FHIR_DOWNSTREAM_DOCFHIR_URL", cls.downstream_docfhir_url),
             request_timeout_sec=int(os.getenv("DOC2FHIR_GATEWAY_REQUEST_TIMEOUT_SEC", str(cls.request_timeout_sec))),
             max_background_tasks=int(os.getenv("DOC2FHIR_GATEWAY_MAX_BACKGROUND_TASKS", str(cls.max_background_tasks))),
+            queue_max_size=int(os.getenv("DOC2FHIR_GATEWAY_QUEUE_MAX_SIZE", str(cls.queue_max_size))),
+            gpu_max_concurrency=int(os.getenv("DOC2FHIR_GATEWAY_GPU_MAX_CONCURRENCY", str(cls.gpu_max_concurrency))),
+            gpu_lock_timeout_sec=int(os.getenv("DOC2FHIR_GATEWAY_GPU_LOCK_TIMEOUT_SEC", str(cls.gpu_lock_timeout_sec))),
+            ocr_stage_timeout_sec=int(os.getenv("DOC2FHIR_GATEWAY_OCR_STAGE_TIMEOUT_SEC", str(cls.ocr_stage_timeout_sec))),
+            mapper_stage_timeout_sec=int(os.getenv("DOC2FHIR_GATEWAY_MAPPER_STAGE_TIMEOUT_SEC", str(cls.mapper_stage_timeout_sec))),
+            downstream_stage_timeout_sec=int(
+                os.getenv("DOC2FHIR_GATEWAY_DOWNSTREAM_STAGE_TIMEOUT_SEC", str(cls.downstream_stage_timeout_sec))
+            ),
             default_correlation_prefix=os.getenv("DOC2FHIR_GATEWAY_CORRELATION_PREFIX", cls.default_correlation_prefix),
         )
 
@@ -84,4 +98,10 @@ class GatewaySettings:
             "downstream_docfhir_url": self.downstream_docfhir_url,
             "request_timeout_sec": self.request_timeout_sec,
             "max_background_tasks": self.max_background_tasks,
+            "queue_max_size": self.queue_max_size,
+            "gpu_max_concurrency": self.gpu_max_concurrency,
+            "gpu_lock_timeout_sec": self.gpu_lock_timeout_sec,
+            "ocr_stage_timeout_sec": self.ocr_stage_timeout_sec,
+            "mapper_stage_timeout_sec": self.mapper_stage_timeout_sec,
+            "downstream_stage_timeout_sec": self.downstream_stage_timeout_sec,
         }
