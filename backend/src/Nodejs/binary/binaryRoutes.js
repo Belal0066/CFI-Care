@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { requireApiAuth } = require('../middleware/requireApiAuth');
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 const multer = require("multer");
 
 const binaryController = require("./binaryController");
@@ -12,9 +12,14 @@ const upload = multer({
   },
 });
 
-router.put("/", requireApiAuth, binaryController.createPDFBinaryResource);
+router.put(
+  "/",
+  requireApiAuth,
+  upload.single("pdf"),
+  binaryController.createPDFBinaryResource,
+);
 router.get("/:id", requireApiAuth, binaryController.getPDFBinaryResource);
-router.post("/:id", binaryController.updateBinary);
+router.post("/:id", upload.single("pdf"), binaryController.updateBinary);
 router.delete("/:id", binaryController.deleteBinary);
 
 module.exports = router;

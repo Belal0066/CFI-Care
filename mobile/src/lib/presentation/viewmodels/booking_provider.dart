@@ -324,19 +324,26 @@ class BookingProvider with ChangeNotifier {
   Future<void> cancelAppointment(String id) async {
     final index = _appointments.indexWhere((app) => app.id == id);
     if (index == -1) return;
-
     final doctorId = _appointments[index].doctor.id;
 
     try {
       await repository.cancelAppointment(id);
-
-      _appointments.removeAt(index);
-      notifyListeners();
-
-      await loadDoctorSlots(doctorId);
-      await loadAppointmentsForCurrentUser();
     } catch (e) {
       print("Failed to cancel appointment on server: $e");
+      return;
+    }
+
+    // Remove by id instead of stale index to avoid race conditions.
+    _appointments.removeWhere((app) => app.id == id);
+    notifyListeners();
+
+    try {
+      if (doctorId.isNotEmpty) {
+        await loadDoctorSlots(doctorId);
+      }
+      await loadAppointmentsForCurrentUser();
+    } catch (e) {
+      print("Cancelled on server, but local refresh failed: $e");
     }
   }
   // --- LOGIC & CLEANUP ---

@@ -101,6 +101,11 @@ export class PatientApiService {
     return this.http.get<any>(`/api/procedures/patient/${id}`);
   }
 
+  // Get patient document references (uploaded documents)
+  getPatientDocumentReferences(id: string | number): Observable<any> {
+    return this.http.get<any>(`/api/documentReferences/patient/${id}`);
+  }
+
   // Create a new patient
   createPatient(patientData: {
     firstName: string;

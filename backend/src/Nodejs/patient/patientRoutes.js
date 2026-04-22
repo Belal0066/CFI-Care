@@ -11,7 +11,7 @@ const { requireApiAuth } = require("../middleware/requireApiAuth");
 router.get("/", requireApiAuth, patientController.getAllPatients);
 //Authz tokens
 // const { verifyToken } = require("../middleware/keycloakJWT");
-const { requireApiAuth } = require("../middleware/requireApiAuth");
+// const { requireApiAuth } = require("../middleware/requireApiAuth");
 
 //scopes
 const requireScopes = require("../middleware/validateScopes");

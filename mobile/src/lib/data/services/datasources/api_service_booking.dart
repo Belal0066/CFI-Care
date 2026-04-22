@@ -478,11 +478,13 @@ class ApiService {
           'documentReferenceIds': documentReferenceIds,
       };
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/appointments/$appointmentId'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(payload),
-      );
+      final response = await _authorizedRequest((headers) {
+        return http.post(
+          Uri.parse('$baseUrl/appointments/$appointmentId'),
+          headers: headers,
+          body: json.encode(payload),
+        );
+      });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -498,11 +500,13 @@ class ApiService {
 
   Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/appointments/$appointmentId'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"status": "cancelled"}),
-      );
+      final response = await _authorizedRequest((headers) {
+        return http.post(
+          Uri.parse('$baseUrl/appointments/$appointmentId'),
+          headers: headers,
+          body: json.encode({"status": "cancelled"}),
+        );
+      });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
