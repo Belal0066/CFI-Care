@@ -1,0 +1,39 @@
+.page {
+  padding: 16px;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+
+.status {
+  margin: 8px 0;
+  padding: 8px;
+  border-radius: 6px;
+  background: #f3f4f6;
+}
+
+.status.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  text-align: left;
+}
+
+.actions {
+  margin-top: 12px;
+}

@@ -70,7 +70,11 @@ const getAvailableSlots = async (req, res) => {
 const getSlotsByPractitioner = async (req, res) => {
   try {
     const { practitionerId } = req.params;
-    const slots = await slotService.getSlotsByPractitioner(practitionerId);
+    const { status } = req.query;
+    const slots = await slotService.getSlotsByPractitioner(
+      practitionerId,
+      status,
+    );
     res.status(200).json(slots);
   } catch (error) {
     console.error("Error in getSlotsByPractitioner controller:", error.message);

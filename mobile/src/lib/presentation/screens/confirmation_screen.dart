@@ -354,14 +354,43 @@ class ConfirmationScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     // SAVE THE APPOINTMENT
-                    context.read<BookingProvider>().confirmBooking();
+                    final isSuccess = await context
+                        .read<BookingProvider>()
+                        .confirmBooking();
+
+                    if (!isSuccess || !context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Could not confirm booking. Please try again.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final appointmentId = context
+                        .read<BookingProvider>()
+                        .lastBookedAppointmentId;
+
+                    if (appointmentId == null || appointmentId.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Booking succeeded but appointment ID is missing.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
 
                     // Navigate
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => ThankYouScreen(
+                          appointmentId: appointmentId,
                           appointmentDate: appointmentDateText,
                           appointmentTime: appointmentTime,
                           fees: doctor.fees,

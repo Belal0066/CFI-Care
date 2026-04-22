@@ -1,0 +1,170 @@
+<div class="page">
+    <h2>Signed Practitioner Profile (Test)</h2>
+
+    <div class="status" *ngIf="loading">Loading profile data...</div>
+    <div class="status success" *ngIf="!loading && message">{{ message }}</div>
+    <div class="status error" *ngIf="!loading && errorMessage">{{ errorMessage }}</div>
+
+    <div class="card" *ngIf="!loading && practitioner">
+        <h3>Profile</h3>
+
+        <div class="grid">
+            <label>
+                Practitioner ID
+                <input [value]="practitionerId" disabled />
+            </label>
+
+            <label>
+                Full Name
+                <input [(ngModel)]="profileForm.name" />
+            </label>
+
+            <label>
+                Title
+                <input [(ngModel)]="profileForm.title" />
+            </label>
+
+            <label>
+                Specialty
+                <input [(ngModel)]="profileForm.specialtyDetail" />
+            </label>
+
+            <label>
+                Address
+                <input [(ngModel)]="profileForm.address" />
+            </label>
+
+            <label>
+                Image URL
+                <input [(ngModel)]="profileForm.imageUrl" />
+            </label>
+        </div>
+
+        <button (click)="saveProfile()" [disabled]="savingProfile">
+            {{ savingProfile ? 'Saving...' : 'Update Profile' }}
+        </button>
+    </div>
+
+    <div class="card" *ngIf="!loading && practitioner">
+        <h3>Schedules</h3>
+
+        <div class="grid compact">
+            <label>
+                Start Date
+                <input type="datetime-local" [(ngModel)]="newScheduleForm.startDate" />
+            </label>
+            <label>
+                End Date
+                <input type="datetime-local" [(ngModel)]="newScheduleForm.endDate" />
+            </label>
+            <label>
+                Active
+                <select [(ngModel)]="newScheduleForm.active">
+                    <option [ngValue]="true">true</option>
+                    <option [ngValue]="false">false</option>
+                </select>
+            </label>
+        </div>
+
+        <button (click)="createSchedule()" [disabled]="savingSchedule">
+            {{ savingSchedule ? 'Creating...' : 'Create Schedule' }}
+        </button>
+
+        <table *ngIf="schedules.length > 0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Active</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let schedule of schedules">
+                    <td>{{ schedule.id }}</td>
+                    <td>
+                        <select [(ngModel)]="schedule.active">
+                            <option [ngValue]="true">true</option>
+                            <option [ngValue]="false">false</option>
+                        </select>
+                    </td>
+                    <td>{{ formatDate(schedule.planningHorizon?.start) }}</td>
+                    <td>{{ formatDate(schedule.planningHorizon?.end) }}</td>
+                    <td>
+                        <button (click)="updateSchedule(schedule)">Update</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card" *ngIf="!loading && practitioner">
+        <h3>Slots</h3>
+
+        <div class="grid compact">
+            <label>
+                Schedule
+                <select [(ngModel)]="newSlotForm.scheduleId">
+                    <option value="" disabled>Select schedule</option>
+                    <option *ngFor="let s of schedules" [value]="s.id">{{ s.id }}</option>
+                </select>
+            </label>
+            <label>
+                Start Time
+                <input type="datetime-local" [(ngModel)]="newSlotForm.startDateTime" />
+            </label>
+            <label>
+                End Time
+                <input type="datetime-local" [(ngModel)]="newSlotForm.endDateTime" />
+            </label>
+            <label>
+                Status
+                <select [(ngModel)]="newSlotForm.status">
+                    <option value="free">free</option>
+                    <option value="busy">busy</option>
+                    <option value="busy-unavailable">busy-unavailable</option>
+                    <option value="entered-in-error">entered-in-error</option>
+                </select>
+            </label>
+        </div>
+
+        <button (click)="createSlot()" [disabled]="savingSlot">
+            {{ savingSlot ? 'Creating...' : 'Create Slot' }}
+        </button>
+
+        <table *ngIf="filteredSlots.length > 0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Schedule</th>
+                    <th>Status</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let slot of filteredSlots" [class.related-highlight]="isHighlightedSlot(slot)"
+                    [attr.id]="'slot-row-' + slot.id">
+                    <td>{{ slot.id }}</td>
+                    <td>{{ slot.schedule.reference }}</td>
+                    <td>
+                        <select [(ngModel)]="slot.status">
+                            <option value="free">free</option>
+                            <option value="busy">busy</option>
+                            <option value="busy-unavailable">busy-unavailable</option>
+                            <option value="entered-in-error">entered-in-error</option>
+                        </select>
+                    </td>
+                    <td>{{ formatDate(slot.start) }}</td>
+                    <td>{{ formatDate(slot.end) }}</td>
+                    <td>
+                        <button (click)="updateSlot(slot)">Update</button>
+                        <button (click)="openSlotAppointmentTest(slot)">View Related</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

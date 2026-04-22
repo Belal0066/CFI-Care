@@ -3,7 +3,8 @@ function Wait-Docker {
         try {
             docker info *> $null
             break
-        } catch {
+        }
+        catch {
             Start-Sleep -Seconds 5
         }
     }
@@ -14,7 +15,8 @@ function Wait-Network($name) {
         try {
             docker network inspect $name *> $null
             break
-        } catch {
+        }
+        catch {
             Start-Sleep -Seconds 5
         }
     }
@@ -22,5 +24,5 @@ function Wait-Network($name) {
 
 Wait-Docker
 Wait-Network -name "containers_nginx-network"
-Set-Location "$PSScriptRoot/backend/src/Nodejs"
+Set-Location "$PSScriptRoot/../backend/src/Nodejs"
 docker compose -f docker-compose.yml up --build

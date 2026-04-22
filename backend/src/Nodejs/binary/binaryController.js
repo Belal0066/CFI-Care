@@ -2,19 +2,26 @@ const binaryService = require("./binaryService");
 
 const createPDFBinaryResource = async (req, res) => {
   try {
-    // CHANGED: Added `id` to destructuring
-    const { file, id, contentType } = req.body;
+    const { file, data, id, contentType, patientId, documentReferenceId } =
+      req.body;
+    const uploadedPdf = req.file;
 
     // Validate inputs
-    if (!file || !id) {
-      return res.status(400).json({ error: "File path and ID are required" });
+    if ((!file && !data && !uploadedPdf) || !id) {
+      return res.status(400).json({
+        error:
+          "ID and one of file path, base64 data, or multipart pdf are required",
+      });
     }
 
-    // CHANGED: Passed arguments in the correct order matching the service
     const newBinaryResource = await binaryService.createPDFBinaryResource(
       file,
       id,
       contentType,
+      data,
+      uploadedPdf,
+      patientId,
+      documentReferenceId,
     );
 
     console.log("New Binary resource created successfully.");
@@ -43,16 +50,25 @@ const getPDFBinaryResource = async (req, res) => {
 const updateBinary = async (req, res) => {
   try {
     const { id } = req.params;
-    const { file, contentType } = req.body;
+    const { file, data, contentType, patientId, documentReferenceId } =
+      req.body;
+    const uploadedPdf = req.file;
 
-    if (!id || !file) {
-      return res.status(400).json({ error: "ID and file are required" });
+    if (!id || (!file && !data && !uploadedPdf)) {
+      return res.status(400).json({
+        error:
+          "ID and one of file path, base64 data, or multipart pdf are required",
+      });
     }
 
     const updatedBinary = await binaryService.updateBinary(
       id,
       file,
       contentType,
+      data,
+      uploadedPdf,
+      patientId,
+      documentReferenceId,
     );
     res.status(200).json(updatedBinary);
   } catch (error) {
