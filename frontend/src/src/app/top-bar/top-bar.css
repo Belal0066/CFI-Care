@@ -1,0 +1,66 @@
+.top-bar {
+  height: 64px;
+  background-color: #1E6ED3;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.divider {
+  color: rgba(255,255,255,0.4);
+  font-weight: 200;
+  font-size: 20px;
+}
+
+.page-title {
+  font-size: 15px;
+  color: rgba(255,255,255,0.88);
+  font-weight: 400;
+}
+
+.avatar-btn {
+  background: rgba(255,255,255,0.18);
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+}
+.avatar-btn::after {
+  display: none; /* hide default bootstrap caret */
+}
+.avatar-btn:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+.doctor-menu {
+  border-radius: 10px;
+  border: 1px solid #dde3ec;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 190px;
+  margin-top: 6px;
+}
+.doctor-menu .dropdown-item {
+  font-size: 14px;
+  padding: 10px 16px;
+  color: #2e2e2e;
+}
+.doctor-menu .dropdown-item:hover {
+  background: #f0f5fb;
+}
+.doctor-menu .dropdown-item.text-danger {
+  color: #e53e3e !important;
+}

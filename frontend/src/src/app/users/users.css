@@ -1,64 +1,119 @@
-/* .list-group{
-    background-color: #1E6ED3;
-}  */
-
-
-
 .patient-list {
-  width: 420px; /* keep the width you want */
-  margin-left: 35px;
+  width: 100%;
   margin-top: 10px;
-  max-height: 60vh; /* or calc(whatever you need) */
-  overflow-y: auto;  /* vertical scroll only */
-  overflow-x: hidden; /* prevent horizontal scroll */
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
-  border-radius: 12px; /* optional, to match cards */
-  padding-right: 5px; /* optional, avoid scrollbar overlapping content */
+  border-radius: 12px;
+  padding: 0 4px;
 }
-
-
 .patient-list ul {
   padding: 0;
   margin: 0;
   list-style: none;
 }
-
 .patient-item {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #1E6ED3;             /* main color */
+  background: #1E6ED3;
   border-radius: 12px;
   padding: 16px 20px;
+  padding-top: 30px; /* room for the tag */
   margin-bottom: 12px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.15s ease;
+  border: 2px solid transparent;
+  box-sizing: border-box;
 }
 
+/* Diagnosis tag */
+.diagnosis-tag {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.diagnosis-tag i {
+  font-size: 10px;
+  opacity: 0.85;
+}
 .patient-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+/* Selected state */
+.patient-item.selected {
+  border: 2px solid #fff;
+  box-shadow: 0 6px 24px rgba(30, 110, 211, 0.45);
 }
 
 .patient-info {
   display: flex;
   flex-direction: column;
 }
-
 .patient-name {
   font-weight: 700;
   color: #fff;
   margin-bottom: 4px;
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
 .patient-updated {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
 }
-
 .patient-age {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+/* Status dot */
+.status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.green {
+  background: #4cde7a;
+  box-shadow: 0 0 5px rgba(76, 222, 122, 0.7);
+}
+.status-dot.yellow {
+  background: #f5c542;
+  box-shadow: 0 0 5px rgba(245, 197, 66, 0.7);
+}
+
+/* Empty state */
+.empty-list {
+  text-align: center;
+  padding: 32px 0;
+  color: rgba(0,0,0,0.35);
+  font-size: 14px;
+}
+.empty-list i {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 8px;
 }
