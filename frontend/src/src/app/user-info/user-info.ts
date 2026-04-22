@@ -91,8 +91,16 @@ export class UserInfo implements OnInit {
       encounters: this.patientApi.getPatientEncounters(id),
       medications: this.patientApi.getPatientMedicationRequests(id),
       procedures: this.patientApi.getPatientProcedures(id),
+      documentReferences: this.patientApi.getPatientDocumentReferences(id),
     }).subscribe({
-      next: ({ patient, conditions, encounters, medications, procedures }) => {
+      next: ({
+        patient,
+        conditions,
+        encounters,
+        medications,
+        procedures,
+        documentReferences,
+      }) => {
         // Transform FHIR Patient to PatientDetailsDTO
         this.patientDetails = fhirPatientToDetailsDTO(patient);
 
@@ -144,6 +152,33 @@ export class UserInfo implements OnInit {
             .map((e: any) => extractProcedureDisplay(e.resource));
         }
 
+        // Extract recent lab documents uploaded by the patient from DocumentReference bundle
+        const docEntries = Array.isArray(documentReferences?.entry)
+          ? documentReferences.entry
+          : [];
+
+        const patientReference = `Patient/${id}`;
+
+        this.patientDetails.recentLabResults = docEntries
+          .map((entry: any) => entry?.resource)
+          .filter(
+            (resource: any) =>
+              resource &&
+              resource.resourceType === 'DocumentReference' &&
+              this.isLabDocument(resource) &&
+              this.isUploadedByPatient(resource, patientReference),
+          )
+          .sort((a: any, b: any) => {
+            const timeA = Date.parse(a?.date || a?.meta?.lastUpdated || '');
+            const timeB = Date.parse(b?.date || b?.meta?.lastUpdated || '');
+            return (
+              (Number.isNaN(timeB) ? 0 : timeB) -
+              (Number.isNaN(timeA) ? 0 : timeA)
+            );
+          })
+          .slice(0, 10)
+          .map((resource: any) => this.formatLabResult(resource));
+
         this.loading = false;
       },
       error: (err) => {
@@ -152,6 +187,55 @@ export class UserInfo implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  private isLabDocument(documentReference: any): boolean {
+    const typeText = (documentReference?.type?.text || '')
+      .toString()
+      .toLowerCase();
+    const codings = Array.isArray(documentReference?.type?.coding)
+      ? documentReference.type.coding
+      : [];
+
+    return (
+      typeText.includes('lab') ||
+      codings.some((coding: any) => {
+        const code = (coding?.code || '').toString();
+        const display = (coding?.display || '').toString().toLowerCase();
+        return code === '11502-2' || display.includes('laboratory');
+      })
+    );
+  }
+
+  private isUploadedByPatient(
+    documentReference: any,
+    patientReference: string,
+  ): boolean {
+    const authors = Array.isArray(documentReference?.author)
+      ? documentReference.author
+      : [];
+
+    // Keep older records visible when author is omitted.
+    if (authors.length === 0) return true;
+
+    return authors.some(
+      (author: any) => author?.reference?.toString() === patientReference,
+    );
+  }
+
+  private formatLabResult(documentReference: any): string {
+    const attachment = documentReference?.content?.[0]?.attachment || {};
+    const title =
+      attachment.title ||
+      documentReference?.description ||
+      documentReference?.type?.text ||
+      `Lab Report ${documentReference?.id || ''}`;
+
+    const rawDate =
+      documentReference?.date || documentReference?.meta?.lastUpdated || '';
+    const date = rawDate ? new Date(rawDate).toLocaleString() : 'Unknown date';
+
+    return `${title} (${date})`;
   }
 
   openMedFlowGraph() {

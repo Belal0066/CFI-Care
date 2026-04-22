@@ -2,8 +2,9 @@ const binaryService = require("./binaryService");
 
 const createPDFBinaryResource = async (req, res) => {
   try {
+    const body = req.body || {};
     const { file, data, id, contentType, patientId, documentReferenceId } =
-      req.body;
+      body;
     const uploadedPdf = req.file;
 
     // Validate inputs
@@ -50,8 +51,8 @@ const getPDFBinaryResource = async (req, res) => {
 const updateBinary = async (req, res) => {
   try {
     const { id } = req.params;
-    const { file, data, contentType, patientId, documentReferenceId } =
-      req.body;
+    const body = req.body || {};
+    const { file, data, contentType, patientId, documentReferenceId } = body;
     const uploadedPdf = req.file;
 
     if (!id || (!file && !data && !uploadedPdf)) {
