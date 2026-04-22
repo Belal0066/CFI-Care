@@ -10,7 +10,8 @@ const { requireApiAuth } = require("../middleware/requireApiAuth");
 // GET all patients
 router.get("/", requireApiAuth, patientController.getAllPatients);
 //Authz tokens
-const { verifyToken } = require("../middleware/keycloakJWT");
+// const { verifyToken } = require("../middleware/keycloakJWT");
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 
 //scopes
 const requireScopes = require("../middleware/validateScopes");
@@ -45,7 +46,7 @@ router.put(
   "/:id",
   // validateRequest(createPatientSchema),
   attachForwardedToken,
-  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireApiAuth,
   requireScopes(["patient/*.rs"]),
   patientController.createPatientWithSpecificId,
 );
@@ -54,7 +55,7 @@ router.get(
   "/:id",
   requireApiAuth,
   attachForwardedToken,
-  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireApiAuth,
   requireScopes(["patient/*.rs"]),
   patientController.getPatientById,
 );
@@ -64,21 +65,21 @@ router.get(
   "/:id/related-data",
   requireApiAuth,
   attachForwardedToken,
-  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireApiAuth,
   patientController.getPatientAllRelatedData,
 );
 router.get(
   "/:id/observations",
   requireApiAuth,
   attachForwardedToken,
-  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireApiAuth,
   patientController.getPatientObservations,
 );
 router.get(
   "/:id/encounters",
   requireApiAuth,
   attachForwardedToken,
-  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireApiAuth,
   patientController.getPatientEncounters,
 );
 

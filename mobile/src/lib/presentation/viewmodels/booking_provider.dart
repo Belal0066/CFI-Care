@@ -16,6 +16,7 @@ class BookingProvider with ChangeNotifier {
   DateTime? _selectedDate;
   String? _selectedTime;
   DoctorSlot? _selectedSlot;
+  String? _lastBookedAppointmentId;
   final List<AppointmentHistory> _appointments = [];
   List<Doctor> _doctors = [];
   bool _isLoadingDoctors = false;
@@ -27,12 +28,18 @@ class BookingProvider with ChangeNotifier {
   String? _slotsError;
   String? _selectedDayDate; // Store the selected day's raw date for filtering
 
+  // Schedules with slots state
+  List<ScheduleWithSlots> _schedulesWithSlots = [];
+  bool _isLoadingSchedules = false;
+  String? _schedulesError;
+
   // --- GETTERS (How UI reads data) ---
   SpecialityEventEnum? get selectedSpecialty => _selectedSpecialty;
   Doctor? get selectedDoctor => _selectedDoctor;
   DateTime? get selectedDate => _selectedDate;
   String? get selectedTime => _selectedTime;
   DoctorSlot? get selectedSlot => _selectedSlot;
+  String? get lastBookedAppointmentId => _lastBookedAppointmentId;
   List<AppointmentHistory> get appointments => _appointments;
   List<Doctor> get doctors => _doctors;
   bool get isLoadingDoctors => _isLoadingDoctors;
@@ -40,6 +47,11 @@ class BookingProvider with ChangeNotifier {
   List<DoctorSlot> get availableSlots => _availableSlots;
   bool get isLoadingSlots => _isLoadingSlots;
   String? get slotsError => _slotsError;
+
+  // Schedules with slots getters
+  List<ScheduleWithSlots> get schedulesWithSlots => _schedulesWithSlots;
+  bool get isLoadingSchedules => _isLoadingSchedules;
+  String? get schedulesError => _schedulesError;
 
   // Group slots by day and return list of DaySlots
   List<DaySlots> get slotsByDay {
@@ -133,6 +145,47 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
+  Future<void> loadAppointmentsForCurrentUser() async {
+    final patientId = Session.currentUserId;
+    if (patientId == null || patientId.isEmpty) {
+      return;
+    }
+
+    try {
+      final serverAppointments = await repository.getAppointmentsByPatient(
+        patientId,
+      );
+
+      // Keep local upcoming appointments that may not be searchable yet on backend
+      final localUpcomingById = <String, AppointmentHistory>{
+        for (final appointment in _appointments)
+          if (appointment.status != AppointmentStatus.canceled)
+            appointment.id: appointment,
+      };
+
+      final serverById = <String, AppointmentHistory>{
+        for (final appointment in serverAppointments)
+          if (appointment.status != AppointmentStatus.canceled)
+            appointment.id: appointment,
+      };
+
+      // Merge: server data wins, but keep local optimistic items missing from server
+      final merged = <AppointmentHistory>[
+        ...serverById.values,
+        ...localUpcomingById.entries
+            .where((entry) => !serverById.containsKey(entry.key))
+            .map((entry) => entry.value),
+      ];
+
+      _appointments
+        ..clear()
+        ..addAll(merged);
+      notifyListeners();
+    } catch (e) {
+      print('[BookingProvider] Error loading appointments: $e');
+    }
+  }
+
   // Load available slots for a specific doctor
   Future<void> loadDoctorSlots(String doctorId) async {
     if (_isLoadingSlots) return;
@@ -155,52 +208,135 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
+  // Load schedules with slots for a specific doctor
+  Future<void> loadDoctorSchedulesWithSlots(String doctorId) async {
+    if (_isLoadingSchedules) return;
+    _isLoadingSchedules = true;
+    _schedulesError = null;
+    _schedulesWithSlots = [];
+    notifyListeners();
+
+    try {
+      print(
+        '[BookingProvider] Loading schedules with slots for doctor: $doctorId',
+      );
+      _schedulesWithSlots = await repository.getSchedulesWithSlots(doctorId);
+      print('[BookingProvider] Loaded ${_schedulesWithSlots.length} schedules');
+    } catch (e) {
+      print('[BookingProvider] Error loading schedules with slots: $e');
+      _schedulesError = e.toString();
+      _schedulesWithSlots = [];
+    } finally {
+      _isLoadingSchedules = false;
+      notifyListeners();
+    }
+  }
+
   // --- Confirm Booking ---
-  Future<void> confirmBooking() async {
-    if (_selectedDoctor == null || _selectedSlot == null) {
+  Future<bool> confirmBooking() async {
+    final selectedDoctor = _selectedDoctor;
+    final selectedSlot = _selectedSlot;
+    final selectedDate = _selectedDate;
+    final selectedTime = _selectedTime;
+
+    if (selectedDoctor == null || selectedSlot == null) {
       print("Missing doctor or slot selection");
-      return;
+      return false;
     }
 
     final patientId = Session.currentUserId;
     if (patientId == null) {
       print("Missing patient ID in session");
-      return;
+      return false;
     }
 
-    final newAppointment = AppointmentHistory(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      doctor: _selectedDoctor!,
-      date: formattedDate,
-      time: _selectedTime ?? "",
-      status: AppointmentStatus.upcoming,
-    );
-
-    // A. OPTIMISTIC UPDATE (Show Card Immediately)
-    _appointments.add(newAppointment);
-    notifyListeners();
-
-    // B. SEND TO SERVER (FHIR appointment + slot update)
+    // Create on server (FHIR appointment + slot update)
     try {
-      await repository.bookAppointmentWithSlot(
+      final bookedAppointment = await repository.bookAppointmentWithSlot(
         patientId: patientId,
-        practitionerId: _selectedDoctor!.id,
-        slotId: _selectedSlot!.id,
-        start: _selectedSlot!.rawStart,
-        end: _selectedSlot!.rawEnd,
+        practitionerId: selectedDoctor.id,
+        slotId: selectedSlot.id,
+        start: selectedSlot.rawStart,
+        end: selectedSlot.rawEnd,
         appointmentType: "general",
       );
+
+      final serverAppointmentId =
+          (bookedAppointment['id'] ?? DateTime.now().millisecondsSinceEpoch)
+              .toString();
+
+      _lastBookedAppointmentId = serverAppointmentId;
+
+      final newAppointment = AppointmentHistory(
+        id: serverAppointmentId,
+        doctor: selectedDoctor,
+        date: selectedDate != null
+            ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
+            : formattedDate,
+        time: selectedTime ?? "",
+        status: AppointmentStatus.upcoming,
+      );
+
+      _appointments.add(newAppointment);
+      notifyListeners();
+
+      // Refresh appointments from backend so Home screen always reflects server state
+      await loadAppointmentsForCurrentUser();
+
+      // Refresh slots so newly booked slot is reflected immediately
+      await loadDoctorSlots(selectedDoctor.id);
+
+      // Clear selected slot/time after successful booking
+      _selectedSlot = null;
+      _selectedDate = null;
+      _selectedTime = null;
+      notifyListeners();
+      return true;
     } catch (e) {
       print("Failed to sync booking to server: $e");
+      return false;
+    }
+  }
+
+  Future<bool> sendNotesToDoctor({
+    required String appointmentId,
+    String? symptomsText,
+    String? doctorNote,
+    List<String>? documentReferenceIds,
+  }) async {
+    try {
+      await repository.updateAppointmentNotes(
+        appointmentId: appointmentId,
+        comment: doctorNote,
+        symptomsText: symptomsText,
+        documentReferenceIds: documentReferenceIds,
+      );
+
+      await loadAppointmentsForCurrentUser();
+      return true;
+    } catch (e) {
+      print('Failed to send notes to doctor: $e');
+      return false;
     }
   }
 
   // --- Cancel Appointment ---
-  void cancelAppointment(String id) {
+  Future<void> cancelAppointment(String id) async {
     final index = _appointments.indexWhere((app) => app.id == id);
-    if (index != -1) {
-      _appointments[index].status = AppointmentStatus.canceled;
+    if (index == -1) return;
+
+    final doctorId = _appointments[index].doctor.id;
+
+    try {
+      await repository.cancelAppointment(id);
+
+      _appointments.removeAt(index);
       notifyListeners();
+
+      await loadDoctorSlots(doctorId);
+      await loadAppointmentsForCurrentUser();
+    } catch (e) {
+      print("Failed to cancel appointment on server: $e");
     }
   }
   // --- LOGIC & CLEANUP ---

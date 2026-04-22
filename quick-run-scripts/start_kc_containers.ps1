@@ -3,12 +3,13 @@ function Wait-Docker {
         try {
             docker info *> $null
             break
-        } catch {
+        }
+        catch {
             Start-Sleep -Seconds 5
         }
     }
 }
 
 Wait-Docker
-Set-Location "$PSScriptRoot/security/Containers"
+Set-Location "$PSScriptRoot/../security/Containers"
 docker compose -f docker-compose-kc.yml up --build

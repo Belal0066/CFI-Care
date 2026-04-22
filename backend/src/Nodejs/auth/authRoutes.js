@@ -34,6 +34,7 @@ const clientId = process.env.KC_CLIENT_ID;
 const clientSecret = process.env.KC_CLIENT_SECRET;
 const redirectUri = `${process.env.BACKEND_HOSTNAME}/auth/callback`;
 const scopes = process.env.KC_SCOPES || "openid profile email patient/*.rs";
+const targetmobileclient = process.env.targetmobileclient;
 
 
 
@@ -240,7 +241,7 @@ router.post('/logout-all', async (req, res) => {
 
     return res.json({ ok: true, message: 'Logged out from all devices' });
   } catch (e) {
-    console.error('global logout error', e?.response?.data || e.message);
+    console.error("global logout error", e?.response?.data || e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -592,5 +593,4 @@ module.exports = router;
 //     res.status(500).json({ ok: false, error: e.message });
 //   }
 // });
-
 

@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/doctors.dart';
+import '../../domain/models/document.dart';
 import '../widgets/attach_file.dart';
 import '../viewmodels/add_document_viewmodel.dart';
+import '../viewmodels/booking_provider.dart';
+import 'select_patient_documents_screen.dart';
 
 class ThankYouScreen extends StatefulWidget {
+  final String appointmentId;
   final Doctor doctor;
   final String appointmentDate;
   final String appointmentTime;
   final int fees;
   final DocumentAddViewModel viewModel;
 
-
   const ThankYouScreen({
     super.key,
+    required this.appointmentId,
     required this.doctor,
     required this.appointmentDate,
     required this.appointmentTime,
@@ -27,9 +32,11 @@ class ThankYouScreen extends StatefulWidget {
 class _ThankYouScreenState extends State<ThankYouScreen> {
   // Controller for the Date Field
   final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _symptomsController = TextEditingController();
 
   // Variable for Dropdown selection
   String? _selectedGender;
+  List<DocumentModel> _selectedDocuments = [];
 
   // Function to Open the Calendar
   Future<void> _selectDate(BuildContext context) async {
@@ -50,6 +57,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
   @override
   void dispose() {
     _dobController.dispose();
+    _symptomsController.dispose();
     super.dispose();
   }
 
@@ -306,6 +314,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
                   const Text("Symptoms", style: TextStyle(fontSize: 12)),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: _symptomsController,
                     decoration: InputDecoration(
                       hintText: "e.g. cough, back pain, etc.",
                       border: OutlineInputBorder(
@@ -326,31 +335,73 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
                   ),
                   const SizedBox(height: 8),
                   // Attach File Buttons
-            const Text(
-              "Attach File",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                buildAttachButton(
-                  Icons.picture_as_pdf,
-                  "PDF",
-                  widget.viewModel.pickPDF,
-                ),
-                buildAttachButton(
-                  Icons.image,
-                  "Image",
-                  widget.viewModel.pickImage,
-                ),
-                buildAttachButton(
-                  Icons.camera_alt,
-                  "Scan",
-                  widget.viewModel.scanDocument,
-                ),
-              ],
-            ),
+                  const Text(
+                    "Attach File",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      buildAttachButton(
+                        Icons.picture_as_pdf,
+                        "PDF",
+                        widget.viewModel.pickPDF,
+                      ),
+                      buildAttachButton(
+                        Icons.image,
+                        "Image",
+                        widget.viewModel.pickImage,
+                      ),
+                      buildAttachButton(
+                        Icons.camera_alt,
+                        "Scan",
+                        widget.viewModel.scanDocument,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final selected = await Navigator.of(context)
+                          .push<List<DocumentModel>>(
+                            MaterialPageRoute(
+                              builder: (_) => SelectPatientDocumentsScreen(
+                                initiallySelected: _selectedDocuments,
+                              ),
+                            ),
+                          );
+
+                      if (!mounted || selected == null) return;
+                      setState(() {
+                        _selectedDocuments = selected;
+                      });
+                    },
+                    icon: const Icon(Icons.folder_open),
+                    label: const Text('Select from patient documents'),
+                  ),
+                  if (_selectedDocuments.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _selectedDocuments
+                          .map(
+                            (doc) => Chip(
+                              label: Text(
+                                doc.title,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              avatar: Icon(
+                                doc.isPDF ? Icons.picture_as_pdf : Icons.image,
+                                size: 16,
+                                color: doc.isPDF ? Colors.red : Colors.blue,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -361,12 +412,55 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: ElevatedButton(
-                onPressed: () {
-                  // Handle sending notes logic here
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("Notes Sent!")));
-                  //TODO: SEND NOTES TO BACKEND
+                onPressed: () async {
+                  final symptoms = _symptomsController.text.trim();
+
+                  final noteParts = <String>[];
+                  if (_dobController.text.trim().isNotEmpty) {
+                    noteParts.add('DOB: ${_dobController.text.trim()}');
+                  }
+                  if (_selectedGender != null && _selectedGender!.isNotEmpty) {
+                    noteParts.add('Gender: $_selectedGender');
+                  }
+
+                  final doctorNote = noteParts.join(' | ');
+                  final selectedDocumentIds = _selectedDocuments
+                      .map((doc) => doc.serverId)
+                      .whereType<String>()
+                      .where((id) => id.trim().isNotEmpty)
+                      .toList();
+
+                  final selectedDocumentTitles = _selectedDocuments
+                      .map((doc) => doc.title)
+                      .where((title) => title.trim().isNotEmpty)
+                      .toList();
+
+                  final composedDoctorNote = [
+                    if (doctorNote.isNotEmpty) doctorNote,
+                    if (selectedDocumentTitles.isNotEmpty)
+                      'Selected documents: ${selectedDocumentTitles.join(', ')}',
+                  ].join(' | ');
+
+                  final sent = await context
+                      .read<BookingProvider>()
+                      .sendNotesToDoctor(
+                        appointmentId: widget.appointmentId,
+                        symptomsText: symptoms.isEmpty ? null : symptoms,
+                        doctorNote: composedDoctorNote.isEmpty
+                            ? null
+                            : composedDoctorNote,
+                        documentReferenceIds: selectedDocumentIds,
+                      );
+
+                  if (!context.mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        sent ? "Notes Sent!" : "Failed to send notes",
+                      ),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor:

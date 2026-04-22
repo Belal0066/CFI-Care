@@ -6,7 +6,11 @@ export interface Practitioner {
   id: string;
   name: string;
   title: string;
-  specialty: string;
+  specialty?: string;
+  specialtyDetail?: string;
+  imageUrl?: string;
+  address?: string;
+  nextAvailable?: string;
 }
 
 export interface Schedule {
@@ -36,10 +40,34 @@ export interface Appointment {
   appointmentType?: any;
   start: string;
   end: string;
+  supportingInformation?: Array<{ reference?: string }>;
   participant: Array<{
     actor: { reference: string };
     status: string;
   }>;
+}
+
+export interface DocumentReferenceResource {
+  resourceType: string;
+  id: string;
+  status?: string;
+  description?: string;
+  date?: string;
+  subject?: { reference?: string };
+  content?: Array<{
+    attachment?: {
+      contentType?: string;
+      title?: string;
+      url?: string;
+    };
+  }>;
+}
+
+export interface BinaryResource {
+  resourceType: string;
+  id: string;
+  contentType?: string;
+  data?: string;
 }
 
 export interface BookAppointmentRequest {
@@ -75,6 +103,14 @@ export class AppointmentService {
     return this.http.get<any>(`${this.practitionersUrl}/${id}`);
   }
 
+  // Update practitioner
+  updatePractitioner(id: string, practitionerData: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.practitionersUrl}/${id}`,
+      practitionerData,
+    );
+  }
+
   // Get schedules for a practitioner
   getSchedulesByPractitioner(practitionerId: string): Observable<Schedule[]> {
     return this.http.get<Schedule[]>(
@@ -92,16 +128,30 @@ export class AppointmentService {
     return this.http.post<Schedule>(this.schedulesUrl, scheduleData);
   }
 
+  // Update schedule
+  updateSchedule(id: string, scheduleData: any): Observable<Schedule> {
+    return this.http.post<Schedule>(`${this.schedulesUrl}/${id}`, scheduleData);
+  }
+
   // Get slots for a practitioner
-  getSlotsByPractitioner(practitionerId: string): Observable<Slot[]> {
-    return this.http.get<Slot[]>(
-      `${this.slotsUrl}/practitioner/${practitionerId}`,
-    );
+  getSlotsByPractitioner(
+    practitionerId: string,
+    status?: string,
+  ): Observable<Slot[]> {
+    const url = status
+      ? `${this.slotsUrl}/practitioner/${practitionerId}?status=${status}`
+      : `${this.slotsUrl}/practitioner/${practitionerId}`;
+    return this.http.get<Slot[]>(url);
   }
 
   // Get slots for a schedule
   getSlotsBySchedule(scheduleId: string): Observable<Slot[]> {
     return this.http.get<Slot[]>(`${this.slotsUrl}/schedule/${scheduleId}`);
+  }
+
+  // Get slot by ID
+  getSlotById(slotId: string): Observable<Slot> {
+    return this.http.get<Slot>(`${this.slotsUrl}/${slotId}`);
   }
 
   // Get available slots for a practitioner
@@ -116,6 +166,23 @@ export class AppointmentService {
     return this.http.post<Slot>(this.slotsUrl, slotData);
   }
 
+  // Update slot
+  updateSlot(slotId: string, slotData: any): Observable<Slot> {
+    return this.http.post<Slot>(`${this.slotsUrl}/${slotId}`, slotData);
+  }
+
+  // Get practitioner roles by practitioner ID
+  getPractitionerRolesByPractitioner(practitionerId: string): Observable<any> {
+    return this.http.get<any>(
+      `/api/practitionerRoles/practitioner/${practitionerId}`,
+    );
+  }
+
+  // Update practitioner role
+  updatePractitionerRole(roleId: string, roleData: any): Observable<any> {
+    return this.http.post<any>(`/api/practitionerRoles/${roleId}`, roleData);
+  }
+
   // Update slot status
   updateSlotStatus(slotId: string, status: string): Observable<Slot> {
     return this.http.patch<Slot>(`${this.slotsUrl}/${slotId}`, { status });
@@ -124,6 +191,16 @@ export class AppointmentService {
   // Get appointments for a patient
   getAppointmentsByPatient(patientId: string): Observable<any> {
     return this.http.get<any>(`${this.appointmentsUrl}/patient/${patientId}`);
+  }
+
+  // Get document references for a patient
+  getDocumentReferencesByPatient(patientId: string): Observable<any> {
+    return this.http.get<any>(`/api/documentReferences/patient/${patientId}`);
+  }
+
+  // Get binary by ID
+  getBinaryById(binaryId: string): Observable<BinaryResource> {
+    return this.http.get<BinaryResource>(`/api/binary/${binaryId}`);
   }
 
   // Get appointments for a practitioner

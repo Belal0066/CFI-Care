@@ -62,4 +62,8 @@ export class TopBar {
   navigateToDashboard(): void {
     this.router.navigate(['/dashboard']);
   }
+
+  navigateToPractitionerProfile(): void {
+    this.router.navigate(['/practitioner-profile-test']);
+  }
 }

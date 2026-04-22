@@ -1,31 +1,31 @@
-const jwt = require('jsonwebtoken');
-const jwksRsa = require('jwks-rsa');
+// const jwt = require('jsonwebtoken');
+// const jwksRsa = require('jwks-rsa');
 
 // const KEYCLOAK_BASE_URL =process.env.KC_HOSTNAME;
 const REALM = process.env.KEYCLOAK_REALM;
 const ISSUER = process.env.KC_ISSUER || `${process.env.KC_HOSTNAME}/realms/${REALM}`;
 const JWKS_URI = process.env.KC_JWKS_URI; //|| `${ISSUER}/protocol/openid-connect/certs`;
 
-const client = jwksRsa({
-    jwksUri: JWKS_URI,
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 10,
-    cacheMaxEntries: 5,
-    cacheMaxAge: 600000 // 10 minutes
+// const client = jwksRsa({
+//     jwksUri: JWKS_URI,
+//     cache: true,
+//     rateLimit: true,
+//     jwksRequestsPerMinute: 10,
+//     cacheMaxEntries: 5,
+//     cacheMaxAge: 600000 // 10 minutes
 
 
-});
+// });
 
-const getKey = (header, callback) => {
-    client.getSigningKey(header.kid, (err, key) => {
-        if (err) {
-            return callback(err);
-        }
-        const signingKey = key.getPublicKey();
-        callback(null, signingKey);
-    });
-}
+// const getKey = (header, callback) => {
+//     client.getSigningKey(header.kid, (err, key) => {
+//         if (err) {
+//             return callback(err);
+//         }
+//         const signingKey = key.getPublicKey();
+//         callback(null, signingKey);
+//     });
+// }
 
 function normalizeAudiences(aud) {
   return String(aud || "")
@@ -59,4 +59,4 @@ const verifyToken = (expectedAudience) => {
     }
 }
 
-module.exports = { verifyToken };
+// module.exports = { verifyToken };
