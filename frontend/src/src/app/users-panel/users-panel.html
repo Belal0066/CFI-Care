@@ -1,54 +1,105 @@
-<div class=" search mt-4 border border-light-subtle border-1 rounded"
-     style="flex-shrink: 1; min-width: 0; width: 420px;
-  max-width: 100%; box-sizing: border-box; margin-left: 35px;">
+<div class="panel-wrapper">
 
-    <!-- <div class=" search-input d-flex align-items-center border border-light-subtle border border-1 rounded"
-      style=" margin-top: 20px; margin-bottom: 20px; margin-left: 20px; margin-right: 20px;
-      background-color: rgb(248, 248, 248);">
-        <i class="bi bi-search p-3" style="color: rgb(103, 101, 98);"></i>
-        <label for="search-text" class="visually-hidden">
-          Search user
-        </label>
+  <!-- Search -->
+  <div class="search-box mt-4">
+    <i class="bi bi-search search-icon"></i>
+    <input
+      id="search-text"
+      type="text"
+      placeholder="Search patient by name"
+      [(ngModel)]="searchQuery"
+      (input)="onSearch()"
+    />
+  </div>
 
-        <input
-            id="search-text"
-            class="search-text"
-            type="text"
-            placeholder="Search user"
-        >
-    </div>  -->
+  <!-- Add Patient Button -->
+  <div class="add-btn-wrap mt-3">
+    <button class="btn-add-patient" type="button" (click)="openAddModal()">
+      <i class="bi bi-plus-lg"></i> Add Patient
+    </button>
+  </div>
 
-    <div class=" search-input d-flex align-items-center border border-light-subtle border border-1 rounded"
-      style=" margin-top: 20px; margin-bottom: 20px; margin-left: 20px; margin-right: 20px;
-      background-color: rgb(248, 248, 248);">
-        
-        <div class="search-container d-flex align-items-center">
-          <i class="bi bi-search p-3"></i>
-
-          <input
-              id="search-text"
-              type="text"
-              required
-          >
-
-          <label for="search-text">Search user</label>
+  <!-- Filter -->
+  <div class="filter-wrap mt-3">
+    <button class="btn-filter" type="button" (click)="toggleFilter()">
+      <i class="bi bi-funnel"></i> Filter
+    </button>
+    <div class="filter-dropdown" *ngIf="filterOpen">
+      <p class="filter-label">Sort By</p>
+      <select [(ngModel)]="sortBy" class="filter-select">
+        <option value="name">Name (A → Z)</option>
+        <option value="age">Age (Young → Old)</option>
+        <option value="id">ID (Ascending)</option>
+        <option value="lastUpdated">Last Updated</option>
+      </select>
+      <p class="filter-label mt-3">Age Range</p>
+      <div class="range-labels">
+        <span>{{ ageMin }}</span>
+        <span>{{ ageMax }}</span>
       </div>
+      <input type="range" min="0" max="120" [(ngModel)]="ageMin" class="range-slider" />
+      <input type="range" min="0" max="120" [(ngModel)]="ageMax" class="range-slider" />
+      <div class="filter-actions mt-2">
+        <button class="btn-apply" (click)="applyFilter()">Apply</button>
+        <button class="btn-reset" (click)="resetFilter()">Reset</button>
+      </div>
+    </div>
+  </div>
 
-    </div> 
+  <!-- Patient Count -->
+  <div class="patient-count mt-3">
+    <span>{{ filteredPatients.length }} patient{{ filteredPatients.length !== 1 ? 's' : '' }}</span>
+  </div>
+
+  <!-- Patient List -->
+  <app-users [patients]="filteredPatients"></app-users>
 
 </div>
 
+<!-- Add Patient Modal -->
+<div class="modal-backdrop" *ngIf="modalOpen" (click)="closeModal()"></div>
+<div class="modal-card" *ngIf="modalOpen">
+  <h5 class="modal-title">Add Patient</h5>
+  <p class="modal-desc">Enter the 6-digit temporary code provided by the patient.</p>
 
-<div class=" add-user mt-3 d-grid gap-2" style="margin-left: 35px; flex-shrink: 1; min-width: 0; width: 420px;
-  max-width: 100%; box-sizing: border-box;  ">
-  <button class="btn btn-primary border-light-subtle" type="button" 
-  style="background-color: #1E6ED3; color: rgb(255, 255, 255); padding: 10px;"><i class="bi bi-plus"></i> Add Patient</button>
+  <ng-otp-input
+    (onInputChange)="onOtpChange($event)"
+    [config]="{ length: 6, allowNumbersOnly: true, inputClass: 'otp-box' }"
+  ></ng-otp-input>
+
+  <div class="otp-status-container mt-3">
+  
+  <div class="otp-status loading" *ngIf="otpState === 'loading'">
+    <span class="spinner-border spinner-border-sm" role="status"></span>
+    <span>Verifying code...</span>
+  </div>
+
+  <div class="otp-status success" *ngIf="otpState === 'success'">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>Patient found and added to your list.</span>
+  </div>
+
+  <div class="otp-status forwarded" *ngIf="otpState === 'forwarded'">
+    <i class="bi bi-send-check-fill"></i>
+    <span>Request forwarded. Waiting for patient approval.</span>
+  </div>
+
+  <div class="otp-status error" *ngIf="otpState === 'expired'">
+    <i class="bi bi-clock-history"></i>
+    <span>Code expired. Ask the patient to generate a new one.</span>
+  </div>
+
+  <div class="otp-status error" *ngIf="otpState === 'not_found'">
+    <i class="bi bi-person-exclamation"></i>
+    <span>No patient found with this code.</span>
+  </div>
+
 </div>
 
-<app-users></app-users>
-
-
-
-
-
-
+  <button class="btn-search-modal mt-3"
+    (click)="submitOtp()"
+    [disabled]="!otpComplete || otpState === 'loading'">
+    {{ otpState === 'loading' ? 'Verifying…' : 'Verify Code' }}
+  </button>
+  <button class="btn-close-modal mt-3" (click)="closeModal()">Close</button>
+</div>

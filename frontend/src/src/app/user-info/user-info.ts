@@ -109,10 +109,10 @@ export class UserInfo {
     // 🔧 BACKEND PLACEHOLDER (mock data)
     this.patientDetails = {
       id,
-      name: 'sick man',
-      age: 61,
+      name: 'Mahmoud Karim',
+      age: 23,
       gender: "Male",
-      lastUpdated: '2025-12-26',
+      lastUpdated: '2026-02-18',
 
       primaryDiagnosis: 'Type 2 Diabetes',
       activeConditions: ['Hypertension', 'Hyperlipidemia'],

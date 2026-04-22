@@ -576,10 +576,27 @@ body.dark-mode .dark-mode-toggle {
     #cancelEditBtn { background: #e5e7eb; color: var(--text-dark); }
 
     /* SVG Path Styles */
-    path {
-      stroke: #E5E7EB !important; /* Light gray lines */
+    /* SVG Path Styles */
+    path:not(.merge-link):not(.timeline-link):not(.divergence-link) {
+      stroke: #E5E7EB !important;
       stroke-width: 1.5px !important;
       fill: none !important;
+    }
+
+    /* Merge link — explicit overrides to beat global path rule */
+    path.merge-link {
+      stroke: #4ADE80 !important;
+      stroke-width: 7px !important;
+      fill: none !important;
+      opacity: 0.85;
+    }
+
+     /* Divergence link — bolder than branch line */
+    path.divergence-link {
+      stroke: #94A3B8 !important;
+      stroke-width: 7px !important;
+      fill: none !important;
+      opacity: 0.5 !important;
     }
 
     /* Selection States for Add/Delete */
@@ -610,6 +627,121 @@ body.dark-mode .dark-mode-toggle {
 }
 
 
+/* Tutorial Overlay */
+.tutorial-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.tutorial-spotlight {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  z-index: 2001;
+  pointer-events: none;
+}
+
+.tutorial-card {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  padding: 18px 20px;  /* slightly tighter */
+  width: 320px;        /* fixed width instead of max-width */
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  z-index: 2002;
+  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: all;
+  box-sizing: border-box;
+}
+
+body.dark-mode .tutorial-card {
+  background: #1E293B;
+  color: #F9FAFB;
+  border: 1px solid #334155;
+}
+
+.tutorial-step-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3B82F6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.tutorial-card h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.tutorial-card p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-gray);
+  line-height: 1.6;
+}
+
+.tutorial-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tutorial-nav > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tutorial-btn {
+  padding: 7px 13px;
+  border-radius: 6px;
+  font-size: 12px;  /* was 13px */
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+}
+
+.tutorial-dots {
+  display: flex; gap: 5px;
+}
+
+.tutorial-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #CBD5E1;
+  transition: background 0.2s;
+}
+.tutorial-dot.active { background: #3B82F6; }
+
+.tutorial-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.tutorial-btn-primary { background: #3B82F6; color: white; }
+.tutorial-btn-primary:hover { background: #2563EB; }
+.tutorial-btn-skip { background: transparent; color: #94A3B8; font-size: 12px; }
+.tutorial-btn-skip:hover { color: #64748B; }
+
+.tutorial-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+
   </style>
 </head>
 <body>
@@ -635,12 +767,62 @@ body.dark-mode .dark-mode-toggle {
         <i class="fa-solid fa-trash"></i> Delete Node
       </button>
 
+      <div class="divider" style="height: 16px;"></div>
+
+      <button class="btn btn-secondary" id="exportJsonBtn">
+        <i class="fa-solid fa-file-arrow-down"></i> Export JSON
+      </button>
+      <button class="btn btn-secondary" id="exportPdfBtn">
+        <i class="fa-solid fa-file-pdf"></i> Export PDF
+      </button>
+      <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
+        <i class="fa-solid fa-file-arrow-up"></i> Import
+        <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      </label>
+
       <div class="toggle-group">
         <button class="toggle-btn active">Categorical</button>
         <button class="toggle-btn">Chronological</button>
       </div>
-    </div>
+
+      <div id="caseFinishedBanner" style="
+        display: none;
+        align-items: center;
+        gap: 6px;
+        background: #F0FDF4;
+        border: 1px solid #86EFAC;
+        border-radius: 8px;
+        padding: 4px 10px 4px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #166534;
+        white-space: nowrap;
+      ">
+        <span style="font-size:13px; line-height:1;">🏁</span>
+        <span>Case Finished</span>
+        <div style="position:relative; display:inline-flex; align-items:center;">
+          <select id="bannerStateSelect" style="
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+            border: none;
+            color: transparent;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0;
+            width: 14px;
+            outline: none;
+          ">
+            <option value="">—</option>
+            <option value="finish_case">🏁 Finish</option>
+            <option value="in_progress">▶ Reopen</option>
+          </select>
+          <span style="pointer-events:none; color:#166534; font-size:10px; position:absolute; right:0;">▾</span>
+        </div>
+      </div>
+
   </header>
+
 
 <button id="darkModeToggle" class="dark-mode-toggle" title="Toggle Dark Mode">
   <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -766,7 +948,8 @@ body.dark-mode .dark-mode-toggle {
         AISuggestion: "#EC4899", // Pink
         FollowUp: "#06B6D4",     // Cyan
         Allergy: "#EF4444",      // Red
-        Historical: "#6B7280"    // Gray
+        Historical: "#6B7280",    // Gray
+        Linker: "#A855F7"
     };
 
     const PRIORITY_COLORS = {
@@ -1026,6 +1209,45 @@ body.dark-mode .dark-mode-toggle {
         });
       }
 
+
+      function isNodeInRejectedBranch(nodeId) {
+        let current = data.find(d => d.id === nodeId);
+        while (current) {
+          if ((current.isDiagnosis || current.isManualBranch) && current.branchState === "rejected") {
+            return true;
+          }
+          if (current.father === null) break;
+          current = data.find(d => d.id === current.father);
+        }
+        return false;
+      }
+
+      function isLinkerNode(nodeId) {
+        const node = data.find(d => d.id === nodeId);
+        return node?._isLinkerNode === true || node?.category === "Linker";
+      }
+
+      function isNodeInCompletedBranch(nodeId) {
+        const completedBranchStarters = data.filter(
+            d => (d.isDiagnosis || d.isManualBranch) && d.branchState === "completed"
+        );
+        for (const starter of completedBranchStarters) {
+            const members = new Set();
+            members.add(starter.id);
+            const collect = (id) => {
+                data.forEach(n => {
+                    if (n.father === id && !members.has(n.id)) {
+                        members.add(n.id);
+                        collect(n.id);
+                    }
+                });
+            };
+            collect(starter.id);
+            if (members.has(nodeId)) return true;
+        }
+        return false;
+    }
+
       // Helper: Check for hidden high priority
       function hasHiddenHighPriorityChild(nodeId) {
         const children = data.filter(d => d.father === nodeId);
@@ -1037,7 +1259,63 @@ body.dark-mode .dark-mode-toggle {
       }
 
 
-      
+      function showRejectedWarning() {
+        const tooltip = document.getElementById("tooltip");
+        tooltip.innerText = "⛔ This branch is rejected. Change its state first.";
+        tooltip.style.display = "block";
+        tooltip.style.background = "#EF4444";
+        tooltip.style.position = "fixed";
+        tooltip.style.top = "80px";
+        tooltip.style.left = "50%";
+        tooltip.style.transform = "translateX(-50%)";
+        tooltip.style.zIndex = "9999";
+        setTimeout(() => {
+          tooltip.style.display = "none";
+          tooltip.style.position = "absolute";
+          tooltip.style.transform = "";
+          tooltip.style.left = "";
+          tooltip.style.top = "";
+        }, 2500);
+      }
+
+      function showCompletedWarning() {
+        const tooltip = document.getElementById("tooltip");
+        tooltip.innerText = "✅ This branch is completed. Change its state first.";
+        tooltip.style.display = "block";
+        tooltip.style.background = "#10B981";
+        tooltip.style.position = "fixed";
+        tooltip.style.top = "80px";
+        tooltip.style.left = "50%";
+        tooltip.style.transform = "translateX(-50%)";
+        tooltip.style.zIndex = "9999";
+        setTimeout(() => {
+          tooltip.style.display = "none";
+          tooltip.style.position = "absolute";
+          tooltip.style.transform = "";
+          tooltip.style.left = "";
+          tooltip.style.top = "";
+        }, 2500);
+      }
+
+
+      function showToast(message) {
+        const tooltip = document.getElementById("tooltip");
+        tooltip.innerText = message;
+        tooltip.style.display = "block";
+        tooltip.style.background = "#1E293B";
+        tooltip.style.position = "fixed";
+        tooltip.style.top = "80px";
+        tooltip.style.left = "50%";
+        tooltip.style.transform = "translateX(-50%)";
+        tooltip.style.zIndex = "9999";
+        setTimeout(() => {
+            tooltip.style.display = "none";
+            tooltip.style.position = "absolute";
+            tooltip.style.transform = "";
+            tooltip.style.left = "";
+            tooltip.style.top = "";
+        }, 3000);
+    }
 
       let myTree = Treeviz.create({
         htmlId: "tree",
@@ -1063,6 +1341,8 @@ body.dark-mode .dark-mode-toggle {
         // priority ring
         const showPriorityRing = (node.priority === "High") || (node.father !== null && hasHiddenHighPriorityChild(node.id));
         const priorityHtml = (!node.isDiagnosis && showPriorityRing) ? `<div class="priority-ring"></div>` : '';
+
+
 
         // expansion button (only for first-level children as you had it)
         const isParent = dataHasChildren(node.id);
@@ -1115,6 +1395,74 @@ body.dark-mode .dark-mode-toggle {
       
       
       let selectedDiagnosis = true; // true = show diagnosis, false = hide
+
+
+      function showCaseFinishedPrompt() {
+        document.getElementById("caseFinishedPrompt")?.remove();
+
+        const prompt = document.createElement("div");
+        prompt.id = "caseFinishedPrompt";
+        prompt.style.cssText = `
+          position: fixed;
+          top: 80px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: white;
+          border: 1px solid #E5E7EB;
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+          z-index: 9999;
+          min-width: 320px;
+          max-width: 400px;
+          padding: 20px 24px;
+          font-family: inherit;
+        `;
+
+        prompt.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <span style="font-size:22px;">🏁</span>
+            <div>
+              <div style="font-weight:700; font-size:14px; color:#1E293B;">Case is Finished</div>
+              <div style="font-size:12px; color:#6B7280; margin-top:2px;">No transactions are allowed while the case is closed.</div>
+            </div>
+          </div>
+          <div style="font-size:12px; color:#374151; margin-bottom:14px; padding:10px; background:#F9FAFB; border-radius:8px; border:1px solid #F3F4F6;">
+            To make changes, reopen the case by setting the main timeline state back to <strong>In Progress</strong>.
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button id="caseFinishedDismiss" style="padding:7px 16px; border-radius:7px; border:1px solid #E5E7EB; background:white; color:#374151; font-size:13px; cursor:pointer;">Dismiss</button>
+            <select id="caseFinishedStateSelect" style="padding:7px 12px; border-radius:7px; border:1px solid #D1D5DB; font-size:13px; color:#374151; background:white; cursor:pointer;">
+              <option value="">Change state…</option>
+              <option value="in_progress">▶ In Progress</option>
+            </select>
+          </div>
+        `;
+
+        document.body.appendChild(prompt);
+
+        document.getElementById("caseFinishedDismiss").onclick = () => prompt.remove();
+
+        document.getElementById("caseFinishedStateSelect").onchange = (e) => {
+          if (e.target.value === "in_progress") {
+            mainBranchState = "in_progress";
+            updateCaseFinishedBanner();
+            prompt.remove();
+            if (currentMode === "chronological") renderChronologicalGraph();
+            else refreshGraph();
+          }
+          e.target.value = "";
+        };
+
+        // Auto-dismiss after 6 seconds
+        setTimeout(() => prompt?.remove(), 12000);
+      }
+
+
+      function updateCaseFinishedBanner() {
+        const banner = document.getElementById("caseFinishedBanner");
+        if (!banner) return;
+        banner.style.display = isCaseFinished() ? "flex" : "none";
+      }
       
       // === FIX 2: Cleaner Visibility Logic ===
       // === FIX 2: Cleaner Visibility Logic ===
@@ -1239,6 +1587,18 @@ body.dark-mode .dark-mode-toggle {
         document.getElementById("filtersPanel").classList.toggle("show");
       };
 
+      const bannerSelect = document.getElementById("bannerStateSelect");
+        if (bannerSelect) bannerSelect.onchange = (e) => {
+          const val = e.target.value;
+          if (val === "in_progress" || val === "finish_case") {
+            mainBranchState = val;
+            updateCaseFinishedBanner();
+            if (currentMode === "chronological") renderChronologicalGraph();
+            else refreshGraph();
+          }
+          e.target.value = "";
+        };
+
       // Sidebar Logic
       const sidebar = document.getElementById("nodeDetailsSidebar");
       const sidebarBody = document.getElementById("sidebarBody");
@@ -1290,9 +1650,29 @@ body.dark-mode .dark-mode-toggle {
       // Edit Button Logic
       document.getElementById("editNodeBtn").onclick = () => {
         if(!currentNodeData) return;
+        if(isCaseFinished()) { showCaseFinishedPrompt(); return; }
+        if(isLinkerNode(currentNodeData.id)) {
+            showToast("⚙️ This is a system-generated merge point and cannot be edited.");
+            return;
+        }
+        if(isNodeInRejectedBranch(currentNodeData.id)) {
+          showRejectedWarning();
+          return;
+        }
+        if(isNodeInCompletedBranch(currentNodeData.id)) {
+            showCompletedWarning();
+            return;
+        }
+        
+        // In chronological mode, node-circle is the clickable SVG element; fall back to sidebar rect
         const wrapper = document.querySelector(`.tree-node-wrapper[data-id="${currentNodeData.id}"]`);
-        if(wrapper) {
-          openEditForm(currentNodeData, wrapper.getBoundingClientRect());
+        const circle = document.querySelector(`.node-circle[data-node-id="${currentNodeData.id}"]`);
+        const anchor = wrapper || circle;
+        if(anchor) {
+          openEditForm(currentNodeData, anchor.getBoundingClientRect());
+        } else {
+          // Absolute fallback: open near the sidebar
+          openEditForm(currentNodeData, document.getElementById("nodeDetailsSidebar").getBoundingClientRect());
         }
       };
 
@@ -1370,6 +1750,7 @@ body.dark-mode .dark-mode-toggle {
       // Add Node
       document.getElementById("addNodeBtn").onclick = (e) => {
         e.stopPropagation();
+        if (isCaseFinished()) { showCaseFinishedPrompt(); return; }
         resetModes();
         addMode = true;
         document.getElementById("tree").style.cursor = "crosshair";
@@ -1381,6 +1762,16 @@ body.dark-mode .dark-mode-toggle {
             evt.stopPropagation();
             const parentId = parseInt(w.dataset.id);
             const parentNode = data.find(d => d.id === parentId);
+            if(isNodeInRejectedBranch(parentId)) {
+              showRejectedWarning();
+              resetModes();
+              return;
+            }
+            if(isNodeInCompletedBranch(parentId)) {
+                showCompletedWarning();
+                resetModes();
+                return;
+            }
             openAddForm(parentNode, w.getBoundingClientRect());
           }
         });
@@ -1435,6 +1826,7 @@ body.dark-mode .dark-mode-toggle {
       // Delete Node
       document.getElementById("deleteNodeBtn").onclick = (e) => {
         e.stopPropagation();
+        if (isCaseFinished()) { showCaseFinishedPrompt(); return; }
         resetModes();
         deleteMode = true;
         document.getElementById("tree").style.cursor = "not-allowed";
@@ -1448,13 +1840,26 @@ body.dark-mode .dark-mode-toggle {
           w.onclick = (evt) => {
             evt.stopPropagation();
             const node = data.find(d => d.id === id);
+            if(isLinkerNode(id)) {
+                showToast("⚙️ System merge point nodes cannot be manually deleted. Change the branch state to remove them.");
+                resetModes();
+                return;
+            }
+            if(isNodeInRejectedBranch(id)) {
+              showRejectedWarning();
+              resetModes();
+              return;
+            }
+            if(isNodeInCompletedBranch(id)) {
+                showCompletedWarning();
+                resetModes();
+                return;
+            }
             if(confirm(`Delete node "${node.text_1}" and all children?`)) {
               deleteRecursive(id);
               refreshGraph();
               resetModes();
               sidebar.classList.remove("open");
-
-              // Notify Angular
               postNodeUpdate("delete", { id });
             }
           }
@@ -1656,6 +2061,8 @@ body.dark-mode .dark-mode-toggle {
     let manualBranches = new Map(); // Track manually created branches: nodeId -> branchId
     let createBranchMode = false; // Track branch creation mode
     let nextManualBranchId = 1000; // Start manual branch IDs from 1000 to avoid conflicts
+    let mainBranchState = "in_progress"; // "in_progress" | "finish_case"
+    let linkerNodeCounter = 0;
 
     // --- TIMELINE CONSTANTS ---
     const TIMELINE_CONFIG = {
@@ -1673,6 +2080,11 @@ body.dark-mode .dark-mode-toggle {
         MAIN_BRANCH_COLOR: "#475569", // *** Dark gray for main branch ***
         SUB_BRANCH_COLOR: "#94A3B8"   // *** Gray for sub-branches ***
     };
+
+
+    function isCaseFinished() {
+      return mainBranchState === "finish_case";
+    }
 
     /**
      * Enhanced data preparation with branch detection
@@ -1740,9 +2152,10 @@ body.dark-mode .dark-mode-toggle {
           return { 
               ...node, 
               laneId,
-              branchStartId, // Track which branch this node belongs to
+              branchStartId,
               originalFather: node.father,
-              isBranchStart: node.isDiagnosis || node.isManualBranch
+              isBranchStart: node.isDiagnosis || node.isManualBranch,
+              branchState: node.branchState || "in_progress"
           };
       });
 
@@ -1789,38 +2202,81 @@ body.dark-mode .dark-mode-toggle {
           .style("background", document.body.classList.contains('dark-mode') ? "#1E293B" : "#f8fafc");
       
       const zoom = d3.zoom()
-          .scaleExtent([0.3, 3])
-          .on("zoom", (event) => {
-              contentGroup.attr("transform", event.transform);
-          });
-      
-      svg.call(zoom)
-          .on("dblclick.zoom", null)
-          .on("click", (event) => {
-              // Exit branch mode if clicking on empty space (not a node)
-              if (createBranchMode && !event.target.closest('.node-circle')) {
-                  resetModes();
-              }
-          });
-      
-      const contentGroup = svg.append("g")
-          .attr("class", "timeline-content")
-          .attr("transform", `translate(${TIMELINE_CONFIG.PADDING}, 0)`);
+    .scaleExtent([0.05, 3])  // Lower min scale so fit-all is always reachable
+    .on("zoom", (event) => {
+        contentGroup.attr("transform", event.transform);
+    });
+
+svg.call(zoom)
+    .on("dblclick.zoom", null)
+    .on("click", (event) => {
+        if (createBranchMode && !event.target.closest('.node-circle')) {
+            resetModes();
+        }
+    });
+
+const contentGroup = svg.append("g")
+    .attr("class", "timeline-content")
+    .attr("transform", `translate(${TIMELINE_CONFIG.PADDING}, 0)`);
       
       chronologicalGraph = contentGroup;
       
       // 5. Draw timeline lanes (only main branch with date markers)
       const mainLaneY = TIMELINE_CONFIG.MAIN_LANE_Y;
       
+      const mainLineColor = mainBranchState === "finish_case" ? "#8B5CF6" : TIMELINE_CONFIG.MAIN_BRANCH_COLOR;
+
       contentGroup.append("line")
           .attr("class", "timeline-lane")
           .attr("x1", 0)
           .attr("x2", canvasWidth - TIMELINE_CONFIG.PADDING * 2)
           .attr("y1", mainLaneY)
           .attr("y2", mainLaneY)
-          .style("stroke", TIMELINE_CONFIG.MAIN_BRANCH_COLOR)
+          .style("stroke", mainLineColor)
           .style("stroke-width", TIMELINE_CONFIG.MAIN_BRANCH_THICKNESS)
-          .style("stroke-dasharray", "none");
+          .style("stroke-dasharray", "none")
+          .style("cursor", "pointer")
+          .on("click", (event) => {
+              event.stopPropagation();
+              openBranchStateMenu(null, event.pageX, event.pageY, mainBranchState);
+          });
+
+          // Wide invisible hit area for main timeline click
+          contentGroup.append("line")
+              .attr("x1", 0)
+              .attr("x2", canvasWidth - TIMELINE_CONFIG.PADDING * 2)
+              .attr("y1", mainLaneY)
+              .attr("y2", mainLaneY)
+              .style("stroke", "transparent")
+              .style("stroke-width", 28)
+              .style("cursor", "pointer")
+              .on("click", (event) => {
+                  event.stopPropagation();
+                  openBranchStateMenu(null, event.pageX, event.pageY, mainBranchState);
+              });
+
+      // Draw finish flag directly on main timeline if finish_case
+      if (mainBranchState === "finish_case") {
+          const flagX = canvasWidth - TIMELINE_CONFIG.PADDING * 2 + 20;
+          contentGroup.append("text")
+              .attr("x", flagX)
+              .attr("y", mainLaneY - 18)
+              .attr("text-anchor", "start")
+              .style("fill", "#8B5CF6")
+              .style("font-size", "22px")
+              .style("font-weight", "700")
+              .style("letter-spacing", "1.5px")
+              .text("🏁 CASE CLOSED");
+
+          contentGroup.append("rect")
+              .attr("x", flagX - 10)
+              .attr("y", mainLaneY - 60)
+              .attr("width", 12)
+              .attr("height", 120)
+              .attr("rx", 4)
+              .style("fill", "#8B5CF6")
+              .style("opacity", 0.9);
+      }
       
       // 6. Calculate positions (handle multiple nodes on same date)
       const dateToIndexMap = new Map(datesSorted.map((d, i) => [d, i]));
@@ -1839,10 +2295,29 @@ body.dark-mode .dark-mode-toggle {
       drawDateMarkers(contentGroup, datesSorted, dateToIndexMap);
       
       // 11. Re-bind event listeners
-      setTimeout(() => {
-          bindChronologicalNodeInteractions();
-          bindManualBranchControls();
-      }, 50);
+setTimeout(() => {
+    bindChronologicalNodeInteractions();
+    bindManualBranchControls();
+}, 50);
+
+// 12. Auto fit-to-view — runs after node binding settles
+setTimeout(() => {
+    const containerEl = document.getElementById("tree");
+    const viewW = containerEl.clientWidth;
+    const viewH = containerEl.clientHeight;
+
+    const scaleX = viewW / canvasWidth;
+    const scaleY = viewH / canvasHeight;
+    const fitScale = Math.min(scaleX, scaleY, 1);
+
+    const tx = (viewW - canvasWidth * fitScale) / 2;
+    const ty = (viewH - canvasHeight * fitScale) / 2;
+
+    svg.call(
+        zoom.transform,
+        d3.zoomIdentity.translate(tx, ty).scale(fitScale)
+    );
+}, 80);
     }
 
     /**
@@ -1887,99 +2362,391 @@ body.dark-mode .dark-mode-toggle {
      * Draw horizontal branch lines for each branch
      */
     function drawBranchLines(container, chronologicalData, nodePositions) {
-        // Group nodes by their branch
-        const branchGroups = new Map();
-        
-        chronologicalData.forEach(node => {
-            if (node.laneId > 0) { // Only for branches (not main timeline)
-                if (!branchGroups.has(node.branchStartId)) {
-                    branchGroups.set(node.branchStartId, []);
+    const branchGroups = new Map();
+
+    chronologicalData.forEach(node => {
+        if (node.laneId > 0) {
+            if (!branchGroups.has(node.branchStartId)) {
+                branchGroups.set(node.branchStartId, []);
+            }
+            branchGroups.get(node.branchStartId).push(node);
+        }
+    });
+
+    branchGroups.forEach((nodes, branchStartId) => {
+        if (nodes.length === 0) return;
+
+        const positions = nodes.map(n => nodePositions.get(n.id)).filter(p => p);
+        if (positions.length === 0) return;
+
+        const minX = Math.min(...positions.map(p => p.x));
+        const maxX = Math.max(...positions.map(p => p.x));
+        const branchY = positions[0].y;
+
+        const starterNode = data.find(d => d.id === branchStartId);
+        const branchState = starterNode?.branchState || "in_progress";
+
+        const lineColor = branchState === "rejected"    ? "#EF4444"
+                : branchState === "completed"   ? "#4ADE80"
+                : branchState === "finish_case" ? "#8B5CF6"
+                : TIMELINE_CONFIG.SUB_BRANCH_COLOR;
+        const lineOpacity = branchState === "rejected" ? 0.4 : 0.9;
+
+        // Visible branch line
+        container.append("line")
+            .attr("class", "branch-horizontal-line")
+            .attr("data-branch-id", branchStartId)
+            .attr("x1", minX).attr("x2", maxX)
+            .attr("y1", branchY).attr("y2", branchY)
+            .style("stroke", lineColor)
+            .style("stroke-width", TIMELINE_CONFIG.SUB_BRANCH_THICKNESS)
+            .style("opacity", lineOpacity);
+
+        // Wide invisible hit area for clicking
+        container.append("line")
+            .attr("class", "branch-hit-area")
+            .attr("data-branch-id", branchStartId)
+            .attr("x1", minX).attr("x2", maxX)
+            .attr("y1", branchY).attr("y2", branchY)
+            .style("stroke", "transparent")
+            .style("stroke-width", 28)
+            .style("cursor", "pointer")
+            .on("click", function(event) {
+                event.stopPropagation();
+                if (typeof mergeMode !== 'undefined' && mergeMode) {
+                    // Directly set to completed
+                    const starterNode = data.find(d => d.id === branchStartId);
+                    if (starterNode) {
+                        starterNode.branchState = "completed";
+                        postNodeUpdate("edit", starterNode);
+                    }
+                    // Reset merge mode
+                    mergeMode = false;
+                    const btn = document.getElementById("mergeHintBtn");
+                    if (btn) {
+                        btn.style.background = "#10B981";
+                        btn.style.transform = "rotate(0deg)";
+                        btn.style.boxShadow = "0 4px 12px rgba(16,185,129,0.4)";
+                    }
+                    renderChronologicalGraph();
+                } else {
+                    openBranchStateMenu(branchStartId, event.pageX, event.pageY, branchState);
                 }
-                branchGroups.get(node.branchStartId).push(node);
+            });
+
+        // REJECTED: vertical red wall at end of branch
+        if (branchState === "rejected") {
+            const wallX = maxX + 24;
+            container.append("rect")
+                .attr("class", "branch-rejection-wall")
+                .attr("x", wallX + 5)
+                .attr("y", branchY - 70)
+                .attr("width", 10)
+                .attr("height", 140)
+                .attr("rx", 4)
+                .style("fill", "#EF4444")
+                .style("opacity", 0.8);
+
+            container.append("text")
+                .attr("x", wallX)
+                .attr("y", branchY - 80)
+                .attr("text-anchor", "middle")
+                .style("fill", "#EF4444")
+                .style("font-size", "24px")
+                .style("font-weight", "700")
+                .style("letter-spacing", "1.5px")
+                .text("REJECTED");
+        }
+
+        // FINISH CASE: purple finish flag at end of main timeline
+        if (branchState === "finish_case") {
+          const flagX = maxX + 30;
+          container.append("rect")
+            .attr("x", flagX)
+            .attr("y", branchY - 60)
+            .attr("width", 12)
+            .attr("height", 120)
+            .attr("rx", 4)
+            .style("fill", "#8B5CF6")
+            .style("opacity", 0.9);
+
+          container.append("text")
+            .attr("x", flagX + 6)
+            .attr("y", branchY - 72)
+            .attr("text-anchor", "middle")
+            .style("fill", "#8B5CF6")
+            .style("font-size", "22px")
+            .style("font-weight", "700")
+            .style("letter-spacing", "1.5px")
+            .text("🏁 CASE CLOSED");
+        }
+
+        // COMPLETED: ensure a linker node on main timeline, then draw green merge curve
+        if (branchState === "completed") {
+            const branchNodesSorted = nodes
+                .map(n => ({ node: n, pos: nodePositions.get(n.id) }))
+                .filter(x => x.pos)
+                .sort((a, b) => b.pos.x - a.pos.x);
+
+            if (branchNodesSorted.length === 0) return;
+
+            const lastBranchNode = branchNodesSorted[0].node;
+            const lastBranchDate = lastBranchNode.dateIssued;
+            const lastBranchPos  = branchNodesSorted[0].pos;
+
+            // Check if a linker node already exists for this branch
+            const existingLinker = data.find(n =>
+                n.category === "Linker" && n._linkedBranchId === branchStartId
+            );
+
+            const mainNodes = chronologicalData.filter(n => n.laneId === 0);
+            const latestMainDate = mainNodes.reduce((latest, mn) => {
+                return mn.dateIssued > latest ? mn.dateIssued : latest;
+            }, "0000-00-00");
+
+            const needsLinker = lastBranchDate > latestMainDate;
+
+            if (needsLinker && !existingLinker) {
+                // Create linker node and re-render — drawing happens on next render
+                linkerNodeCounter++;
+                const newId = Math.max(...data.map(d => d.id)) + 1;
+                const rootNodeRef = data.find(d => d.father === null);
+
+                const linkerNode = {
+                    id: newId,
+                    text_1: `Branch Merge Point #${linkerNodeCounter}`,
+                    father: rootNodeRef ? rootNodeRef.id : null,
+                    category: "Linker",
+                    priority: "Low",
+                    normality: "Normal",
+                    dateIssued: lastBranchDate,
+                    details: "This node was auto-generated by the graph system to represent the merge point between a branch and the main timeline. It exists because the branch extends beyond the latest event on the main timeline.",
+                    isDiagnosis: false,
+                    isManualBranch: false,
+                    _linkedBranchId: branchStartId,
+                    _isLinkerNode: true
+                };
+
+                data.push(linkerNode);
+                postNodeUpdate("add", linkerNode);
+                setTimeout(() => renderChronologicalGraph(), 0);
+                return;
+            }
+
+            // Find the merge target on main timeline:
+            // prefer the linker node if it exists, otherwise find nearest main node by date
+            let mergeTarget = null;
+
+            if (existingLinker) {
+                const linkerPos = nodePositions.get(existingLinker.id);
+                if (linkerPos) mergeTarget = { pos: linkerPos };
+            }
+
+            if (!mergeTarget) {
+                // No linker needed (branch date <= latest main date) — find nearest main node
+                let nearestDiff = Infinity;
+                mainNodes.forEach(mn => {
+                    const mnPos = nodePositions.get(mn.id);
+                    if (!mnPos) return;
+                    const diff = Math.abs(new Date(mn.dateIssued).getTime() - new Date(lastBranchDate).getTime());
+                    if (diff < nearestDiff) {
+                        nearestDiff = diff;
+                        mergeTarget = { pos: mnPos };
+                    }
+                });
+            }
+
+            if (!mergeTarget) return;
+
+            const sx = lastBranchPos.x, sy = lastBranchPos.y;
+            const tx = mergeTarget.pos.x,  ty = mergeTarget.pos.y;
+            const midX = (sx + tx) / 2;
+
+            container.append("path")
+                .attr("class", "merge-link")
+                .attr("d", `M${sx} ${sy} C${midX} ${sy}, ${midX} ${ty}, ${tx} ${ty}`)
+                .style("fill", "none")
+                .style("stroke", "#4ADE80")
+                .style("stroke-width", 7)
+                .style("opacity", 0.85);
+
+            container.append("circle")
+                .attr("cx", tx).attr("cy", ty).attr("r", 7)
+                .style("fill", "#4ADE80")
+                .style("opacity", 0.85);
+
+            container.append("text")
+                .attr("x", midX)
+                .attr("y", Math.min(sy, ty) - 14)
+                .attr("text-anchor", "middle")
+                .style("fill", "#6B7280")
+                .style("font-size", "10px")
+                .style("font-weight", "700")
+                .style("letter-spacing", "1.5px")
+                .text("MERGED");
+        }
+    });
+}
+
+function openBranchStateMenu(branchStartId, pageX, pageY, currentState) {
+    document.getElementById("branchStateMenu")?.remove();
+
+    const menu = document.createElement("div");
+    menu.id = "branchStateMenu";
+    menu.style.cssText = `
+        position: fixed;
+        top: ${pageY}px;
+        left: ${pageX}px;
+        background: white;
+        border: 1px solid #E5E7EB;
+        border-radius: 10px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        z-index: 3000;
+        min-width: 220px;
+        overflow: hidden;
+        font-family: Inter, sans-serif;
+    `;
+
+    const header = document.createElement("div");
+    header.style.cssText = "padding: 10px 14px; font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid #F3F4F6; background: #FAFAFA;";
+    header.textContent = "Branch State";
+    menu.appendChild(header);
+
+    const isMainBranch = !data.find(d => d.id === branchStartId); // main timeline has no starter node
+    const states = isMainBranch
+      ? [
+          { value: "in_progress",  label: "In Progress",  icon: "🔵", desc: "Case is ongoing",       color: "#3B82F6" },
+          { value: "finish_case",  label: "Finish Case",  icon: "🏁", desc: "Mark case as complete", color: "#8B5CF6" }
+        ]
+      : [
+          { value: "in_progress", label: "In Progress", icon: "🔵", desc: "Branch is active",            color: "#3B82F6" },
+          { value: "rejected",    label: "Rejected",    icon: "🔴", desc: "Block this branch",           color: "#EF4444" },
+          { value: "completed",   label: "Completed",   icon: "🟢", desc: "Merge back to main timeline", color: "#10B981" }
+        ];
+
+    states.forEach(s => {
+        const isActive = s.value === currentState;
+        const item = document.createElement("div");
+        item.style.cssText = `
+            padding: 11px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            background: ${isActive ? "#F0FDF4" : "white"};
+            border-left: 3px solid ${isActive ? s.color : "transparent"};
+            transition: background 0.15s;
+        `;
+        item.innerHTML = `
+            <span style="font-size:16px;">${s.icon}</span>
+            <div style="flex:1;">
+                <div style="font-weight:600; color:${s.color};">${s.label}</div>
+                <div style="font-size:11px; color:#9CA3AF; margin-top:1px;">${s.desc}</div>
+            </div>
+            ${isActive ? `<span style="color:${s.color}; font-size:11px; font-weight:600;">✓</span>` : ""}
+        `;
+        item.onmouseover = () => { if (!isActive) item.style.background = "#F9FAFB"; };
+        item.onmouseout  = () => { if (!isActive) item.style.background = "white"; };
+        item.onclick = () => {
+          const starterNode = data.find(d => d.id === branchStartId);
+          if (starterNode) {
+              const previousState = starterNode.branchState;
+              starterNode.branchState = s.value;
+              postNodeUpdate("edit", starterNode);
+
+              // If moving away from "completed", remove the linker node if one exists
+              if (previousState === "completed" && s.value !== "completed") {
+                  const linkerIdx = data.findIndex(n =>
+                      n.category === "Linker" && n._linkedBranchId === branchStartId
+                  );
+                  if (linkerIdx !== -1) {
+                      const removed = data[linkerIdx];
+                      data.splice(linkerIdx, 1);
+                      postNodeUpdate("delete", { id: removed.id });
+                  }
+              }
+          } else {
+              mainBranchState = s.value;
+              updateCaseFinishedBanner();
+          }
+          menu.remove();
+          renderChronologicalGraph();
+      };
+        menu.appendChild(item);
+    });
+
+    document.body.appendChild(menu);
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener("click", function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener("click", closeMenu);
             }
         });
-        
-        // Draw horizontal line for each branch
-        branchGroups.forEach((nodes, branchStartId) => {
-            if (nodes.length === 0) return;
-            
-            const positions = nodes.map(n => nodePositions.get(n.id)).filter(p => p);
-            if (positions.length === 0) return;
-            
-            // Find leftmost and rightmost x positions
-            const minX = Math.min(...positions.map(p => p.x));
-            const maxX = Math.max(...positions.map(p => p.x));
-            
-            // Use the Y position from the first node's lane
-            const branchY = positions[0].y;
-            
-            // Draw the horizontal branch line
-            container.append("line")
-                .attr("class", "branch-horizontal-line")
-                .attr("x1", minX)
-                .attr("x2", maxX)
-                .attr("y1", branchY)
-                .attr("y2", branchY)
-                .style("stroke", TIMELINE_CONFIG.SUB_BRANCH_COLOR)
-                .style("stroke-width", TIMELINE_CONFIG.SUB_BRANCH_THICKNESS)
-                .style("opacity", 0.9);
-        });
-    }
+    }, 10);
+
+    // Clamp to viewport
+    requestAnimationFrame(() => {
+        const r = menu.getBoundingClientRect();
+        if (r.right  > window.innerWidth)  menu.style.left = (pageX - r.width - 8) + "px";
+        if (r.bottom > window.innerHeight) menu.style.top  = (pageY - r.height - 8) + "px";
+    });
+}
 
     /**
      * Draw links between nodes - SIMPLIFIED: Only branch divergence lines (NO vertical stack lines)
      */
     function drawLinks(container, chronologicalData, nodePositions) {
-        const links = chronologicalData
-            .filter(d => d.originalFather !== null)
-            .map(d => {
-                const sourcePos = nodePositions.get(d.originalFather);
-                const targetPos = nodePositions.get(d.id);
-                
-                if (!sourcePos || !targetPos) return null;
-                
-                // Determine if this is a branch link
-                const isBranchLink = sourcePos.laneId !== targetPos.laneId;
-                const isVerticalStack = sourcePos.x === targetPos.x && sourcePos.laneId === targetPos.laneId;
-                
-                // SKIP vertical stack connections entirely
-                if (isVerticalStack) {
-                    return null;
-                }
-                
-                let linkColor, strokeWidth, shouldDraw = true;
-                
-                if (isBranchLink) {
-                    // This is a DIVERGENCE link (main branch to sub-branch)
-                    linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
-                    strokeWidth = TIMELINE_CONFIG.SUB_BRANCH_THICKNESS + 3; // Make divergence link BOLDER
-                    shouldDraw = true; // Always draw divergence links
-                } else {
-                    // Skip horizontal same-lane connections
-                    shouldDraw = false;
-                }
-                
-                if (!shouldDraw) return null;
-                
-                return { 
-                    source: sourcePos, 
-                    target: targetPos, 
-                    color: linkColor,
-                    width: strokeWidth,
-                    isBranch: isBranchLink
-                };
-            })
-            .filter(l => l !== null);
-        
-        container.selectAll(".timeline-link")
-            .data(links)
-            .enter().append("path")
-            .attr("class", d => d.isBranch ? "timeline-link divergence-link" : "timeline-link")
-            .attr("d", d => generateLinkPath(d))
-            .style("fill", "none")
-            .style("stroke", d => d.color)
-            .style("stroke-width", d => d.width)
-            .style("opacity", 0.9);
+      const links = chronologicalData
+        .filter(d => d.originalFather !== null)
+        .map(d => {
+            const sourcePos = nodePositions.get(d.originalFather);
+            const targetPos = nodePositions.get(d.id);
+
+            if (!sourcePos || !targetPos) return null;
+
+            const isBranchLink = sourcePos.laneId !== targetPos.laneId;
+            const isVerticalStack = sourcePos.x === targetPos.x && sourcePos.laneId === targetPos.laneId;
+
+            if (isVerticalStack) return null;
+            if (!isBranchLink) return null;
+
+            // Determine branch state color for this divergence curve
+            // The target node starts a branch — find its branchStartId
+            let linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
+
+            // d is the branch-starting node itself (laneId changed here)
+            // Its branchStartId points to itself or its branch root
+            const branchStartId = d.branchStartId;
+            const starterNode = branchStartId ? data.find(n => n.id === branchStartId) : null;
+            const branchState = starterNode?.branchState || "in_progress";
+
+            if (branchState === "rejected")  linkColor = "#EF4444";
+            else if (branchState === "completed") linkColor = "#4ADE80";
+            else linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
+
+            return {
+                source: sourcePos,
+                target: targetPos,
+                color: linkColor,
+                width: TIMELINE_CONFIG.SUB_BRANCH_THICKNESS + 3,
+                isBranch: true
+            };
+          })
+          .filter(l => l !== null);
+
+          container.selectAll(".timeline-link")
+              .data(links)
+              .enter().append("path")
+              .attr("class", "timeline-link divergence-link")
+              .attr("d", d => generateLinkPath(d))
+              .style("fill", "none")
+              .style("stroke", d => d.color)
+              .style("stroke-width", d => d.width)
+              .style("opacity", 0.9);
     }
 
     /**
@@ -2034,7 +2801,7 @@ body.dark-mode .dark-mode-toggle {
                 if (d.isDiagnosis && d.isFinalized) return CATEGORY_COLORS.Lab;  // Remove "|| d.isManualBranch"
                 return CATEGORY_COLORS[d.category] || "#3B82F6";
             })
-            .style("stroke-width", 3)
+            .style("stroke-width", 10)
             .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.15))")
             .style("cursor", "pointer")
             .attr("data-node-id", d => d.id);
@@ -2105,71 +2872,134 @@ body.dark-mode .dark-mode-toggle {
     * Bind manual branch creation controls
     */
     function bindManualBranchControls() {
-        // Show/hide the floating branch button based on mode
         const branchBtn = document.getElementById('createBranchBtn');
-        if (branchBtn) {
-            branchBtn.style.display = currentMode === 'chronological' ? 'flex' : 'none';
-        }
+        if (branchBtn) branchBtn.style.display = currentMode === 'chronological' ? 'flex' : 'none';
+
+        const mergeBtn = document.getElementById('mergeHintBtn');
+        if (mergeBtn) mergeBtn.style.display = currentMode === 'chronological' ? 'flex' : 'none';
     }
+
+
+    //
+function openbranchCreationFormHelper(parentNode, rect) {
+    resetModes();
+
+    document.getElementById("editTitle").value = "";
+    document.getElementById("editDate").value = "";
+    document.getElementById("editDetails").value = "";
+
+    const catContainer = document.getElementById("editCategoryContainer");
+    const catSelect = document.getElementById("editCategory");
+
+    // Show the category container as a readonly "Diagnosis" label
+    catContainer.style.display = "block";
+    catSelect.innerHTML = `<option value="__DIAGNOSIS__" selected>⬤ Diagnosis</option>`;
+    catSelect.disabled = true;  // user cannot edit
+
+    // Hide the old diagnosis checkbox
+    const diagContainer = document.getElementById("editDiagnosisContainer");
+    if (diagContainer) diagContainer.style.display = "none";
+
+    const form = document.getElementById("editForm");
+    form.style.top = (rect.bottom + 10) + "px";
+    form.style.left = rect.left + "px";
+    form.style.display = "block";
+
+    document.getElementById("saveEditBtn").onclick = () => {
+        const newId = Math.max(...data.map(d => d.id)) + 1;
+
+        const newNode = {
+            id: newId,
+            text_1: document.getElementById("editTitle").value || "New Node",
+            father: parentNode.id,
+            category: parentNode.category,   // keep parent category if needed
+            priority: document.getElementById("editPriority").value,
+            normality: document.getElementById("editNormality").value,
+            dateIssued: document.getElementById("editDate").value,
+            details: document.getElementById("editDetails").value,
+            isDiagnosis: true,               // always a diagnosis
+            isManualBranch: true,            // starts a new branch
+            branchState: "in_progress"
+        };
+
+        data.push(newNode);
+        expandedNodes.add(parentNode.id);
+        refreshGraph();
+        form.style.display = "none";
+        postNodeUpdate("add", newNode);
+    };
+}
 
     /**
     * Open branch creation form - creates a NEW branch in a new horizontal line
     */
     function openBranchCreationForm(parentNode, rect) {
+        const parentChronoData = getChronologicalData(data).find(d => d.id === parentNode.id);
+        if (parentChronoData && parentChronoData.laneId !== 0) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerText = '⛔ Cannot branch from an existing branch';
+            tooltip.style.display = 'block';
+            tooltip.style.background = '#EF4444';
+            setTimeout(() => { tooltip.style.display = 'none'; }, 2500);
+            return;
+        }
+
+        openbranchCreationFormHelper(parentNode, rect);
+
         createBranchMode = false;
         document.getElementById('createBranchBtn').classList.remove('active');
         document.getElementById('tree').classList.remove('branch-mode-active');
         
-        // Open the add form for creating a node
-        const catContainer = document.getElementById("editCategoryContainer");
-        const catSelect = document.getElementById("editCategory");
+    //     // Open the add form for creating a node
+    //     const catContainer = document.getElementById("editCategoryContainer");
+    //     const catSelect = document.getElementById("editCategory");
         
-        // Always allow category selection for branch creation
-        catContainer.style.display = "block";
-        catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+    //     // Always allow category selection for branch creation
+    //     catContainer.style.display = "block";
+    //     catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
         
-        document.getElementById("editTitle").value = "";
-        document.getElementById("editDate").value = "";
-        document.getElementById("editDetails").value = "";
+    //     document.getElementById("editTitle").value = "";
+    //     document.getElementById("editDate").value = "";
+    //     document.getElementById("editDetails").value = "";
         
-        // SHOW the isDiagnosis checkbox for branch creation
-        const diagnosisCheckboxContainer = document.getElementById("editDiagnosisContainer");
-        const diagnosisCheckbox = document.getElementById("editIsDiagnosis");
-        if (diagnosisCheckboxContainer && diagnosisCheckbox) {
-            diagnosisCheckboxContainer.style.display = "block";
-            diagnosisCheckbox.checked = false; // Default to unchecked
-        }
+    //     // SHOW the isDiagnosis checkbox for branch creation
+    //     const diagnosisCheckboxContainer = document.getElementById("editDiagnosisContainer");
+    //     const diagnosisCheckbox = document.getElementById("editIsDiagnosis");
+    //     if (diagnosisCheckboxContainer && diagnosisCheckbox) {
+    //         diagnosisCheckboxContainer.style.display = "block";
+    //         diagnosisCheckbox.checked = false; // Default to unchecked
+    //     }
         
-        const form = document.getElementById("editForm");
-        form.style.top = (rect.bottom + window.scrollY + 10) + "px";
-        form.style.left = (rect.left + window.scrollX) + "px";
-        form.style.display = "block";
+    //     const form = document.getElementById("editForm");
+    //     form.style.top = (rect.bottom + window.scrollY + 10) + "px";
+    //     form.style.left = (rect.left + window.scrollX) + "px";
+    //     form.style.display = "block";
         
-        document.getElementById("saveEditBtn").onclick = () => {
-        const newId = Math.max(...data.map(d => d.id)) + 1;
+    //     document.getElementById("saveEditBtn").onclick = () => {
+    //     const newId = Math.max(...data.map(d => d.id)) + 1;
         
-        // FIXED: Get the checkbox value at save time
-        const diagnosisCheckboxAtSave = document.getElementById("editIsDiagnosis");
-        const isDiagnosisChecked = diagnosisCheckboxAtSave ? diagnosisCheckboxAtSave.checked : false;
+    //     // FIXED: Get the checkbox value at save time
+    //     const diagnosisCheckboxAtSave = document.getElementById("editIsDiagnosis");
+    //     const isDiagnosisChecked = diagnosisCheckboxAtSave ? diagnosisCheckboxAtSave.checked : false;
         
-        const newNode = {
-            id: newId,
-            text_1: document.getElementById("editTitle").value || "New Branch Node",
-            father: parentNode.id,
-            category: catSelect.value,
-            priority: document.getElementById("editPriority").value,
-            normality: document.getElementById("editNormality").value,
-            dateIssued: document.getElementById("editDate").value,
-            details: document.getElementById("editDetails").value,
-            isDiagnosis: isDiagnosisChecked, // Checkbox controls diagnosis status
-            isManualBranch: true // ALWAYS true for manually created branches
-        };
+    //     const newNode = {
+    //         id: newId,
+    //         text_1: document.getElementById("editTitle").value || "New Branch Node",
+    //         father: parentNode.id,
+    //         category: catSelect.value,
+    //         priority: document.getElementById("editPriority").value,
+    //         normality: document.getElementById("editNormality").value,
+    //         dateIssued: document.getElementById("editDate").value,
+    //         details: document.getElementById("editDetails").value,
+    //         isDiagnosis: isDiagnosisChecked, // Checkbox controls diagnosis status
+    //         isManualBranch: true // ALWAYS true for manually created branches
+    //     };
         
-        data.push(newNode);
-        expandedNodes.add(parentNode.id);
-        refreshGraph();
-        form.style.display = "none";
-    };
+    //     data.push(newNode);
+    //     expandedNodes.add(parentNode.id);
+    //     refreshGraph();
+    //     form.style.display = "none";
+    // };
     }
 
 
@@ -2186,30 +3016,62 @@ body.dark-mode .dark-mode-toggle {
             
             // Branch creation mode
             if (createBranchMode) {
-                openBranchCreationForm(nodeData, event.target.getBoundingClientRect());
+              if (isCaseFinished()) { showCaseFinishedPrompt(); return; }
+              if(isNodeInRejectedBranch(nodeData.id)) {
+                showRejectedWarning();
                 return;
+              }
+              if(isNodeInCompletedBranch(nodeData.id)) {
+                  showCompletedWarning();
+                  return;
+              }
+              openBranchCreationForm(nodeData, event.target.getBoundingClientRect());
+              return;
             }
-            
+
             // Add mode
             if (addMode) {
-                openAddForm(nodeData, event.target.getBoundingClientRect());
+              if (isCaseFinished()) { showCaseFinishedPrompt(); return; }
+              if(isNodeInRejectedBranch(nodeData.id)) {
+                showRejectedWarning();
                 resetModes();
                 return;
+              }
+              if(isNodeInCompletedBranch(nodeData.id)) {
+                  showCompletedWarning();
+                  return;
+              }
+              openAddForm(nodeData, event.target.getBoundingClientRect());
+              resetModes();
+              return;
             }
-            
+
             // Delete mode
             if (deleteMode) {
-                if (nodeData.father === null) return;
-                if (confirm(`Delete node "${nodeData.text_1}" and all children?`)) {
-                    deleteRecursive(nodeData.id);
-                    refreshGraph();
-                    resetModes();
-                    sidebar.classList.remove("open");
-
-                    // Notify Angular
-                    postNodeUpdate("delete", { id: nodeData.id });
-                }
+              if (nodeData.father === null) return;
+              if (isCaseFinished()) { showCaseFinishedPrompt(); return; }
+              if(isLinkerNode(nodeData.id)) {
+                  showToast("⚙️ System merge point nodes cannot be manually deleted. Change the branch state to remove them.");
+                  resetModes();
+                  return;
+              }
+              if(isNodeInRejectedBranch(nodeData.id)) {
+                showRejectedWarning();
+                resetModes();
                 return;
+              }
+              if(isNodeInCompletedBranch(nodeData.id)) {
+                  showCompletedWarning();
+                  return;
+              }
+              if (confirm(`Delete node "${nodeData.text_1}" and all children?`)) {
+                deleteRecursive(nodeData.id);
+                refreshGraph();
+                resetModes();
+                sidebar.classList.remove("open");
+                postNodeUpdate("delete", { id: nodeData.id });
+              }
+              return;
             }
             
             // Standard: open details
@@ -2438,7 +3300,7 @@ body.dark-mode .dark-mode-toggle {
 
       /* Add this to your style section */
       .divergence-link {
-          stroke-width: 4px !important;
+          stroke-width: 8px !important;
           opacity: 1 !important;
       }
 
@@ -2496,7 +3358,7 @@ body.dark-mode .dark-mode-toggle {
       /* Chronological node text styling */
       .chrono-node-title {
           font-weight: 600;
-          font-size: 12px;
+          font-size: 26px;
           color: #1e293b;
           margin-bottom: 4px;
           line-height: 1.3;
@@ -2531,6 +3393,28 @@ body.dark-mode .dark-mode-toggle {
           background: #7F1D1D;
           color: #FECACA;
       }
+
+
+
+      /* Merge link */
+      .merge-link {
+          pointer-events: none;
+      }
+
+      /* Branch hit area */
+      .branch-hit-area {
+          cursor: pointer !important;
+      }
+
+      /* Rejection wall pulse */
+      .branch-rejection-wall {
+          animation: rejectPulse 2.5s ease-in-out infinite;
+      }
+
+      @keyframes rejectPulse {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 0.35; }
+      }
       `;
     document.head.appendChild(style);
 
@@ -2556,6 +3440,60 @@ body.dark-mode .dark-mode-toggle {
             document.getElementById('tree').classList.add('branch-mode-active');
         }
     });
+
+    // Merge hint button (shows only in chronological view)
+    const mergeHintBtn = document.createElement("button");
+    mergeHintBtn.id = "mergeHintBtn";
+    mergeHintBtn.innerHTML = '<i class="fa-solid fa-code-merge"></i>';
+    mergeHintBtn.title = "Click any branch line to set its state";
+    mergeHintBtn.style.cssText = `
+        position: fixed;
+        bottom: 155px;
+        right: 30px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #10B981;
+        color: white;
+        border: none;
+        font-size: 17px;
+        cursor: pointer;
+        z-index: 900;
+        box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    `;
+    document.body.appendChild(mergeHintBtn);
+
+    let mergeMode = false;
+
+    mergeHintBtn.onclick = () => {
+        if (mergeMode) {
+            // Toggle off
+            mergeMode = false;
+            mergeHintBtn.style.background = "#10B981";
+            mergeHintBtn.style.transform = "rotate(0deg)";
+            mergeHintBtn.style.boxShadow = "0 4px 12px rgba(16,185,129,0.4)";
+        } else {
+            // Toggle on
+            mergeMode = true;
+            mergeHintBtn.style.background = "#059669";
+            mergeHintBtn.style.transform = "rotate(180deg)";
+            mergeHintBtn.style.boxShadow = "0 4px 20px rgba(16,185,129,0.7)";
+
+            // Highlight branch hit areas
+            const tip = document.getElementById("tooltip");
+            tip.innerText = "Click a branch line to mark it as Completed (Merged)";
+            tip.style.display = "block";
+            tip.style.background = "#10B981";
+            tip.style.position = "fixed";
+            tip.style.top = (mergeHintBtn.getBoundingClientRect().top - 44) + "px";
+            tip.style.left = (mergeHintBtn.getBoundingClientRect().left - 140) + "px";
+            setTimeout(() => { tip.style.display = "none"; }, 2500);
+        }
+    };
 
 
     // === DARK MODE TOGGLE ===
@@ -2594,7 +3532,493 @@ body.dark-mode .dark-mode-toggle {
       }
     });
 
+
+
+    // === EXPORT / IMPORT ===
+
+document.getElementById("exportJsonBtn").addEventListener("click", () => {
+    const exportData = data.map(n => ({
+        id: n.id,
+        text_1: n.text_1,
+        father: n.father,
+        category: n.category,
+        priority: n.priority,
+        normality: n.normality,
+        dateIssued: n.dateIssued,
+        details: n.details,
+        isDiagnosis: n.isDiagnosis || false,
+        isManualBranch: n.isManualBranch || false
+    }));
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `medflow-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+document.getElementById("exportPdfBtn").addEventListener("click", async () => {
+    if (currentMode !== 'chronological') {
+        alert("PDF export is only available in Chronological view. Please switch to Chronological first.");
+        return;
+    }
+
+    const svgEl = document.querySelector("#tree svg");
+    if (!svgEl) { alert("Nothing to export."); return; }
+
+    const loadScript = (src) => new Promise((res, rej) => {
+        if (document.querySelector(`script[src="${src}"]`)) return res();
+        const s = document.createElement("script");
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+    });
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+
+    // ── 1. Read the full unzoomed content dimensions ──────────────────────
+    const svgW = parseFloat(svgEl.getAttribute("width")) || 1200;
+    const svgH = parseFloat(svgEl.getAttribute("height")) || 600;
+
+    // ── 2. Clone SVG and strip the zoom/pan transform ─────────────────────
+    const clone = svgEl.cloneNode(true);
+    const contentGroup = clone.querySelector(".timeline-content");
+    if (contentGroup) contentGroup.setAttribute("transform", "translate(100, 100)");
+
+    // Force light mode colors on the clone
+    clone.style.background = "#f8fafc";
+    const pdfExtraWidth = mainBranchState === "finish_case" ? 400 : 0;
+    clone.setAttribute("width", svgW + pdfExtraWidth);
+    clone.setAttribute("height", svgH);
+    clone.setAttribute("viewBox", `0 0 ${svgW + pdfExtraWidth} ${svgH}`);
+
+    // Fix all text to dark color for light background
+    clone.querySelectorAll("text").forEach(t => {
+        t.setAttribute("fill", "#1e293b");
+        t.style.fill = "#1e293b";
+    });
+
+    // Fix lines/paths that may have dark-mode colors
+    clone.querySelectorAll("line").forEach(el => {
+        const s = el.style.stroke;
+        if (!s || s === "#475569" || s === "rgb(71,85,105)") {
+            el.style.stroke = "#94A3B8";
+        }
+    });
+
+    // Inject inline styles for foreignObject text (html2canvas can't read external CSS)
+    const inlineStyle = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    inlineStyle.textContent = `
+        .chrono-node-title { font-family: Inter, Arial, sans-serif; font-size: 12px; font-weight: 600; color: #1e293b !important; }
+        .chrono-node-date  { font-family: Inter, Arial, sans-serif; font-size: 10px; color: #64748b !important; }
+        .chrono-priority-banner { background: #FEE2E2; color: #991B1B; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+    `;
+    clone.insertBefore(inlineStyle, clone.firstChild);
+
+    // ── 3. Render clone → canvas at 2× resolution ─────────────────────────
+    const pixelRatio = 2;
+    const canvasW = (svgW + pdfExtraWidth) * pixelRatio;
+    const canvasH = svgH * pixelRatio;
+
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(clone);
+    const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+        // Draw SVG onto a canvas
+        const srcCanvas = document.createElement("canvas");
+        srcCanvas.width = canvasW;
+        srcCanvas.height = canvasH;
+        const ctx = srcCanvas.getContext("2d");
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(0, 0, canvasW, canvasH);
+        ctx.drawImage(img, 0, 0, canvasW, canvasH);
+        URL.revokeObjectURL(svgUrl);
+
+        // ── 4. Rotate canvas 90° so timeline runs top-to-bottom ───────────
+        // Output canvas is W×H flipped: original height becomes page width,
+        // original width becomes page height
+        const rotCanvas = document.createElement("canvas");
+        rotCanvas.width  = canvasH;   // rotated: old H is new W
+        rotCanvas.height = canvasW;   // rotated: old W is new H
+        const rCtx = rotCanvas.getContext("2d");
+        rCtx.fillStyle = "#f8fafc";
+        rCtx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
+
+        // Rotate 90° clockwise: translate to right edge, rotate, draw
+        rCtx.translate(canvasH, 0);
+        rCtx.rotate(Math.PI / 2);
+        rCtx.drawImage(srcCanvas, 0, 0);
+
+        // ── 5. Build PDF sized to the rotated canvas ──────────────────────
+        const { jsPDF } = window.jspdf;
+        const pdfW = rotCanvas.width  / pixelRatio;
+        const pdfH = rotCanvas.height / pixelRatio;
+
+        const pdf = new jsPDF({
+            orientation: pdfW > pdfH ? "landscape" : "portrait",
+            unit: "pt",
+            format: [pdfW, pdfH]
+        });
+
+        pdf.addImage(rotCanvas.toDataURL("image/png", 1.0), "PNG", 0, 0, pdfW, pdfH);
+        pdf.save(`medflow-chrono-${new Date().toISOString().slice(0,10)}.pdf`);
+    };
+
+    img.onerror = () => {
+        alert("Could not render the graph. Please try switching to light mode first.");
+    };
+
+    img.src = svgUrl;
+});
+
+document.getElementById("importFileInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const imported = JSON.parse(ev.target.result);
+            if (!Array.isArray(imported) || imported.length === 0) throw new Error();
+
+            // Update local data
+            data.length = 0;
+            imported.forEach(n => data.push(n));
+            expandedNodes.clear();
+            expansionOrder.length = 0;
+            const newRoot = data.find(d => d.father === null);
+            if (newRoot) expandedNodes.add(newRoot.id);
+
+            // Switch back to categorical to avoid stale chrono state
+            document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+            document.querySelector(".toggle-btn").classList.add("active");
+            currentMode = 'categorical';
+            renderCategoricalGraph();
+
+            // Notify Angular so its data stays in sync
+            window.parent.postMessage({ type: "IMPORT_GRAPH", nodes: imported }, "*");
+        } catch {
+            alert("Invalid file. Please import a MedFlow JSON export.");
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+});
+
+
+// ============================================================
+// TUTORIAL SYSTEM
+// ============================================================
+const TUTORIAL_STEPS = [
+  {
+    title: "Welcome to MedFlow Graph",
+    body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
+    target: null, // No spotlight — center card
+    cardPos: "center"
+  },
+  {
+    title: "The Patient Journey Tree",
+    body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.",    target: "#tree",
+    cardPos: "right",
+    onEnter: () => {
+        // Expand all first-level children so the tree is populated
+        const firstLevelChildren = data.filter(d => d.father === rootNode?.id);
+        firstLevelChildren.forEach(child => {
+            expandedNodes.add(child.id);
+            addAllDescendants(child.id);
+        });
+        refreshGraph();
+    }
+},
+  {
+    title: "Node Colors and Categories",
+    body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
+    target: "#legend",
+    cardPos: "top"
+  },
+  {
+    title: "High Priority Events",
+    body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
+    target: "#tree",
+    cardPos: "right"
+  },
+  {
+    title: "Expand & Collapse Branches",
+    body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
+    target: null,
+    cardPos: "center",
+    onEnter: () => {
+        // Point an arrow at the first visible expand button
+        setTimeout(() => {
+            const btn = document.querySelector(".expand-trigger");
+            if (!btn) return;
+            let arrow = document.getElementById("tutorial-node-arrow");
+            if (!arrow) {
+                arrow = document.createElement("div");
+                arrow.id = "tutorial-node-arrow";
+                arrow.style.cssText = `
+                    position: fixed;
+                    z-index: 2003;
+                    pointer-events: none;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                    transition: all 0.3s ease;
+                `;
+                arrow.innerHTML = `
+                    <span style="font-size:12px; font-weight:600; color:#3B82F6; background:white; padding:3px 8px; border-radius:4px; border:1px solid #BFDBFE; white-space:nowrap;">
+                        <i class="fa-solid fa-plus" style="font-size:10px;"></i> / <i class="fa-solid fa-minus" style="font-size:10px;"></i> button
+                    </span>
+                    <i class="fa-solid fa-arrow-down" style="color:#3B82F6; font-size:16px; animation: tutBounce 0.8s ease-in-out infinite;"></i>
+                `;
+                document.body.appendChild(arrow);
+                // Inject bounce keyframe if not present
+                if (!document.getElementById("tutBounceStyle")) {
+                    const s = document.createElement("style");
+                    s.id = "tutBounceStyle";
+                    s.textContent = `@keyframes tutBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }`;
+                    document.head.appendChild(s);
+                }
+            }
+            const r = btn.getBoundingClientRect();
+            arrow.style.top  = (r.top - 48) + "px";
+            arrow.style.left = (r.left + r.width/2 - 37) + "px";
+            arrow.style.display = "flex";
+        }, 200);
+    }
+},
+  {
+    title: "Adding a Node",
+    body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
+    target: "#addNodeBtn",
+    cardPos: "bottom"
+  },
+  {
+    title: "Deleting a Node",
+    body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
+    target: "#deleteNodeBtn",
+    cardPos: "bottom"
+  },
+  // Step 8 — Chronological view (was step 9)
+{
+    title: "Chronological View",
+    body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
+    target: ".toggle-group",
+    cardPos: "bottom",
+    onEnter: () => {
+        // Switch to chronological view
+        document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
+        const chronoBtn = Array.from(document.querySelectorAll(".toggle-btn"))
+            .find(b => b.innerText.includes("Chronological"));
+        if (chronoBtn) chronoBtn.classList.add("active");
+        renderChronologicalGraph();
+    }
+},
+
+// Step 9 — Diagnosis nodes (was step 8), arrow points at first diagnosis node in chrono view
+{
+    title: "Diagnosis Nodes",
+    body: "A diagnosis node: white circle with a red border — starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
+    target: null,
+    cardPos: "diagnosis",
+    onEnter: () => {
+        setTimeout(() => {
+            // Find the first diagnosis node circle in the SVG
+            const diagNode = Array.from(document.querySelectorAll(".node-circle"))
+                .find(el => {
+                    const d3datum = el.__data__;
+                    return d3datum && d3datum.isDiagnosis;
+                });
+            if (!diagNode) return;
+
+            let arrow = document.getElementById("tutorial-node-arrow");
+            if (!arrow) {
+                arrow = document.createElement("div");
+                arrow.id = "tutorial-node-arrow";
+                arrow.style.cssText = `position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.3s ease;`;
+                document.body.appendChild(arrow);
+            }
+            arrow.innerHTML = `
+                <i class="fa-solid fa-arrow-up" style="color:#EF4444;font-size:16px;animation:tutBounce 0.8s ease-in-out infinite;"></i>
+            `;
+            const r = diagNode.getBoundingClientRect();
+            arrow.style.top  = (r.bottom + 34) + "px";
+            arrow.style.left = (r.left + r.width/2 - 7) + "px";
+            arrow.style.display = "flex";
+        }, 600); // Wait for chrono render to settle
+    }
+},
+  {
+    title: "Filters",
+    body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
+    target: "#filterToggleBtn",
+    cardPos: "bottom"
+  },
+  {
+    title: "All done",
+    body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time. Good luck!",
+    target: null,
+    cardPos: "center"
+  }
+];
+
+let tutStep = 0;
+let tutActive = false;
+
+function startTutorial() {
+  tutStep = 0;
+  tutActive = true;
+  renderTutorialStep();
+}
+
+function endTutorial() {
+  tutActive = false;
+  document.getElementById("tutorialSpotlight").style.display = "none";
+  document.getElementById("tutorialCard").style.display = "none";
+  const arrow = document.getElementById("tutorial-node-arrow");
+  if (arrow) arrow.remove();
+  localStorage.setItem("medflow_tutorial_done", "1");
+}
+
+function renderTutorialStep() {
+  const step = TUTORIAL_STEPS[tutStep];
+  // Hide any arrow from a previous step BEFORE onEnter creates a new one
+  const existingArrow = document.getElementById("tutorial-node-arrow");
+  if (existingArrow) existingArrow.style.display = "none";
+  if (step.onEnter) step.onEnter();
+  const spotlight = document.getElementById("tutorialSpotlight");
+  const card = document.getElementById("tutorialCard");
+
+  // --- Spotlight ---
+  if (step.target) {
+    const el = document.querySelector(step.target);
+    if (el) {
+      const r = el.getBoundingClientRect();
+      const pad = 8;
+      spotlight.style.display = "block";
+      spotlight.style.left   = (r.left - pad) + "px";
+      spotlight.style.top    = (r.top - pad) + "px";
+      spotlight.style.width  = (r.width + pad * 2) + "px";
+      spotlight.style.height = (r.height + pad * 2) + "px";
+    } else {
+      spotlight.style.display = "none";
+    }
+  } else {
+    spotlight.style.display = "none";
+  }
+
+  // --- Card Content ---
+  const isLast  = tutStep === TUTORIAL_STEPS.length - 1;
+  const isFirst = tutStep === 0;
+
+  const dots = TUTORIAL_STEPS.map((_, i) =>
+    `<div class="tutorial-dot${i === tutStep ? " active" : ""}"></div>`
+  ).join("");
+
+  card.innerHTML = `
+    <div class="tutorial-step-badge">Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}</div>
+    <h4>${step.title}</h4>
+    <p>${step.body}</p>
+    <div class="tutorial-nav">
+      <div class="tutorial-dots">${dots}</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        ${!isLast ? `<button class="tutorial-btn tutorial-btn-skip" id="tutSkipBtn">Skip tour</button>` : ""}
+        ${!isFirst ? `<button class="tutorial-btn" id="tutPrevBtn" style="background:#F1F5F9;color:#334155;">← Back</button>` : ""}
+        <button class="tutorial-btn tutorial-btn-primary" id="tutNextBtn">
+          ${isLast ? "Done" : "Next →"}
+        </button>
+      </div>
+    </div>
+  `;
+
+  // --- Card Position ---
+  card.style.display = "block";
+  positionTutorialCard(card, step);
+
+  // --- Bind buttons ---
+  document.getElementById("tutNextBtn").onclick = () => {
+    if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderTutorialStep(); }
+    else endTutorial();
+  };
+  const prevBtn = document.getElementById("tutPrevBtn");
+  if (prevBtn) prevBtn.onclick = () => { tutStep--; renderTutorialStep(); };
+  const skipBtn = document.getElementById("tutSkipBtn");
+  if (skipBtn) skipBtn.onclick = endTutorial;
+}
+
+function positionTutorialCard(card, step) {
+  card.style.top = "";
+  card.style.left = "";
+  card.style.right = "";
+  card.style.bottom = "";
+  card.style.transform = "";
+
+  // diagnosis must be checked FIRST before the !step.target guard fires
+  if (step.cardPos === "diagnosis") {
+    card.style.top = "25%";
+    card.style.left = "50%";
+    card.style.transform = "translate(-50%, 0)";
+    return;
+  }
+
+  if (step.cardPos === "center" || !step.target) {
+    card.style.top = "50%";
+    card.style.left = "50%";
+    card.style.transform = "translate(-50%, -50%)";
+    return;
+  }
+
+  const el = document.querySelector(step.target);
+  if (!el) {
+    card.style.top = "50%";
+    card.style.left = "50%";
+    card.style.transform = "translate(-50%, -50%)";
+    return;
+  }
+
+  const r = el.getBoundingClientRect();
+  const cw = 340, gap = 16;
+
+  if (step.cardPos === "bottom") {
+    card.style.top  = (r.bottom + gap) + "px";
+    card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+  } else if (step.cardPos === "top") {
+    card.style.top  = Math.max(8, r.top - 260 - gap) + "px";
+    card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+  } else if (step.cardPos === "right") {
+    card.style.top  = Math.min(r.top, window.innerHeight - 280) + "px";
+    card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
+  }
+}
+
+// Help button
+document.getElementById("tutorialHelpBtn").addEventListener("click", startTutorial);
+
+// Auto-launch for first-time visitors
+if (!localStorage.getItem("medflow_tutorial_done")) {
+  setTimeout(startTutorial, 800);
+}
 });
   </script>
+
+
+<!-- Tutorial Help Button -->
+<button id="tutorialHelpBtn" title="Open Tutorial" style="
+  position: fixed; bottom: 100px; right: 30px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #3B82F6; color: white; border: none;
+  font-size: 18px; cursor: pointer; z-index: 900;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s;
+">?</button>
+
+<!-- Tutorial Elements (injected by JS) -->
+<div id="tutorialSpotlight" class="tutorial-spotlight" style="display:none;"></div>
+<div id="tutorialCard" class="tutorial-card" style="display:none;"></div>
+
+
 </body>
 </html>

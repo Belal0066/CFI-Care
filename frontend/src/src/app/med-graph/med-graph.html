@@ -1,14 +1,42 @@
-<iframe
+<!-- <iframe
   #graphFrame
   src="/assets/med-graph_legacy.html"
    style="width: 100%; height: 100vh; border: none;">
 </iframe>
 
+<app-chat-section></app-chat-section>
 
-<!-- <iframe
-  #graphFrame
-  src="assets/graph-test/index.html"
-  style="width:100%; height:100%; border:none">
-</iframe>
+ -->
 
-<button (click)="ping()">Ping iframe</button> -->
+
+
+<div class="graph-page" [class.chat-open]="isChatOpen">
+
+  <div class="graph-container">
+    <iframe
+      #graphFrame
+      src="/assets/med-graph_legacy.html"
+      class="graph-frame">
+    </iframe>
+  </div>
+
+  <!-- Chat panel is always mounted; parent controls width and passes visibility -->
+  <app-chat-section
+    class="chat-container"
+    [showChatbot]="isChatOpen"
+    (close)="toggleChat()">
+  </app-chat-section>
+
+  <button
+    class="fab-toggle"
+    (click)="toggleChat()"
+    [class.active]="isChatOpen"
+    aria-label="Toggle AI Assistant"
+    style="padding: 0px 2px; border-top: none; border-bottom: none; ">
+    
+    <span *ngIf="!isChatOpen">AI</span>
+    <span *ngIf="isChatOpen"><i class="bi bi-caret-right"></i></span>
+    <i class="bi bi-caret-left"></i>    
+  </button>
+
+</div>
