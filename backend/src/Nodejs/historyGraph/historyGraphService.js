@@ -104,6 +104,7 @@ const ALLOWED_CATEGORIES = new Set([
   "FollowUp",
   "Allergy",
   "Historical",
+  "Linker",
 ]);
 
 const ALLOWED_PRIORITIES = new Set(["Low", "Medium", "High"]);
@@ -874,7 +875,7 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
         ],
         text: {
           status: "generated",
-          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${safeTafeTitle}</div>`,
+          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${safeTitle}</div>`,
         },
       };
       const wrapperEncounter = buildEncounter(
@@ -1335,6 +1336,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   const priority = nodeData.priority || "Medium";
   const normality = nodeData.normality || "Pending";
   const category = nodeData.category;
+  const isLinkerNode = category === "Linker" || nodeData._isLinkerNode;
   const details = nodeData.details || "";
   const isDiagnosis = nodeData.isDiagnosis || false;
   const isManualBranch = nodeData.isManualBranch || false;
@@ -1347,24 +1349,30 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     eventDate = new Date(eventDate).toISOString();
   }
 
-  const mappedResources = mapNodeToFHIRResources(
-    {
-      id: nodeData.id,
-      text_1: nodeTitle,
-      title: nodeTitle,
-      category: category,
-      priority: priority,
-      normality: normality,
-      dateIssued: eventDate,
-      details: details,
-    },
-    patientId,
-    finalEocId,
-    isDiagnosis,
-  );
+  let mappedResources = null;
+  if (!isLinkerNode) {
+    mappedResources = mapNodeToFHIRResources(
+      {
+        id: nodeData.id,
+        text_1: nodeTitle,
+        title: nodeTitle,
+        category: category,
+        priority: priority,
+        normality: normality,
+        dateIssued: eventDate,
+        details: details,
+      },
+      patientId,
+      finalEocId,
+      isDiagnosis,
+    );
 
-  // Keep graph/node id aligned to Encounter id
-  nodeData.id = mappedResources.nodeId;
+    // Keep graph/node id aligned to Encounter id
+    nodeData.id = mappedResources.nodeId;
+  } else if (!nodeData.id || !String(nodeData.id).startsWith("enc-")) {
+    // Use stable encounter-style IDs for database linker nodes.
+    nodeData.id = `enc-${randomUUID()}`;
+  }
 
   const buildRelatedResourceIds = (primaryResult, relatedResults = []) => {
     const bucket = {};
@@ -1380,16 +1388,18 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     return bucket;
   };
 
-  let createdResources;
-  try {
-    createdResources = await persistMappedResources(mappedResources);
-    console.log(
-      `FHIR ${mappedResources.primaryResource.resourceType} created with ID: ${nodeData.id}`,
-    );
-  } catch (err) {
-    throw new Error(
-      `Failed to create FHIR resource (${mappedResources.primaryResource.resourceType}): ${err.message}`,
-    );
+  let createdResources = { primaryResult: null, relatedResults: [] };
+  if (!isLinkerNode) {
+    try {
+      createdResources = await persistMappedResources(mappedResources);
+      console.log(
+        `FHIR ${mappedResources.primaryResource.resourceType} created with ID: ${nodeData.id}`,
+      );
+    } catch (err) {
+      throw new Error(
+        `Failed to create FHIR resource (${mappedResources.primaryResource.resourceType}): ${err.message}`,
+      );
+    }
   }
 
   const relatedResourceIds = buildRelatedResourceIds(
@@ -1490,10 +1500,12 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     isDiagnosis: isDiagnosis,
     isManualBranch: isManualBranch,
     eocId: finalEocId,
-    fhirResource: {
-      primary: createdResources.primaryResult,
-      related: createdResources.relatedResults,
-    },
+    fhirResource: isLinkerNode
+      ? null
+      : {
+          primary: createdResources.primaryResult,
+          related: createdResources.relatedResults,
+        },
     relatedResourceIds,
     createdAt: now,
     updatedAt: now,
@@ -1520,6 +1532,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   const details = updatedData.details || "";
   const isDiagnosis = updatedData.isDiagnosis || false;
   const isManualBranch = updatedData.isManualBranch || false;
+  const isLinkerNode = category === "Linker" || updatedData._isLinkerNode;
   const relationshipType =
     updatedData.relationshipType !== undefined
       ? normalizeRelationshipType(updatedData.relationshipType)
@@ -1590,42 +1603,47 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     }
   }
 
-  // Update FHIR resources (category-aware)
-  const mappedResources = mapNodeToFHIRResources(
-    {
-      id: nodeId,
-      text_1: title,
-      title: title,
-      category: category,
-      priority: priority,
-      normality: normality,
-      dateIssued: eventDate,
-      details: details,
-    },
-    patientId,
-    eocId,
-    isDiagnosis,
-  );
-
-  try {
-    await persistMappedResources(mappedResources);
-    console.log(
-      `FHIR ${mappedResources.primaryResource.resourceType} ${nodeId} updated successfully`,
+  // Update FHIR resources (category-aware), except for Linker nodes which are DB-only.
+  let relatedResourceIds = {};
+  if (!isLinkerNode) {
+    const mappedResources = mapNodeToFHIRResources(
+      {
+        id: nodeId,
+        text_1: title,
+        title: title,
+        category: category,
+        priority: priority,
+        normality: normality,
+        dateIssued: eventDate,
+        details: details,
+      },
+      patientId,
+      eocId,
+      isDiagnosis,
     );
-  } catch (err) {
-    throw new Error(`Failed to update FHIR resource ${nodeId}: ${err.message}`);
-  }
 
-  const relatedResourceIds = {
-    [mappedResources.primaryResource.resourceType]: [
-      mappedResources.primaryResource.id,
-    ],
-  };
-  for (const r of mappedResources.relatedResources || []) {
-    if (r?.resourceType && r?.id) {
-      relatedResourceIds[r.resourceType] =
-        relatedResourceIds[r.resourceType] || [];
-      relatedResourceIds[r.resourceType].push(r.id);
+    try {
+      await persistMappedResources(mappedResources);
+      console.log(
+        `FHIR ${mappedResources.primaryResource.resourceType} ${nodeId} updated successfully`,
+      );
+    } catch (err) {
+      throw new Error(
+        `Failed to update FHIR resource ${nodeId}: ${err.message}`,
+      );
+    }
+
+    relatedResourceIds = {
+      [mappedResources.primaryResource.resourceType]: [
+        mappedResources.primaryResource.id,
+      ],
+    };
+    for (const r of mappedResources.relatedResources || []) {
+      if (r?.resourceType && r?.id) {
+        relatedResourceIds[r.resourceType] =
+          relatedResourceIds[r.resourceType] || [];
+        relatedResourceIds[r.resourceType].push(r.id);
+      }
     }
   }
 

@@ -52,12 +52,12 @@ export class UsersPanel implements OnInit {
     this.loading = true;
     this.error = null;
     this.patientApi.getPatients().subscribe({
-      next: (patients) => {
+      next: (patients: PatientSummaryDTO[]) => {
         this.allPatients = patients;
         this.filteredPatients = [...this.allPatients];
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Failed to load patients', err);
         this.error =
           'Failed to load patients. Make sure the backend is running.';
