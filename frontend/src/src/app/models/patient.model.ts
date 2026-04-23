@@ -4,6 +4,7 @@ export interface PatientSummaryDTO {
   name: string;
   age: number | null;
   lastUpdated: string; // ISO string
+  primaryDiagnosis?: string;
 }
 
 // DTO for patient details (transformed by backend or raw FHIR)

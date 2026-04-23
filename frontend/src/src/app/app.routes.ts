@@ -8,7 +8,7 @@ import { ChatGPT } from './chatgpt/chatgpt';
 import { AppointmentTestComponent } from './appointment-test/appointment-test.component';
 import { PractitionerProfileTestComponent } from './practitioner-profile-test/practitioner-profile-test.component';
 import { SlotAppointmentTestComponent } from './slot-appointment-test/slot-appointment-test.component';
-import {ChatSection} from './chat-section/chat-section';
+import { ChatSection } from './chat-section/chat-section';
 
 export const routes: Routes = [
   // { path: '', component: Login },
@@ -36,7 +36,8 @@ export const routes: Routes = [
     path: 'chat-section',
     component: ChatSection,
     canActivate: [authGuard],
-  }
+  },
+];
 
 // export const routes: Routes = [
 //   { path: '', component: Login },

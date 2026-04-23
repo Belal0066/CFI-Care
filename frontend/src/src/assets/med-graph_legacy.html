@@ -1187,6 +1187,7 @@
       const catSelect = document.getElementById("editCategory");
       catContainer.style.display = "block";
       catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+      catSelect.disabled = false;
 
       form.style.top = "150px";
       form.style.left = "50%";
@@ -1763,6 +1764,7 @@
         catContainer.style.display = "block";
         catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
         catSelect.value = nodeData.category;
+        catSelect.disabled = false;
 
         const form = document.getElementById("editForm");
 
@@ -1872,6 +1874,7 @@
 
         catContainer.style.display = "block";
         catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+        catSelect.disabled = false;
 
         const form = document.getElementById("editForm");
         form.style.top = (rect.bottom + 10) + "px";
@@ -2519,7 +2522,7 @@
 
             if (needsLinker && !existingLinker) {
               linkerNodeCounter++;
-              const newId = Math.max(...data.map(d => d.id)) + 1;
+              const newId = `temp-linker-${Date.now()}-${linkerNodeCounter}`;
               const rootNodeRef = data.find(d => d.father === null);
 
               const linkerNode = {
@@ -2538,7 +2541,7 @@
               };
 
               data.push(linkerNode);
-              postNodeUpdate("add", linkerNode);
+              postNodeUpdate("add", linkerNode, linkerNode.father);
               setTimeout(() => renderChronologicalGraph(), 0);
               return;
             }
@@ -2994,65 +2997,62 @@
             }
             return;
           }
-          return;
-        }
-
           openNodeDetails(nodeData);
-      });
-
-      d3.selectAll('.node-circle')
-        .on('mouseenter', function (event, d) {
-          const nodeData = data.find(x => x.id === d.id);
-          if (!nodeData) return;
-
-          const tooltip = document.getElementById('tooltip');
-
-          if (createBranchMode) {
-            tooltip.innerText = 'Create Branch Here';
-            tooltip.style.display = 'block';
-            tooltip.style.background = '#3B82F6';
-          } else if (addMode) {
-            tooltip.innerText = 'Add Child Node';
-            tooltip.style.display = 'block';
-            tooltip.style.background = '#10B981';
-          } else if (deleteMode && nodeData.father !== null) {
-            tooltip.innerText = 'Delete Node';
-            tooltip.style.display = 'block';
-            tooltip.style.background = '#EF4444';
-          }
-        })
-        .on('mousemove', function (event) {
-          if (createBranchMode || addMode || deleteMode) {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.style.top = (event.pageY + 10) + 'px';
-            tooltip.style.left = (event.pageX + 10) + 'px';
-          }
-        })
-        .on('mouseleave', function () {
-          if (createBranchMode || addMode || deleteMode) {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.style.display = 'none';
-          }
         });
-    }
 
-    function renderCategoricalGraph() {
-      const treeContainer = document.getElementById("tree");
-      treeContainer.innerHTML = '';
+        d3.selectAll('.node-circle')
+          .on('mouseenter', function (event, d) {
+            const nodeData = data.find(x => x.id === d.id);
+            if (!nodeData) return;
 
-      myTree = Treeviz.create({
-        htmlId: "tree",
-        idKey: "id",
-        hasFlatData: true,
-        relationnalField: "father",
-        nodeWidth: 160,
-        nodeHeight: 100,
-        mainAxisNodeSpacing: 1.5,
-        direction: "top",
-        linkShape: "quadraticBeziers",
-        renderNode: ({ data: node }) => {
-          if (node.isVirtualRoot) {
-            return `
+            const tooltip = document.getElementById('tooltip');
+
+            if (createBranchMode) {
+              tooltip.innerText = 'Create Branch Here';
+              tooltip.style.display = 'block';
+              tooltip.style.background = '#3B82F6';
+            } else if (addMode) {
+              tooltip.innerText = 'Add Child Node';
+              tooltip.style.display = 'block';
+              tooltip.style.background = '#10B981';
+            } else if (deleteMode && nodeData.father !== null) {
+              tooltip.innerText = 'Delete Node';
+              tooltip.style.display = 'block';
+              tooltip.style.background = '#EF4444';
+            }
+          })
+          .on('mousemove', function (event) {
+            if (createBranchMode || addMode || deleteMode) {
+              const tooltip = document.getElementById('tooltip');
+              tooltip.style.top = (event.pageY + 10) + 'px';
+              tooltip.style.left = (event.pageX + 10) + 'px';
+            }
+          })
+          .on('mouseleave', function () {
+            if (createBranchMode || addMode || deleteMode) {
+              const tooltip = document.getElementById('tooltip');
+              tooltip.style.display = 'none';
+            }
+          });
+      }
+
+      function renderCategoricalGraph() {
+        const treeContainer = document.getElementById("tree");
+        treeContainer.innerHTML = '';
+
+        myTree = Treeviz.create({
+          htmlId: "tree",
+          idKey: "id",
+          hasFlatData: true,
+          relationnalField: "father",
+          nodeWidth: 160,
+          nodeHeight: 100,
+          mainAxisNodeSpacing: 1.5,
+          direction: "top",
+          linkShape: "quadraticBeziers",
+          renderNode: ({ data: node }) => {
+            if (node.isVirtualRoot) {
+              return `
                 <div class="tree-node-wrapper" data-id="${node.id}" style="opacity: 0.7;">
                   <div class="node-dot" style="background-color: #6B7280; border: 2px dashed #9CA3AF;">
                   </div>
@@ -3061,38 +3061,38 @@
                   </div>
                 </div>
               `;
-          }
+            }
 
-          let color = CATEGORY_COLORS[node.category] || "#999";
-          let borderStyle = '';
+            let color = CATEGORY_COLORS[node.category] || "#999";
+            let borderStyle = '';
 
-          if (node.isDiagnosis) {
-            color = "#ffffff";
-            borderStyle = "4px solid var(--danger)";
-          }
+            if (node.isDiagnosis) {
+              color = "#ffffff";
+              borderStyle = "4px solid var(--danger)";
+            }
 
-          const showPriorityRing = (node.priority === "High") ||
-            (node.father !== null && hasHiddenHighPriorityChild(node.id));
-          const priorityHtml = (!node.isDiagnosis && showPriorityRing) ?
-            `<div class="priority-ring"></div>` : '';
+            const showPriorityRing = (node.priority === "High") ||
+              (node.father !== null && hasHiddenHighPriorityChild(node.id));
+            const priorityHtml = (!node.isDiagnosis && showPriorityRing) ?
+              `<div class="priority-ring"></div>` : '';
 
-          const isParent = dataHasChildren(node.id);
-          const isExpanded = expandedNodes.has(node.id);
-          const expandBtnHtml = (!node.isDiagnosis && node.father === rootNode.id && isParent) ? `
+            const isParent = dataHasChildren(node.id);
+            const isExpanded = expandedNodes.has(node.id);
+            const expandBtnHtml = (!node.isDiagnosis && node.father === rootNode.id && isParent) ? `
         <div class="expand-trigger" data-expand-btn="${node.id}">
           <i class="fa-solid fa-${isExpanded ? 'minus' : 'plus'}"></i>
         </div>` : '';
 
-          let siblingBadgeHtml = '';
-          if (node.father !== null) {
-            const siblings = data.filter(d => d.father === node.father);
-            const isSibling = siblings.length > 1;
-            const badgeClass = isSibling ? 'badge-sibling' : 'badge-single';
-            const badgeText = isSibling ? 'SIBLING' : 'SINGLE';
-            siblingBadgeHtml = `<div class="sibling-badge ${badgeClass}">${badgeText}</div>`;
-          }
+            let siblingBadgeHtml = '';
+            if (node.father !== null) {
+              const siblings = data.filter(d => d.father === node.father);
+              const isSibling = siblings.length > 1;
+              const badgeClass = isSibling ? 'badge-sibling' : 'badge-single';
+              const badgeText = isSibling ? 'SIBLING' : 'SINGLE';
+              siblingBadgeHtml = `<div class="sibling-badge ${badgeClass}">${badgeText}</div>`;
+            }
 
-          return `
+            return `
                     <div class="tree-node-wrapper" data-id="${node.id}">
                         <div class="node-dot" style="background-color:${color}; border:${borderStyle};">
                             ${priorityHtml}
@@ -3105,93 +3105,93 @@
                         </div>
                     </div>
                 `;
-        }
-      });
-
-      applyCategoricalFilters();
-      currentMode = 'categorical';
-      setTimeout(applyStandardClickBehavior, 50);
-    }
-
-    function applyCategoricalFilters() {
-      const matchesFilter = new Set();
-
-      data.forEach(node => {
-        const nodeDate = new Date(node.dateIssued);
-        const matches =
-          selectedCategories.includes(node.category) &&
-          selectedPriorities.includes(node.priority) &&
-          selectedNormalities.includes(node.normality) &&
-          (!startDate || nodeDate >= startDate) &&
-          (!endDate || nodeDate <= endDate) &&
-          (selectedDiagnosis || !node.isDiagnosis);
-
-        if (matches) matchesFilter.add(node.id);
-      });
-
-      let changed = true;
-      while (changed) {
-        changed = false;
-        data.forEach(node => {
-          if (matchesFilter.has(node.id) && node.father !== null) {
-            if (!matchesFilter.has(node.father)) {
-              matchesFilter.add(node.father);
-              changed = true;
-            }
           }
         });
+
+        applyCategoricalFilters();
+        currentMode = 'categorical';
+        setTimeout(applyStandardClickBehavior, 50);
       }
 
-      const visibleNodes = data.filter(node => {
-        if (!matchesFilter.has(node.id)) return false;
-        if (node.father === null) return true;
+      function applyCategoricalFilters() {
+        const matchesFilter = new Set();
 
-        let currentParentId = node.father;
-        while (currentParentId !== null) {
-          if (!expandedNodes.has(currentParentId)) return false;
-          const parentNode = data.find(d => d.id === currentParentId);
-          currentParentId = parentNode ? parentNode.father : null;
+        data.forEach(node => {
+          const nodeDate = new Date(node.dateIssued);
+          const matches =
+            selectedCategories.includes(node.category) &&
+            selectedPriorities.includes(node.priority) &&
+            selectedNormalities.includes(node.normality) &&
+            (!startDate || nodeDate >= startDate) &&
+            (!endDate || nodeDate <= endDate) &&
+            (selectedDiagnosis || !node.isDiagnosis);
+
+          if (matches) matchesFilter.add(node.id);
+        });
+
+        let changed = true;
+        while (changed) {
+          changed = false;
+          data.forEach(node => {
+            if (matchesFilter.has(node.id) && node.father !== null) {
+              if (!matchesFilter.has(node.father)) {
+                matchesFilter.add(node.father);
+                changed = true;
+              }
+            }
+          });
         }
 
-        return true;
+        const visibleNodes = data.filter(node => {
+          if (!matchesFilter.has(node.id)) return false;
+          if (node.father === null) return true;
+
+          let currentParentId = node.father;
+          while (currentParentId !== null) {
+            if (!expandedNodes.has(currentParentId)) return false;
+            const parentNode = data.find(d => d.id === currentParentId);
+            currentParentId = parentNode ? parentNode.father : null;
+          }
+
+          return true;
+        });
+
+        myTree.refresh(visibleNodes);
+      }
+
+      refreshGraph = function () {
+        if (currentMode === 'categorical') {
+          applyCategoricalFilters();
+        } else {
+          renderChronologicalGraph();
+        }
+      }
+
+      document.querySelector(".toggle-group").addEventListener("click", (e) => {
+        const target = e.target.closest(".toggle-btn");
+        if (!target) return;
+
+        document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
+        target.classList.add("active");
+
+        resetModes();
+
+        if (target.innerText.includes("Chronological")) {
+          renderChronologicalGraph();
+        } else {
+          renderCategoricalGraph();
+        }
       });
 
-      myTree.refresh(visibleNodes);
-    }
-
-    refreshGraph = function () {
-      if (currentMode === 'categorical') {
-        applyCategoricalFilters();
-      } else {
-        renderChronologicalGraph();
+      function initialLoad() {
+        refreshGraph();
+        setTimeout(applyStandardClickBehavior, 100);
       }
-    }
 
-    document.querySelector(".toggle-group").addEventListener("click", (e) => {
-      const target = e.target.closest(".toggle-btn");
-      if (!target) return;
+      initialLoad();
 
-      document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
-      target.classList.add("active");
-
-      resetModes();
-
-      if (target.innerText.includes("Chronological")) {
-        renderChronologicalGraph();
-      } else {
-        renderCategoricalGraph();
-      }
-    });
-
-    function initialLoad() {
-      refreshGraph();
-      setTimeout(applyStandardClickBehavior, 100);
-    }
-
-    initialLoad();
-
-    const style = document.createElement('style');
-    style.textContent = `
+      const style = document.createElement('style');
+      style.textContent = `
       .timeline-node-details {
           pointer-events: none;
           text-align: center;
@@ -3327,33 +3327,33 @@
           50% { opacity: 0.35; }
       }
       `;
-    document.head.appendChild(style);
+      document.head.appendChild(style);
 
-    const branchBtn = document.createElement('button');
-    branchBtn.id = 'createBranchBtn';
-    branchBtn.innerHTML = '<i class="fa-solid fa-code-branch"></i>';
-    branchBtn.title = 'Create New Branch';
-    document.body.appendChild(branchBtn);
+      const branchBtn = document.createElement('button');
+      branchBtn.id = 'createBranchBtn';
+      branchBtn.innerHTML = '<i class="fa-solid fa-code-branch"></i>';
+      branchBtn.title = 'Create New Branch';
+      document.body.appendChild(branchBtn);
 
-    branchBtn.addEventListener('click', () => {
-      if (createBranchMode) {
-        resetModes();
-        createBranchMode = false;
-        branchBtn.classList.remove('active');
-        document.getElementById('tree').classList.remove('branch-mode-active');
-      } else {
-        resetModes();
-        createBranchMode = true;
-        branchBtn.classList.add('active');
-        document.getElementById('tree').classList.add('branch-mode-active');
-      }
-    });
+      branchBtn.addEventListener('click', () => {
+        if (createBranchMode) {
+          resetModes();
+          createBranchMode = false;
+          branchBtn.classList.remove('active');
+          document.getElementById('tree').classList.remove('branch-mode-active');
+        } else {
+          resetModes();
+          createBranchMode = true;
+          branchBtn.classList.add('active');
+          document.getElementById('tree').classList.add('branch-mode-active');
+        }
+      });
 
-    const mergeHintBtn = document.createElement("button");
-    mergeHintBtn.id = "mergeHintBtn";
-    mergeHintBtn.innerHTML = '<i class="fa-solid fa-code-merge"></i>';
-    mergeHintBtn.title = "Click any branch line to set its state";
-    mergeHintBtn.style.cssText = `
+      const mergeHintBtn = document.createElement("button");
+      mergeHintBtn.id = "mergeHintBtn";
+      mergeHintBtn.innerHTML = '<i class="fa-solid fa-code-merge"></i>';
+      mergeHintBtn.title = "Click any branch line to set its state";
+      mergeHintBtn.style.cssText = `
         position: fixed;
         bottom: 155px;
         right: 30px;
@@ -3372,272 +3372,272 @@
         justify-content: center;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     `;
-    document.body.appendChild(mergeHintBtn);
+      document.body.appendChild(mergeHintBtn);
 
-    let mergeMode = false;
+      let mergeMode = false;
 
-    mergeHintBtn.onclick = () => {
-      if (mergeMode) {
-        mergeMode = false;
-        mergeHintBtn.style.background = "#10B981";
-        mergeHintBtn.style.transform = "rotate(0deg)";
-        mergeHintBtn.style.boxShadow = "0 4px 12px rgba(16,185,129,0.4)";
-      } else {
-        mergeMode = true;
-        mergeHintBtn.style.background = "#059669";
-        mergeHintBtn.style.transform = "rotate(180deg)";
-        mergeHintBtn.style.boxShadow = "0 4px 20px rgba(16,185,129,0.7)";
+      mergeHintBtn.onclick = () => {
+        if (mergeMode) {
+          mergeMode = false;
+          mergeHintBtn.style.background = "#10B981";
+          mergeHintBtn.style.transform = "rotate(0deg)";
+          mergeHintBtn.style.boxShadow = "0 4px 12px rgba(16,185,129,0.4)";
+        } else {
+          mergeMode = true;
+          mergeHintBtn.style.background = "#059669";
+          mergeHintBtn.style.transform = "rotate(180deg)";
+          mergeHintBtn.style.boxShadow = "0 4px 20px rgba(16,185,129,0.7)";
 
-        const tip = document.getElementById("tooltip");
-        tip.innerText = "Click a branch line to mark it as Completed (Merged)";
-        tip.style.display = "block";
-        tip.style.background = "#10B981";
-        tip.style.position = "fixed";
-        tip.style.top = (mergeHintBtn.getBoundingClientRect().top - 44) + "px";
-        tip.style.left = (mergeHintBtn.getBoundingClientRect().left - 140) + "px";
-        setTimeout(() => { tip.style.display = "none"; }, 2500);
-      }
-    };
+          const tip = document.getElementById("tooltip");
+          tip.innerText = "Click a branch line to mark it as Completed (Merged)";
+          tip.style.display = "block";
+          tip.style.background = "#10B981";
+          tip.style.position = "fixed";
+          tip.style.top = (mergeHintBtn.getBoundingClientRect().top - 44) + "px";
+          tip.style.left = (mergeHintBtn.getBoundingClientRect().left - 140) + "px";
+          setTimeout(() => { tip.style.display = "none"; }, 2500);
+        }
+      };
 
 
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    const body = document.body;
-    const darkModeIcon = darkModeToggle.querySelector('i');
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      const body = document.body;
+      const darkModeIcon = darkModeToggle.querySelector('i');
 
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      body.classList.add('dark-mode');
-      document.getElementById('sunIcon').style.display = 'none';
-      document.getElementById('moonIcon').style.display = 'block';
-    }
-
-    darkModeToggle.addEventListener('click', () => {
-      body.classList.toggle('dark-mode');
-
-      const sunIcon = document.getElementById('sunIcon');
-      const moonIcon = document.getElementById('moonIcon');
-
-      if (body.classList.contains('dark-mode')) {
-        sunIcon.style.display = 'none';
-        moonIcon.style.display = 'block';
-        localStorage.setItem('theme', 'dark');
-      } else {
-        sunIcon.style.display = 'block';
-        moonIcon.style.display = 'none';
-        localStorage.setItem('theme', 'light');
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        body.classList.add('dark-mode');
+        document.getElementById('sunIcon').style.display = 'none';
+        document.getElementById('moonIcon').style.display = 'block';
       }
 
-      if (currentMode === 'chronological') {
-        renderChronologicalGraph();
-      }
-    });
+      darkModeToggle.addEventListener('click', () => {
+        body.classList.toggle('dark-mode');
 
-    // === EXPORT / IMPORT ===
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
 
-    document.getElementById("exportJsonBtn").addEventListener("click", () => {
-      const exportData = data.map(n => ({
-        id: n.id,
-        text_1: n.text_1,
-        father: n.father,
-        category: n.category,
-        priority: n.priority,
-        normality: n.normality,
-        dateIssued: n.dateIssued,
-        details: n.details,
-        isDiagnosis: n.isDiagnosis || false,
-        isManualBranch: n.isManualBranch || false
-      }));
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `medflow-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
+        if (body.classList.contains('dark-mode')) {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+          localStorage.setItem('theme', 'dark');
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+          localStorage.setItem('theme', 'light');
+        }
 
-    document.getElementById("exportPdfBtn").addEventListener("click", async () => {
-      if (currentMode !== 'chronological') {
-        alert("PDF export is only available in Chronological view. Please switch to Chronological first.");
-        return;
-      }
-
-      const svgEl = document.querySelector("#tree svg");
-      if (!svgEl) { alert("Nothing to export."); return; }
-
-      const loadScript = (src) => new Promise((res, rej) => {
-        if (document.querySelector(`script[src="${src}"]`)) return res();
-        const s = document.createElement("script");
-        s.src = src; s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-
-      const svgW = parseFloat(svgEl.getAttribute("width")) || 1200;
-      const svgH = parseFloat(svgEl.getAttribute("height")) || 600;
-
-      const clone = svgEl.cloneNode(true);
-      const contentGroup = clone.querySelector(".timeline-content");
-      if (contentGroup) contentGroup.setAttribute("transform", "translate(100, 100)");
-
-      clone.style.background = "#f8fafc";
-      const pdfExtraWidth = mainBranchState === "finish_case" ? 400 : 0;
-      clone.setAttribute("width", svgW + pdfExtraWidth);
-      clone.setAttribute("height", svgH);
-      clone.setAttribute("viewBox", `0 0 ${svgW + pdfExtraWidth} ${svgH}`);
-
-      clone.querySelectorAll("text").forEach(t => {
-        t.setAttribute("fill", "#1e293b");
-        t.style.fill = "#1e293b";
-      });
-
-      clone.querySelectorAll("line").forEach(el => {
-        const s = el.style.stroke;
-        if (!s || s === "#475569" || s === "rgb(71,85,105)") {
-          el.style.stroke = "#94A3B8";
+        if (currentMode === 'chronological') {
+          renderChronologicalGraph();
         }
       });
 
-      const inlineStyle = document.createElementNS("http://www.w3.org/2000/svg", "style");
-      inlineStyle.textContent = `
+      // === EXPORT / IMPORT ===
+
+      document.getElementById("exportJsonBtn").addEventListener("click", () => {
+        const exportData = data.map(n => ({
+          id: n.id,
+          text_1: n.text_1,
+          father: n.father,
+          category: n.category,
+          priority: n.priority,
+          normality: n.normality,
+          dateIssued: n.dateIssued,
+          details: n.details,
+          isDiagnosis: n.isDiagnosis || false,
+          isManualBranch: n.isManualBranch || false
+        }));
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `medflow-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById("exportPdfBtn").addEventListener("click", async () => {
+        if (currentMode !== 'chronological') {
+          alert("PDF export is only available in Chronological view. Please switch to Chronological first.");
+          return;
+        }
+
+        const svgEl = document.querySelector("#tree svg");
+        if (!svgEl) { alert("Nothing to export."); return; }
+
+        const loadScript = (src) => new Promise((res, rej) => {
+          if (document.querySelector(`script[src="${src}"]`)) return res();
+          const s = document.createElement("script");
+          s.src = src; s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+
+        const svgW = parseFloat(svgEl.getAttribute("width")) || 1200;
+        const svgH = parseFloat(svgEl.getAttribute("height")) || 600;
+
+        const clone = svgEl.cloneNode(true);
+        const contentGroup = clone.querySelector(".timeline-content");
+        if (contentGroup) contentGroup.setAttribute("transform", "translate(100, 100)");
+
+        clone.style.background = "#f8fafc";
+        const pdfExtraWidth = mainBranchState === "finish_case" ? 400 : 0;
+        clone.setAttribute("width", svgW + pdfExtraWidth);
+        clone.setAttribute("height", svgH);
+        clone.setAttribute("viewBox", `0 0 ${svgW + pdfExtraWidth} ${svgH}`);
+
+        clone.querySelectorAll("text").forEach(t => {
+          t.setAttribute("fill", "#1e293b");
+          t.style.fill = "#1e293b";
+        });
+
+        clone.querySelectorAll("line").forEach(el => {
+          const s = el.style.stroke;
+          if (!s || s === "#475569" || s === "rgb(71,85,105)") {
+            el.style.stroke = "#94A3B8";
+          }
+        });
+
+        const inlineStyle = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        inlineStyle.textContent = `
         .chrono-node-title { font-family: Inter, Arial, sans-serif; font-size: 12px; font-weight: 600; color: #1e293b !important; }
         .chrono-node-date  { font-family: Inter, Arial, sans-serif; font-size: 10px; color: #64748b !important; }
         .chrono-priority-banner { background: #FEE2E2; color: #991B1B; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
     `;
-      clone.insertBefore(inlineStyle, clone.firstChild);
+        clone.insertBefore(inlineStyle, clone.firstChild);
 
-      const pixelRatio = 2;
-      const canvasW = (svgW + pdfExtraWidth) * pixelRatio;
-      const canvasH = svgH * pixelRatio;
+        const pixelRatio = 2;
+        const canvasW = (svgW + pdfExtraWidth) * pixelRatio;
+        const canvasH = svgH * pixelRatio;
 
-      const serializer = new XMLSerializer();
-      const svgStr = serializer.serializeToString(clone);
-      const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-      const svgUrl = URL.createObjectURL(svgBlob);
+        const serializer = new XMLSerializer();
+        const svgStr = serializer.serializeToString(clone);
+        const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+        const svgUrl = URL.createObjectURL(svgBlob);
 
-      const img = new Image();
-      img.onload = () => {
-        const srcCanvas = document.createElement("canvas");
-        srcCanvas.width = canvasW;
-        srcCanvas.height = canvasH;
-        const ctx = srcCanvas.getContext("2d");
-        ctx.fillStyle = "#f8fafc";
-        ctx.fillRect(0, 0, canvasW, canvasH);
-        ctx.drawImage(img, 0, 0, canvasW, canvasH);
-        URL.revokeObjectURL(svgUrl);
+        const img = new Image();
+        img.onload = () => {
+          const srcCanvas = document.createElement("canvas");
+          srcCanvas.width = canvasW;
+          srcCanvas.height = canvasH;
+          const ctx = srcCanvas.getContext("2d");
+          ctx.fillStyle = "#f8fafc";
+          ctx.fillRect(0, 0, canvasW, canvasH);
+          ctx.drawImage(img, 0, 0, canvasW, canvasH);
+          URL.revokeObjectURL(svgUrl);
 
-        const rotCanvas = document.createElement("canvas");
-        rotCanvas.width = canvasH;
-        rotCanvas.height = canvasW;
-        const rCtx = rotCanvas.getContext("2d");
-        rCtx.fillStyle = "#f8fafc";
-        rCtx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
+          const rotCanvas = document.createElement("canvas");
+          rotCanvas.width = canvasH;
+          rotCanvas.height = canvasW;
+          const rCtx = rotCanvas.getContext("2d");
+          rCtx.fillStyle = "#f8fafc";
+          rCtx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
 
-        rCtx.translate(canvasH, 0);
-        rCtx.rotate(Math.PI / 2);
-        rCtx.drawImage(srcCanvas, 0, 0);
+          rCtx.translate(canvasH, 0);
+          rCtx.rotate(Math.PI / 2);
+          rCtx.drawImage(srcCanvas, 0, 0);
 
-        const { jsPDF } = window.jspdf;
-        const pdfW = rotCanvas.width / pixelRatio;
-        const pdfH = rotCanvas.height / pixelRatio;
+          const { jsPDF } = window.jspdf;
+          const pdfW = rotCanvas.width / pixelRatio;
+          const pdfH = rotCanvas.height / pixelRatio;
 
-        const pdf = new jsPDF({
-          orientation: pdfW > pdfH ? "landscape" : "portrait",
-          unit: "pt",
-          format: [pdfW, pdfH]
-        });
-
-        pdf.addImage(rotCanvas.toDataURL("image/png", 1.0), "PNG", 0, 0, pdfW, pdfH);
-        pdf.save(`medflow-chrono-${new Date().toISOString().slice(0, 10)}.pdf`);
-      };
-
-      img.onerror = () => {
-        alert("Could not render the graph. Please try switching to light mode first.");
-      };
-
-      img.src = svgUrl;
-    });
-
-    document.getElementById("importFileInput").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const imported = JSON.parse(ev.target.result);
-          if (!Array.isArray(imported) || imported.length === 0) throw new Error();
-
-          data.length = 0;
-          imported.forEach(n => data.push(n));
-          expandedNodes.clear();
-          expansionOrder.length = 0;
-          const newRoot = data.find(d => d.father === null);
-          if (newRoot) expandedNodes.add(newRoot.id);
-
-          document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
-          document.querySelector(".toggle-btn").classList.add("active");
-          currentMode = 'categorical';
-          renderCategoricalGraph();
-
-          window.parent.postMessage({ type: "IMPORT_GRAPH", nodes: imported }, "*");
-        } catch {
-          alert("Invalid file. Please import a MedFlow JSON export.");
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = "";
-    });
-
-
-    // ============================================================
-    // TUTORIAL SYSTEM
-    // ============================================================
-    const TUTORIAL_STEPS = [
-      {
-        title: "Welcome to MedFlow Graph",
-        body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
-        target: null,
-        cardPos: "center"
-      },
-      {
-        title: "The Patient Journey Tree",
-        body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.", target: "#tree",
-        cardPos: "right",
-        onEnter: () => {
-          const firstLevelChildren = data.filter(d => d.father === rootNode?.id);
-          firstLevelChildren.forEach(child => {
-            expandedNodes.add(child.id);
-            addAllDescendants(child.id);
+          const pdf = new jsPDF({
+            orientation: pdfW > pdfH ? "landscape" : "portrait",
+            unit: "pt",
+            format: [pdfW, pdfH]
           });
-          refreshGraph();
-        }
-      },
-      {
-        title: "Node Colors and Categories",
-        body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
-        target: "#legend",
-        cardPos: "top"
-      },
-      {
-        title: "High Priority Events",
-        body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
-        target: "#tree",
-        cardPos: "right"
-      },
-      {
-        title: "Expand & Collapse Branches",
-        body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
-        target: null,
-        cardPos: "center",
-        onEnter: () => {
-          setTimeout(() => {
-            const btn = document.querySelector(".expand-trigger");
-            if (!btn) return;
-            let arrow = document.getElementById("tutorial-node-arrow");
-            if (!arrow) {
-              arrow = document.createElement("div");
-              arrow.id = "tutorial-node-arrow";
-              arrow.style.cssText = `
+
+          pdf.addImage(rotCanvas.toDataURL("image/png", 1.0), "PNG", 0, 0, pdfW, pdfH);
+          pdf.save(`medflow-chrono-${new Date().toISOString().slice(0, 10)}.pdf`);
+        };
+
+        img.onerror = () => {
+          alert("Could not render the graph. Please try switching to light mode first.");
+        };
+
+        img.src = svgUrl;
+      });
+
+      document.getElementById("importFileInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const imported = JSON.parse(ev.target.result);
+            if (!Array.isArray(imported) || imported.length === 0) throw new Error();
+
+            data.length = 0;
+            imported.forEach(n => data.push(n));
+            expandedNodes.clear();
+            expansionOrder.length = 0;
+            const newRoot = data.find(d => d.father === null);
+            if (newRoot) expandedNodes.add(newRoot.id);
+
+            document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+            document.querySelector(".toggle-btn").classList.add("active");
+            currentMode = 'categorical';
+            renderCategoricalGraph();
+
+            window.parent.postMessage({ type: "IMPORT_GRAPH", nodes: imported }, "*");
+          } catch {
+            alert("Invalid file. Please import a MedFlow JSON export.");
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      });
+
+
+      // ============================================================
+      // TUTORIAL SYSTEM
+      // ============================================================
+      const TUTORIAL_STEPS = [
+        {
+          title: "Welcome to MedFlow Graph",
+          body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
+          target: null,
+          cardPos: "center"
+        },
+        {
+          title: "The Patient Journey Tree",
+          body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.", target: "#tree",
+          cardPos: "right",
+          onEnter: () => {
+            const firstLevelChildren = data.filter(d => d.father === rootNode?.id);
+            firstLevelChildren.forEach(child => {
+              expandedNodes.add(child.id);
+              addAllDescendants(child.id);
+            });
+            refreshGraph();
+          }
+        },
+        {
+          title: "Node Colors and Categories",
+          body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
+          target: "#legend",
+          cardPos: "top"
+        },
+        {
+          title: "High Priority Events",
+          body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
+          target: "#tree",
+          cardPos: "right"
+        },
+        {
+          title: "Expand & Collapse Branches",
+          body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
+          target: null,
+          cardPos: "center",
+          onEnter: () => {
+            setTimeout(() => {
+              const btn = document.querySelector(".expand-trigger");
+              if (!btn) return;
+              let arrow = document.getElementById("tutorial-node-arrow");
+              if (!arrow) {
+                arrow = document.createElement("div");
+                arrow.id = "tutorial-node-arrow";
+                arrow.style.cssText = `
                     position: fixed;
                     z-index: 2003;
                     pointer-events: none;
@@ -3647,148 +3647,148 @@
                     gap: 4px;
                     transition: all 0.3s ease;
                 `;
-              arrow.innerHTML = `
+                arrow.innerHTML = `
                     <span style="font-size:12px; font-weight:600; color:#3B82F6; background:white; padding:3px 8px; border-radius:4px; border:1px solid #BFDBFE; white-space:nowrap;">
                         <i class="fa-solid fa-plus" style="font-size:10px;"></i> / <i class="fa-solid fa-minus" style="font-size:10px;"></i> button
                     </span>
                     <i class="fa-solid fa-arrow-down" style="color:#3B82F6; font-size:16px; animation: tutBounce 0.8s ease-in-out infinite;"></i>
                 `;
-              document.body.appendChild(arrow);
-              if (!document.getElementById("tutBounceStyle")) {
-                const s = document.createElement("style");
-                s.id = "tutBounceStyle";
-                s.textContent = `@keyframes tutBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }`;
-                document.head.appendChild(s);
+                document.body.appendChild(arrow);
+                if (!document.getElementById("tutBounceStyle")) {
+                  const s = document.createElement("style");
+                  s.id = "tutBounceStyle";
+                  s.textContent = `@keyframes tutBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }`;
+                  document.head.appendChild(s);
+                }
               }
-            }
-            const r = btn.getBoundingClientRect();
-            arrow.style.top = (r.top - 48) + "px";
-            arrow.style.left = (r.left + r.width / 2 - 37) + "px";
-            arrow.style.display = "flex";
-          }, 200);
-        }
-      },
-      {
-        title: "Adding a Node",
-        body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
-        target: "#addNodeBtn",
-        cardPos: "bottom"
-      },
-      {
-        title: "Deleting a Node",
-        body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
-        target: "#deleteNodeBtn",
-        cardPos: "bottom"
-      },
-      {
-        title: "Chronological View",
-        body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
-        target: ".toggle-group",
-        cardPos: "bottom",
-        onEnter: () => {
-          document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
-          const chronoBtn = Array.from(document.querySelectorAll(".toggle-btn"))
-            .find(b => b.innerText.includes("Chronological"));
-          if (chronoBtn) chronoBtn.classList.add("active");
-          renderChronologicalGraph();
-        }
-      },
-      {
-        title: "Diagnosis Nodes",
-        body: "A diagnosis node: white circle with a red border — starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
-        target: null,
-        cardPos: "diagnosis",
-        onEnter: () => {
-          setTimeout(() => {
-            const diagNode = Array.from(document.querySelectorAll(".node-circle"))
-              .find(el => {
-                const d3datum = el.__data__;
-                return d3datum && d3datum.isDiagnosis;
-              });
-            if (!diagNode) return;
+              const r = btn.getBoundingClientRect();
+              arrow.style.top = (r.top - 48) + "px";
+              arrow.style.left = (r.left + r.width / 2 - 37) + "px";
+              arrow.style.display = "flex";
+            }, 200);
+          }
+        },
+        {
+          title: "Adding a Node",
+          body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
+          target: "#addNodeBtn",
+          cardPos: "bottom"
+        },
+        {
+          title: "Deleting a Node",
+          body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
+          target: "#deleteNodeBtn",
+          cardPos: "bottom"
+        },
+        {
+          title: "Chronological View",
+          body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
+          target: ".toggle-group",
+          cardPos: "bottom",
+          onEnter: () => {
+            document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
+            const chronoBtn = Array.from(document.querySelectorAll(".toggle-btn"))
+              .find(b => b.innerText.includes("Chronological"));
+            if (chronoBtn) chronoBtn.classList.add("active");
+            renderChronologicalGraph();
+          }
+        },
+        {
+          title: "Diagnosis Nodes",
+          body: "A diagnosis node: white circle with a red border — starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
+          target: null,
+          cardPos: "diagnosis",
+          onEnter: () => {
+            setTimeout(() => {
+              const diagNode = Array.from(document.querySelectorAll(".node-circle"))
+                .find(el => {
+                  const d3datum = el.__data__;
+                  return d3datum && d3datum.isDiagnosis;
+                });
+              if (!diagNode) return;
 
-            let arrow = document.getElementById("tutorial-node-arrow");
-            if (!arrow) {
-              arrow = document.createElement("div");
-              arrow.id = "tutorial-node-arrow";
-              arrow.style.cssText = `position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.3s ease;`;
-              document.body.appendChild(arrow);
-            }
-            arrow.innerHTML = `
+              let arrow = document.getElementById("tutorial-node-arrow");
+              if (!arrow) {
+                arrow = document.createElement("div");
+                arrow.id = "tutorial-node-arrow";
+                arrow.style.cssText = `position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.3s ease;`;
+                document.body.appendChild(arrow);
+              }
+              arrow.innerHTML = `
                 <i class="fa-solid fa-arrow-up" style="color:#EF4444;font-size:16px;animation:tutBounce 0.8s ease-in-out infinite;"></i>
             `;
-            const r = diagNode.getBoundingClientRect();
-            arrow.style.top = (r.bottom + 34) + "px";
-            arrow.style.left = (r.left + r.width / 2 - 7) + "px";
-            arrow.style.display = "flex";
-          }, 600);
+              const r = diagNode.getBoundingClientRect();
+              arrow.style.top = (r.bottom + 34) + "px";
+              arrow.style.left = (r.left + r.width / 2 - 7) + "px";
+              arrow.style.display = "flex";
+            }, 600);
+          }
+        },
+        {
+          title: "Filters",
+          body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
+          target: "#filterToggleBtn",
+          cardPos: "bottom"
+        },
+        {
+          title: "All done",
+          body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time. Good luck!",
+          target: null,
+          cardPos: "center"
         }
-      },
-      {
-        title: "Filters",
-        body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
-        target: "#filterToggleBtn",
-        cardPos: "bottom"
-      },
-      {
-        title: "All done",
-        body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time. Good luck!",
-        target: null,
-        cardPos: "center"
+      ];
+
+      let tutStep = 0;
+      let tutActive = false;
+
+      function startTutorial() {
+        tutStep = 0;
+        tutActive = true;
+        renderTutorialStep();
       }
-    ];
 
-    let tutStep = 0;
-    let tutActive = false;
+      function endTutorial() {
+        tutActive = false;
+        document.getElementById("tutorialSpotlight").style.display = "none";
+        document.getElementById("tutorialCard").style.display = "none";
+        const arrow = document.getElementById("tutorial-node-arrow");
+        if (arrow) arrow.remove();
+        localStorage.setItem("medflow_tutorial_done", "1");
+      }
 
-    function startTutorial() {
-      tutStep = 0;
-      tutActive = true;
-      renderTutorialStep();
-    }
+      function renderTutorialStep() {
+        const step = TUTORIAL_STEPS[tutStep];
+        const existingArrow = document.getElementById("tutorial-node-arrow");
+        if (existingArrow) existingArrow.style.display = "none";
+        if (step.onEnter) step.onEnter();
+        const spotlight = document.getElementById("tutorialSpotlight");
+        const card = document.getElementById("tutorialCard");
 
-    function endTutorial() {
-      tutActive = false;
-      document.getElementById("tutorialSpotlight").style.display = "none";
-      document.getElementById("tutorialCard").style.display = "none";
-      const arrow = document.getElementById("tutorial-node-arrow");
-      if (arrow) arrow.remove();
-      localStorage.setItem("medflow_tutorial_done", "1");
-    }
-
-    function renderTutorialStep() {
-      const step = TUTORIAL_STEPS[tutStep];
-      const existingArrow = document.getElementById("tutorial-node-arrow");
-      if (existingArrow) existingArrow.style.display = "none";
-      if (step.onEnter) step.onEnter();
-      const spotlight = document.getElementById("tutorialSpotlight");
-      const card = document.getElementById("tutorialCard");
-
-      if (step.target) {
-        const el = document.querySelector(step.target);
-        if (el) {
-          const r = el.getBoundingClientRect();
-          const pad = 8;
-          spotlight.style.display = "block";
-          spotlight.style.left = (r.left - pad) + "px";
-          spotlight.style.top = (r.top - pad) + "px";
-          spotlight.style.width = (r.width + pad * 2) + "px";
-          spotlight.style.height = (r.height + pad * 2) + "px";
+        if (step.target) {
+          const el = document.querySelector(step.target);
+          if (el) {
+            const r = el.getBoundingClientRect();
+            const pad = 8;
+            spotlight.style.display = "block";
+            spotlight.style.left = (r.left - pad) + "px";
+            spotlight.style.top = (r.top - pad) + "px";
+            spotlight.style.width = (r.width + pad * 2) + "px";
+            spotlight.style.height = (r.height + pad * 2) + "px";
+          } else {
+            spotlight.style.display = "none";
+          }
         } else {
           spotlight.style.display = "none";
         }
-      } else {
-        spotlight.style.display = "none";
-      }
 
-      const isLast = tutStep === TUTORIAL_STEPS.length - 1;
-      const isFirst = tutStep === 0;
+        const isLast = tutStep === TUTORIAL_STEPS.length - 1;
+        const isFirst = tutStep === 0;
 
-      const dots = TUTORIAL_STEPS.map((_, i) =>
-        `<div class="tutorial-dot${i === tutStep ? " active" : ""}"></div>`
-      ).join("");
+        const dots = TUTORIAL_STEPS.map((_, i) =>
+          `<div class="tutorial-dot${i === tutStep ? " active" : ""}"></div>`
+        ).join("");
 
-      card.innerHTML = `
+        card.innerHTML = `
     <div class="tutorial-step-badge">Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}</div>
     <h4>${step.title}</h4>
     <p>${step.body}</p>
@@ -3804,71 +3804,71 @@
     </div>
   `;
 
-      card.style.display = "block";
-      positionTutorialCard(card, step);
+        card.style.display = "block";
+        positionTutorialCard(card, step);
 
-      document.getElementById("tutNextBtn").onclick = () => {
-        if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderTutorialStep(); }
-        else endTutorial();
-      };
-      const prevBtn = document.getElementById("tutPrevBtn");
-      if (prevBtn) prevBtn.onclick = () => { tutStep--; renderTutorialStep(); };
-      const skipBtn = document.getElementById("tutSkipBtn");
-      if (skipBtn) skipBtn.onclick = endTutorial;
-    }
-
-    function positionTutorialCard(card, step) {
-      card.style.top = "";
-      card.style.left = "";
-      card.style.right = "";
-      card.style.bottom = "";
-      card.style.transform = "";
-
-      if (step.cardPos === "diagnosis") {
-        card.style.top = "25%";
-        card.style.left = "50%";
-        card.style.transform = "translate(-50%, 0)";
-        return;
+        document.getElementById("tutNextBtn").onclick = () => {
+          if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderTutorialStep(); }
+          else endTutorial();
+        };
+        const prevBtn = document.getElementById("tutPrevBtn");
+        if (prevBtn) prevBtn.onclick = () => { tutStep--; renderTutorialStep(); };
+        const skipBtn = document.getElementById("tutSkipBtn");
+        if (skipBtn) skipBtn.onclick = endTutorial;
       }
 
-      if (step.cardPos === "center" || !step.target) {
-        card.style.top = "50%";
-        card.style.left = "50%";
-        card.style.transform = "translate(-50%, -50%)";
-        return;
+      function positionTutorialCard(card, step) {
+        card.style.top = "";
+        card.style.left = "";
+        card.style.right = "";
+        card.style.bottom = "";
+        card.style.transform = "";
+
+        if (step.cardPos === "diagnosis") {
+          card.style.top = "25%";
+          card.style.left = "50%";
+          card.style.transform = "translate(-50%, 0)";
+          return;
+        }
+
+        if (step.cardPos === "center" || !step.target) {
+          card.style.top = "50%";
+          card.style.left = "50%";
+          card.style.transform = "translate(-50%, -50%)";
+          return;
+        }
+
+        const el = document.querySelector(step.target);
+        if (!el) {
+          card.style.top = "50%";
+          card.style.left = "50%";
+          card.style.transform = "translate(-50%, -50%)";
+          return;
+        }
+
+        const r = el.getBoundingClientRect();
+        const cw = 340, gap = 16;
+
+        if (step.cardPos === "bottom") {
+          card.style.top = (r.bottom + gap) + "px";
+          card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+        } else if (step.cardPos === "top") {
+          card.style.top = Math.max(8, r.top - 260 - gap) + "px";
+          card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+        } else if (step.cardPos === "right") {
+          card.style.top = Math.min(r.top, window.innerHeight - 280) + "px";
+          card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
+        }
       }
 
-      const el = document.querySelector(step.target);
-      if (!el) {
-        card.style.top = "50%";
-        card.style.left = "50%";
-        card.style.transform = "translate(-50%, -50%)";
-        return;
+      // Help button
+      document.getElementById("tutorialHelpBtn").addEventListener("click", startTutorial);
+
+      // Auto-launch for first-time visitors
+      if (!localStorage.getItem("medflow_tutorial_done")) {
+        setTimeout(startTutorial, 800);
       }
-
-      const r = el.getBoundingClientRect();
-      const cw = 340, gap = 16;
-
-      if (step.cardPos === "bottom") {
-        card.style.top = (r.bottom + gap) + "px";
-        card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
-      } else if (step.cardPos === "top") {
-        card.style.top = Math.max(8, r.top - 260 - gap) + "px";
-        card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
-      } else if (step.cardPos === "right") {
-        card.style.top = Math.min(r.top, window.innerHeight - 280) + "px";
-        card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
-      }
-    }
-
-    // Help button
-    document.getElementById("tutorialHelpBtn").addEventListener("click", startTutorial);
-
-    // Auto-launch for first-time visitors
-    if (!localStorage.getItem("medflow_tutorial_done")) {
-      setTimeout(startTutorial, 800);
-    }
-} // End of initializeGraph function
+    } // End of initializeGraph function
   </script>
 
 

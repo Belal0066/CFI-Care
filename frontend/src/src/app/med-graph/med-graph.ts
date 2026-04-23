@@ -38,6 +38,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     // Get patient ID from route params
     this.patientId = this.route.snapshot.paramMap.get('id');
+    console.log('[MED-GRAPH][ngOnInit] route patientId =', this.patientId);
 
     if (this.patientId) {
       this.loadPatientGraph(this.patientId);
@@ -51,6 +52,13 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
       if (event.origin !== window.location.origin) return;
 
       const data = event.data;
+      if (data?.type) {
+        console.log(
+          '[MED-GRAPH][iframe->angular] message type =',
+          data.type,
+          data,
+        );
+      }
       if (data?.type === 'NODE_UPDATE') {
         console.log('Received node update:', data);
         this.handleNodeUpdate(data.action, data.node, data.parentNodeId);
@@ -127,6 +135,11 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (err) => {
         console.error('Failed to add node:', err);
+        console.error('[MED-GRAPH][addNode] backend error payload =', {
+          status: err?.status,
+          message: err?.message,
+          error: err?.error,
+        });
         this.sendMessage({
           type: 'NODE_ERROR',
           action: 'add',
@@ -198,6 +211,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
 
   sendMessage(message: any) {
     if (this.iframe?.nativeElement?.contentWindow) {
+      console.log('[MED-GRAPH][angular->iframe] posting message =', message);
       this.iframe.nativeElement.contentWindow.postMessage(message, '*');
     }
   }
@@ -205,9 +219,14 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
   loadPatientGraph(patientId: string) {
     this.loading = true;
     this.error = null;
+    console.log(
+      '[MED-GRAPH][loadPatientGraph] requesting patient graph for',
+      patientId,
+    );
 
     this.patientApi.getPatientGraph(patientId).subscribe({
       next: (response) => {
+        console.log('[MED-GRAPH][loadPatientGraph] raw response =', response);
         // Handle both old format (array) and new format ({ nodes, eocId })
         if (Array.isArray(response)) {
           this.data = response;
@@ -218,9 +237,18 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
             this.eocId = response.eocId;
           }
         }
+        console.log(
+          '[MED-GRAPH][loadPatientGraph] parsed nodes =',
+          this.data.length,
+          'eocId =',
+          this.eocId,
+        );
         this.loading = false;
         // Send to iframe if already loaded
         if (this.iframeLoaded) {
+          console.log(
+            '[MED-GRAPH][loadPatientGraph] iframe already loaded, sending INIT_GRAPH',
+          );
           this.sendNodeList();
         }
       },
@@ -237,16 +265,32 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
     // Wait for iframe to load fully
     this.iframe.nativeElement.onload = () => {
       this.iframeLoaded = true;
+      console.log('[MED-GRAPH][iframe] loaded, loading state =', this.loading);
       // Always send node list when iframe loads (even if empty)
       // This allows the iframe to show the empty state and enable the Add Node button
       if (!this.loading) {
+        console.log('[MED-GRAPH][iframe] sending INIT_GRAPH after iframe load');
         this.sendNodeList();
       }
     };
   }
 
   sendNodeList() {
-    if (!this.iframe?.nativeElement?.contentWindow) return;
+    if (!this.iframe?.nativeElement?.contentWindow) {
+      console.warn(
+        '[MED-GRAPH][sendNodeList] iframe contentWindow not available',
+      );
+      return;
+    }
+
+    console.log(
+      '[MED-GRAPH][sendNodeList] sending INIT_GRAPH with nodes =',
+      this.data.length,
+      'patientId =',
+      this.patientId,
+      'eocId =',
+      this.eocId,
+    );
 
     this.iframe.nativeElement.contentWindow.postMessage(
       {
