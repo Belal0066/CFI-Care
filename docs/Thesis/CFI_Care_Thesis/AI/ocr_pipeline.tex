@@ -27,3 +27,10 @@ The document processing pipeline orchestrates the ingestion, structural analysis
     \item \textbf{Core Extraction and Layout Analysis:} The VLM performs simultaneous joint layout analysis and text recognition. This dual-action approach is vital in the clinical domain, allowing the system to accurately identify hierarchical table boundaries, associate patient values with corresponding reference ranges, and accurately capture specialized medical units (e.g., mg/dL, mmol/L).
     \item \textbf{Standardized Output Generation:} The pipeline's terminal stage constructs a high-fidelity Markdown representation. Rather than outputting a disjointed string of text, the Markdown format preserves the document's original human-readable structure, crucially retaining reconstructed tables and formatting. This structural preservation is a prerequisite for the downstream LLM-based data mapper.
 \end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{AI/OCR-FHIR_Mapper.png}
+    \caption{OCR to HL7 FHIR Transformation Architecture}
+    \label{fig:OCR-FHIR_Mapper}
+\end{figure}
