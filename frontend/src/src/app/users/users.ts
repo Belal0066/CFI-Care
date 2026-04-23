@@ -1,40 +1,3 @@
-// import { Component } from '@angular/core';
-// import { CommonModule } from '@angular/common';
-// import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
-
-// @Component({
-//   selector: 'app-users',
-//   imports: [CommonModule],
-//   templateUrl: './users.html',
-//   styleUrl: './users.css'
-// })
-// export class Users {
-
-//   patients = [
-//     { id: 1, name: 'Name1', updated: '1 week ago', age: '24y' },
-//     { id: 2, name: 'Name2', updated: 'today', age: '36y' },
-//     { id: 3, name: 'Name3', updated: 'yesterday', age: '77y' },
-//     { id: 4, name: 'Name3', updated: 'yesterday', age: '47y' },
-//     { id: 5, name: 'Name3', updated: 'yesterday', age: '57y' },
-//     //add more patients data
-//   ];
-
-//   constructor(private selectedPatientService: SelectedPatientService) {}
-
-//   onPatientClick(patient: any) {
-//     this.selectedPatientService.selectPatient(patient);
-//   }
-
-// }
-
-// export interface PatientSummaryDTO {
-//   id: number;
-//   name: string;
-//   age: number;
-//   lastUpdated: string; // ISO
-// }
-
-// BACKEND
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
@@ -52,14 +15,21 @@ export class Users implements OnInit {
   patients: PatientSummaryDTO[] = [];
   loading = true;
   error: string | null = null;
+  selectedId: string | number | null = null; // Tracks selected patient for UI styling
 
   constructor(
     private selectedPatientService: SelectedPatientService,
-    private patientApi: PatientApiService
+    private patientApi: PatientApiService,
   ) {}
 
   ngOnInit() {
+    // 1. Load patient data from the backend
     this.loadPatients();
+
+    // 2. Subscribe to the selected patient ID to apply the '.selected' CSS class
+    this.selectedPatientService.selectedPatientId$.subscribe((id) => {
+      this.selectedId = id;
+    });
   }
 
   loadPatients() {
@@ -81,5 +51,19 @@ export class Users implements OnInit {
 
   onPatientClick(patient: PatientSummaryDTO) {
     this.selectedPatientService.selectPatient(patient.id);
+  }
+
+  /**
+   * Returns the status of the patient's data freshness:
+   * 'green'  = updated within last 30 days
+   * 'yellow' = older than 30 days
+   */
+  getStatus(lastUpdated: string): 'green' | 'yellow' {
+    if (!lastUpdated) return 'yellow'; // Fallback if data is missing
+    const now = new Date();
+    const updated = new Date(lastUpdated);
+    const diffDays =
+      (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 30 ? 'green' : 'yellow';
   }
 }

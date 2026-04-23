@@ -6,14 +6,15 @@ import {
   OnDestroy,
   ViewChild,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { PatientApiService } from '../services/patientApi/patient-api-service';
-import { CommonModule } from '@angular/common';
+import { ChatSection } from '../chat-section/chat-section';
 
 @Component({
   selector: 'app-med-graph',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChatSection],
   templateUrl: './med-graph.html',
   styleUrl: './med-graph.css',
 })
@@ -25,6 +26,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
   data: any[] = [];
   loading = true;
   error: string | null = null;
+  isChatOpen = false;
   iframeLoaded = false;
   private messageHandler: ((event: MessageEvent) => void) | null = null;
 
@@ -61,6 +63,10 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
     if (this.messageHandler) {
       window.removeEventListener('message', this.messageHandler);
     }
+  }
+
+  toggleChat() {
+    this.isChatOpen = !this.isChatOpen;
   }
 
   handleNodeUpdate(action: string, node: any, parentNodeId?: string) {

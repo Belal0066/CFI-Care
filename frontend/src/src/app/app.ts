@@ -6,10 +6,13 @@ import {UsersPanel} from './users-panel/users-panel';
 import { UserInfo } from './user-info/user-info';
 import { MedGraph } from './med-graph/med-graph';
 import { Dashboard } from './dashboard/dashboard';
+import { ChatSection } from './chat-section/chat-section';
+import { DoctorProfileComponent } from './doctor-profile/doctor-profile';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Login, TopBar, UsersPanel, UserInfo, MedGraph, Dashboard],
+  imports: [RouterOutlet, Login, TopBar, UsersPanel, UserInfo, MedGraph, 
+    Dashboard, ChatSection, DoctorProfileComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
