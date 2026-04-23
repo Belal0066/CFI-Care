@@ -14,8 +14,7 @@ export class TopBar {
   constructor(
     private router: Router,
     private authService: AuthService,
-  ) { }
-
+  ) {}
 
   logout(): void {
     localStorage.clear();
@@ -29,27 +28,6 @@ export class TopBar {
       error: () => window.location.assign('/auth/logout'),
     });
   }
-
-  // logout(): void {
-  //   localStorage.clear();
-  //   this.authService.logout().subscribe(() => {
-  //     this.router.navigate(['/login']);
-  //   });
-  //   // this.router.navigate(['/login']);
-  // }
-
-  // logoutAll(): void {
-  //   localStorage.clear();
-  //   this.authService.logoutAll().subscribe({
-  //     next: () => {
-  //       // If there's no redirect URL
-  //       this.router.navigate(['/login']);
-  //     },
-  //     error: () => {
-  //       this.router.navigate(['/login']);
-  //     },
-  //   });
-  // }
 
   navigateToChatGPT(): void {
     this.router.navigate(['/chatgpt']);
