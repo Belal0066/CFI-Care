@@ -13,6 +13,13 @@ cd security/Containers/services/keycloak/fhir-listener
 mvn clean package
 ```
 
+- To build Keycloak Verify email jar file :
+  
+```bash
+cd security/Containers/services/keycloak/verify-email
+mvn clean package
+```
+
 - To import keycloak realms, either uncomment these lines within the main docker-compose in the keycloak container part(localhost):
 
     ```yml
