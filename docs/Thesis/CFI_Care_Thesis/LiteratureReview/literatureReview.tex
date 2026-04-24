@@ -164,14 +164,14 @@ backbone for this project.
 
 \section{Authentication and Authorization Standards}
 
-\subsection{\ac{OAuth} 2.0 and OIDC}
+\subsection{\texorpdfstring{\ac{OAuth}}{OAuth} 2.0 and OIDC}
 \ac{OAuth} 2.0 \cite{rfc6749} defines authorization grant flows: Authorization Code
 (web), Resource Owner Password (custom UI), Client Credentials
 (service-to-service). OpenID Connect (OIDC) \cite{oidc} adds an identity layer
 with ID tokens and SSO. CFI-Care uses \ac{OAuth} 2.0 Resource Owner Password flow
 with OIDC for token-based \ac{API} access.
 
-\subsection{JSON Web Tokens (\ac{JWT})}
+\subsection{JSON Web Tokens (\texorpdfstring{\ac{JWT}}{JWT})}
 \ac{JWT}s \cite{rfc7519} are signed tokens encoding claims (iss, aud, exp, roles,
 scopes). Stateless \ac{API} authentication validates signatures without database
 queries. Token revocation requires server-side tracking or short expiration
@@ -183,10 +183,10 @@ verifier/challenge. Recommended for all \ac{OAuth} 2.0 flows \cite{rfc9700}.
 
 \section{Healthcare Security and Standards}
 
-\subsection{\ac{FHIR} and \ac{SMART} on \ac{FHIR}} \ac{FHIR} \cite{fhirhl7} defines RESTful \ac{API}s
-for healthcare data exchange. \ac{SMART} on \ac{FHIR} \cite{smart_fhir} applies
-\ac{OAuth} 2.0 to \ac{FHIR} with scoped access (e.g.,
-\texttt{patient/Observation.read}). The \ac{FHIR} consent resource
+\subsection{\texorpdfstring{\ac{FHIR}}{FHIR} and \texorpdfstring{\ac{SMART}}{SMART} on \texorpdfstring{\ac{FHIR}}{FHIR}} \texorpdfstring{\ac{FHIR}}{FHIR} \cite{fhirhl7} defines RESTful \ac{API}s
+for healthcare data exchange. \ac{SMART} on \texorpdfstring{\ac{FHIR}}{FHIR} \cite{smart_fhir} applies
+\ac{OAuth} 2.0 to \texorpdfstring{\ac{FHIR}}{FHIR} with scoped access (e.g.,
+\texttt{patient/Observation.read}). The \texorpdfstring{\ac{FHIR}}{FHIR} consent resource
 \cite{fhir_consent} models patient-controlled access with time-bound and
 actor-specific rules.
 
