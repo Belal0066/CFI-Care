@@ -19,7 +19,10 @@ class DoctorProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Softer background
       appBar: AppBar(
-        title: const Text("Doctor Profile", style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          "Doctor Profile",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: primaryColor,
         elevation: 0,
         centerTitle: true,
@@ -94,7 +97,10 @@ class DoctorProfileScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 12),
-                          child: _buildDateCard(context, doctor.schedule[index]),
+                          child: _buildDateCard(
+                            context,
+                            doctor.schedule[index],
+                          ),
                         );
                       },
                     ),
@@ -115,7 +121,10 @@ class DoctorProfileScreen extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -135,11 +144,14 @@ class DoctorProfileScreen extends StatelessWidget {
                   if (doctor.reviews.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(20.0),
-                      child: Text("No reviews yet.", style: TextStyle(color: Colors.grey)),
+                      child: Text(
+                        "No reviews yet.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     )
                   else
                     ...doctor.reviews.map((review) => _buildReviewCard(review)),
-                  
+
                   const SizedBox(height: 30),
                 ],
               ),
@@ -178,12 +190,18 @@ class DoctorProfileScreen extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 4),
                 boxShadow: [
-                  BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 5))
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
                 ],
               ),
               child: CircleAvatar(
                 radius: 50,
-                backgroundImage: AssetImage(doctor.imageUrl),
+                backgroundImage: doctor.imageUrl.startsWith('http')
+                    ? NetworkImage(doctor.imageUrl) as ImageProvider
+                    : AssetImage(doctor.imageUrl),
               ),
             ),
             const SizedBox(height: 16),
@@ -200,7 +218,11 @@ class DoctorProfileScreen extends StatelessWidget {
             Text(
               doctor.title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.blueGrey.shade400, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.blueGrey.shade400,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 12),
             // Rating indicator (Optional visual enhancement)
@@ -211,9 +233,18 @@ class DoctorProfileScreen extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   "4.8", // Placeholder or calculate from reviews
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey.shade800),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey.shade800,
+                  ),
                 ),
-                Text(" (Verified)", style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 12)),
+                Text(
+                  " (Verified)",
+                  style: TextStyle(
+                    color: Colors.blueGrey.shade400,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ],
@@ -222,21 +253,38 @@ class DoctorProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard({required IconData icon, required String label, required String value, required Color color}) {
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -248,13 +296,22 @@ class DoctorProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(Icons.location_on, color: primaryColor),
           ),
           const SizedBox(width: 16),
@@ -262,9 +319,18 @@ class DoctorProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Location", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                Text(
+                  "Location",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
                 const SizedBox(height: 4),
-                Text(doctor.address, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(
+                  doctor.address,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -278,12 +344,21 @@ class DoctorProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Theme(
         data: ThemeData().copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          title: const Text("About Doctor", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            "About Doctor",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           leading: Icon(Icons.info_outline, color: primaryColor),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
@@ -304,7 +379,9 @@ class DoctorProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isAvailable ? Colors.transparent : Colors.grey.shade200),
+        border: Border.all(
+          color: isAvailable ? Colors.transparent : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.1),
@@ -321,8 +398,12 @@ class DoctorProfileScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: isAvailable ? primaryColor.withValues(alpha: 0.1) : Colors.grey.shade100,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              color: isAvailable
+                  ? primaryColor.withValues(alpha: 0.1)
+                  : Colors.grey.shade100,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
             ),
             child: Text(
               slot.dayName,
@@ -334,7 +415,7 @@ class DoctorProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Body (Slots info)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -357,24 +438,35 @@ class DoctorProfileScreen extends StatelessWidget {
               width: double.infinity,
               height: 32,
               child: ElevatedButton(
-                onPressed: isAvailable ? () {
-                  // --- LOGIC PRESERVED ---
-                  context.read<BookingProvider>().selectDoctor(doctor);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TimeSlotScreen()),
-                  );
-                } : null,
+                onPressed: isAvailable
+                    ? () {
+                        // --- LOGIC PRESERVED ---
+                        context.read<BookingProvider>().selectDoctor(doctor);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TimeSlotScreen(),
+                          ),
+                        );
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isAvailable ? const Color(0xFFD32F2F) : Colors.grey,
+                  backgroundColor: isAvailable
+                      ? const Color(0xFFD32F2F)
+                      : Colors.grey,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   padding: EdgeInsets.zero,
                 ),
                 child: Text(
                   isAvailable ? "Book" : "Full",
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -405,30 +497,52 @@ class DoctorProfileScreen extends StatelessWidget {
                     radius: 14,
                     backgroundColor: Colors.blue.shade50,
                     child: Text(
-                      review.userName.isNotEmpty ? review.userName[0].toUpperCase() : "U",
-                      style: TextStyle(fontSize: 12, color: primaryColor, fontWeight: FontWeight.bold),
+                      review.userName.isNotEmpty
+                          ? review.userName[0].toUpperCase()
+                          : "U",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(review.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    review.userName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
-              Text(review.date, style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+              Text(
+                review.date,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
-            children: List.generate(5, (index) => Icon(
-              index < review.rating ? Icons.star : Icons.star_border,
-              color: Colors.amber,
-              size: 16,
-            )),
+            children: List.generate(
+              5,
+              (index) => Icon(
+                index < review.rating ? Icons.star : Icons.star_border,
+                color: Colors.amber,
+                size: 16,
+              ),
+            ),
           ),
           if (review.comment.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               review.comment,
-              style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade700, height: 1.4),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.blueGrey.shade700,
+                height: 1.4,
+              ),
             ),
           ],
         ],
