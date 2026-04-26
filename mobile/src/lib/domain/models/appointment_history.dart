@@ -24,7 +24,7 @@ class AppointmentHistory {
       'doctor_id': doctor.id, 
       'date': date,
       'time': time,
-      'status': status.name, // "upcoming"
+      'status': status.name,
     };
   }
 }
