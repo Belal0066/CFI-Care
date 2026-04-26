@@ -37,10 +37,20 @@ if (-not (Test-Path $securityCa)) {
     Copy-Item -Path $mkcertCa -Destination $securityCa -Force
 }
 
-$adbDevices = adb devices
-if ($adbDevices -notmatch "\tdevice") {
-    throw "No connected Android device/emulator found. Start one, then rerun."
+# --- Salma Youssef (did not work untill I did this, if you are not salma probably comment this part)---
+$adbOutput = adb devices
+$validDevices = $adbOutput | Where-Object { $_ -match "^\S+\s+device$" }
+
+if (-not $validDevices) {
+    throw "No connected (and authorized) Android device/emulator found. Start one, check USB debugging, then rerun."
 }
+# -------------------------------
+# ------------If you are not Salma uncomment this part-------------------
+# $adbDevices = adb devices
+# if ($adbDevices -notmatch "\tdevice") {
+#     throw "No connected Android device/emulator found. Start one, then rerun."
+# }
+# -------------------------------
 
 adb reverse tcp:8443 tcp:8443 | Out-Null
 adb reverse tcp:3000 tcp:3000 | Out-Null
