@@ -37,6 +37,48 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
       return name[0].toUpperCase() + name.substring(1);
     }
 
+//     // MOCK DATA (Kept exactly as provided)
+//     final List<Doctor> doctors = [
+//       Doctor(
+//         id: "doc1",
+//         name: "Dr. Mohamed Farouk",
+//         title: "Dermatology consultant",
+//         imageUrl: "assets/images/SignInUp.png",
+//         rating: 4,
+//         visitorCount: 1066,
+//         specialtyDetail: "Dermatology specialized in Andrology Genital...",
+//         address: "Heliopolis: El Khalifa El Mamoun street",
+//         fees: 750,
+//         waitingTime: 23,
+//         nextAvailable: "Available Today 06:00 PM",
+//         tags: ["Hygiene"],
+//         schedule: getNext7Days(),
+//         reviews: [
+//           Review(userName: "Sahar S.", date: "27 June 2024", rating: 3, comment: "ممتازة جدا مستمعة جيدة"),
+//           Review(userName: "Ahmed K.", date: "25 June 2024", rating: 4, comment: "Good doctor but waiting time is long"),
+//         ],
+//       ),
+//       Doctor(
+//         id: "doc2",
+//         name: "Dr. Nehal Rezk",
+//         title: "Specialist of Dermatology , Cosmetic...",
+//         imageUrl: "assets/images/SignInUp.png",
+//         rating: 4.8,
+//         visitorCount: 785,
+//         specialtyDetail: "Specialist of Dermatology and Laser",
+//         address: "Heliopolis: Marghany street",
+//         fees: 500,
+//         waitingTime: 15,
+//         nextAvailable: "Available Tomorrow 10:00 AM",
+//         tags: ["Good Listener", "Informative"],
+//         schedule: getNext7Days(),
+//         reviews: [
+//           Review(userName: "Sahar S.", date: "27 June 2024", rating: 5, comment: "ممتازة جدا مستمعة جيدة"),
+//           Review(userName: "Ahmed K.", date: "25 June 2024", rating: 4, comment: "Good doctor but waiting time is long"),
+//         ],
+//       ),
+//     ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Modern soft grey background
       body: Column(

@@ -9,6 +9,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../widgets/account_sec_section.dart';
 
 
+import 'package:flutter/services.dart';
+import 'dart:math';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -35,6 +37,9 @@ class _MyProfileState extends State<MyProfile> {
   bool editPersonal = false;
   bool editMedical = false;
   bool editEmergency = false;
+
+  //initial generated code 
+  String currentAccessCode = "123456";
 
   // --- FIX 1: Initialize Maps with DEFAULT KEYS so they are never empty ---
   Map<String, String> personalInfo = {
@@ -84,6 +89,14 @@ class _MyProfileState extends State<MyProfile> {
   void initState() {
     super.initState();
     _loadProfile();
+    _generateNewCode();
+  }
+
+  void _generateNewCode() {
+    setState(() {
+      // Generates a random 6-digit number
+      currentAccessCode = (Random().nextInt(900000) + 100000).toString();
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -311,9 +324,90 @@ class _MyProfileState extends State<MyProfile> {
     );
   }
 
+  // Widget _buildSharedAccessSection(TextTheme textTheme) {
+  //   return Column(
+  //     children: [
+  //       ListTile(
+  //         contentPadding: EdgeInsets.zero,
+  //         leading: const Icon(Icons.people_outline, color: Colors.blueAccent),
+  //         title: Text(
+  //           "Shared Access",
+  //           style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+  //         ),
+  //         trailing: IconButton(
+  //           icon: Icon(
+  //             showSharedAccess
+  //                 ? Icons.keyboard_arrow_up
+  //                 : Icons.keyboard_arrow_down,
+  //           ),
+  //           onPressed: () =>
+  //               setState(() => showSharedAccess = !showSharedAccess),
+  //         ),
+  //       ),
+  //       if (showSharedAccess) ...[
+  //         ListView.builder(
+  //           shrinkWrap: true,
+  //           physics: const NeverScrollableScrollPhysics(),
+  //           itemCount: sharedAccounts.length,
+  //           itemBuilder: (context, index) {
+  //             final account = sharedAccounts[index];
+  //             return Card(
+  //               elevation: 2,
+  //               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+  //               shape: RoundedRectangleBorder(
+  //                 borderRadius: BorderRadius.circular(12),
+  //               ),
+  //               child: ListTile(
+  //                 leading: CircleAvatar(
+  //                   // --- FIX 2: Use standard withOpacity instead of withValues ---
+  //                   backgroundColor: Colors.blueAccent.withValues(),
+  //                   child: Text(
+  //                     account['name']![0],
+  //                     style: const TextStyle(
+  //                       color: Colors.blueAccent,
+  //                       fontWeight: FontWeight.bold,
+  //                     ),
+  //                   ),
+  //                 ),
+  //                 title: Text(
+  //                   account['name']!,
+  //                   style: const TextStyle(fontWeight: FontWeight.bold),
+  //                 ),
+  //                 subtitle: Text(
+  //                   "${account['relation']} • ${account['access']}",
+  //                 ),
+  //                 trailing: const Icon(
+  //                   Icons.arrow_forward_ios,
+  //                   size: 16,
+  //                   color: Colors.grey,
+  //                 ),
+  //                 onTap: () {
+  //                   Fluttertoast.showToast(
+  //                     msg: "Switching to ${account['name']}'s profile...",
+  //                   );
+  //                 },
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //         Padding(
+  //           padding: const EdgeInsets.only(top: 8.0),
+  //           child: OutlinedButton.icon(
+  //             onPressed: () {
+  //               // TODO: Logic to add/request new access
+  //             },
+  //             icon: const Icon(Icons.add),
+  //             label: const Text("Request Access to New Account"),
+  //           ),
+  //         ),
+  //       ],
+  //     ],
+  //   );
+  // }
   Widget _buildSharedAccessSection(TextTheme textTheme) {
     return Column(
       children: [
+        // Master Toggle Header
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.people_outline, color: Colors.blueAccent),
@@ -331,6 +425,7 @@ class _MyProfileState extends State<MyProfile> {
                 setState(() => showSharedAccess = !showSharedAccess),
           ),
         ),
+
         if (showSharedAccess) ...[
           ListView.builder(
             shrinkWrap: true,
@@ -378,19 +473,136 @@ class _MyProfileState extends State<MyProfile> {
                 ),
               );
             },
+//           const Divider(),
+
+//           // --- SECTION 1: FAMILY I CAN ACCESS ---
+//           _buildSubHeader("Family Members I Can Access"),
+//           _buildAccountList(
+//             sharedAccounts.where((a) => a['type'] == 'external').toList(),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: OutlinedButton.icon(
-              onPressed: () {
-                // TODO: Logic to add/request new access
-              },
-              icon: const Icon(Icons.add),
-              label: const Text("Request Access to New Account"),
-            ),
+
+          const SizedBox(height: 16),
+          const Divider(),
+
+          // --- SECTION 2: WHO HAS ACCESS TO ME ---
+          _buildSubHeader("Doctors & Family Accessing My Data"),
+          _buildAccountList(
+            sharedAccounts.where((a) => a['type'] == 'authorized').toList(),
           ),
+
+          // --- CODE GENERATOR UI ---
+          _buildCodeGeneratorCard(),
         ],
       ],
+    );
+  }
+
+  // Helper for the sub-section labels
+  Widget _buildSubHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // The List of accounts (Reusable)
+  Widget _buildAccountList(List<Map<String, String>> accounts) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: accounts.length,
+      itemBuilder: (context, index) {
+        final account = accounts[index];
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.blueAccent.withOpacity(0.1),
+              child: Text(
+                account['name']![0],
+                style: const TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+            title: Text(
+              account['name']!,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text("${account['relation']} • ${account['access']}"),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+          ),
+        );
+      },
+    );
+  }
+
+  // The Random Code Generator Card
+  Widget _buildCodeGeneratorCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16, bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blueAccent.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            "Share Access Code with Doctor",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.blueAccent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // THE CODE
+              Text(
+                currentAccessCode,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 20),
+              // COPY BUTTON
+              IconButton(
+                icon: const Icon(Icons.copy, size: 20),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: currentAccessCode));
+                  Fluttertoast.showToast(msg: "Code copied!");
+                },
+              ),
+              // RELOAD BUTTON
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.green, size: 24),
+                onPressed: _generateNewCode, // Calls the refresh logic
+              ),
+            ],
+          ),
+          const Text(
+            "Valid for 24 hours",
+            style: TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 }

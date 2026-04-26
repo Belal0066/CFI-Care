@@ -114,6 +114,19 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                         return const SizedBox(
                           height: 200,
                           child: Center(child: CircularProgressIndicator()),
+//                   SizedBox(
+//                     height: 155, // Fixed height for cards
+//                     child: ListView.builder(
+//                       scrollDirection: Axis.horizontal,
+//                       physics: const BouncingScrollPhysics(),
+//                       itemCount: doctor.schedule.length,
+//                       itemBuilder: (context, index) {
+//                         return Padding(
+//                           padding: const EdgeInsets.only(right: 12),
+//                           child: _buildDateCard(
+//                             context,
+//                             doctor.schedule[index],
+//                           ),
                         );
                       }
 
@@ -206,6 +219,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                     ...widget.doctor.reviews.map(
                       (review) => _buildReviewCard(review),
                     ),
+//                     ...doctor.reviews.map((review) => _buildReviewCard(review)),
 
                   const SizedBox(height: 30),
                 ],
@@ -264,6 +278,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                         !widget.doctor.imageUrl.contains("http")
                     ? const Icon(Icons.person, size: 50, color: Colors.grey)
                     : null,
+//                 backgroundImage: doctor.imageUrl.startsWith('http')
+//                     ? NetworkImage(doctor.imageUrl) as ImageProvider
+//                     : AssetImage(doctor.imageUrl),
               ),
             ),
             const SizedBox(height: 16),
@@ -388,6 +405,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   widget.doctor.address,
+//                   doctor.address,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -569,7 +587,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.transparent),
+        border: Border.all(
+          color: isAvailable ? Colors.transparent : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.1),
@@ -586,7 +606,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: primaryColor.withValues(alpha: 0.1),
+              color: isAvailable
+                  ? primaryColor.withValues(alpha: 0.1)
+                  : Colors.grey.shade100,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
@@ -625,6 +647,17 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                     ),
                   ),
                 ],
+//           // Body (Slots info)
+//           Padding(
+//             padding: const EdgeInsets.symmetric(horizontal: 4),
+//             child: Text(
+//               slot.slots,
+//               textAlign: TextAlign.center,
+//               maxLines: 2,
+//               style: TextStyle(
+//                 fontSize: 12,
+//                 fontWeight: FontWeight.w500,
+//                 color: Colors.blueGrey.shade700,
               ),
             ),
           ),
@@ -650,6 +683,22 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD32F2F),
+//                 onPressed: isAvailable
+//                     ? () {
+//                         // --- LOGIC PRESERVED ---
+//                         context.read<BookingProvider>().selectDoctor(doctor);
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) => const TimeSlotScreen(),
+//                           ),
+//                         );
+//                       }
+//                     : null,
+//                 style: ElevatedButton.styleFrom(
+//                   backgroundColor: isAvailable
+//                       ? const Color(0xFFD32F2F)
+//                       : Colors.grey,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -660,6 +709,12 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 child: const Text(
                   "Book",
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+//                 child: Text(
+//                   isAvailable ? "Book" : "Full",
+//                   style: const TextStyle(
+//                     fontSize: 12,
+//                     fontWeight: FontWeight.bold,
+//                   ),
                 ),
               ),
             ),

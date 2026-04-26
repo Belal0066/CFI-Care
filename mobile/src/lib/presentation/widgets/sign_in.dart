@@ -25,6 +25,12 @@
 //   final TextEditingController _emailController = TextEditingController();
 //   final TextEditingController _passController = TextEditingController();
 //   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  /// Handle Login Button Press
+//   void _handleSignIn() async {
+//     if (_formKey.currentState!.validate()) {
+//       TextInput.finishAutofillContext();
+//       final email = _emailController.text.trim();
+//       final password = _passController.text.trim();
 
 //   @override
 //   void dispose() {
@@ -54,6 +60,10 @@
 //       if (userId != null) {
 //         // --- FIX 2: SAVE SESSION ---
 //         // This is the critical missing step!
+//         final prefs = await SharedPreferences.getInstance();
+//         await prefs.setString('currentUserId', userId);
+//       if (userId != null) {
+//         // --- SAVE SESSION --
 //         final prefs = await SharedPreferences.getInstance();
 //         await prefs.setString('currentUserId', userId);
         

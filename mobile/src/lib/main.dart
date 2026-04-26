@@ -10,11 +10,20 @@ import 'data/services/pdf_storage_service.dart';
 import 'data/services/image_storage_service.dart';
 import 'data/repositories/document_repository_impl.dart';
 import 'presentation/viewmodels/document_provider.dart';
-import 'data/repositories/vitals_repo.dart';
 import 'presentation/viewmodels/vitals_provider.dart';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'domain/repository/major_event_repo.dart';
 import 'presentation/viewmodels/major_event_provider.dart';
+import 'domain/repository/vitals_repository_impl.dart';
+import 'data/services/datasources/health_connect_data_source.dart';
+
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
 
 // auth
 import 'presentation/viewmodels/auth_viewmodel.dart';
@@ -25,8 +34,10 @@ import 'data/repositories/auth_repo_impl.dart';
 import 'presentation/routes/app_router.dart';
 
 void main() async {
+  
   WidgetsFlutterBinding.ensureInitialized();
   await MediaStore.ensureInitialized();
+  
   MediaStore.appFolder = 'CFICareDocs';
 
   final authDatasource = KeycloakRemoteDataSource();
@@ -57,13 +68,17 @@ void main() async {
       // debugPrint('[AUTH] skipped auto-logout during debug for 401 res from backend in case of errors -_-');
     },
   );
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Create the API Service (Data Source)
+//   final apiService = ApiService();
   final pdfService = PdfStorageService();
   final imgService = ImageStorageService();
 
-  // 2. Create the Repository
+  // Create the Repository
   final bookingRepo = BookingRepositoryImpl(apiService);
   final docRepo = DocumentRepositoryImpl(pdfService, imgService, apiService);
-  final vitalsRepo = VitalsRepository();
+  final vitalsRepo = VitalsRepositoryImpl(HealthConnectDataSource());
   final eventRepo = MajorEventRepository();
 
   final router = buildRouter(authProvider);
