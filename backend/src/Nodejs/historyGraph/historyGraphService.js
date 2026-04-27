@@ -39,9 +39,10 @@ const client = new Client({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
+  // ssl: {
+  //   rejectUnauthorized: false,
+  // },
 });
 
 async function connectToDb() {
@@ -946,6 +947,46 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
     };
   }
 
+  if (category === "Linker" || node._linkedBranchId) {
+    return {
+      nodeId,
+      primaryResource: {
+        resourceType: "Encounter",
+        id: nodeId,
+        status: "completed",
+        class: [
+          {
+            coding: [
+              {
+                system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                code: "VR",
+                display: "virtual",
+              },
+            ],
+          },
+        ],
+        subject: { reference: `Patient/${patientId}` },
+        actualPeriod: { start: eventDate, end: eventDate },
+        type: [
+          {
+            coding: [
+              {
+                system: "http://snomed.info/sct",
+                code: "308335008",
+                display: title || "Branch Merge Event",
+              },
+            ],
+            text: details || "Case branch completed and merged.",
+          },
+        ],
+        text: {
+          status: "generated",
+          div: `<div xmlns="http://www.w3.org/1999/xhtml">Linker Encounter: ${safeTitle}</div>`,
+        },
+      },
+      relatedResources: [],
+    };
+  }
   return {
     nodeId,
     primaryResource: buildEncounter("11429006", "Consultation"),
@@ -1006,8 +1047,8 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
 
   const insertNodeQuery = `
     INSERT INTO encounter_nodes 
-    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, branch_state, branch_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     ON CONFLICT (encounter_fhir_id) DO NOTHING
   `;
 
@@ -1022,6 +1063,8 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
     nodeData.details || "",
     nodeData.isDiagnosis || false,
     nodeData.isManualBranch || false,
+    nodeData.branchState || "in_progress",
+    null, // branch_id is NULL for root nodes
   ];
 
   await client.query(insertNodeQuery, nodeValues);
@@ -1057,7 +1100,7 @@ async function getGraphForPatient(patientId, options = {}) {
     let nodesQuery = `
       SELECT 
         encounter_fhir_id, patient_id, title, category, priority, 
-        normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids,
+        normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id,
         created_at, updated_at, CASE WHEN is_deleted THEN deleted_at ELSE NULL END as deleted_at
       FROM encounter_nodes 
       WHERE patient_id = $1
@@ -1164,6 +1207,8 @@ async function getGraphForPatient(patientId, options = {}) {
       details: row.details || "",
       isDiagnosis: row.is_diagnosis || false,
       isManualBranch: row.is_manual_branch || false,
+      branchState: row.branch_state || "in_progress",
+      branchId: row.branch_id || null,
       relatedResourceIds: row.related_resource_ids || {},
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
@@ -1258,13 +1303,26 @@ async function seedSampleData(patientId, nodes) {
     // 3. INSERT INTO GRAPH TABLE
     const insertNodeQuery = `
       INSERT INTO encounter_nodes 
-      (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, branch_state, branch_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (encounter_fhir_id) DO NOTHING
     `;
 
     const eventDateValue =
       nodeWithDate.dateIssued || n.date || n.dateIssued || new Date();
+
+    // Calculate branch_id for seed data
+    let seedBranchId = null;
+    if (n.father !== null && n.father !== undefined && nodeMap[n.father]) {
+      const parentId = nodeMap[n.father];
+      // Check if parent is a branch starter
+      const parentNode = nodes[n.father];
+      if (parentNode && (parentNode.isDiagnosis || parentNode.isManualBranch)) {
+        seedBranchId = parentId;
+      } else if (parentNode && parentNode.branchId) {
+        seedBranchId = parentNode.branchId;
+      }
+    }
 
     await client.query(insertNodeQuery, [
       n.id,
@@ -1276,6 +1334,8 @@ async function seedSampleData(patientId, nodes) {
       eventDateValue,
       n.details,
       n.isDiagnosis || false,
+      n.branchState || "in_progress",
+      seedBranchId,
     ]);
 
     // 4. CREATE RELATIONSHIP
@@ -1340,6 +1400,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   const details = nodeData.details || "";
   const isDiagnosis = nodeData.isDiagnosis || false;
   const isManualBranch = nodeData.isManualBranch || false;
+  const branchState = nodeData.branchState || "in_progress";
 
   // Parse and format date
   let eventDate = nodeData.dateIssued || new Date().toISOString();
@@ -1349,30 +1410,26 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     eventDate = new Date(eventDate).toISOString();
   }
 
-  let mappedResources = null;
-  if (!isLinkerNode) {
-    mappedResources = mapNodeToFHIRResources(
-      {
-        id: nodeData.id,
-        text_1: nodeTitle,
-        title: nodeTitle,
-        category: category,
-        priority: priority,
-        normality: normality,
-        dateIssued: eventDate,
-        details: details,
-      },
-      patientId,
-      finalEocId,
-      isDiagnosis,
-    );
+  // ALWAYS map to FHIR (Linkers become Virtual Encounters)
+  const mappedResources = mapNodeToFHIRResources(
+    {
+      id: nodeData.id,
+      text_1: nodeTitle,
+      title: nodeTitle,
+      category: category,
+      priority: priority,
+      normality: normality,
+      dateIssued: eventDate,
+      details: details,
+      _linkedBranchId: nodeData._linkedBranchId, // explicitly pass it
+    },
+    patientId,
+    finalEocId,
+    isDiagnosis,
+  );
 
-    // Keep graph/node id aligned to Encounter id
-    nodeData.id = mappedResources.nodeId;
-  } else if (!nodeData.id || !String(nodeData.id).startsWith("enc-")) {
-    // Use stable encounter-style IDs for database linker nodes.
-    nodeData.id = `enc-${randomUUID()}`;
-  }
+  // Keep graph/node id aligned to Encounter id
+  nodeData.id = mappedResources.nodeId;
 
   const buildRelatedResourceIds = (primaryResult, relatedResults = []) => {
     const bucket = {};
@@ -1388,18 +1445,15 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     return bucket;
   };
 
+  // ALWAYS persist to FHIR
   let createdResources = { primaryResult: null, relatedResults: [] };
-  if (!isLinkerNode) {
-    try {
-      createdResources = await persistMappedResources(mappedResources);
-      console.log(
-        `FHIR ${mappedResources.primaryResource.resourceType} created with ID: ${nodeData.id}`,
-      );
-    } catch (err) {
-      throw new Error(
-        `Failed to create FHIR resource (${mappedResources.primaryResource.resourceType}): ${err.message}`,
-      );
-    }
+  try {
+    createdResources = await persistMappedResources(mappedResources);
+    console.log(
+      `FHIR ${mappedResources.primaryResource.resourceType} created with ID: ${nodeData.id}`,
+    );
+  } catch (err) {
+    throw new Error(`Failed to create FHIR resource: ${err.message}`);
   }
 
   const relatedResourceIds = buildRelatedResourceIds(
@@ -1409,10 +1463,36 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
 
   await ensureDbConnection();
 
+  // Calculate branch ID:
+  // - If this is a branch starter (isDiagnosis or isManualBranch): branchId = NULL (it's the root)
+  // - If this has a parent:
+  //   - Check if parent is a branch starter: branchId = parent's ID
+  //   - Otherwise: branchId = parent's branchId (inherit)
+  // - If no parent and not a branch starter: branchId = NULL
+  let branchId = null;
+  if (parentNodeId && !isDiagnosis && !isManualBranch) {
+    const parentQuery = `
+      SELECT encounter_fhir_id, is_diagnosis, is_manual_branch, branch_id 
+      FROM encounter_nodes 
+      WHERE encounter_fhir_id = $1
+    `;
+    const parentResult = await client.query(parentQuery, [parentNodeId]);
+    if (parentResult.rows.length > 0) {
+      const parent = parentResult.rows[0];
+      // If parent is a branch starter, child's branchId = parent's ID
+      if (parent.is_diagnosis || parent.is_manual_branch) {
+        branchId = parent.encounter_fhir_id;
+      } else {
+        // Otherwise inherit parent's branchId
+        branchId = parent.branch_id;
+      }
+    }
+  }
+
   const insertNodeQuery = `
     INSERT INTO encounter_nodes 
-    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, is_deleted, deleted_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE, NULL)
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id, is_deleted, deleted_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, NULL)
     ON CONFLICT (encounter_fhir_id) DO UPDATE SET
       title = EXCLUDED.title,
       category = EXCLUDED.category,
@@ -1423,6 +1503,8 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
       is_diagnosis = EXCLUDED.is_diagnosis,
       is_manual_branch = EXCLUDED.is_manual_branch,
       related_resource_ids = EXCLUDED.related_resource_ids,
+      branch_state = EXCLUDED.branch_state,
+      branch_id = EXCLUDED.branch_id,
       is_deleted = FALSE,
       deleted_at = NULL,
       updated_at = NOW()
@@ -1441,6 +1523,8 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     isDiagnosis,
     isManualBranch,
     relatedResourceIds,
+    branchState,
+    branchId,
   ];
 
   let dbNodeResult;
@@ -1499,6 +1583,8 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     details: details,
     isDiagnosis: isDiagnosis,
     isManualBranch: isManualBranch,
+    branchState: branchState,
+    branchId: branchId,
     eocId: finalEocId,
     fhirResource: isLinkerNode
       ? null
@@ -1532,6 +1618,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   const details = updatedData.details || "";
   const isDiagnosis = updatedData.isDiagnosis || false;
   const isManualBranch = updatedData.isManualBranch || false;
+  const branchState = updatedData.branchState || "in_progress";
   const isLinkerNode = category === "Linker" || updatedData._isLinkerNode;
   const relationshipType =
     updatedData.relationshipType !== undefined
@@ -1564,9 +1651,9 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     }
   }
 
-  // Get existing category to detect category change
+  // Get existing category and branchState to detect changes
   const existingNodeQuery = await client.query(
-    "SELECT category, event_date FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
+    "SELECT category, event_date, branch_state FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
     [nodeId, patientId],
   );
 
@@ -1576,6 +1663,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
 
   const existingCategory = existingNodeQuery.rows[0].category;
   const existingEventDate = existingNodeQuery.rows[0].event_date;
+  const existingBranchState = existingNodeQuery.rows[0].branch_state;
 
   // If category changed, delete old FHIR resources first
   if (existingCategory !== category) {
@@ -1604,54 +1692,98 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   }
 
   // Update FHIR resources (category-aware), except for Linker nodes which are DB-only.
+  // Update FHIR resources (ALL nodes, including Linkers)
   let relatedResourceIds = {};
-  if (!isLinkerNode) {
-    const mappedResources = mapNodeToFHIRResources(
-      {
-        id: nodeId,
-        text_1: title,
-        title: title,
-        category: category,
-        priority: priority,
-        normality: normality,
-        dateIssued: eventDate,
-        details: details,
-      },
-      patientId,
-      eocId,
-      isDiagnosis,
+
+  const mappedResources = mapNodeToFHIRResources(
+    {
+      id: nodeId,
+      text_1: title,
+      title: title,
+      category: category,
+      priority: priority,
+      normality: normality,
+      dateIssued: eventDate,
+      details: details,
+      _linkedBranchId: updatedData._linkedBranchId,
+    },
+    patientId,
+    eocId,
+    isDiagnosis,
+  );
+
+  try {
+    await persistMappedResources(mappedResources);
+    console.log(
+      `FHIR ${mappedResources.primaryResource.resourceType} ${nodeId} updated successfully`,
     );
+  } catch (err) {
+    throw new Error(`Failed to update FHIR resource ${nodeId}: ${err.message}`);
+  }
 
-    try {
-      await persistMappedResources(mappedResources);
-      console.log(
-        `FHIR ${mappedResources.primaryResource.resourceType} ${nodeId} updated successfully`,
-      );
-    } catch (err) {
-      throw new Error(
-        `Failed to update FHIR resource ${nodeId}: ${err.message}`,
-      );
-    }
-
-    relatedResourceIds = {
-      [mappedResources.primaryResource.resourceType]: [
-        mappedResources.primaryResource.id,
-      ],
-    };
-    for (const r of mappedResources.relatedResources || []) {
-      if (r?.resourceType && r?.id) {
-        relatedResourceIds[r.resourceType] =
-          relatedResourceIds[r.resourceType] || [];
-        relatedResourceIds[r.resourceType].push(r.id);
-      }
+  relatedResourceIds = {
+    [mappedResources.primaryResource.resourceType]: [
+      mappedResources.primaryResource.id,
+    ],
+  };
+  for (const r of mappedResources.relatedResources || []) {
+    if (r?.resourceType && r?.id) {
+      relatedResourceIds[r.resourceType] =
+        relatedResourceIds[r.resourceType] || [];
+      relatedResourceIds[r.resourceType].push(r.id);
     }
   }
 
+  // Get existing node data for reference
+  const existingNodeResult = await client.query(
+    "SELECT branch_id FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
+    [nodeId, patientId],
+  );
+
+  const existingNode = existingNodeResult.rows[0];
+
+  // Calculate new branch_id:
+  // - If this is a branch starter (isDiagnosis or isManualBranch): branch_id = NULL
+  // - If parent is provided and not a branch starter:
+  //   - If new parent is a branch starter: branch_id = new parent's ID
+  //   - Otherwise: branch_id = new parent's branch_id (inherit)
+  // - If newParentNodeId is undefined: keep existing branch_id
+  let newBranchId = existingNode?.branch_id || null;
+
+  if (isDiagnosis || isManualBranch) {
+    // Branch starters have NULL branch_id
+    newBranchId = null;
+  } else if (newParentNodeId !== undefined) {
+    if (newParentNodeId === null) {
+      // Becoming a root node
+      newBranchId = null;
+    } else {
+      // Has a parent, calculate branch_id
+      const newParentQuery = `
+        SELECT encounter_fhir_id, is_diagnosis, is_manual_branch, branch_id 
+        FROM encounter_nodes 
+        WHERE encounter_fhir_id = $1
+      `;
+      const newParentResult = await client.query(newParentQuery, [
+        newParentNodeId,
+      ]);
+      if (newParentResult.rows.length > 0) {
+        const newParent = newParentResult.rows[0];
+        if (newParent.is_diagnosis || newParent.is_manual_branch) {
+          newBranchId = newParent.encounter_fhir_id;
+        } else {
+          newBranchId = newParent.branch_id;
+        }
+      }
+    }
+  }
+  // else: newParentNodeId === undefined, keep existing newBranchId
+
   const updateQuery = `
     UPDATE encounter_nodes
-    SET title = $1, category = $2, priority = $3, normality = $4, event_date = $5, details = $6, is_diagnosis = $7, is_manual_branch = $8, related_resource_ids = $9, updated_at = NOW()
-    WHERE encounter_fhir_id = $10 AND patient_id = $11
-    RETURNING encounter_fhir_id
+    SET title = $1, category = $2, priority = $3, normality = $4, event_date = $5, details = $6, is_diagnosis = $7, is_manual_branch = $8, related_resource_ids = $9, branch_state = $10, branch_id = $11, updated_at = NOW()
+    WHERE encounter_fhir_id = $12 AND patient_id = $13
+    RETURNING encounter_fhir_id, branch_id
   `;
 
   const result = await client.query(updateQuery, [
@@ -1664,12 +1796,59 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     isDiagnosis,
     isManualBranch,
     relatedResourceIds,
+    branchState,
+    newBranchId,
     nodeId,
     patientId,
   ]);
 
   if (result.rowCount === 0) {
     throw new Error(`Node ${nodeId} not found for patient ${patientId}`);
+  }
+
+  // Delete linker nodes if branch state changed from "completed" to "in_progress"
+  if (
+    existingBranchState === "completed" &&
+    branchState === "in_progress" &&
+    (isDiagnosis || isManualBranch)
+  ) {
+    console.log(
+      `Branch state changed from completed to in_progress for node ${nodeId}. Deleting associated linker nodes...`,
+    );
+
+    try {
+      // Find all linker nodes that are descendants of this branch node
+      const linkerNodesQuery = `
+        SELECT DISTINCT nr.target_node_id
+        FROM node_relations nr
+        JOIN encounter_nodes en ON nr.target_node_id = en.encounter_fhir_id
+        WHERE nr.source_node_id = $1 
+          AND en.patient_id = $2
+          AND en.category = 'Linker'
+          AND (en.is_deleted IS NULL OR en.is_deleted = FALSE)
+      `;
+
+      const linkerResults = await client.query(linkerNodesQuery, [
+        nodeId,
+        patientId,
+      ]);
+
+      for (const row of linkerResults.rows) {
+        try {
+          await deleteNode(patientId, row.target_node_id);
+          console.log(
+            `Deleted linker node ${row.target_node_id} due to branch state transition`,
+          );
+        } catch (err) {
+          console.warn(
+            `Failed to delete linker node ${row.target_node_id}:`,
+            err.message,
+          );
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to find/delete linker nodes: ${err.message}`);
+    }
   }
 
   // Get current parent relationship from database
@@ -1730,6 +1909,13 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   });
 
   const now = new Date().toISOString();
+
+  // Get the final branchId that was stored
+  let finalBranchId = null;
+  if (result.rows.length > 0) {
+    finalBranchId = result.rows[0].branch_id;
+  }
+
   return {
     id: nodeId,
     text_1: title,
@@ -1741,6 +1927,8 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     details,
     isDiagnosis,
     isManualBranch,
+    branchState,
+    branchId: finalBranchId,
     relatedResourceIds,
     relationshipType: relationshipType || undefined,
     updatedAt: now,
