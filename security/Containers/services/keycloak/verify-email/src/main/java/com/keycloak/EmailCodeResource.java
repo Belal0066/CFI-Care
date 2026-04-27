@@ -13,6 +13,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.List;
 import java.util.stream.Stream;
+import org.keycloak.models.ClientModel;
+import org.keycloak.services.managers.AuthenticationSessionManager;
+import org.keycloak.sessions.AuthenticationSessionModel;
+
 
 import org.keycloak.models.utils.ReadOnlyUserModelDelegate;
 
@@ -30,6 +34,10 @@ public class EmailCodeResource implements RealmResourceProvider {
         return this;
     }
 
+    protected AuthenticationSessionManager createAuthenticationSessionManager() {
+        return new AuthenticationSessionManager(session);
+    }
+
     @POST
     @Path("send")
     @Produces(MediaType.APPLICATION_JSON)
@@ -41,16 +49,13 @@ public class EmailCodeResource implements RealmResourceProvider {
             RealmModel realm = session.getContext().getRealm();
 
            
-            org.keycloak.models.ClientModel client = realm.getClientByClientId(clientId);
+            ClientModel client = realm.getClientByClientId(clientId);
             if (client == null) {
                 return Response.status(400).entity("{\"error\":\"Invalid client_id\"}").build();
             }
 
-            org.keycloak.services.managers.AuthenticationSessionManager asm = new org.keycloak.services.managers.AuthenticationSessionManager(
-                    session);
-
-            org.keycloak.sessions.AuthenticationSessionModel authSession = asm.getCurrentAuthenticationSession(realm,
-                    client, tabId);
+            AuthenticationSessionManager asm = createAuthenticationSessionManager();
+            AuthenticationSessionModel authSession = asm.getCurrentAuthenticationSession(realm, client, tabId);
 
             if (authSession == null) {
                 return Response.status(401).entity("{\"error\":\"Session not found. Ensure cookies are enabled.\"}")
