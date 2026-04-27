@@ -14,6 +14,8 @@ export interface GraphNodeData {
   details: string;
   isDiagnosis?: boolean;
   isManualBranch?: boolean;
+  branchState?: string; 
+  branchId?: string; 
 }
 
 export interface AddNodeRequest {

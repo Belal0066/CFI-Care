@@ -114,6 +114,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
         details: node.details,
         isDiagnosis: node.isDiagnosis || false,
         isManualBranch: node.isManualBranch || false,
+        branchState: node.branchState || 'in_progress',
       },
       parentNodeId: parentNodeId || node.father,
     };
@@ -166,6 +167,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
         details: node.details,
         isDiagnosis: node.isDiagnosis || false,
         isManualBranch: node.isManualBranch || false,
+        branchState: node.branchState || 'in_progress',
       },
       // Preserve the parent relationship - only send if we want to change it
       // undefined means "don't change", null means "make it a root node"

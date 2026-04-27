@@ -1038,7 +1038,7 @@
       FollowUp: "#06B6D4",     // Cyan
       Allergy: "#EF4444",      // Red
       Historical: "#6B7280",   // Gray
-      Linker: "#A855F7"
+      Linker: "#A855F7"        // Purple
     };
 
     const PRIORITY_COLORS = {
@@ -1323,7 +1323,7 @@
 
       function isLinkerNode(nodeId) {
         const node = data.find(d => d.id === nodeId);
-        return node?._isLinkerNode === true || node?.category === "Linker";
+        return node?.category === "Linker" || !!node?._linkedBranchId;
       }
 
       function isNodeInCompletedBranch(nodeId) {
@@ -2537,7 +2537,7 @@
                 isDiagnosis: false,
                 isManualBranch: false,
                 _linkedBranchId: branchStartId,
-                _isLinkerNode: true
+                //_isLinkerNode: true
               };
 
               data.push(linkerNode);
@@ -2718,8 +2718,9 @@
             const isBranchLink = sourcePos.laneId !== targetPos.laneId;
             const isVerticalStack = sourcePos.x === targetPos.x && sourcePos.laneId === targetPos.laneId;
 
-            if (isVerticalStack) return null;
-            if (!isBranchLink) return null;
+            // Keep branch divergence lines, and also keep same-lane vertical stacks
+            // so parent-child relations are still visible when two nodes share a date.
+            if (!isBranchLink && !isVerticalStack) return null;
 
             let linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
 
@@ -2731,12 +2732,20 @@
             else if (branchState === "completed") linkColor = "#4ADE80";
             else linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
 
+            if (isVerticalStack && !isBranchLink) {
+              linkColor = sourcePos.laneId === 0
+                ? TIMELINE_CONFIG.MAIN_BRANCH_COLOR
+                : TIMELINE_CONFIG.SUB_BRANCH_COLOR;
+            }
+
             return {
               source: sourcePos,
               target: targetPos,
               color: linkColor,
-              width: TIMELINE_CONFIG.SUB_BRANCH_THICKNESS + 3,
-              isBranch: true
+              width: isVerticalStack && !isBranchLink
+                ? Math.max(4, TIMELINE_CONFIG.SUB_BRANCH_THICKNESS - 2)
+                : TIMELINE_CONFIG.SUB_BRANCH_THICKNESS + 3,
+              isBranch: isBranchLink
             };
           })
           .filter(l => l !== null);
