@@ -1,0 +1,476 @@
+# Chat Endpoint
+
+## OpenAPI Specification
+
+```yaml
+openapi: 3.0.1
+info:
+  title: ''
+  version: 1.0.0
+paths:
+  /chat:
+    post:
+      summary: Chat Endpoint
+      deprecated: false
+      description: |-
+        RAG Chat with Mode Toggle:
+        - mode="rag": Local Qdrant retrieval + MedGemma
+        - mode="mcp": Internet-based MCP server (PubMed/OpenFDA)
+      operationId: chat_endpoint_chat_post
+      tags: []
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples: {}
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: |
+                data: {"type": "context", "content": []}
+
+                data: {"type": "token", "content": "thought"}
+
+                data: {"type": "token", "content": "\n"}
+
+                data: {"type": "token", "content": "1"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "  "}
+
+                data: {"type": "token", "content": "**"}
+
+                data: {"type": "token", "content": "Identify"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " core"}
+
+                data: {"type": "token", "content": " question"}
+
+                data: {"type": "token", "content": ":**"}
+
+                data: {"type": "token", "content": " The"}
+
+                data: {"type": "token", "content": " user"}
+
+                data: {"type": "token", "content": " wants"}
+
+                data: {"type": "token", "content": " to"}
+
+                data: {"type": "token", "content": " know"}
+
+                data: {"type": "token", "content": " \""}
+
+                data: {"type": "token", "content": "What"}
+
+                data: {"type": "token", "content": " is"}
+
+                data: {"type": "token", "content": " diabetes"}
+
+                data: {"type": "token", "content": "?\"."}
+
+                data: {"type": "token", "content": "\n\n"}
+
+                data: {"type": "token", "content": "2"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "  "}
+
+                data: {"type": "token", "content": "**"}
+
+                data: {"type": "token", "content": "Scan"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " context"}
+
+                data: {"type": "token", "content": " for"}
+
+                data: {"type": "token", "content": " keywords"}
+
+                data: {"type": "token", "content": ":**"}
+
+                data: {"type": "token", "content": " Look"}
+
+                data: {"type": "token", "content": " for"}
+
+                data: {"type": "token", "content": " \""}
+
+                data: {"type": "token", "content": "diabetes"}
+
+                data: {"type": "token", "content": "\""}
+
+                data: {"type": "token", "content": " in"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " provided"}
+
+                data: {"type": "token", "content": " text"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "\n\n"}
+
+                data: {"type": "token", "content": "3"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "  "}
+
+                data: {"type": "token", "content": "**"}
+
+                data: {"type": "token", "content": "Analyze"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " context"}
+
+                data: {"type": "token", "content": ":**"}
+
+                data: {"type": "token", "content": " The"}
+
+                data: {"type": "token", "content": " context"}
+
+                data: {"type": "token", "content": " is"}
+
+                data: {"type": "token", "content": " a"}
+
+                data: {"type": "token", "content": " single"}
+
+                data: {"type": "token", "content": " sentence"}
+
+                data: {"type": "token", "content": ":"}
+
+                data: {"type": "token", "content": " \""}
+
+                data: {"type": "token", "content": "Diabetes"}
+
+                data: {"type": "token", "content": " is"}
+
+                data: {"type": "token", "content": " a"}
+
+                data: {"type": "token", "content": " chronic"}
+
+                data: {"type": "token", "content": " condition"}
+
+                data: {"type": "token", "content": " that"}
+
+                data: {"type": "token", "content": " affects"}
+
+                data: {"type": "token", "content": " how"}
+
+                data: {"type": "token", "content": " your"}
+
+                data: {"type": "token", "content": " body"}
+
+                data: {"type": "token", "content": " turns"}
+
+                data: {"type": "token", "content": " food"}
+
+                data: {"type": "token", "content": " into"}
+
+                data: {"type": "token", "content": " energy"}
+
+                data: {"type": "token", "content": ".\""}
+
+                data: {"type": "token", "content": "\n\n"}
+
+                data: {"type": "token", "content": "4"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "  "}
+
+                data: {"type": "token", "content": "**"}
+
+                data: {"type": "token", "content": "Extract"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " definition"}
+
+                data: {"type": "token", "content": ":**"}
+
+                data: {"type": "token", "content": " The"}
+
+                data: {"type": "token", "content": " sentence"}
+
+                data: {"type": "token", "content": " directly"}
+
+                data: {"type": "token", "content": " defines"}
+
+                data: {"type": "token", "content": " diabetes"}
+
+                data: {"type": "token", "content": " as"}
+
+                data: {"type": "token", "content": " a"}
+
+                data: {"type": "token", "content": " chronic"}
+
+                data: {"type": "token", "content": " condition"}
+
+                data: {"type": "token", "content": " affecting"}
+
+                data: {"type": "token", "content": " energy"}
+
+                data: {"type": "token", "content": " conversion"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "\n\n"}
+
+                data: {"type": "token", "content": "5"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "  "}
+
+                data: {"type": "token", "content": "**"}
+
+                data: {"type": "token", "content": "Form"}
+
+                data: {"type": "token", "content": "ulate"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " answer"}
+
+                data: {"type": "token", "content": ":**"}
+
+                data: {"type": "token", "content": " Based"}
+
+                data: {"type": "token", "content": " *"}
+
+                data: {"type": "token", "content": "only"}
+
+                data: {"type": "token", "content": "*"}
+
+                data: {"type": "token", "content": " on"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " context"}
+
+                data: {"type": "token", "content": ","}
+
+                data: {"type": "token", "content": " state"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " definition"}
+
+                data: {"type": "token", "content": " found"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "\n\n"}
+
+                data: {"type": "token", "content": "6"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "  "}
+
+                data: {"type": "token", "content": "**"}
+
+                data: {"type": "token", "content": "Final"}
+
+                data: {"type": "token", "content": " Answer"}
+
+                data: {"type": "token", "content": ":**"}
+
+                data: {"type": "token", "content": " Diabetes"}
+
+                data: {"type": "token", "content": " is"}
+
+                data: {"type": "token", "content": " a"}
+
+                data: {"type": "token", "content": " chronic"}
+
+                data: {"type": "token", "content": " condition"}
+
+                data: {"type": "token", "content": " that"}
+
+                data: {"type": "token", "content": " affects"}
+
+                data: {"type": "token", "content": " how"}
+
+                data: {"type": "token", "content": " your"}
+
+                data: {"type": "token", "content": " body"}
+
+                data: {"type": "token", "content": " turns"}
+
+                data: {"type": "token", "content": " food"}
+
+                data: {"type": "token", "content": " into"}
+
+                data: {"type": "token", "content": " energy"}
+
+                data: {"type": "token", "content": "."}
+
+                data: {"type": "token", "content": "Based"}
+
+                data: {"type": "token", "content": " on"}
+
+                data: {"type": "token", "content": " the"}
+
+                data: {"type": "token", "content": " provided"}
+
+                data: {"type": "token", "content": " context"}
+
+                data: {"type": "token", "content": ","}
+
+                data: {"type": "token", "content": " diabetes"}
+
+                data: {"type": "token", "content": " is"}
+
+                data: {"type": "token", "content": " a"}
+
+                data: {"type": "token", "content": " chronic"}
+
+                data: {"type": "token", "content": " condition"}
+
+                data: {"type": "token", "content": " that"}
+
+                data: {"type": "token", "content": " affects"}
+
+                data: {"type": "token", "content": " how"}
+
+                data: {"type": "token", "content": " your"}
+
+                data: {"type": "token", "content": " body"}
+
+                data: {"type": "token", "content": " turns"}
+
+                data: {"type": "token", "content": " food"}
+
+                data: {"type": "token", "content": " into"}
+
+                data: {"type": "token", "content": " energy"}
+
+                data: {"type": "token", "content": "."}
+
+                data: [DONE]
+          headers: {}
+          x-apidog-ordering: 0
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers: {}
+          x-apidog-ordering: 1
+      security: []
+      x-apidog-folder: ''
+      x-apidog-status: released
+      x-run-in-apidog: https://app.apidog.com/web/project/1300210/apis/api-36880940-run
+components:
+  schemas:
+    ChatRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+        history:
+          anyOf:
+            - items:
+                additionalProperties:
+                  type: string
+                type: object
+                x-apidog-orders: []
+                properties: {}
+                x-apidog-ignore-properties: []
+              type: array
+            - type: 'null'
+          title: History
+          default: []
+        mode:
+          type: string
+          title: Mode
+          default: rag
+        score_threshold:
+          type: number
+          title: Score Threshold
+          default: 0.65
+        top_k:
+          type: integer
+          title: Top K
+          default: 10
+        temperature:
+          type: number
+          title: Temperature
+          default: 0.2
+      type: object
+      required:
+        - query
+      title: ChatRequest
+      x-apidog-orders:
+        - query
+        - history
+        - mode
+        - score_threshold
+        - top_k
+        - temperature
+      x-apidog-ignore-properties: []
+      x-apidog-folder: ''
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+      x-apidog-orders:
+        - detail
+      x-apidog-ignore-properties: []
+      x-apidog-folder: ''
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+        - loc
+        - msg
+        - type
+      title: ValidationError
+      x-apidog-orders:
+        - loc
+        - msg
+        - type
+      x-apidog-ignore-properties: []
+      x-apidog-folder: ''
+  responses: {}
+  securitySchemes: {}
+servers:
+  - url: ''
+    description: MedGemma
+security: []
+
+```

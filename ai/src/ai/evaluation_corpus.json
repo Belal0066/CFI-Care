@@ -1,0 +1,179 @@
+{
+  "cohorts": {
+    "cohort_alpha": {
+      "description": "Low Density Baseline - 15 Structured Nodes for simple RAG verification checking single-hop retrieval.",
+      "patient_id": "pat-cohort-alpha",
+      "points": [
+        {
+          "node_id": "node-alpha-001",
+          "parent_node_id": "root",
+          "resource_type": "Encounter",
+          "is_diagnosis": true,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-alpha-001] TYPE: Diagnosis TIME: 2026-01-05 09:00:00\nTITLE: Primary Care Assessment\nCLINICAL_PAYLOAD:\n\"Patient presenting for routine annual employee screening. Confirmed mild essential hypertension based on sitting blood pressure averages of 142/92 mmHg.\"\nEND_NODE",
+          "fhir_raw": { "resourceType": "Condition", "id": "node-alpha-001", "code": { "coding": [{ "system": "http://hl7.org/fhir/sid/icd-10", "code": "I10", "display": "Essential hypertension" }] } }
+        },
+        {
+          "node_id": "node-alpha-002",
+          "parent_node_id": "node-alpha-001",
+          "resource_type": "MedicationRequest",
+          "is_diagnosis": false,
+          "is_medication": true,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-alpha-002] TYPE: Medication TIME: 2026-01-05 09:30:00\nTITLE: Initial Antihypertensive Prescription\nPARENT_RELATIONS: node-alpha-001\nCLINICAL_PAYLOAD:\n\"Initiating drug therapy for blood pressure management. Prescribed Amlodipine 5mg oral daily tablet. Refills authorized for 90 days.\"\nEND_NODE",
+          "fhir_raw": { "resourceType": "MedicationRequest", "id": "node-alpha-002", "status": "active", "medicationCodeableConcept": { "coding": [{ "system": "http://www.nlm.nih.gov/research/mesh", "code": "D000889", "display": "Amlodipine" }] } }
+        },
+        {
+          "node_id": "node-alpha-003",
+          "parent_node_id": "node-alpha-001",
+          "resource_type": "Observation",
+          "is_diagnosis": false,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": true,
+          "is_outcome": false,
+          "toon_content": "NODE [node-alpha-003] TYPE: Symptom TIME: 2026-01-12 14:00:00\nTITLE: Telephone Follow-up Tracking\nPARENT_RELATIONS: node-alpha-001\nCLINICAL_PAYLOAD:\n\"Patient reports mild bilateral ankle edema since initiating Amlodipine. No associated chest pain, orthopnea, or dyspnea noted.\"\nEND_NODE",
+          "fhir_raw": { "resourceType": "Observation", "id": "node-alpha-003", "category": [{ "coding": [{ "code": "exam" }] }], "valueString": "Mild bilateral ankle edema since initiating amlodipine" }
+        }
+      ]
+    },
+    "cohort_beta": {
+      "description": "Medium Density Interleaved Timeline - 100 Nodes across 12 months simulating general secondary hospital tracking loop trends.",
+      "patient_id": "pat-cohort-beta",
+      "points": [
+        {
+          "node_id": "node-beta-001",
+          "parent_node_id": "root",
+          "resource_type": "Encounter",
+          "is_diagnosis": true,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-beta-001] TYPE: Diagnosis TIME: 2026-02-10 11:00:00\nTITLE: Gastroenterology Specialty Intake\nCLINICAL_PAYLOAD:\n\"Patient presents with recurring epigastric burning pain radiating to back, aggravated post-prandially. Endoscopy reveals active antral gastritis.\"\nEND_NODE",
+          "fhir_raw": { "resourceType": "Condition", "id": "node-beta-001", "clinicalStatus": { "coding": [{ "code": "active" }] } }
+        },
+        {
+          "node_id": "node-beta-002",
+          "parent_node_id": "node-beta-001",
+          "resource_type": "MedicationRequest",
+          "is_diagnosis": false,
+          "is_medication": true,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-beta-002] TYPE: Medication TIME: 2026-02-10 11:45:00\nTITLE: Acid Suppression Protocol\nPARENT_RELATIONS: node-beta-001\nCLINICAL_PAYLOAD:\n\"Prescribed Omeprazole 40mg delayed-release daily capsule to be taken 30 minutes prior to morning meal for 8 consecutive weeks.\"\nEND_NODE",
+          "fhir_raw": { "resourceType": "MedicationRequest", "id": "node-beta-002", "intent": "order" }
+        },
+        {
+          "node_id": "node-beta-003",
+          "parent_node_id": "node-beta-001",
+          "resource_type": "Observation",
+          "is_diagnosis": false,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": true,
+          "toon_content": "NODE [node-beta-003] TYPE: Outcome TIME: 2026-04-15 10:00:00\nTITLE: Gastroenterology Resolution Clearance\nPARENT_RELATIONS: node-beta-001\nCLINICAL_PAYLOAD:\n\"Follow-up visit. Patient reports absolute resolution of epigastric pain following full compliance with proton-pump inhibitor guidelines.\"\nEND_NODE",
+          "fhir_raw": { "resourceType": "Observation", "id": "node-beta-003", "status": "final" }
+        }
+      ]
+    },
+    "cohort_gamma": {
+      "description": "High-Density Longitudinal Multi-Morbid Forest - Use Case 1 Demo Target. Simulates the Cardiology vs Nephrology Polypharmacy Trap across disjointed providers.",
+      "patient_id": "pat-cohort-gamma",
+      "points": [
+        {
+          "node_id": "node-card-401",
+          "parent_node_id": "root",
+          "resource_type": "Encounter",
+          "is_diagnosis": true,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-card-401] TYPE: Diagnosis TIME: 2026-05-01 10:00:00\nTITLE: Public Hospital Outpatient Cardiology Intake\nCLINICAL_PAYLOAD:\n\"An elderly patient presents with a history of essential hypertension and stable ischemic heart disease. Baseline blood pressure measured at 158/95 mmHg. Initiating pharmacological intervention to achieve target systemic parameters under cardiorenal syndrome prevention policies.\"\nEND_NODE",
+          "fhir_raw": {
+            "resourceType": "Condition",
+            "id": "node-card-401",
+            "code": { "text": "Chronic Essential Hypertension and Ischemic Heart Disease" }
+          }
+        },
+        {
+          "node_id": "node-card-402",
+          "parent_node_id": "node-card-401",
+          "resource_type": "MedicationRequest",
+          "is_diagnosis": false,
+          "is_medication": true,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-card-402] TYPE: Medication TIME: 2026-05-01 10:30:00\nTITLE: Primary Anti-Hypertensive Prescription Order\nPARENT_RELATIONS: node-card-401\nCLINICAL_PAYLOAD:\n\"To optimize long-term cardiovascular safety boundaries and reduce system load pressures, the patient is prescribed Enalapril 20mg oral tablet once daily. Clinician instructs patient to seek follow-up monitoring of serum electrolytes within 30 to 60 days to evaluate compliance bounds.\"\nEND_NODE",
+          "fhir_raw": {
+            "resourceType": "MedicationRequest",
+            "id": "node-card-402",
+            "status": "active",
+            "medicationCodeableConcept": { "text": "Enalapril 20mg tablet" }
+          }
+        },
+        {
+          "node_id": "node-lab-501",
+          "parent_node_id": "node-card-401",
+          "resource_type": "Observation",
+          "is_diagnosis": false,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": true,
+          "is_outcome": false,
+          "toon_content": "NODE [node-lab-501] TYPE: Symptom TIME: 2026-06-12 08:00:00\nTITLE: Independent Private Laboratory Unintegrated Blood Panel\nPARENT_RELATIONS: node-card-401\nCLINICAL_PAYLOAD:\n\"CRITICAL OUTSIDE LABORATORY RESULT: Patient self-referred to independent private testing center due to progressive fatigue and generalized weakness. Serum creatinine measured at 1.95 mg/dL. Automated calculation formulas reveal an eGFR of 32 mL/min. This signifies a sudden, hazardous drop directly into Stage 3b Chronic Kidney Disease (CKD) boundaries, indicating severe renal clearance impairment.\"\nEND_NODE",
+          "fhir_raw": {
+            "resourceType": "Observation",
+            "id": "node-lab-501",
+            "status": "final",
+            "code": { "text": "Estimated Glomerular Filtration Rate (eGFR)" },
+            "valueQuantity": { "value": 32, "unit": "mL/min/1.73m2" }
+          }
+        },
+        {
+          "node_id": "node-emerg-601",
+          "parent_node_id": "node-card-402",
+          "resource_type": "Encounter",
+          "is_diagnosis": false,
+          "is_medication": false,
+          "is_allergy": false,
+          "is_symptom": true,
+          "is_outcome": false,
+          "toon_content": "NODE [node-emerg-601] TYPE: Symptom TIME: 2026-06-14 11:15:00\nTITLE: Private Secondary Emergency Cardiology Clinic Admission\nPARENT_RELATIONS: node-card-402\nCLINICAL_PAYLOAD:\n\"EMERGENCY FLASHPOINT: Patient presents with acute, localized sub-sternal chest tightness on mild exertion accompanied by peripheral bounding pulses. Presenting emergency doctor notes blood pressure spikes reaching 172/104 mmHg. The emergency facility is operating on an isolated silo database and lacks direct data integration paths with the patient's primary public hospital network.\"\nEND_NODE",
+          "fhir_raw": {
+            "resourceType": "Encounter",
+            "id": "node-emerg-601",
+            "status": "in-progress",
+            "reasonCode": [{ "text": "Acute chest tightness and elevated blood pressure values" }]
+          }
+        },
+        {
+          "node_id": "node-gold-701",
+          "parent_node_id": "node-emerg-601",
+          "resource_type": "MedicationRequest",
+          "is_diagnosis": false,
+          "is_medication": true,
+          "is_allergy": false,
+          "is_symptom": false,
+          "is_outcome": false,
+          "toon_content": "NODE [node-gold-701] TYPE: Medication TIME: 2026-06-14 11:45:00\nTITLE: TARGET_GOLDEN: Intended Emergency Anti-Hypertensive Escalation\nPARENT_RELATIONS: node-emerg-601\nCLINICAL_PAYLOAD:\n\"To address immediate chest tightness and hypertensive urgency, the emergency provider considers doubling the current medication regimen, intending to escalate the Enalapril order from 20mg daily to 40mg daily to force blood pressure down. The physical paper laboratory report detailing the 48-hour-old eGFR restriction of 32 mL/min remains unentered in the local EHR, creating a high-risk multi-hop polypharmacy trap.\"\nEND_NODE",
+          "fhir_raw": {
+            "resourceType": "MedicationRequest",
+            "id": "node-gold-701",
+            "intent": "plan",
+            "medicationCodeableConcept": { "text": "Enalapril 40mg oral daily option" }
+          }
+        }
+      ]
+    }
+  }
+}

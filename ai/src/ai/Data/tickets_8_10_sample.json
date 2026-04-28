@@ -1,0 +1,42 @@
+{
+  "original_query": "What diagnoses were considered for this patient?",
+  "intent": "diagnosis",
+  "explanation": "Diagnostic Progression:\n\n1. Initial Diagnosis: Bronchitis (2025-12-03)\n   Type: Provisional\n   Reasoning: X-Ray clear, symptoms consistent with acute bronchitis\n\n2. Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction (2025-12-08)\n   Type: Differential\n   Reasoning: Worsening condition suggests initial diagnosis may be incomplete or incorrect. Rash could be an adverse reaction to Amoxicillin\n\n3. Final Diagnosis: Mycoplasma Pneumonia (2025-12-10)\n   Type: Final\n   Reasoning: Amoxicillin stopped. Based on the persistent cough and confirmed drug allergy, Atypical Pneumonia is the most likely diagnosis. Further tests confirm Mycoplasma\n\nThe diagnosis evolved from Initial Diagnosis: Bronchitis to Final Diagnosis: Mycoplasma Pneumonia based on clinical progression and response to treatment.",
+  "claims": [
+    {
+      "claim": "Initial Diagnosis: Bronchitis",
+      "source_node_ids": [
+        "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538"
+      ],
+      "temporal_context": "2025-12-03"
+    },
+    {
+      "claim": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction",
+      "source_node_ids": [
+        "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115"
+      ],
+      "temporal_context": "2025-12-08"
+    },
+    {
+      "claim": "Final Diagnosis: Mycoplasma Pneumonia",
+      "source_node_ids": [
+        "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+      ],
+      "temporal_context": "2025-12-10"
+    }
+  ],
+  "temporal_summary": "  2025-12-03: Initial Diagnosis: Bronchitis\n  2025-12-08: Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction\n  2025-12-10: Final Diagnosis: Mycoplasma Pneumonia",
+  "has_insufficient_data": false,
+  "contains_speculation": false,
+  "source_document_ids": [
+    "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+    "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+    "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+  ],
+  "confidence": "High",
+  "sources": [
+    "Diagnosis \u2013 Initial Diagnosis: Bronchitis (2025-12-03)",
+    "Diagnosis \u2013 Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction (2025-12-08)",
+    "Diagnosis \u2013 Final Diagnosis: Mycoplasma Pneumonia (2025-12-10)"
+  ]
+}

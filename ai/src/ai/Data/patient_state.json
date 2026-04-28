@@ -1,0 +1,35 @@
+{
+  "active_diagnosis": [
+    "Final Diagnosis: Mycoplasma Pneumonia"
+  ],
+  "resolved_diagnoses": [
+    "Initial Diagnosis: Bronchitis"
+  ],
+  "differential_diagnoses": [
+    "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction"
+  ],
+  "allergies": [
+    "Amoxicillin (penicillin-class)"
+  ],
+  "recent_medications": [
+    "Azithromycin"
+  ],
+  "discontinued_medications": [
+    "Amoxicillin"
+  ],
+  "clinical_status": "Improved",
+  "presenting_symptoms": [
+    "Cough",
+    "Fatigue"
+  ],
+  "current_symptoms": [
+    "Increased coughing",
+    "Fever",
+    "Rash"
+  ],
+  "first_encounter_date": "2025-12-01T00:00:00",
+  "last_encounter_date": "2025-12-21T00:00:00",
+  "total_encounters": 10,
+  "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+  "compiled_at": "2026-01-25T18:31:51.436448"
+}

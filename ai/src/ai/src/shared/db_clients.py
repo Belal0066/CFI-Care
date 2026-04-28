@@ -1,0 +1,149 @@
+"""
+Database Connection Handlers for Twin Engine.
+Implements reliability patterns and connection pooling.
+"""
+from typing import Optional, Dict, Any
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct, SparseVectorParams, SparseIndexParams
+from .config import config
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class QdrantVectorClient:
+    """
+    Qdrant (Vector) connection handler.
+    Ensures collection initialization with proper dimensionality (Dense + Sparse).
+    """
+    
+    def __init__(self):
+        self.client: Optional[QdrantClient] = None
+        self.collection_name = config.qdrant_collection_name
+        self.dimension = config.embedding_dimension
+        self.sparse_vector_name = "text-sparse"
+    
+    def connect(self) -> QdrantClient:
+        """Establish connection to Qdrant."""
+        if self.client is None:
+            self.client = QdrantClient(
+                host=config.qdrant_host,
+                port=config.qdrant_port
+            )
+            logger.info(f"Connected to Qdrant at {config.qdrant_host}:{config.qdrant_port}")
+            self._ensure_collection()
+        return self.client
+    
+    def _ensure_collection(self):
+        """Initialize collection if it doesn't exist."""
+        client = self.connect()
+        collections = client.get_collections().collections
+        collection_names = [c.name for c in collections]
+        
+        if self.collection_name not in collection_names:
+            client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config={
+                    "text-dense": VectorParams(
+                        size=self.dimension,
+                        distance=Distance.COSINE
+                    )
+                },
+                sparse_vectors_config={
+                    self.sparse_vector_name: SparseVectorParams(
+                        index=SparseIndexParams(
+                            on_disk=False,
+                        )
+                    )
+                }
+            )
+            logger.info(f"Created Qdrant collection: {self.collection_name} (Hybrid=True)")
+        else:
+            logger.info(f"Qdrant collection already exists: {self.collection_name}")
+    
+    def upsert_point(self, point_id: str, vector: list[float], sparse_indices: list[int] = None, sparse_values: list[float] = None, payload: Dict[str, Any] = None):
+        """
+        Insert or update a vector point with Hybrid support.
+        
+        Args:
+            point_id: UUID matching the Graph node
+            vector: Dense embedding
+            sparse_indices: SPLADE indices
+            sparse_values: SPLADE values
+            payload: Metadata including clinical context
+        """
+        client = self.connect()
+        try:
+            # Convert string ID to UUID if needed
+            import uuid
+            if isinstance(point_id, str):
+                # Try to use as UUID, or generate deterministic UUID from string
+                try:
+                    uuid_id = uuid.UUID(point_id) if '-' in point_id and len(point_id) == 36 else uuid.uuid5(uuid.NAMESPACE_DNS, point_id)
+                    point_id_final = str(uuid_id)
+                except:
+                    # Generate deterministic UUID from string
+                    point_id_final = str(uuid.uuid5(uuid.NAMESPACE_DNS, point_id))
+            else:
+                point_id_final = str(point_id)
+            
+            # Note: We need to import models here or at top
+            from qdrant_client import models
+
+            # Construct Point
+            vector_struct = {
+                "text-dense": vector
+            }
+            if sparse_indices and sparse_values:
+                 vector_struct[self.sparse_vector_name] = models.SparseVector(
+                     indices=sparse_indices,
+                     values=sparse_values
+                 )
+            
+            # If no sparse is provided, we might still want to support legacy/dense-only
+            # but ideally we upgrade everywhere. 
+            # For this patch, we adapt based on input.
+
+            vec_input = {}
+            # Dense
+            vec_input["text-dense"] = vector
+            
+            # Sparse
+            if sparse_indices is not None and sparse_values is not None:
+                vec_input[self.sparse_vector_name] = models.SparseVector(
+                    indices=sparse_indices,
+                    values=sparse_values
+                )
+            
+            client.upsert(
+                collection_name=self.collection_name,
+                points=[PointStruct(
+                    id=point_id_final,
+                    vector=vec_input,
+                    payload=payload
+                )]
+            )
+            logger.info(f"Upserted point to Qdrant: {point_id_final}")
+        except Exception as e:
+            logger.error(f"Qdrant upsert failed for {point_id}: {e}")
+            raise
+    
+    def health_check(self) -> bool:
+        """Verify Qdrant is accessible."""
+        try:
+            client = self.connect()
+            client.get_collections()
+            return True
+        except Exception as e:
+            logger.error(f"Qdrant health check failed: {e}")
+            return False
+
+
+# Singleton instances
+qdrant_client = QdrantVectorClient()
+
+# FalkorDB is scaffolded but not connected (see context.md §6)
+# Importing falkor_client will succeed but return None.
+# Scripts should check `if falkor_client is not None:` before using.
+falkor_client = None

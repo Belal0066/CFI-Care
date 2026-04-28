@@ -1,0 +1,35 @@
+{
+  "benchmark": "Agent Latency (Full Graph + LLM)",
+  "date": "2026-06-14T11:07:03.640147",
+  "backend": "local (llama.cpp MedGemma 4B)",
+  "n_iterations_per_query": 3,
+  "per_query_results": [
+    {
+      "label": "Gamma: Enalapril Safety",
+      "query": "Is it safe to escalate the patient's Enalapril prescription?",
+      "latency_ms": {
+        "mean_ms": 11915.284749333901,
+        "median_ms": 1487.2458710015053,
+        "p95_ms": 32874.756878998596,
+        "min_ms": 1383.8514980016043,
+        "max_ms": 32874.756878998596,
+        "n_iterations": 3
+      }
+    },
+    {
+      "label": "Gamma: Differential Dx",
+      "query": "What diagnoses contribute to this patient's hypertension complexity?",
+      "latency_ms": {
+        "mean_ms": 1395.9615940014676,
+        "median_ms": 1395.414222002728,
+        "p95_ms": 1458.0704660038464,
+        "min_ms": 1334.4000939978287,
+        "max_ms": 1458.0704660038464,
+        "n_iterations": 3
+      }
+    }
+  ],
+  "aggregate_mean_ms": 11911.018422084453,
+  "aggregate_p95_ms": 32874.756878998596,
+  "thesis_target_met": false
+}

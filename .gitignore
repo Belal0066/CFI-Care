@@ -6,17 +6,23 @@ tests/node_modules/
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 *.egg-info/
 dist/
 .ai/
-.pytest_cache/
 .venv/
+venv/
+env/
+ENV/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # Test artifacts
 allure-results/
@@ -32,12 +38,41 @@ tests/integration/
 # Environment & secrets
 .env
 .env.local
+.env.production
 # .env.test
-*.log
 *.asc
-# .env.test
-
 *.pem
 *_protocol.md
-ai/reports/*
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models (large binaries)
+*.safetensors
+*.gguf
+models/
+
+# llama.cpp build artifacts
+llama.cpp/
+
+# MCPs virtualenv
+mcps/medmcp/
+
+# Results logs (timestamped)
+ai/src/ai/results/logs_*/
+
+# pytest
+.pytest_cache/
 ai/pytest.ini
+
+# Misc
+*.bak
+*.tmp
+*.cache
+
+ai/reports/*

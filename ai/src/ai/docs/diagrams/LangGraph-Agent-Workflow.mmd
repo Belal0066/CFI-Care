@@ -1,0 +1,86 @@
+---
+title: LangGraph Agent Workflow — StateGraph with Self-Correction
+---
+
+graph TD
+    Start(( ))
+    End((( )))
+
+    CI[classify_intent<br/>IntentClassifier → Intent + Confidence]
+
+    subgraph Routing ["Routing Logic (route_intent)"]
+        RM{Mode Select<br/>chat / local / mcp / auto}
+        CF{Confidence Gate<br/>< 0.70 threshold?}
+        PD{Patient Data<br/>Available?}
+        MQ{is_mcp_query<br/>Flag?}
+        IG{Intent in<br/>RAG Intents?}
+    end
+
+    subgraph RAG ["Local RAG Path"]
+        RR[rag_retrieve<br/>HybridRetriever<br/>Qdrant: dense + sparse + RRF<br/>PatientState context]
+        REAS[reason<br/>run_deterministic_reasoning<br/>ClinicalReasoner<br/>→ ClinicalResponse with CitedClaim[]]
+    end
+
+    subgraph MCPath ["MCP Search Path"]
+        QT[Classify MCP Question Type<br/>drug_safety / guidelines / general]
+        DS[Construct Drug Safety Query<br/>Deterministic + Safety Policies]
+        LO[LLM Query Optimization<br/>Conversation + Patient Context]
+        MCPC[Call MCP Endpoint<br/>→ MCP Server<br/>PubMed / OpenFDA / MedlinePlus]
+        SYNTH[Synthesize<br/>Summarize Evidence]
+    end
+
+    GEN[generate<br/>generate_response<br/>Polymorphic: RAG / MCP / Chat]
+
+    AUDIT[audit_claims<br/>Claim → source_node_ids<br/>→ valid retrieved_docs?]
+
+    CONF[compute_confidence<br/>Overall Confidence Block<br/>routing + retrieval +<br/>generation + validation]
+
+    Start --> CI
+    CI --> RM
+
+    RM -- chat --> GEN
+    RM -- local --> RR
+    RM -- auto --> MQ
+    RM -- mcp --> QT
+
+    MQ -- yes --> QT
+    MQ -- no --> PD
+    PD -- no --> QT
+    PD -- yes --> CF
+    CF -- below 0.70 --> RR
+    CF -- above 0.70 --> IG
+    IG -- yes --> RR
+    IG -- no --> QT
+
+    RR --> REAS
+    REAS --> GEN
+
+    QT --> DS
+    QT --> LO
+    DS --> MCPC
+    LO --> MCPC
+    MCPC --> SYNTH
+    SYNTH --> GEN
+
+    GEN --> AUDIT
+
+    AUDIT -- passed --> CONF
+    AUDIT -- failed + retries < 2 --> GEN
+    AUDIT -- failed + retries >= 2 --> CONF
+
+    CONF --> End
+
+    style Start fill:#000000,stroke:#000000
+    style End fill:#E6E6FA,stroke:#8A2BE2,stroke-width:2px
+
+    classDef purpleNode fill:#E6E6FA,stroke:#8A2BE2,stroke-width:1px
+    class CI,RR,REAS,GEN,AUDIT,CONF,QT,DS,LO,MCPC,SYNTH purpleNode
+
+    classDef orangeNode fill:#FFF3E0,stroke:#FB8C00,stroke-width:1px
+    class RM,CF,PD,MQ,IG orangeNode
+
+    style RAG fill:#F3F3FF,stroke:#8A2BE2,stroke-width:1px
+    style MCPath fill:#F3F3FF,stroke:#8A2BE2,stroke-width:1px
+    style Routing fill:#FFF8E1,stroke:#FB8C00,stroke-width:1px
+
+    linkStyle 13,14 stroke:#E53935,stroke-width:1px

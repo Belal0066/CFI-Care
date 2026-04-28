@@ -1,0 +1,285 @@
+%-------------------------
+% Resume in Latex
+% Author : Belal Anas Awad
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins for better readability
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{2pt}
+
+% Section formatting
+\titleformat{\section}{
+  \scshape\raggedright\large\bfseries
+}{}{0em}{}[\color{black}\titlerule]
+
+\titlespacing*{\section}{0pt}{8pt}{6pt}
+
+% More relaxed itemize spacing
+\setlist[itemize]{noitemsep, topsep=3pt, leftmargin=0.15in}
+
+% More comfortable line spacing
+\renewcommand{\baselinestretch}{1.05}
+
+% Keep name readable
+\renewcommand{\Huge}{\fontsize{20}{24}\selectfont}
+
+% Ensure ATS compatibility
+\pdfgentounicode=1
+
+% Custom commands
+\newcommand{\resumeItem}[1]{\item\small{#1}}
+\newcommand{\resumeSubheading}[4]{
+  \vspace{2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{2pt}
+}
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{2pt}
+}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{3pt}}
+
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape Belal Anas Awad} \\ \vspace{3pt}
+    \small \href{tel:+201002341608}{+20 100 234 1608} $|$ 
+    \href{mailto:Belal_Anas@outlook.com}{Belal\_Anas@outlook.com} $|$ 
+    \href{mailto:Belal.Anas.Awad@gmail.com}
+    {Belal.Anas.Awad@gmail.com} $|$
+    \href{https://www.linkedin.com/in/belal-anas-b646b723a/}{LinkedIn} $|$
+    \href{https://github.com/Belal0066}{GitHub: @Belal0066}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Ain Shams University Faculty of Engineering}{Cairo, Egypt}
+      {Bachelor of Science in Computer Engineering and Software Systems}{Expected 2026}
+    \resumeSubheading
+      {University of East London (UEL) — Dual Certificate Program}{London, UK}
+      {Dual Academic Program in Computer Engineering}{}
+  \resumeSubHeadingListEnd
+
+
+%-----------EXPERIENCE-----------
+\section{Professional Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {ASU Racing Team – F1Tenth Autonomous Racing Competition}{Dec 2024 -- Present}
+      {Control and Simulation Engineer, Autotronics Research Lab}{Cairo, Egypt}
+      \resumeItemListStart
+        \resumeItem{Developing and optimizing control algorithms for autonomous race car navigation and decision-making in real-time competitive scenarios.}
+        \resumeItem{Implemented and fine-tuned PID controllers, Model and Acceleration-based Pursuit Controller (MAP), and Pure Pursuit algorithms for precise vehicle control.}
+        \resumeItem{Conducting extensive simulations using ROS (Robot Operating System) and Gazebo to validate control strategies before hardware deployment.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {STMicroelectronics}{July 2024 -- Feb 2025}
+      {System Programming Trainee (Linux/Ubuntu)}{Cairo, Egypt}
+      \resumeItemListStart
+        \resumeItem{Built low-level system tools including ELF parser for binary analysis, partition table parser for disk management.}
+        \resumeItem{Developed Custom Linux shell with external commands execution and made internal command from scratch.}
+        \resumeItem{Developed custom heap memory manager implementing malloc/free functionality for optimized memory allocation.}
+        \resumeItem{Created minimal Linux distribution using Yocto Project, including custom kernel configurations and package management.}
+        \resumeItem{Implemented inter-process communication (IPC) mechanisms, multi-threaded HTTP server, and synchronization primitives (mutexes, semaphores).}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {WE Telecom Egypt for Development and Training}{July 2023}
+      {Artificial Intelligence Intern}{Cairo, Egypt}
+      \resumeItemListStart
+        \resumeItem{Gained hands-on experience with Python-based machine learning frameworks including TensorFlow, Keras, Pandas, and NumPy for ML and computer vision tasks.}
+        \resumeItem{Developed end-to-end vehicle recognition and counting system using computer vision techniques, including object detection and tracking algorithms.}
+        \resumeItem{Participated in team projects focused on real-world AI applications in telecommunications infrastructure.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------
+\section{Technical Projects}
+  \resumeSubHeadingListStart
+  
+  \resumeProjectHeading{\textbf{Clinical RAG System with MedMCP Orchestration} $|$ \emph{Python, LangGraph, Qdrant, MedGemma 1.5, FHIR, MCP, CUDA}}{}
+  \resumeItemListStart
+    \resumeItem{Engineered a high-performance clinical RAG system using \textbf{LangGraph} to orchestrate multi-agent workflows, achieving a \textbf{1.0 groundedness score} (zero hallucinations) in longitudinal patient reasoning tasks.}
+    \resumeItem{Architected \textbf{MedMCP}, a specialized microservice utilizing the \textbf{Model Context Protocol (MCP)} via SSE to fetch evidence-backed data from PubMed and OpenFDA, isolating external API latency from core logic.}
+    \resumeItem{Implemented \textbf{Atomic Clinical Event Indexing} in \textbf{Qdrant} with HNSW and scalar quantization, replacing standard sliding-window chunking to preserve 100\% semantic integrity of FHIR resources.}
+    \resumeItem{Optimized \textbf{MedGemma 1.5-4B} inference using \textbf{llama.cpp} (Q6\_K quantization) and CUDA, enabling high-throughput clinical synthesis on edge hardware with <10s end-to-end latency.}
+    \resumeItem{Developed a \textbf{Deterministic Patient State Compiler} to chronologically reconstruct longitudinal histories, reducing context window noise and improving reasoning precision across complex clinical timelines.}
+  \resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{Real-Time Computer Vision Tic-Tac-Toe with AI} $|$ \emph{OpenCV, TensorFlow, Minimax Algorithm}}{}
+      \resumeItemListStart
+        \resumeItem{Achieved 99\% accuracy in game state classification using Convolutional Neural Networks (CNN) trained on diverse board configurations.}
+        \resumeItem{Implemented classic Minimax algorithm with alpha-beta pruning optimization, reducing computation time by 30\% while maintaining optimal AI strategy.}
+        \resumeItem{Integrated real-time video processing pipeline using OpenCV for board detection, grid extraction, and symbol recognition.}
+      \resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{DNS Server Implementation} $|$ \emph{Python, Socket Programming, Networking Protocols}}{}
+      \resumeItemListStart
+        \resumeItem{Implemented RFC-compliant DNS server supporting A, AAAA, CNAME, and MX record types with full query resolution capabilities.}
+        \resumeItem{Developed intelligent caching mechanism with TTL management to reduce upstream queries and improve response times.}
+        \resumeItem{Built zone file management system with support for authoritative and recursive query modes, plus command-line interface for server management.}
+        \resumeItem{Ensured thread safety using proper synchronization mechanisms for concurrent request handling.}
+      \resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{Heart Failure Prediction System} $|$ \emph{Scikit-learn, ML Models, GridSearchCV, Feature Engineering}}{}
+      \resumeItemListStart
+        \resumeItem{Optimized multiple classification algorithms including Naïve Bayes, Support Vector Machines (SVM), K-Nearest Neighbors (KNN), and Decision Trees.}
+        \resumeItem{Achieved best F1-score of 0.872 through systematic hyperparameter tuning using GridSearchCV and cross-validation techniques.}
+        \resumeItem{Applied comprehensive data preprocessing including outlier detection and mitigation, feature scaling, and correlation analysis.}
+        \resumeItem{Performed feature importance analysis to identify key clinical indicators contributing to heart failure prediction.}
+      \resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{Accelerating Convolution Kernels} $|$ \emph{OpenMP, MPI, CUDA, Performance Profiling}}{}
+      \resumeItemListStart
+        \resumeItem{Achieved up to 11.7× speedup on GPU using CUDA optimizations including shared memory, memory coalescing, and kernel fusion techniques.}
+        \resumeItem{Implemented 8× CPU speedup using OpenMP parallelization with work-sharing constructs and cache-aware optimizations.}
+        \resumeItem{Developed distributed computing solution using MPI for large-scale convolution operations across compute clusters.}
+        \resumeItem{Built automated profiling pipeline using Linux Perf and hardware performance counters to identify bottlenecks and validate optimizations.}
+      \resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{Distributed Web Crawling and Indexing System} $|$ \emph{Python, Scrapy, AWS, Celery, Redis}}{}
+      \resumeItemListStart
+        \resumeItem{Designed scalable Master-Worker architecture using Celery task queue and Redis message broker for distributed web crawling.}
+        \resumeItem{Built robust crawling engine using Scrapy framework with configurable depth limits, URL filtering, and politeness policies.}
+        \resumeItem{Implemented full-text indexing system with support for ranking algorithms and efficient query processing.}
+        \resumeItem{Deployed on AWS infrastructure with auto-scaling capabilities to handle varying workload demands.}
+      \resumeItemListEnd
+
+      \resumeProjectHeading{\textbf{Self-Hosted GPU Cloud Server (BWS)} $|$ \emph{Ubuntu Server, CUDA, RTX GPU, Tailscale, Bash Scripting}}{}
+  \resumeItemListStart
+    \resumeItem{Deployed self-hosted GPU inference server for Large Language Model (LLM) and RAG workloads using Ubuntu Server 22.04 with CUDA-enabled RTX GPU.}
+    \resumeItem{Configured secure zero-trust remote access via Tailscale (WireGuard-based mesh VPN) without exposing public ports, ensuring encrypted peer-to-peer connectivity.}
+    \resumeItem{Automated network configuration, recovery procedures, and IP discovery using Bash scripts (netplan, nmcli) for robust Wi-Fi management.}
+    \resumeItem{Implemented lightweight monitoring stack providing real-time visibility into GPU utilization, CPU load, memory consumption, and network throughput.}
+    \resumeItem{Optimized CUDA libraries and inference frameworks for maximum GPU utilization during concurrent model serving requests.}
+  \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%-----------TECHNICAL SKILLS-----------
+\section{Technical Skills}
+\begin{itemize}[leftmargin=0.15in, label={}]
+    \item \small{
+        \textbf{Programming Languages:} \\
+        \quad C, C++, Python, Java, JavaScript, SQL, MATLAB, Bash/Shell Scripting, HTML5, CSS3 \\[3pt]
+        
+        \textbf{Frameworks \& Technologies:} \\
+        \quad ROS (Robot Operating System), Kubernetes, Docker, LangChain, LangGraph, Qdrant, \\
+        \quad Model Context Protocol (MCP), OpenMP, MPI, CUDA, FastAPI, Node.js \\[3pt]
+        
+        \textbf{Developer Tools \& Systems:} \\
+        \quad Git/GitHub, Linux/Unix Systems, llama.cpp, Perf, Valgrind, GDB, CMake, Makefile, \\
+        \quad Yocto Project, Celery, Redis, AWS (EC2, S3), Tailscale, Gazebo Simulator \\[3pt]
+        
+        \textbf{Machine Learning \& AI:} \\
+        \quad TensorFlow, Keras, PyTorch, Scikit-learn, NumPy, Pandas, OpenCV, Matplotlib, Seaborn, \\
+        \quad GridSearchCV, SentenceTransformers, Hugging Face Transformers \\[3pt]
+        
+        \textbf{Core Competencies:} \\
+        \quad System Programming, Parallel Computing, Distributed Systems, Computer Vision, \\
+        \quad Natural Language Processing, RAG Systems, Control Systems, Network Programming, \\
+        \quad Performance Optimization, Cloud Infrastructure
+    }
+\end{itemize}
+
+%-----------CERTIFICATIONS-----------
+\section{Certifications \& Professional Development}
+  \resumeSubHeadingListStart
+
+\resumeProjectHeading{\textbf{Machine Learning Specialization}}{DeepLearning.AI — Andrew Ng}
+  \resumeItemListStart
+        \resumeItem{Comprehensive coverage of supervised learning including linear regression, logistic regression, and neural network fundamentals.}
+        \resumeItem{Unsupervised learning techniques: clustering algorithms (K-means), dimensionality reduction (PCA), and anomaly detection.}
+        \resumeItem{Advanced topics including regularization techniques, handling overfitting, bias-variance trade-off, and model evaluation strategies.}
+    \resumeItemListEnd
+
+\resumeProjectHeading{\textbf{Deep Learning Specialization}}{DeepLearning.AI — Andrew Ng}
+      \resumeItemListStart
+        \resumeItem{Deep neural network architectures: feedforward networks, backpropagation algorithms, regularization, and advanced optimization techniques (Adam, RMSprop).}
+        \resumeItem{Convolutional Neural Networks (CNNs) for computer vision: object detection, image segmentation, and style transfer.}
+        \resumeItem{Sequence models: Recurrent Neural Networks (RNNs), Long Short-Term Memory (LSTM), and attention mechanisms for natural language processing.}
+        \resumeItem{Transfer learning, end-to-end learning, multi-task learning, and practical strategies for structuring machine learning projects.}
+      \resumeItemListEnd
+
+\resumeProjectHeading{\textbf{Generative AI with Large Language Models}}{DeepLearning.AI — in collaboration with AWS}
+      \resumeItemListStart
+        \resumeItem{In-depth study of transformer architecture, self-attention mechanisms, and positional encodings for sequence modeling.}
+        \resumeItem{Advanced prompt engineering techniques, instruction tuning, reinforcement learning from human feedback (RLHF), and scaling laws.}
+        \resumeItem{Hands-on labs using AWS SageMaker for training, fine-tuning, and deploying LLMs with focus on cost optimization and inference efficiency.}
+        \resumeItem{Ethical considerations, bias mitigation strategies, and best practices for scalable deployment of LLM-based generative AI solutions.}
+      \resumeItemListEnd
+
+\resumeProjectHeading{\textbf{Retrieval Augmented Generation (RAG)}}{DeepLearning.AI}
+\resumeItemListStart
+  \resumeItem{Semantic search fundamentals: dense embeddings, hybrid search strategies (combining keyword and semantic search), and vector database architectures.}
+  \resumeItem{Advanced retrieval techniques: document chunking strategies, metadata filtering, reranking algorithms, and approximate nearest neighbor (ANN) search.}
+  \resumeItem{Production RAG systems: prompt engineering for context utilization, hallucination detection and reduction, answer evaluation metrics, and monitoring.}
+  \resumeItem{Performance optimization: quantization techniques, caching strategies, and deploying RAG systems at scale in production environments.}
+\resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{Competitive Programming \& Problem Solving}}{Coach Academy, ASUFE-CPC}
+    \resumeItemListStart
+      \resumeItem{Advanced algorithmic techniques: Dynamic Programming (DP), Graph Theory (shortest paths, network flow, spanning trees).}
+      \resumeItem{Data structures: segment trees, Fenwick trees for range queries, disjoint set union (DSU), and advanced tree structures.}
+      \resumeItem{Number theory concepts, combinatorics, bitmask DP, and optimization techniques for competitive programming.}
+    \resumeItemListEnd
+
+    \resumeProjectHeading{\textbf{2024 ECPC (Egyptian Collegiate Programming Contest) Qualification}}{--}
+    \resumeItemListStart
+      \resumeItem{Ranked in top 20\% nationally in first competitive programming contest participation, demonstrating strong problem-solving abilities under time constraints.}
+    \resumeItemListEnd
+    
+  \resumeSubHeadingListEnd
+
+\end{document}
