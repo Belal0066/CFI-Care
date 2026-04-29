@@ -1,4 +1,4 @@
-@startuml Practitioner Patient Access Granting
+@startuml Practitioner Patient Consent Granting
 skinparam actorStyle AWESOME
 autonumber
 
@@ -22,9 +22,9 @@ participant AuditLog
 participant "Patient Data Redis" as PDR
 database FHIR
 
-database "Access Redis" as AR
+database "Consent Redis" as AR
 
-database "Access Grant Database" as ADB
+database "Consent Grant Database" as ADB
 
 ' database "FCM Token Database" as TDB
 
@@ -37,14 +37,14 @@ participant nginx
 
 participant "Application" as App
 actor "Patient \n(Data Owner)"  as Patient 
-==Patient Revokes access==
-' drs with access are listed??
-Patient -> App : revoke dr access 
+==Patient Revokes Consent Grant==
+' drs with Consent are listed??
+Patient -> App : revoke dr grant 
 
-App -> nginx: request deletion of access grant
+App -> nginx: request deletion of consent grant
 nginx -> NJS : forward deletion request
 
-NJS -> ADB : Update access granrt to revoked
+NJS -> ADB : Update consent granrt to revoked
 ADB -> NJS : grant updated
 
 NJS -> AR : Delete cached grant
@@ -54,7 +54,7 @@ NJS -> PDR : Delete cached patient data for this grant
 NJS -> FAPI : Clear RAG data for this grant
 FAPI -> NJS : Confirm deletion 
 
-NJS -> AuditLog : Log access revocation
+NJS -> AuditLog : Log consent revocation
 
 NJS-> nginx: return HTTP 200 OK 
 nginx-> App: forward OK response
