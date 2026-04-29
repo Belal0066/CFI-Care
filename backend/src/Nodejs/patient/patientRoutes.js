@@ -5,10 +5,12 @@ const patientController = require("./patientController");
 
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
+
 const { requireApiAuth } = require("../middleware/requireApiAuth");
+const { requirePatientContext } = require("../middleware/requirePatientContext");
 
 // GET all patients
-router.get("/", requireApiAuth, patientController.getAllPatients);
+router.get("/", requireApiAuth,requirePatientContext({ paramName: "patientId" }), patientController.getAllPatients);
 //Authz tokens
 const { verifyToken } = require("../middleware/keycloakJWT");
 
@@ -19,24 +21,25 @@ const attachForwardedToken = require("../middleware/attachForwardedToken");
 
 router.post(
   "/",
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   validateRequest(createPatientSchema),
   patientController.createPatient,
 );
 
-router.put("/", patientController.createPatientWithSpecificId);
+router.put("/", requireApiAuth,requirePatientContext({ paramName: "patientId" }), patientController.createPatientWithSpecificId);
 
 // Sync patient to FHIR (create FHIR Patient from mobile app user data)
 router.post("/sync-fhir", patientController.syncPatientToFHIR);
 
 router.get(
   "/toon-everything/:id",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   patientController.toonPatientEverything,
 );
 router.get(
   "/",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   patientController.getCurrentPatient,
 );
@@ -52,7 +55,7 @@ router.put(
 
 router.get(
   "/:id",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   requireScopes(["patient/*.rs"]),
@@ -62,21 +65,21 @@ router.get(
 //still need to add scopes :/
 router.get(
   "/:id/related-data",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   patientController.getPatientAllRelatedData,
 );
 router.get(
   "/:id/observations",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   patientController.getPatientObservations,
 );
 router.get(
   "/:id/encounters",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   verifyToken(process.env.EXPECTED_AUDIENCE),
   patientController.getPatientEncounters,

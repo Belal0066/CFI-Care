@@ -10,15 +10,15 @@ participant "Backend" as BE
 participant "Audit Log Cache" as AuditLog
 
 
-database "Access Redis" as Cache
-database "Access Grant Database" as DB
+database "Consent Redis" as Cache
+database "Consent Grant Database" as DB
 
 participant nginx
 participant "Browser" as FE
 actor "Practitioner" as U2
 
 == Phase 1: Handshake Generation ==
-U1 -> App : Tap "Generate Access Code" button
+U1 -> App : Tap "Generate Consent Code" button
 App -> BE: POST /handshake/create
 BE -> BE: Generate temp code
 BE -> Cache : SET code:<code> 600 Patient_ID
@@ -39,14 +39,14 @@ else Code Not Found / Expired
     BE -> FE: HTTP 404 "Invalid Code"
 end
 
-== Phase 3: JIT Access Grant ==
+== Phase 3: JIT Consent Grant ==
 U1 -> App: Tap "Approve"
 App -> BE: POST /handshake/approve
-BE -> BE: Generate Access grant
+BE -> BE: Generate Consent grant
 BE -> DB: insert grant {Patinet_ID, Practitioner_ID, expiry}
 BE-> AuditLog : log successful creation of grant
 BE -> App: Success
-' BE -> FE: Display "Access Granted"
+' BE -> FE: Display "Consent Granted"
 BE -> FE: Forward  Grant to be stored in session
 
 == Phase 4: Cross-Session Token Retrieval ==

@@ -1,17 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const practitonerController = require("./practionerController");
+
 const { requireApiAuth } = require("../middleware/requireApiAuth");
+const { requireResourceOwnership } = require("../middleware/requireResourceOwnership");
+
+
 
 
 router.put(
   "/",
-  requireApiAuth,
+  requireApiAuth, requireResourceOwnership({ paramName: "id" }),
   practitonerController.createPractitionerWithSpecificId,
 );
-router.get("/:id", requireApiAuth, practitonerController.getPractitionerById);
-router.post("/:id", practitonerController.updatePractitioner);
-router.delete("/:id", practitonerController.deletePractitioner);
-router.get("/", practitonerController.getAllPractitioners);
+router.get("/:id", requireApiAuth, requireResourceOwnership({ paramName: "id" }), practitonerController.getPractitionerById);
+router.post("/:id",requireApiAuth, requireResourceOwnership({ paramName: "id" }), practitonerController.updatePractitioner);
+router.delete("/:id", requireApiAuth, requireResourceOwnership({ paramName: "id" }), practitonerController.deletePractitioner);
+router.get("/", requireApiAuth, requireResourceOwnership({ paramName: "id" }), practitonerController.getAllPractitioners);
 
 module.exports = router;
