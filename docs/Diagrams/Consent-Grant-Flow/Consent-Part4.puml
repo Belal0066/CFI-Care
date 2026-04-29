@@ -4,7 +4,7 @@ autonumber
 
 
 ' actor Practitioner
-' participant Browser
+participant Browser
 
 ' participant RAG
 
@@ -31,6 +31,7 @@ database "Consent Grant Database" as ADB
 ' participant RAGRedis as RR
 
 participant FastAPI as FAPI
+participant "Server Set Events" as SSE
 
 ' participant Firebase
 participant nginx
@@ -52,6 +53,9 @@ AR -> NJS : deletion confirmation
 
 NJS -> PDR : Delete cached patient data for this grant
 NJS -> FAPI : Clear RAG data for this grant
+FAPI-> SSE : Close connection
+SSE-> Browser : Send page-clear request
+
 FAPI -> NJS : Confirm deletion 
 
 NJS -> AuditLog : Log consent revocation

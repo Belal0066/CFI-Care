@@ -44,12 +44,13 @@ note left of Browser : forwards Consent grant token
 ' nginx -> FAPI : Forward req 
 
 ' NJS -> ADB : Verify active Consent grant
+note left of AR : Read only access?
 FAPI -> AR : Query Consent grant redis for token
 alt cache hit 
 AR -> FAPI : Consent grant still in cache 
 FAPI -> FAPI : proceed 
 else cache miss
-FAPI -> ADB : chech DB for Consent grant
+FAPI -> ADB : check DB for Consent grant
     alt mapping found
     ADB-> FAPI : Consent grant given (with valid TTL)
     FAPI -> FAPI : proceed 
@@ -87,6 +88,7 @@ FAPI -> AuditLog : Log RAG access
 ==LLM queries==
 Practitioner -> Browser : Ask question about patient
 Browser -> FAPI : Send query with question
+note left of Browser : query could include session change
 
 FAPI -> FAPI : Process query
 FAPI -> Browser : Return response
