@@ -325,6 +325,36 @@ export class DoctorProfileComponent implements OnInit {
     return this.slots.filter(s => s.status === 'busy').length;
   }
 
+
+  /* ========================= */
+  /* DATE CONSTANTS & HELPERS */
+  /* ========================= */
+
+  get minDate(): string {
+    return new Date().toISOString().slice(0, 16);
+  }
+
+  get maxDate(): string {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3); // Add 3 months
+    return d.toISOString().slice(0, 16);
+  }
+
+  private isDateValid(dateStr: string): boolean {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const max = new Date();
+    max.setMonth(max.getMonth() + 6);
+
+    // Check if it's within the current year AND within 3 months
+    const isCurrentYear = date.getFullYear() === now.getFullYear();
+    const isWithinSixMonths = date <= max && date >= now;
+
+    return isCurrentYear && isWithinSixMonths;
+  }
+
+
+
   /* ========================= */
   /* SCHEDULE ACTIONS */
   /* ========================= */
@@ -335,6 +365,10 @@ export class DoctorProfileComponent implements OnInit {
     this.scheduleError = '';
     if (!this.newSchedule.start || !this.newSchedule.end) {
       this.scheduleError = 'Both dates are required.'; return;
+    }
+    if (!this.isDateValid(this.newSchedule.start) || !this.isDateValid(this.newSchedule.end)) {
+      this.scheduleError = 'Dates must be within this year and max 3 months from now.';
+      return;
     }
     if (new Date(this.newSchedule.end) <= new Date(this.newSchedule.start)) {
       this.scheduleError = 'End must be after start.'; return;
