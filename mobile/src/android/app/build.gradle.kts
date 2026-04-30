@@ -30,6 +30,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // for redirect as well
+        manifestPlaceholders += mapOf("appAuthRedirectScheme" to "com.example.medflow")
     }
 
     buildTypes {

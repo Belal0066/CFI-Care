@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:medflow/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:medflow/presentation/widgets/build_section_profile.dart';
 import 'package:medflow/presentation/screens/sign_in_up.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../widgets/account_sec_section.dart';
+
+
 import 'package:flutter/services.dart';
 import 'dart:math';
 
@@ -224,7 +229,9 @@ class _MyProfileState extends State<MyProfile> {
                 ),
                 const SizedBox(height: 24),
                 const Divider(),
-
+                
+                AccountSecuritySection(),
+                SizedBox(height: 12),
                 // --- Personal Info Section ---
                 BuildSectionProfile(
                   leading: Icons.person_outline_outlined,
@@ -298,13 +305,14 @@ class _MyProfileState extends State<MyProfile> {
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.clear();
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignInUp()),
-                        (r) => false,
-                      );
-                    }
+                    await context.read<AuthProvider>().logout();
+                    // if (context.mounted) {
+                    //   Navigator.pushAndRemoveUntil(
+                    //     context,
+                    //     MaterialPageRoute(builder: (_) => const SignInUp()),
+                    //     (r) => false,
+                    //   );
+                    // }
                   },
                 ),
                 const SizedBox(height: 40),
@@ -419,12 +427,58 @@ class _MyProfileState extends State<MyProfile> {
         ),
 
         if (showSharedAccess) ...[
-          const Divider(),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: sharedAccounts.length,
+            itemBuilder: (context, index) {
+              final account = sharedAccounts[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    // --- FIX 2: Use standard withOpacity instead of withValues ---
+                    backgroundColor: Colors.blueAccent.withValues(),
+                    child: Text(
+                      (account['name']?.isNotEmpty ?? false)
+                          ? account['name']![0]
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    account['name'] ?? 'Unknown User',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    "${account['relation']} • ${account['access']}",
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  onTap: () {
+                    Fluttertoast.showToast(
+                      msg: "Switching to ${account['name']}'s profile...",
+                    );
+                  },
+                ),
+              );
+            },
+//           const Divider(),
 
-          // --- SECTION 1: FAMILY I CAN ACCESS ---
-          _buildSubHeader("Family Members I Can Access"),
-          _buildAccountList(
-            sharedAccounts.where((a) => a['type'] == 'external').toList(),
+//           // --- SECTION 1: FAMILY I CAN ACCESS ---
+//           _buildSubHeader("Family Members I Can Access"),
+//           _buildAccountList(
+//             sharedAccounts.where((a) => a['type'] == 'external').toList(),
           ),
 
           const SizedBox(height: 16),

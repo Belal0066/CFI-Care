@@ -4,6 +4,7 @@ export interface PatientSummaryDTO {
   name: string;
   age: number | null;
   lastUpdated: string; // ISO string
+  primaryDiagnosis?: string;
 }
 
 // DTO for patient details (transformed by backend or raw FHIR)
@@ -53,7 +54,7 @@ export interface FHIRPatient {
 
 // Helper to transform FHIR Patient to PatientDetailsDTO
 export function fhirPatientToDetailsDTO(
-  patient: FHIRPatient
+  patient: FHIRPatient,
 ): PatientDetailsDTO {
   const name = patient.name?.[0];
   const fullName = name
@@ -191,6 +192,95 @@ export interface FHIREncounter {
   }>;
 }
 
+// FHIR MedicationRequest resource type
+export interface FHIRMedicationRequest {
+  resourceType: 'MedicationRequest';
+  id: string;
+  status?: string;
+  intent?: string;
+  medication?: {
+    concept?: {
+      coding?: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+      }>;
+      text?: string;
+    };
+    reference?: {
+      reference?: string;
+      display?: string;
+    };
+  };
+  medicationCodeableConcept?: {
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+    text?: string;
+  };
+  medicationReference?: {
+    reference?: string;
+    display?: string;
+  };
+  subject?: {
+    reference?: string;
+  };
+  authoredOn?: string;
+  requester?: {
+    reference?: string;
+    display?: string;
+  };
+  dosageInstruction?: Array<{
+    text?: string;
+    timing?: {
+      repeat?: {
+        frequency?: number;
+        period?: number;
+        periodUnit?: string;
+      };
+    };
+    route?: {
+      coding?: Array<{
+        display?: string;
+      }>;
+    };
+    doseAndRate?: Array<{
+      doseQuantity?: {
+        value?: number;
+        unit?: string;
+      };
+    }>;
+  }>;
+}
+
+// FHIR Procedure resource type
+export interface FHIRProcedure {
+  resourceType: 'Procedure';
+  id: string;
+  status?: string;
+  code?: {
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+    text?: string;
+  };
+  subject?: {
+    reference?: string;
+  };
+  performedDateTime?: string;
+  performedPeriod?: {
+    start?: string;
+    end?: string;
+  };
+  encounter?: {
+    reference?: string;
+  };
+}
+
 // Helper to extract display text from a FHIR Condition
 export function extractConditionDisplay(condition: FHIRCondition): string {
   // Try to get the display text from code.text first, then code.coding[0].display
@@ -242,4 +332,79 @@ export function extractEncounterInfo(encounter: FHIREncounter): {
     date,
     status: encounter.status || '',
   };
+}
+
+// Helper to extract display text from a FHIR MedicationRequest
+export function extractMedicationDisplay(
+  medicationRequest: FHIRMedicationRequest,
+): string {
+  // FHIR R5 uses medication.concept
+  if (medicationRequest.medication?.concept) {
+    if (medicationRequest.medication.concept.text) {
+      return medicationRequest.medication.concept.text;
+    }
+    if (
+      medicationRequest.medication.concept.coding &&
+      medicationRequest.medication.concept.coding.length > 0
+    ) {
+      return (
+        medicationRequest.medication.concept.coding[0].display ||
+        medicationRequest.medication.concept.coding[0].code ||
+        'Unknown Medication'
+      );
+    }
+  }
+
+  // Fallback to medication.reference
+  if (medicationRequest.medication?.reference?.display) {
+    return medicationRequest.medication.reference.display;
+  }
+
+  // Try medicationCodeableConcept (older FHIR versions)
+  if (medicationRequest.medicationCodeableConcept) {
+    if (medicationRequest.medicationCodeableConcept.text) {
+      return medicationRequest.medicationCodeableConcept.text;
+    }
+    if (
+      medicationRequest.medicationCodeableConcept.coding &&
+      medicationRequest.medicationCodeableConcept.coding.length > 0
+    ) {
+      return (
+        medicationRequest.medicationCodeableConcept.coding[0].display ||
+        medicationRequest.medicationCodeableConcept.coding[0].code ||
+        'Unknown Medication'
+      );
+    }
+  }
+
+  // Try medicationReference (older FHIR versions)
+  if (medicationRequest.medicationReference?.display) {
+    return medicationRequest.medicationReference.display;
+  }
+
+  return 'Unknown Medication';
+}
+
+// Helper to extract display text and date from a FHIR Procedure
+export function extractProcedureDisplay(procedure: FHIRProcedure): string {
+  // Get procedure name
+  let procedureName = 'Unknown Procedure';
+  if (procedure.code?.text) {
+    procedureName = procedure.code.text;
+  } else if (procedure.code?.coding && procedure.code.coding.length > 0) {
+    procedureName =
+      procedure.code.coding[0].display ||
+      procedure.code.coding[0].code ||
+      'Unknown Procedure';
+  }
+
+  // Get procedure date
+  let date = '';
+  if (procedure.performedDateTime) {
+    date = new Date(procedure.performedDateTime).toLocaleDateString();
+  } else if (procedure.performedPeriod?.start) {
+    date = new Date(procedure.performedPeriod.start).toLocaleDateString();
+  }
+
+  return date ? `${procedureName} (${date})` : procedureName;
 }

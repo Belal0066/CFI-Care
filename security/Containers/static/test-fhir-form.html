@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Patient Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Complete your profile data, please</h1>
+  <form id="signupForm" >
+    <input type="hidden" name="keycloakSub" id="keycloakSub">
+    <label>First name: <input name="firstName" id="firstName" required></label><br>
+    <label>Last name: <input name="lastName" id="lastName" required></label><br>
+    <label>Email: <input name="email" id="email" type="email" required readonly></label><br>
+    <label>Birth date: <input name="birthDate" id="birthDate" type="date" required></label><br>
+    <button type="submit">Submit</button>
+  </form>
+  <div id="status"></div>
+
+  <script>
+    async function prefill() {
+      try {
+       
+        const urlParams = new URLSearchParams(window.location.search);
+        const qEmail = urlParams.get('email');
+        const qSub = urlParams.get('sub');
+        if (qEmail) document.getElementById('email').value = qEmail;
+        if (qSub) document.getElementById('keycloakSub').value = qSub;
+
+       
+      } catch (err) {
+        console.warn('prefill error', err && err.message);
+      }
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.getElementById('status').textContent = 'Submitting...';
+      try {
+        const sub = document.getElementById('keycloakSub').value || null;
+        const firstName = document.getElementById('firstName').value;
+        const lastName = document.getElementById('lastName').value;
+        const email = document.getElementById('email').value;
+        const birthDate = document.getElementById('birthDate').value;
+
+        const fhirPatient = {
+          resourceType: 'Patient',
+          id: sub,
+          name: [{ given: [firstName], family: lastName }],
+          telecom: email ? [{ system: 'email', value: email, use: 'home' }] : [],
+          birthDate: birthDate
+        };
+
+        const url = `/api/patients/${encodeURIComponent(sub)}`;
+        const method =  'PUT' ;
+
+        const res = await fetch(url, {
+          method,
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/fhir+json' },
+          body: JSON.stringify(fhirPatient)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          document.getElementById('status').textContent = 'Failed: ' + res.status + ' ' + text;
+          return;
+        }
+        const created = await res.json();
+        document.getElementById('status').textContent = 'Patient created: ' + (created.id || '(no id)');
+        window.location.href = '/';
+      } catch (err) {
+        document.getElementById('status').textContent = 'Error: ' + err.message;
+      }
+    });
+
+    prefill();
+  </script>
+</body>
+</html>

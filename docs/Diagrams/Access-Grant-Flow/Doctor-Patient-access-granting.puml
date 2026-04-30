@@ -1,0 +1,296 @@
+' @startuml Practitioner Patient Access Granting
+' skinparam actorStyle AWESOME
+' autonumber
+
+
+' actor Practitioner
+' participant Browser
+
+' participant RAG
+
+
+' participant nginx
+' ' participant oauth2Proxy
+
+' ' participant Keycloak
+
+' participant "Backend" as NJS
+
+' participant AuditLog
+
+
+' participant "Patient Data Redis" as PDR
+' database FHIR
+
+' database "Access Redis" as AR
+
+' database "Access Grant Database" as ADB
+
+' database "FCM Token Database" as TDB
+
+' ' participant RAGRedis as RR
+
+' participant FastAPI as FAPI
+
+' ' participant AuditLog
+
+' participant Firebase
+
+' participant "Application" as App
+' actor "Patient \n(Data Owner)"  as Patient 
+
+
+' ' ==Access Granting Flow (FHIR R4 Consent Standard)==
+' ' Patient -> App : Grant access to Dr (search by Practitioner ID)
+' ' App -> nginx : access grant creation req\n{PractitionerId, scopes[], resourceTypes[], purpose[], expiresIn}
+' ' nginx -> NJS : forward request with patient's access token
+
+' ' NJS -> NJS : validate patient token & extract patientId
+' ' NJS -> FHIR : Verify patient owns their data (GET /Patient/{patientId})
+' ' FHIR -> NJS : Patient resource confirmed
+
+' ' NJS -> NJS : Validate requested scopes/purposes against patient's rights
+
+' ' NJS -> App : Request patient verification\n(e.g., 2FA, PIN, biometric)
+' ' App -> Patient : Display Consent Form
+' ' Patient -> App : Confirm 
+' ' App -> NJS : Verification confirmed
+
+' ' NJS -> FHIR : Create Consent resource (FHIR R4)\n{\n  status: "active",\n  grantor: Patient,\n  grantee: Practitioner/PractitionerId,\n  decision: "permit",\n  provision: {\n    actor: PractitionerId,\n    purpose: ["TREAT"],\n    resourceType: ["Condition","Encounter"],\n    period: {start, end}\n  },\n  verification: {\n    verified: true,\n    verificationType: "Patient signature",\n    verificationDate: now\n  }\n}
+' ' FHIR -> NJS : Consent resource created with consentId
+
+' ' ' access:grant:{patientId}:{PractitionerId}\nValue: {grantId, scopes, expiresAt}\nTTL: patient-specified duration
+' ' ' grantId : specific value for currently active session
+
+' ==Access Granting Flow==
+' Practitioner -> Browser : search for patient (by id)
+' Browser->nginx: Request access to patient data using PID
+' nginx->NJS : forward request 
+' ' with Dr's access token
+' NJS-> TDB : Retrieve PID token
+' TDB-> NJS : return patient token
+' NJS->Firebase: Push notifictaion req 
+' note left of NJS : req includes relevant details (dr id , timestamp, title , etc..)
+' Firebase-> App : send req
+
+
+' alt patient approves
+
+' App-> NJS : Forward Approval
+'  NJS -> App : Request patient verification
+'  note left of NJS:(e.g 2FA, PIN, biometric)
+' App -> Patient : Display Consent Form
+' Patient -> App : Confirm 
+' App -> NJS : Verification
+' NJS -> NJS : generate grant signature 
+' note right of NJS: (HMAC of consentId+scope+expiry)
+' NJS -> ADB : Store grant 
+' ADB -> NJS : Grant stored
+' NJS -> AR : Cache access grant for fast lookup Key
+' note left of NJS: access grant:{PID}:{PractitionerID} Value: {consentId, scopes, expiresAt, signature}\nTTL: patient-specified dur.
+' AR -> NJS : Grant cached successfully
+
+' note right of NJS : create database for consent storage? , database/redis for mobile token?
+' else patient refuses
+
+' App->App : do nothing 
+' note right of App : (avoid alerting dr, best sec practice)
+
+' end
+
+' note left of Patient: "Patient login (&& notif permission granted) -> app Gets token from firebase , sends to backend , backend stores  token associated to PID to send notifictaions later"
+
+' ' consent could have 
+
+
+' ' event\n{patientId, PractitionerId, consentId, timestamp, scopes, purposes, verification} , hal me7tagen keda tho?
+' NJS -> AuditLog : Log consent grant 
+' AuditLog -> NJS : Logged successfully
+
+' NJS -> nginx : creation confirmation 
+' nginx -> App : Grant created successfully
+' App -> Patient : Display confirmation
+' note left of Patient:Dr. who can now access your [Conditions, Encounters]"
+
+' ==Registered Practitioner accessing patient data==
+' Practitioner -> Browser : Access Patient data
+' Browser -> nginx : req access to patient data 
+' nginx-> NJS: forward req
+
+' NJS -> NJS : extract Practitioner ID from token
+' NJS -> AR : Query access grant redis for dr and patient ids mapping
+' alt cache hit 
+' AR -> NJS : Access grant still in cache 
+' NJS -> NJS : proceed to data caching
+' else cache miss
+' NJS -> ADB : chech DB for access grant
+'     alt mapping found
+'     ADB-> NJS : access grant given (with valid TTL)
+'     NJS -> NJS : proceed to data caching
+'     else
+'     ADB-> NJS : mapping not found
+'     NJS -> nginx: return OK resp (mask patient's existence)
+'     nginx -> Browser: forward resp (empty)
+'     Browser -> Practitioner : display empty results 
+'     end
+' end
+
+' == Patinet data caching (dr has access)==
+' NJS -> NJS : Verify signature (HMAC), validate scopes, check expiry
+' NJS ->PDR : check data existence through pid
+' alt data isn't cached  
+' NJS -> PDR : Cache data
+' else  
+' NJS-> NJS : proceed normally
+
+' end
+
+' ' da lesa ma3ana???
+' ' NJS -> NJS : Preprocess data for RAG
+' ' NJS -> RR : Store preprocessed data
+
+
+' NJS -> nginx: forward OK res with data
+' nginx -> Browser: forward resp
+' Browser -> Practitioner: display requested patient data 
+' NJS -> AuditLog : Log data 
+' note right of AuditLog: access{PractitionerId, patientId, timestamp, consentId}
+
+
+' ' ==Registered Practitioner requesting access to patient data==
+' ' Practitioner -> Browser : search for patient (by id)
+' ' Browser -> nginx : req to access patient data 
+' ' nginx-> NJS: forward req
+
+' ' NJS -> NJS : Extract PractitionerId from token
+' ' NJS -> FHIR : Query Consent resources\nWHERE performer=PractitionerId AND status=active
+' ' FHIR -> NJS : Return matching Consent resources (consentId, patient ref)
+
+' ' alt Practitioner has access to patient data
+' ' NJS -> AR : Get cached grant for validation\nKey: access:grant:{patientId}:{PractitionerId}
+' ' AR -> NJS: return access grant with signature
+
+' ' NJS -> NJS : Verify signature (HMAC), validate scopes, check expiry
+
+' ' NJS -> FHIR : Fetch scoped resources only\n(e.g., Condition, Encounter per Consent.provision)
+' ' FHIR -> NJS : Return scoped patient data
+
+' ' NJS -> PDR : Cache scoped data only
+' ' NJS -> NJS : Preprocess scoped data for RAG
+' ' NJS -> RR : Store preprocessed scoped data
+
+' ' NJS -> AuditLog : Log data 
+' ' ' access\n{PractitionerId, patientId, timestamp, resourceTypes, consentId}
+
+' ' NJS -> nginx: forward OK response with scoped data
+' ' nginx -> Browser: forward resp
+' ' Browser -> Practitioner: display requested patient data 
+
+
+' ' ' redis auto deletes expired data , double check :/
+
+' ' ' else Access Grant expired 
+' ' ' AR->NJS: 
+
+
+' ' else Practitioner has no access to this pateint's data
+' ' AR->NJS: return no active consent found
+
+' ' ' NJS -> AuditLog : Log unauthorized access attempt\n{PractitionerId, searchedPatientId, timestamp}
+' ' NJS -> nginx: return OK resp (mask patient's existence)
+' ' nginx -> Browser: forward resp (empty)
+' ' Browser -> Practitioner : display empty results (e.g no patient found)
+
+' ' end
+
+' ' ' ==Practitioner chose patient card to display full data==
+' ' ' Practitioner->Browser: click patient card
+' ' ' Browser->nginx:request to full patient data
+' ' ' nginx->NJS : forward req (has access tokens)
+
+' ' ' NJS->AR : verify access (in case ttl has ended)
+
+
+' ' ==Practitioner chooses report node==
+
+' == Dr opens patient graph==
+' Browser->FAPI: start processing patient data
+' note left of Browser : forward access token
+' ' FAPI -> nginx : Rqe patient data (with access token)
+' ' nginx -> FAPI : Forward req 
+
+' ' NJS -> ADB : Verify active access grant
+' FAPI -> AR : Query access grant redis for dr and patient ids mapping
+' alt cache hit 
+' AR -> FAPI : Access grant still in cache 
+' FAPI -> FAPI : proceed 
+' else cache miss
+' FAPI -> ADB : chech DB for access grant
+'     alt mapping found
+'     ADB-> FAPI : access grant given (with valid TTL)
+'     FAPI -> FAPI : proceed 
+
+    
+
+' ' alt Valid active grant
+' ' ADB -> NJS : grant still active
+'     else Consent revoked or expired
+'     ADB -> FAPI : No active Consent
+'     FAPI -> nginx : Return unauthorized
+'     ' nginx -> RAG : Forward unauthorized
+'     nginx -> Browser : Display access denied
+'     end
+' end 
+
+' FAPI -> PDR : Get patient data
+' alt cache hit
+' PDR -> FAPI : Return patient data
+' FAPI -> RAG : forward data
+
+' else cache miss
+' FAPI -> NJS : inform backend of missing data
+
+' end
+
+
+' FAPI -> AuditLog : Log RAG access
+' note right of AuditLog :{PractitionerId, patientId, timestamp, queryType, consentId}
+
+' ' FAPI -> nginx : Forward data
+' ' nginx -> RAG : Forward data
+
+' ==LLM queries==
+' Practitioner -> Browser : Ask question about patient
+' Browser -> FAPI : Send query with question
+
+' FAPI -> FAPI : Process query
+' FAPI -> Browser : Return response
+' note left of FAPI : server sent event
+' Browser -> Practitioner : Display answer
+
+
+
+' ==Patient Revokes access==
+' ' drs with access are listed??
+' Patient -> App : revoke dr access 
+
+' App -> nginx: request deletion of access grant
+' nginx -> NJS : forward deletion request
+
+' NJS -> ADB : Update access granrt to revoked
+' ADB -> NJS : grant updated
+
+' NJS -> AR : Delete cached grant
+' AR -> NJS : deletion confirmation
+
+' NJS -> PDR : Delete cached patient data for this grant
+' NJS -> FAPI : Clear RAG data for this grant
+' FAPI -> NJS : Confirm deletion 
+
+' NJS -> AuditLog : Log access revocation
+
+' NJS-> nginx: return OK 
+' nginx-> App: forward OK response
+' App-> Patient: display revocation confirmation
+
+

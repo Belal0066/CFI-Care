@@ -12,10 +12,54 @@ class ConfirmationScreen extends StatelessWidget {
     // GET DATA FROM PROVIDER
     final booking = context.watch<BookingProvider>();
 
-    // Safety check
-    final doctor = booking.selectedDoctor!;
-    final appointmentTime = booking.selectedTime!;
-    final appointmentDate = booking.formattedDate;
+    final doctor = booking.selectedDoctor;
+    final appointmentTime = booking.selectedTime;
+    final appointmentDate = booking.selectedDate;
+
+    if (doctor == null || appointmentTime == null || appointmentDate == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: AppBar(
+          title: const Text(
+            "Review & Confirm",
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+          backgroundColor: const Color(0xFF0073CF),
+          elevation: 0,
+          foregroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 12),
+                const Text(
+                  "Please select a time slot before confirming.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0073CF),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Go Back"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final appointmentDateText =
+        "${appointmentDate.day}/${appointmentDate.month}/${appointmentDate.year}";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Modern light grey bg
@@ -65,8 +109,17 @@ class ConfirmationScreen extends StatelessWidget {
                           ),
                           child: CircleAvatar(
                             radius: 30,
-                            backgroundImage: AssetImage(doctor.imageUrl),
+                            backgroundImage:
+                                doctor.imageUrl.isNotEmpty &&
+                                    doctor.imageUrl.contains("http")
+                                ? NetworkImage(doctor.imageUrl)
+                                : null,
                             backgroundColor: Colors.grey.shade200,
+                            child:
+                                doctor.imageUrl.isEmpty ||
+                                    !doctor.imageUrl.contains("http")
+                                ? const Icon(Icons.person, color: Colors.grey)
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -142,7 +195,7 @@ class ConfirmationScreen extends StatelessWidget {
                         _buildDetailRow(
                           Icons.calendar_month_outlined,
                           "Date & Time",
-                          "$appointmentDate\n$appointmentTime",
+                          "$appointmentDateText\n$appointmentTime",
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
@@ -301,16 +354,45 @@ class ConfirmationScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     // SAVE THE APPOINTMENT
-                    context.read<BookingProvider>().confirmBooking();
+                    final isSuccess = await context
+                        .read<BookingProvider>()
+                        .confirmBooking();
+
+                    if (!isSuccess || !context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Could not confirm booking. Please try again.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final appointmentId = context
+                        .read<BookingProvider>()
+                        .lastBookedAppointmentId;
+
+                    if (appointmentId == null || appointmentId.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Booking succeeded but appointment ID is missing.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
 
                     // Navigate
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ThankYouScreen(
-                          appointmentDate: appointmentDate,
+                          appointmentId: appointmentId,
+                          appointmentDate: appointmentDateText,
                           appointmentTime: appointmentTime,
                           fees: doctor.fees,
                           doctor: doctor,

@@ -13,7 +13,7 @@ class Session {
 class DBHelper {
   static Database? _db;
   static const _dbName = 'medflow.db';
-  static const _version = 1;
+  static const _version = 3;
 
   static Future<Database> get database async {
     if (_db != null) return _db!;
@@ -24,7 +24,48 @@ class DBHelper {
   static Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _dbName);
-    return await openDatabase(path, version: _version, onCreate: _createDb);
+    return await openDatabase(
+      path,
+      version: _version,
+      onCreate: _createDb,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  static Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute(
+          'ALTER TABLE documents ADD COLUMN isSynced INTEGER DEFAULT 0',
+        );
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE documents ADD COLUMN serverId TEXT');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 3) {
+      try {
+        await db.execute(
+          "ALTER TABLE documents ADD COLUMN syncStatus TEXT DEFAULT 'pending'",
+        );
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE documents ADD COLUMN retryCount INTEGER DEFAULT 0',
+        );
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE documents ADD COLUMN lastError TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE documents ADD COLUMN nextAttemptAt TEXT');
+      } catch (_) {}
+    }
   }
 
   static Future<void> _createDb(Database db, int version) async {
@@ -32,10 +73,10 @@ class DBHelper {
     await db.execute('''
       CREATE TABLE users (
         userId TEXT PRIMARY KEY,
-        email TEXT NOT NULL,
-        password TEXT NOT NULL
+        email TEXT NOT NULL
       )
     ''');
+    // password TEXT NOT NULL
 
     // 2. Events
     await db.execute("""
@@ -93,6 +134,12 @@ class DBHelper {
       type INTEGER,
       speciality INTEGER,
       time TEXT,
+      isSynced INTEGER DEFAULT 0,
+      serverId TEXT,
+      syncStatus TEXT DEFAULT 'pending',
+      retryCount INTEGER DEFAULT 0,
+      lastError TEXT,
+      nextAttemptAt TEXT,
       FOREIGN KEY(userId) REFERENCES users(userId)
     )
     """);
@@ -108,18 +155,17 @@ class DBHelper {
     print('================================================\n');
   }
 
-  
   // ---------- Users & Auth ----------
   static Future<int> insertUser({
     required String userId,
     required String email,
-    required String password,
+    // required String password,
   }) async {
     final db = await database;
     return await db.insert('users', {
       'userId': userId,
       'email': email,
-      'password': password,
+      // 'password': password,
     }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
@@ -127,8 +173,8 @@ class DBHelper {
     final db = await database;
     final res = await db.query(
       'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+      where: 'email = ?',
+      whereArgs: [email],
       limit: 1,
     );
     if (res.isNotEmpty) return res.first['userId'] as String;
@@ -253,7 +299,124 @@ class DBHelper {
       'type': doc.type.index,
       'speciality': doc.speciality.index,
       'time': '${doc.time.hour}:${doc.time.minute}',
+      'isSynced': doc.isSynced ? 1 : 0,
+      'serverId': doc.serverId,
+      'syncStatus': doc.isSynced ? 'synced' : 'pending',
+      'retryCount': 0,
+      'lastError': null,
+      'nextAttemptAt': null,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  static Future<List<DocumentModel>> getPendingDocumentsForSync(
+    String userId,
+  ) async {
+    final db = await database;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
+    final rows = await db.query(
+      'documents',
+      where:
+          'userId = ? AND isSynced = 0 AND (nextAttemptAt IS NULL OR nextAttemptAt <= ?)',
+      whereArgs: [userId, nowIso],
+      orderBy: 'id ASC',
+    );
+
+    return rows.map((row) {
+      final timeParts = (row['time'] as String).split(':');
+      return DocumentModel(
+        id: row['id'] as String,
+        serverId: row['serverId'] as String?,
+        title: row['title'] as String,
+        filePath: row['filePath'] as String,
+        isPDF: (row['isPDF'] as int) == 1,
+        summary: row['summary'] as String,
+        details: row['details'] as String,
+        type: TypeOfEventEnum.values[_parseEnumIndex(row['type'], 0)],
+        speciality:
+            SpecialityEventEnum.values[_parseEnumIndex(row['speciality'], 0)],
+        time: TimeOfDay(
+          hour: int.parse(timeParts[0]),
+          minute: int.parse(timeParts[1]),
+        ),
+        isSynced: false,
+      );
+    }).toList();
+  }
+
+  static Future<int> markDocumentSyncInProgress(String documentId) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {'syncStatus': 'syncing', 'lastError': null},
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static Future<int> markDocumentSyncSuccess({
+    required String documentId,
+    required String serverId,
+  }) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {
+        'isSynced': 1,
+        'serverId': serverId,
+        'syncStatus': 'synced',
+        'retryCount': 0,
+        'lastError': null,
+        'nextAttemptAt': null,
+      },
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static Future<int> markDocumentSyncFailure({
+    required String documentId,
+    required String error,
+  }) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'documents',
+      columns: ['retryCount'],
+      where: 'id = ?',
+      whereArgs: [documentId],
+      limit: 1,
+    );
+
+    final currentRetry = rows.isNotEmpty
+        ? _parseEnumIndex(rows.first['retryCount'], 0)
+        : 0;
+    final nextRetry = currentRetry + 1;
+
+    final backoffSeconds = _computeBackoffSeconds(nextRetry);
+    final nextAttempt = DateTime.now()
+        .toUtc()
+        .add(Duration(seconds: backoffSeconds))
+        .toIso8601String();
+
+    return await db.update(
+      'documents',
+      {
+        'isSynced': 0,
+        'syncStatus': 'failed',
+        'retryCount': nextRetry,
+        'lastError': error,
+        'nextAttemptAt': nextAttempt,
+      },
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static int _computeBackoffSeconds(int retry) {
+    final cappedRetry = retry > 7 ? 7 : retry;
+    final seconds = 15 * (1 << cappedRetry);
+    return seconds > 3600 ? 3600 : seconds;
   }
 
   static Future<List<DocumentModel>> getDocumentsForUser(String userId) async {
@@ -269,6 +432,7 @@ class DBHelper {
       final timeParts = (row['time'] as String).split(':');
       return DocumentModel(
         id: row['id'] as String,
+        serverId: row['serverId'] as String?,
         title: row['title'] as String,
         filePath: row['filePath'] as String,
         isPDF: (row['isPDF'] as int) == 1,
@@ -281,6 +445,7 @@ class DBHelper {
           hour: int.parse(timeParts[0]),
           minute: int.parse(timeParts[1]),
         ),
+        isSynced: _parseEnumIndex(row['isSynced'], 0) == 1,
       );
     }).toList();
   }
@@ -295,6 +460,7 @@ class DBHelper {
     if (value is String) return int.tryParse(value) ?? fallbackIndex;
     return fallbackIndex;
   }
+
   static Future<int> updateDocument(DocumentModel doc) async {
     final db = await database;
     return await db.update(
@@ -302,10 +468,79 @@ class DBHelper {
       {
         'isSynced': doc.isSynced ? 1 : 0,
         'serverId': doc.serverId,
+        'syncStatus': doc.isSynced ? 'synced' : 'pending',
+        'retryCount': doc.isSynced ? 0 : 0,
+        'lastError': null,
+        'nextAttemptAt': null,
         // You can update other fields here if needed (e.g. title, summary)
       },
       where: 'id = ?',
       whereArgs: [doc.id],
     );
   }
+
+
+  static Future<String?> findUserIdByEmail(String email) async {
+  final db = await database;
+  final res = await db.query(
+    'users',
+    columns: ['userId'],
+    where: 'email = ?',
+    whereArgs: [email],
+    limit: 1,
+  );
+  if (res.isEmpty) return null;
+  return res.first['userId'] as String?;
+}
+
+static Future<bool> userExistsById(String userId) async {
+  final db = await database;
+  final res = await db.query(
+    'users',
+    columns: ['userId'],
+    where: 'userId = ?',
+    whereArgs: [userId],
+    limit: 1,
+  );
+  return res.isNotEmpty;
+}
+
+static Future<void> ensureUserAndProfile({
+  required String userId,
+  required String email,
+  String? firstName,
+  String? lastName,
+}) async {
+  final exists = await userExistsById(userId);
+  if (!exists) {
+    await insertUser(
+      userId: userId,
+      email: email
+    );
+  }
+
+  final existingProfile = await getUserProfile(userId);
+  if (existingProfile == null) {
+    await upsertProfile(userId, {
+      'firstName': firstName ?? '',
+      'lastName': lastName ?? '',
+      'email': email,
+      'phone': '',
+      'address': '',
+      'dob': '',
+      'gender': '',
+      'bloodType': '',
+      'height': '',
+      'weight': '',
+      'allergies': '',
+      'conditions': '',
+      'medications': '',
+      'geneticConditions': '',
+      'chronicDiseases': '',
+      'emergencyContact': '',
+      'insuranceProvider': '',
+      'policyNumber': '',
+    });
+  }
+}
 }

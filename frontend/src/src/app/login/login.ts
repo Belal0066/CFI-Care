@@ -3,6 +3,7 @@ import { LoginPageCards } from '../login-page-cards/login-page-cards';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../services/auth/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -27,46 +28,111 @@ export class Login {
   forgotEmail = '';
   forgotMessage = '';
 
-  constructor(private router: Router) {
+  // error/success mssgs
+  errorMessage = '';
+  isLoading = false;
+
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {
     this.loadRememberedUser();
+    this.authService.currentUser$.subscribe(user => {
+    if (user) {
+      this.router.navigate(['/dashboard']);
+    }
+  });
   }
 
-  /** FORM SUBMIT */
-  onSubmit() {
-    if (this.showForgot) return this.sendReset(); // handle forgot panel submit
+  // /** FORM SUBMIT */
+  // onSubmit() {
+  //   if (this.showForgot) return this.sendReset(); // handle forgot panel submit
 
+  //   if (this.mode === 'login') {
+  //     this.login();
+  //   } else {
+  //     this.signup();
+  //   }
+  // }
+
+  onSubmit() {
+    if (this.showForgot) return this.sendReset();
     if (this.mode === 'login') {
       this.login();
     } else {
       this.signup();
     }
   }
-
-  /** LOG IN */
   login() {
-    if (!this.email || !this.password) return;
-
-    // Simple login - just navigate to dashboard
-    this.handleRememberMe();
-    this.router.navigate(['/dashboard']);
+    this.errorMessage = '';
+    this.isLoading = true;
+    this.authService.loginWithOAuth('/dashboard');
   }
 
-  /** SIGNUP */
   signup() {
-    if (
-      !this.email ||
-      !this.password ||
-      !this.fullName ||
-      this.password !== this.confirmPassword
-    )
-      return;
-    const signupSuccess = true; // replace with backend call
-
-    if (signupSuccess) {
-      this.handleRememberMe();
-      this.router.navigate(['/dashboard']);
-    }
+    this.errorMessage = 'Sign up is currently disabled in this auth mode.';
   }
+
+  // /** LOG IN */
+  // login() {
+  //   if (!this.email || !this.password) {
+  //     this.errorMessage = 'Please enter both email and password';
+  //     return;
+  //   }
+
+  //   this.isLoading = true;
+  //   this.errorMessage = '';
+
+  //   this.authService.login(this.email, this.password).subscribe({
+  //     next: (response) => {
+  //       console.log('Login successful:', response);
+  //       this.handleRememberMe();
+  //       this.isLoading = false;
+  //       this.router.navigate(['/dashboard']);
+  //     },
+  //     error: (error) => {
+  //       console.error('Login failed:', error);
+  //       this.errorMessage = error.message || 'Login failed. Please check your credentials.';
+  //       this.isLoading = false;
+  //     }
+  //   });
+  // }
+
+  // /** SIGNUP */
+  // signup() {
+
+  //   if (!this.email || !this.password || !this.fullName) {
+  //     this.errorMessage = 'Please fill in all fields';
+  //     return;
+  //   }
+
+  //   if (this.password !== this.confirmPassword) {
+  //     this.errorMessage = 'Passwords do not match';
+  //     return;
+  //   }
+
+  //   if (this.password.length < 8) {
+  //     this.errorMessage = 'Password must be at least 8 characters';
+  //     return;
+  //   }
+
+  //   this.isLoading = true;
+  //   this.errorMessage = '';
+
+  //   this.authService.register(this.email, this.password, this.fullName).subscribe({
+  //     next: (response) => {
+  //       console.log('Registration successful:', response);
+  //       this.handleRememberMe();
+  //       this.isLoading = false;
+  //       this.router.navigate(['/dashboard']);
+  //     },
+  //     error: (error) => {
+  //       console.error('Registration failed:', error);
+  //       this.errorMessage = error.message || 'Registration failed. Please try again.';
+  //       this.isLoading = false;
+  //     }
+  //   });
+  // }
 
   /** REMEMBER ME */
   handleRememberMe() {

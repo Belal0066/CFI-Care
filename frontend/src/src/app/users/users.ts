@@ -1,41 +1,4 @@
-// import { Component } from '@angular/core';
-// import { CommonModule } from '@angular/common';
-// import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
-
-// @Component({
-//   selector: 'app-users',
-//   imports: [CommonModule],
-//   templateUrl: './users.html',
-//   styleUrl: './users.css'
-// })
-// export class Users {
-
-//   patients = [
-//     { id: 1, name: 'Name1', updated: '1 week ago', age: '24y' },
-//     { id: 2, name: 'Name2', updated: 'today', age: '36y' },
-//     { id: 3, name: 'Name3', updated: 'yesterday', age: '77y' },
-//     { id: 4, name: 'Name3', updated: 'yesterday', age: '47y' },
-//     { id: 5, name: 'Name3', updated: 'yesterday', age: '57y' },
-//     //add more patients data
-//   ];
-
-//   constructor(private selectedPatientService: SelectedPatientService) {}
-
-//   onPatientClick(patient: any) {
-//     this.selectedPatientService.selectPatient(patient);
-//   }
-
-// }
-
-// export interface PatientSummaryDTO {
-//   id: number;
-//   name: string;
-//   age: number;
-//   lastUpdated: string; // ISO
-// }
-
-// BACKEND
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
 import { PatientApiService } from '../services/patientApi/patient-api-service';
@@ -49,28 +12,51 @@ import { PatientSummaryDTO } from '../models/patient.model';
   styleUrl: './users.css',
 })
 export class Users implements OnInit {
-  patients: PatientSummaryDTO[] = [];
+  private externalPatients = false;
+  private _patients: PatientSummaryDTO[] = [];
   loading = true;
   error: string | null = null;
+  selectedId: string | number | null = null; // Tracks selected patient for UI styling
+
+  @Input()
+  set patients(value: PatientSummaryDTO[] | null) {
+    this.externalPatients = true;
+    this._patients = value ?? [];
+    this.loading = false;
+  }
+
+  get patients(): PatientSummaryDTO[] {
+    return this._patients;
+  }
 
   constructor(
     private selectedPatientService: SelectedPatientService,
-    private patientApi: PatientApiService
+    private patientApi: PatientApiService,
   ) {}
 
   ngOnInit() {
-    this.loadPatients();
+    // 1. Load patient data from the backend unless a parent supplies the list.
+    if (!this.externalPatients) {
+      this.loadPatients();
+    }
+
+    // 2. Subscribe to the selected patient ID to apply the '.selected' CSS class
+    this.selectedPatientService.selectedPatientId$.subscribe(
+      (id: string | null) => {
+        this.selectedId = id;
+      },
+    );
   }
 
   loadPatients() {
     this.loading = true;
     this.error = null;
     this.patientApi.getPatients().subscribe({
-      next: (patients) => {
-        this.patients = patients;
+      next: (patients: PatientSummaryDTO[]) => {
+        this._patients = patients;
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Failed to load patients', err);
         this.error =
           'Failed to load patients. Make sure the backend is running.';
@@ -81,5 +67,19 @@ export class Users implements OnInit {
 
   onPatientClick(patient: PatientSummaryDTO) {
     this.selectedPatientService.selectPatient(patient.id);
+  }
+
+  /**
+   * Returns the status of the patient's data freshness:
+   * 'green'  = updated within last 30 days
+   * 'yellow' = older than 30 days
+   */
+  getStatus(lastUpdated: string): 'green' | 'yellow' {
+    if (!lastUpdated) return 'yellow'; // Fallback if data is missing
+    const now = new Date();
+    const updated = new Date(lastUpdated);
+    const diffDays =
+      (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 30 ? 'green' : 'yellow';
   }
 }

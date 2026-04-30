@@ -2,7 +2,27 @@
 
 */certs/
 */.secrets/
-development-realm.json
-realms.json
-.env
+# development-realm.json
+# realms.json
+# .env
 Plan.md
+
+test-login.html
+sign_in.html
+route.html
+
+# login/
+# css/
+
+decode_jwt.py
+
+*.json
+
+/test_mobile/*
+
+
+# keycloak fhir prov
+
+**/target/
+**/*.class
+

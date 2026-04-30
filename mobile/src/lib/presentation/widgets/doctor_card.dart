@@ -47,16 +47,20 @@ class DoctorCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 32,
                         backgroundColor: Colors.grey.shade100,
-                        backgroundImage: doctor.imageUrl.startsWith('http')
-                            ? NetworkImage(doctor.imageUrl) as ImageProvider
-                            : AssetImage(doctor.imageUrl),
-                        child: doctor.imageUrl.contains("http")
-                            ? null
-                            : const Icon(
+                        backgroundImage:
+                            doctor.imageUrl.isNotEmpty &&
+                                doctor.imageUrl.contains("http")
+                            ? NetworkImage(doctor.imageUrl)
+                            : null,
+                        child:
+                            doctor.imageUrl.isEmpty ||
+                                !doctor.imageUrl.contains("http")
+                            ? const Icon(
                                 Icons.person,
                                 size: 35,
                                 color: Colors.grey,
-                              ),
+                              )
+                            : null,
                       ),
                     ),
                     Positioned(

@@ -4,15 +4,35 @@ import '../viewmodels/booking_provider.dart';
 import '../../domain/models/doctors.dart';
 import '../../domain/models/appointments.dart';
 import '../../domain/models/review.dart';
+import '../../data/repositories/booking_repo_impl.dart';
 import 'timeslots_screen.dart';
+import 'confirmation_screen.dart';
 
-class DoctorProfileScreen extends StatelessWidget {
+class DoctorProfileScreen extends StatefulWidget {
   final Doctor doctor;
 
   const DoctorProfileScreen({super.key, required this.doctor});
 
+  @override
+  State<DoctorProfileScreen> createState() => _DoctorProfileScreenState();
+}
+
+class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   // Define primary color for consistency
   final Color primaryColor = const Color(0xFF0073CF);
+
+  @override
+  void initState() {
+    super.initState();
+    // Load slots when the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<BookingProvider>(context, listen: false);
+      print(
+        '[DoctorProfileScreen] Loading schedules with slots for doctor: ${widget.doctor.id}',
+      );
+      provider.loadDoctorSchedulesWithSlots(widget.doctor.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +67,7 @@ class DoctorProfileScreen extends StatelessWidget {
                         child: _buildStatCard(
                           icon: Icons.monetization_on_outlined,
                           label: "Fees",
-                          value: "${doctor.fees} EGP",
+                          value: "${widget.doctor.fees} EGP",
                           color: Colors.green,
                         ),
                       ),
@@ -56,7 +76,7 @@ class DoctorProfileScreen extends StatelessWidget {
                         child: _buildStatCard(
                           icon: Icons.timer_outlined,
                           label: "Waiting",
-                          value: "${doctor.waitingTime} Min",
+                          value: "${widget.doctor.waitingTime} Min",
                           color: Colors.orange,
                         ),
                       ),
@@ -88,22 +108,68 @@ class DoctorProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    height: 155, // Fixed height for cards
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: doctor.schedule.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: _buildDateCard(
-                            context,
-                            doctor.schedule[index],
+                  Consumer<BookingProvider>(
+                    builder: (context, provider, child) {
+                      if (provider.isLoadingSchedules) {
+                        return const SizedBox(
+                          height: 200,
+                          child: Center(child: CircularProgressIndicator()),
+//                   SizedBox(
+//                     height: 155, // Fixed height for cards
+//                     child: ListView.builder(
+//                       scrollDirection: Axis.horizontal,
+//                       physics: const BouncingScrollPhysics(),
+//                       itemCount: doctor.schedule.length,
+//                       itemBuilder: (context, index) {
+//                         return Padding(
+//                           padding: const EdgeInsets.only(right: 12),
+//                           child: _buildDateCard(
+//                             context,
+//                             doctor.schedule[index],
+//                           ),
+                        );
+                      }
+
+                      if (provider.schedulesError != null) {
+                        return SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: Text(
+                              "Error loading schedules: ${provider.schedulesError}",
+                              style: const TextStyle(color: Colors.red),
+                            ),
                           ),
                         );
-                      },
-                    ),
+                      }
+
+                      final schedules = provider.schedulesWithSlots;
+                      if (schedules.isEmpty) {
+                        return const SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: Text(
+                              "No available schedules at the moment",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: schedules.map((scheduleWithSlots) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildScheduleCard(
+                              context,
+                              scheduleWithSlots,
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 24),
@@ -130,7 +196,7 @@ class DoctorProfileScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          "${doctor.reviews.length} Reviews",
+                          "${widget.doctor.reviews.length} Reviews",
                           style: TextStyle(
                             color: primaryColor,
                             fontWeight: FontWeight.bold,
@@ -141,7 +207,7 @@ class DoctorProfileScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (doctor.reviews.isEmpty)
+                  if (widget.doctor.reviews.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(20.0),
                       child: Text(
@@ -150,7 +216,10 @@ class DoctorProfileScreen extends StatelessWidget {
                       ),
                     )
                   else
-                    ...doctor.reviews.map((review) => _buildReviewCard(review)),
+                    ...widget.doctor.reviews.map(
+                      (review) => _buildReviewCard(review),
+                    ),
+//                     ...doctor.reviews.map((review) => _buildReviewCard(review)),
 
                   const SizedBox(height: 30),
                 ],
@@ -199,14 +268,24 @@ class DoctorProfileScreen extends StatelessWidget {
               ),
               child: CircleAvatar(
                 radius: 50,
-                backgroundImage: doctor.imageUrl.startsWith('http')
-                    ? NetworkImage(doctor.imageUrl) as ImageProvider
-                    : AssetImage(doctor.imageUrl),
+                backgroundImage:
+                    widget.doctor.imageUrl.isNotEmpty &&
+                        widget.doctor.imageUrl.contains("http")
+                    ? NetworkImage(widget.doctor.imageUrl)
+                    : null,
+                child:
+                    widget.doctor.imageUrl.isEmpty ||
+                        !widget.doctor.imageUrl.contains("http")
+                    ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                    : null,
+//                 backgroundImage: doctor.imageUrl.startsWith('http')
+//                     ? NetworkImage(doctor.imageUrl) as ImageProvider
+//                     : AssetImage(doctor.imageUrl),
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              "Dr. ${doctor.name}",
+              "Dr. ${widget.doctor.name}",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 22,
@@ -216,7 +295,7 @@ class DoctorProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              doctor.title,
+              widget.doctor.title,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -325,7 +404,8 @@ class DoctorProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  doctor.address,
+                  widget.doctor.address,
+//                   doctor.address,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -363,7 +443,7 @@ class DoctorProfileScreen extends StatelessWidget {
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             Text(
-              doctor.about,
+              widget.doctor.about,
               style: TextStyle(color: Colors.blueGrey.shade600, height: 1.5),
             ),
           ],
@@ -372,8 +452,136 @@ class DoctorProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDateCard(BuildContext context, AppointmentDay slot) {
-    bool isAvailable = slot.isAvailable;
+  Widget _buildScheduleCard(
+    BuildContext context,
+    ScheduleWithSlots scheduleWithSlots,
+  ) {
+    final schedule = scheduleWithSlots.schedule;
+    final slots = scheduleWithSlots.slots;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          childrenPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          leading: Icon(Icons.calendar_today, color: primaryColor, size: 28),
+          title: Text(
+            "Schedule ${schedule.id}",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.blueGrey.shade800,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              Text(
+                "Start: ${schedule.startDateTime}",
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              Text(
+                "End: ${schedule.endDateTime}",
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          children: [
+            if (slots.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "No available slots",
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              )
+            else
+              ...slots.map((slot) => _buildSlotCard(context, slot)).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotCard(BuildContext context, DoctorSlot slot) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.access_time, color: primaryColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${slot.startTime} - ${slot.endTime}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.blueGrey.shade800,
+                  ),
+                ),
+                Text(
+                  slot.date,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<BookingProvider>().selectDoctor(widget.doctor);
+              context.read<BookingProvider>().selectSlot(slot);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConfirmationScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Book",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayCard(BuildContext context, DaySlots daySlots) {
     return Container(
       width: 110,
       decoration: BoxDecoration(
@@ -393,10 +601,10 @@ class DoctorProfileScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Header (Day)
+          // Header (Date only)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: isAvailable
                   ? primaryColor.withValues(alpha: 0.1)
@@ -406,27 +614,50 @@ class DoctorProfileScreen extends StatelessWidget {
               ),
             ),
             child: Text(
-              slot.dayName,
+              daySlots.date,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isAvailable ? primaryColor : Colors.grey,
+                color: primaryColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 11,
               ),
             ),
           ),
 
-          // Body (Slots info)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              slot.slots,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.blueGrey.shade700,
+          // Body (Clock icon and time range)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    color: Colors.grey.shade400,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${daySlots.firstSlotTime} - ${daySlots.lastSlotTime}",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.blueGrey.shade700,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+//           // Body (Slots info)
+//           Padding(
+//             padding: const EdgeInsets.symmetric(horizontal: 4),
+//             child: Text(
+//               slot.slots,
+//               textAlign: TextAlign.center,
+//               maxLines: 2,
+//               style: TextStyle(
+//                 fontSize: 12,
+//                 fontWeight: FontWeight.w500,
+//                 color: Colors.blueGrey.shade700,
               ),
             ),
           ),
@@ -436,24 +667,38 @@ class DoctorProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: SizedBox(
               width: double.infinity,
-              height: 32,
+              height: 30,
               child: ElevatedButton(
-                onPressed: isAvailable
-                    ? () {
-                        // --- LOGIC PRESERVED ---
-                        context.read<BookingProvider>().selectDoctor(doctor);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const TimeSlotScreen(),
-                          ),
-                        );
-                      }
-                    : null,
+                onPressed: () {
+                  // Select the doctor and day, then navigate to time slots screen
+                  context.read<BookingProvider>().selectDoctor(widget.doctor);
+                  context.read<BookingProvider>().selectDay(daySlots.rawDate);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          TimeSlotScreen(dayRawDate: daySlots.rawDate),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isAvailable
-                      ? const Color(0xFFD32F2F)
-                      : Colors.grey,
+                  backgroundColor: const Color(0xFFD32F2F),
+//                 onPressed: isAvailable
+//                     ? () {
+//                         // --- LOGIC PRESERVED ---
+//                         context.read<BookingProvider>().selectDoctor(doctor);
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) => const TimeSlotScreen(),
+//                           ),
+//                         );
+//                       }
+//                     : null,
+//                 style: ElevatedButton.styleFrom(
+//                   backgroundColor: isAvailable
+//                       ? const Color(0xFFD32F2F)
+//                       : Colors.grey,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -461,12 +706,15 @@ class DoctorProfileScreen extends StatelessWidget {
                   ),
                   padding: EdgeInsets.zero,
                 ),
-                child: Text(
-                  isAvailable ? "Book" : "Full",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: const Text(
+                  "Book",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+//                 child: Text(
+//                   isAvailable ? "Book" : "Full",
+//                   style: const TextStyle(
+//                     fontSize: 12,
+//                     fontWeight: FontWeight.bold,
+//                   ),
                 ),
               ),
             ),

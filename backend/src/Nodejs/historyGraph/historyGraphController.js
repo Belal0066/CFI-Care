@@ -4,9 +4,8 @@ const { randomUUID } = require("crypto");
 const InitalizeHistoryGraph = async (req, res) => {
   try {
     const episodeOfCareData = req.body;
-    const historyGraph = await historyGraphService.InitalizeHistoryGraph(
-      episodeOfCareData
-    );
+    const historyGraph =
+      await historyGraphService.InitalizeHistoryGraph(episodeOfCareData);
     res.status(200).json(historyGraph);
   } catch (error) {
     console.error("Error in InitalizeHistoryGraph:", error.message);
@@ -22,7 +21,7 @@ const createheadNodeEncounter = async (req, res) => {
     const headNodeData = await historyGraphService.createheadNodeEncounter(
       patientId,
       eocId,
-      encounterData
+      encounterData,
     );
     res.status(200).json(headNodeData);
   } catch (error) {
@@ -34,7 +33,22 @@ const createheadNodeEncounter = async (req, res) => {
 const getGraphData = async (req, res) => {
   try {
     const { patientId } = req.params;
-    const graphData = await historyGraphService.getGraphForPatient(patientId);
+    // Extract query parameters for filtering/pagination
+    const options = {
+      limit: req.query.limit ? parseInt(req.query.limit) : null,
+      offset: req.query.offset ? parseInt(req.query.offset) : 0,
+      filterCategory: req.query.filterCategory || null,
+      filterPriority: req.query.filterPriority || null,
+      filterNormality: req.query.filterNormality || null,
+      dateFrom: req.query.dateFrom || null,
+      dateTo: req.query.dateTo || null,
+      sortBy: req.query.sortBy || "event_date",
+      sortOrder: req.query.sortOrder || "DESC",
+    };
+    const graphData = await historyGraphService.getGraphForPatient(
+      patientId,
+      options,
+    );
     res.status(200).json(graphData);
   } catch (error) {
     console.error("Error in getGraphData:", error.message);
@@ -139,12 +153,17 @@ const addNode = async (req, res) => {
       patientId,
       eocId,
       nodeData,
-      parentNodeId
+      parentNodeId,
     );
 
     res.status(201).json(result);
   } catch (error) {
-    console.error("Error in addNode:", error.message);
+    console.error("Error in addNode:", error.message || error);
+    if (error.statusCode) {
+      return res
+        .status(error.statusCode)
+        .json({ errors: error.errors || error.message });
+    }
     res.status(500).json({ error: error.message || "Failed to add node" });
   }
 };
@@ -164,7 +183,7 @@ const updateNode = async (req, res) => {
       patientId,
       nodeId,
       updatedData,
-      parentNodeId
+      parentNodeId,
     );
 
     res.status(200).json(result);

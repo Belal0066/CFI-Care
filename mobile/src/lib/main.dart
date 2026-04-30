@@ -18,12 +18,20 @@ import 'presentation/viewmodels/major_event_provider.dart';
 import 'domain/repository/vitals_repository_impl.dart';
 import 'data/services/datasources/health_connect_data_source.dart';
 
+// auth
+import 'presentation/viewmodels/auth_viewmodel.dart';
+import 'domain/usecases/auth_usecases.dart';
+import 'data/services/datasources/keycloak_remote_data_source.dart';
+import 'data/repositories/auth_repo_impl.dart';
 
+import 'presentation/routes/app_router.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print("Handling a background message: ${message.messageId}");
 }
+
+
 
 void main() async {
   
@@ -31,10 +39,39 @@ void main() async {
   await MediaStore.ensureInitialized();
   
   MediaStore.appFolder = 'CFICareDocs';
+
+  final authDatasource = KeycloakRemoteDataSource();
+  final authRepo = AuthenticationRepoImpl(datasource: authDatasource);
+  final authUsecases = AuthUsecases(repo: authRepo);
+  final authProvider = AuthProvider(authUsecases);
+  authProvider.init();
+  var isHandlingUnauthorized = false;
+
+  // 1. Create the API Service (Data Source)
+  final apiService = ApiService(
+    getAccessToken: () => authUsecases.getValidAccessToken(),
+    refreshToken: () async {
+      final s = await authUsecases.refreshSession();
+      return s.accessToken;
+    },
+    onUnauthorized: () async {
+      if (isHandlingUnauthorized) return;
+      isHandlingUnauthorized = true;
+      try {
+        await authProvider.logout();
+      } catch (e) {
+        debugPrint('[AUTH] auto-logout after unauthorized failed: $e');
+      } finally {
+        isHandlingUnauthorized = false;
+      }
+      // await authUsecases.logout();
+      // debugPrint('[AUTH] skipped auto-logout during debug for 401 res from backend in case of errors -_-');
+    },
+  );
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   // Create the API Service (Data Source)
-  final apiService = ApiService();
+//   final apiService = ApiService();
   final pdfService = PdfStorageService();
   final imgService = ImageStorageService();
 
@@ -44,6 +81,8 @@ void main() async {
   final vitalsRepo = VitalsRepositoryImpl(HealthConnectDataSource());
   final eventRepo = MajorEventRepository();
 
+  final router = buildRouter(authProvider);
+
   runApp(
     MultiProvider(
       providers: [
@@ -51,11 +90,13 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DocumentProvider(docRepo)),
         ChangeNotifierProvider(create: (_) => VitalsProvider(vitalsRepo)),
         ChangeNotifierProvider(create: (_) => MajorEventProvider(eventRepo)),
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
       ],
-      child: MaterialApp(
-        home: SplashScreen(),
+      child: MaterialApp.router(
+        // home: SplashScreen(),
         debugShowCheckedModeBanner: false,
         theme: patientTheme,
+        routerConfig: router,
       ),
     ),
   );

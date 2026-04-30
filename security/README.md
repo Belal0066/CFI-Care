@@ -1,5 +1,67 @@
 # Security
 
+
+
+## Services
+
+### Keycloak
+
+- To build Keycloak FHIR Provisioner (for at-registration resource creation) jar file :
+
+```bash
+cd security/Containers/services/keycloak/fhir-listener
+mvn clean package
+```
+
+- To import keycloak realms, either uncomment these lines within the main docker-compose in the keycloak container part(localhost):
+
+    ```yml
+    command:[
+            ...
+
+            # '-Dkeycloak.migration.action=import',
+            # '-Dkeycloak.migration.provider=singleFile',
+            # '-Dkeycloak.migration.realmName=CFI-Care',
+            # '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
+            # '-Dkeycloak.migration.file=/import/realms.json',
+            ...
+    ]
+
+    ```
+
+    *or* run this command to import the file from its volume :
+    
+        ```
+            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realms.json"
+        ```
+
+- To export keycloak realms within a single file, start container, then run this command within a terminal :
+
+        ```
+            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json"
+
+        ```
+
+
+
+## For dev only 
+
+- To set keycloak local certs in security/Containers/certs/ directory (chmod 644 so containers can read them) :
+
+    ``` 
+    mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost kc.localhost 127.0.0.1 ::1
+
+    mkcert -key-file key.pem -cert-file cert.pem localhost kc.localhost 127.0.0.1 ::1
+
+    openssl pkcs12 -export -in cert.pem -inkey key.pem -out keystore.p12 -name tomcat -password pass:secret
+
+    cp $(mkcert -CAROOT)/rootCA.pem ./
+
+    chmod 666 *.pem 
+    chmod 666 *.p12
+    
+    ```
+
 ## Container security & Consistency
 
 - Prevent in-container privilege escalation (`security_opt: - no-new-privileges:true`)
@@ -27,39 +89,4 @@
 ```
 trivy image --severity HIGH,CRITICAL <image-name>:<tag>
 ```
-
-## Services
-
-### Keycloak
-
-- To import keycloak realms, either uncomment these lines within the main docker-compose in the keycloak container part(kc.localhost):
-
-    ```yml
-    command:[
-            ...
-
-            # '-Dkeycloak.migration.action=import',
-            # '-Dkeycloak.migration.provider=singleFile',
-            # '-Dkeycloak.migration.realmName=CFI-Care',
-            # '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
-            # '-Dkeycloak.migration.file=/import/realms.json',
-            ...
-    ]
-
-    ```
-
-    *or* run this command to import the file from its volume :
-    
-        ```
-            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realms.json"
-        ```
-
-- To export keycloak realms within a single file, start container, then run this command within a terminal :
-
-        ```
-            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json"
-
-        ```
-
-
 

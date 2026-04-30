@@ -1,0 +1,87 @@
+@startuml Practitioner Patient Access Granting
+skinparam actorStyle AWESOME
+autonumber
+
+
+actor Practitioner
+participant Browser
+
+participant RAG
+
+
+participant nginx
+' participant oauth2Proxy
+
+' participant Keycloak
+
+participant "Backend" as NJS
+
+participant AuditLog
+
+
+participant "Patient Data Redis" as PDR
+database FHIR
+
+database "Access Redis" as AR
+
+database "Access Grant Database" as ADB
+
+' database "FCM Token Database" as TDB
+
+' participant RAGRedis as RR
+
+' participant FastAPI as FAPI
+
+' participant Firebase
+
+' participant "Application" as App
+' actor "Patient \n(Data Owner)"  as Patient 
+
+
+==Registered Practitioner accessing patient data==
+Practitioner -> Browser : Access Patient data
+Browser -> nginx : req access to patient data 
+nginx-> NJS: forward req
+
+NJS -> NJS : extract Practitioner ID from token
+NJS -> AR : Query access grant redis for dr and patient ids mapping
+alt cache hit 
+AR -> NJS : Access grant still in cache 
+NJS -> NJS : proceed to data caching
+else cache miss
+NJS -> ADB : chech DB for access grant
+    alt mapping found
+    ADB-> NJS : access grant given (with valid TTL)
+    NJS -> NJS : proceed to data caching
+    else mapping not found
+    ADB-> NJS : mapping not found
+    NJS -> nginx: HTTP 401 not found
+    nginx -> Browser: forward resp 
+    Browser -> Practitioner : display error response 
+    end
+end
+
+== Patinet data caching (dr has access)==
+' NJS -> NJS : Verify signature (HMAC), validate scopes, check expiry
+NJS ->PDR : check data existence through pid
+alt data isn't cached  
+NJS -> PDR : Cache data
+else  data is cached
+NJS-> NJS : proceed normally
+
+end
+
+' da lesa ma3ana???
+' NJS -> NJS : Preprocess data for RAG
+' NJS -> RR : Store preprocessed data
+
+
+NJS -> nginx: forward OK res with data
+nginx -> Browser: forward resp
+Browser -> Practitioner: display requested patient data 
+NJS -> AuditLog : Log data 
+' note right of AuditLog: access{PractitionerId, patientId, timestamp, consentId}
+
+
+
+@enduml
