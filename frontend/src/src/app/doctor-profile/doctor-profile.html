@@ -1,437 +1,4 @@
-<!-- ── CREATE PROFILE ───────────────────────────────────── -->
-<!-- <div class="onboard-wrap" *ngIf="isCreatingProfile">
-  <div class="onboard-card">
-    <div class="ob-logo">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <rect width="28" height="28" rx="7" fill="#2F6FED"/>
-        <path d="M14 6v16M6 14h16" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-      <span>MedFlow</span>
-    </div>
-    <h1>Set up your doctor profile</h1>
-    <p>Your profile helps patients and staff find and identify you across MedFlow.</p>
-    <div class="form-grid">
-      <div class="fg"><label>Full name *</label>
-        <input type="text" [(ngModel)]="profileDraft.name" placeholder="Dr. Jane Smith"/></div>
-      <div class="fg"><label>Specialty *</label>
-        <input type="text" [(ngModel)]="profileDraft.specialty" placeholder="Cardiology"/></div>
-      <div class="fg"><label>Hospital / Clinic</label>
-        <input type="text" [(ngModel)]="profileDraft.affiliation" placeholder="City General Hospital"/></div>
-      <div class="fg"><label>Years of experience</label>
-        <input type="number" [(ngModel)]="profileDraft.yearsExperience" min="0"/></div>
-      <div class="fg"><label>Email</label>
-        <input type="email" [(ngModel)]="profileDraft.email" placeholder="dr@hospital.org"/></div>
-      <div class="fg"><label>Phone</label>
-        <input type="tel" [(ngModel)]="profileDraft.phone" placeholder="+1 (555) 000-0000"/></div>
-      <div class="fg full"><label>Languages — type and press comma to add</label>
-        <div class="lang-field">
-          <span class="lang-tag" *ngFor="let l of profileDraft.languages">
-            {{l}} <button type="button" (click)="removeLang(l)">×</button>
-          </span>
-          <input type="text" placeholder="English, Arabic…" (input)="onLangInput($event)"/>
-        </div>
-      </div>
-      <div class="fg full"><label>Short bio</label>
-        <textarea [(ngModel)]="profileDraft.bio" rows="3"
-          placeholder="Board-certified specialist with a focus on…"></textarea></div>
-    </div>
-    <div class="ob-actions">
-      <button type="button" class="btn-primary"
-        [disabled]="!profileDraft.name || !profileDraft.specialty"
-        (click)="saveNewProfile()">
-        Create profile &amp; continue →
-      </button>
-    </div>
-  </div>
-</div> -->
-
-<!-- ── DASHBOARD ─────────────────────────────────────────── -->
-<!-- <div class="dashboard" *ngIf="!isCreatingProfile">
-
-  <header class="topnav">
-    <div class="nav-l">
-      <div class="logo">
-        <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-          <rect width="28" height="28" rx="7" fill="#2F6FED"/>
-          <path d="M14 6v16M6 14h16" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-        <span>MedFlow</span>
-      </div>
-      <span class="nav-sep"></span>
-      <span class="nav-page">Doctor Profile</span>
-    </div>
-    <div class="nav-r">
-      <div class="nav-search">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 10l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <input type="text" [(ngModel)]="searchQuery" placeholder="Search appointments…"/>
-      </div>
-      <div class="nav-avatar-chip" *ngIf="profile">
-        <div class="nav-avatar" [style.background]="profile.avatarColor">{{profile.avatarInitials}}</div>
-        <span>{{profile.name}}</span>
-      </div>
-    </div>
-  </header>
-
-  <div class="cols"> -->
-
-    <!-- LEFT ────────────────────────────────────────────── -->
-    <!-- <aside class="left-panel">
-      <div class="p-card">
-        <div class="p-avatar-wrap">
-          <div class="p-avatar" [style.background]="profile?.avatarColor">{{profile?.avatarInitials}}</div>
-          <div class="p-status"></div>
-        </div>
-        <div class="p-name">{{profile?.name}}</div>
-        <div class="p-specialty">{{profile?.specialty}}</div>
-        <div class="p-affil">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5Z"
-              stroke="currentColor" stroke-width="1.3"/>
-          </svg>
-          {{profile?.affiliation || '—'}}
-        </div>
-        <div class="p-divider"></div>
-        <div class="p-stats">
-          <div class="p-stat">
-            <span class="p-stat-v">{{profile?.yearsExperience}}</span>
-            <span class="p-stat-l">Yrs exp.</span>
-          </div>
-          <div class="p-stat-sep"></div>
-          <div class="p-stat">
-            <span class="p-stat-v">{{todayAppointments.length}}</span>
-            <span class="p-stat-l">Today</span>
-          </div>
-          <div class="p-stat-sep"></div>
-          <div class="p-stat">
-            <span class="p-stat-v">{{upcomingCount}}</span>
-            <span class="p-stat-l">Upcoming</span>
-          </div>
-        </div>
-        <div class="p-sec">
-          <div class="p-sec-lbl">About</div>
-          <p class="p-bio">{{profile?.bio || 'No bio added yet.'}}</p>
-        </div>
-        <div class="p-sec">
-          <div class="p-sec-lbl">Languages</div>
-          <div class="p-langs">
-            <span class="p-lang" *ngFor="let l of profile?.languages">{{l}}</span>
-            <span class="p-none" *ngIf="!profile?.languages?.length">—</span>
-          </div>
-        </div>
-        <div class="p-sec">
-          <div class="p-sec-lbl">Contact</div>
-          <div class="p-contact-row" *ngIf="profile?.email">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.4"/>
-            </svg>
-            {{profile?.email}}
-          </div>
-          <div class="p-contact-row" *ngIf="profile?.phone">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <path d="M4 2h2l1 4-2 1a8 8 0 004 4l1-2 4 1v2a1 1 0 01-1 1C6.5 13 3 9.5 3 3a1 1 0 011-1z"
-                stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-            {{profile?.phone}}
-          </div>
-        </div>
-        <button type="button" class="btn-edit" (click)="editProfile()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-            <path d="M11.5 2.5a1.414 1.414 0 0 1 2 2L5 13H3v-2L11.5 2.5Z"
-              stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
-          </svg>
-          Edit profile
-        </button>
-      </div>
-    </aside> -->
-
-    <!-- CENTER ───────────────────────────────────────────── -->
-    <!-- <main class="center-panel">
-      <div class="cal-bar">
-        <div class="cal-bar-l">
-          <button type="button" class="btn-today" (click)="goToday()">Today</button>
-          <button type="button" class="btn-nav" (click)="prevWeek()">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <span class="week-lbl">{{getWeekLabel()}}</span>
-          <button type="button" class="btn-nav" (click)="nextWeek()">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="cal-bar-r">
-          <div class="view-tog">
-            <button type="button" [class.active]="currentView==='week'" (click)="currentView='week'">Week</button>
-            <button type="button" [class.active]="currentView==='day'"  (click)="currentView='day'">Day</button>
-          </div>
-          <button type="button" class="btn-block">Block time</button>
-          <button type="button" class="btn-add" (click)="openAdd()">+ Add appointment</button>
-        </div>
-      </div>
-
-      <div class="cal-wrap">
-        <div class="cal-grid" [class.day-view]="currentView==='day'">
-
-          <div class="cal-corner"></div>
-          <ng-container *ngIf="currentView==='week'">
-            <div class="cal-day-hdr" *ngFor="let d of days">{{d}}</div>
-          </ng-container>
-          <ng-container *ngIf="currentView==='day'">
-            <div class="cal-day-hdr">{{days[todayIndex]}}</div>
-          </ng-container>
-
-          <ng-container *ngFor="let h of hours">
-            <div class="cal-time-lbl">{{fmtHour(h)}}</div>
-
-            <ng-container *ngIf="currentView==='week'">
-              <div class="cal-cell" *ngFor="let d of days; let di = index">
-                <div class="appt" *ngFor="let a of slotsFor(di, h); trackBy: trackById"
-                  [ngClass]="'appt-' + a.status"
-                  [style.height.px]="apptHeight(a)"
-                  (click)="openDetail(a, $event)">
-                  <span class="appt-name">{{a.patientName}}</span>
-                  <span class="appt-type">{{a.type}}</span>
-                </div>
-              </div>
-            </ng-container>
-
-            <ng-container *ngIf="currentView==='day'">
-              <div class="cal-cell">
-                <div class="appt" *ngFor="let a of slotsFor(todayIndex, h); trackBy: trackById"
-                  [ngClass]="'appt-' + a.status"
-                  [style.height.px]="apptHeight(a)"
-                  (click)="openDetail(a, $event)">
-                  <span class="appt-name">{{a.patientName}}</span>
-                  <span class="appt-type">{{a.type}}</span>
-                </div>
-              </div>
-            </ng-container>
-          </ng-container>
-
-        </div>
-      </div>
-    </main> -->
-
-    <!-- RIGHT SIDEBAR ───────────────────────────────────── -->
-    <!-- <aside class="right-sidebar" [class.collapsed]="sidebarCollapsed">
-      <button type="button" class="sb-toggle" (click)="sidebarCollapsed = !sidebarCollapsed">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-          <path [attr.d]="sidebarCollapsed ? 'M6 4l4 4-4 4' : 'M10 4l-4 4 4 4'"
-            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-
-      <div class="sb-body" *ngIf="!sidebarCollapsed">
-        <div class="sb-sec">
-          <div class="sb-sec-title">Quick actions</div>
-          <div class="qa-list">
-            <button type="button" class="qa-btn primary" (click)="openAdd()">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Add appointment
-            </button>
-            <button type="button" class="qa-btn" (click)="currentView='week'; goToday()">
-              <span class="qa-icon c-indigo">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/>
-                  <path d="M2 7h12M5 1v2M11 1v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                </svg>
-              </span>
-              View this week
-            </button>
-            <button type="button" class="qa-btn">
-              <span class="qa-icon c-teal">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                  <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                  <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                  <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                </svg>
-              </span>
-              Go to dashboard
-            </button>
-          </div>
-        </div>
-        <div class="sb-divider"></div>
-        <div class="sb-sec">
-          <div class="sb-sec-title">Today's summary</div>
-          <div class="sum-grid">
-            <div class="sum-card">
-              <span class="sum-n">{{todayAppointments.length}}</span>
-              <span class="sum-l">Today</span>
-            </div>
-            <div class="sum-card">
-              <span class="sum-n">{{upcomingCount}}</span>
-              <span class="sum-l">Upcoming</span>
-            </div>
-          </div>
-          <div class="today-list">
-            <div class="today-item" *ngFor="let a of todayAppointments">
-              <div class="today-dot" [ngClass]="a.status"></div>
-              <div class="today-info">
-                <span class="today-patient">{{a.patientName}}</span>
-                <span class="today-meta">{{fmtHour(a.startHour)}} · {{a.type}}</span>
-              </div>
-              <span class="status-bdg" [ngClass]="a.status">{{a.status}}</span>
-            </div>
-            <div class="today-empty" *ngIf="todayAppointments.length === 0">No appointments today</div>
-          </div>
-        </div>
-        <div class="sb-divider"></div>
-        <div class="sb-sec">
-          <div class="sb-sec-title">Recent activity</div>
-          <div class="act-list">
-            <div class="act-item" *ngFor="let item of recentActivity">
-              <div class="act-avatar">
-                {{item.patientName.charAt(0)}}{{item.patientName.split(' ')[1]?.charAt(0) || ''}}
-              </div>
-              <div class="act-info">
-                <p class="act-name">{{item.patientName}}</p>
-                <p class="act-action">{{item.action}}</p>
-              </div>
-              <span class="act-time">{{item.time}}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
-  </div>
-</div> -->
-
-<!-- ── EDIT PROFILE MODAL ───────────────────────────────── -->
-<!-- <div class="overlay" *ngIf="isEditingProfile" (click)="closeEdit()">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-hdr">
-      <h3>Edit profile</h3>
-      <button type="button" class="modal-x" (click)="closeEdit()">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="fg"><label>Full name</label>
-          <input type="text" [(ngModel)]="profileDraft.name"/></div>
-        <div class="fg"><label>Specialty</label>
-          <input type="text" [(ngModel)]="profileDraft.specialty"/></div>
-      </div>
-      <div class="form-row">
-        <div class="fg"><label>Hospital / Clinic</label>
-          <input type="text" [(ngModel)]="profileDraft.affiliation"/></div>
-        <div class="fg"><label>Years of experience</label>
-          <input type="number" [(ngModel)]="profileDraft.yearsExperience"/></div>
-      </div>
-      <div class="form-row">
-        <div class="fg"><label>Email</label>
-          <input type="email" [(ngModel)]="profileDraft.email"/></div>
-        <div class="fg"><label>Phone</label>
-          <input type="tel" [(ngModel)]="profileDraft.phone"/></div>
-      </div>
-      <div class="fg">
-        <label>Languages — type and press comma to add</label>
-        <div class="lang-field">
-          <span class="lang-tag" *ngFor="let l of profileDraft.languages">
-            {{l}} <button type="button" (click)="removeLang(l)">×</button>
-          </span>
-          <input type="text" placeholder="Add language…" (input)="onLangInput($event)"/>
-        </div>
-      </div>
-      <div class="fg"><label>Bio</label>
-        <textarea [(ngModel)]="profileDraft.bio" rows="3"></textarea></div>
-    </div>
-    <div class="modal-ftr">
-      <button type="button" class="btn-ghost" (click)="closeEdit()">Cancel</button>
-      <button type="button" class="btn-primary" (click)="saveEdit()">Save changes</button>
-    </div>
-  </div>
-</div>
- -->
-<!-- ── ADD APPOINTMENT MODAL ────────────────────────────── -->
-<!-- <div class="overlay" *ngIf="showAddModal" (click)="closeAdd()">
-  <div class="modal sm" (click)="$event.stopPropagation()">
-    <div class="modal-hdr">
-      <h3>New appointment</h3>
-      <button type="button" class="modal-x" (click)="closeAdd()">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="fg"><label>Patient name *</label>
-        <input type="text" [(ngModel)]="newAppt.patientName" placeholder="Full name"/></div>
-      <div class="fg"><label>Appointment type *</label>
-        <input type="text" [(ngModel)]="newAppt.type" placeholder="Consultation, Follow-up…"/></div>
-      <div class="form-row">
-        <div class="fg"><label>Day</label>
-          <select [(ngModel)]="newAppt.day">
-            <option *ngFor="let d of days; let i = index" [value]="i">{{d}}</option>
-          </select>
-        </div>
-        <div class="fg"><label>Start time</label>
-          <select [(ngModel)]="newAppt.startHour">
-            <option *ngFor="let h of hours" [value]="h">{{fmtHour(h)}}</option>
-          </select>
-        </div>
-      </div>
-      <div class="fg"><label>Duration</label>
-        <select [(ngModel)]="newAppt.durationMinutes">
-          <option [value]="15">15 min</option>
-          <option [value]="30">30 min</option>
-          <option [value]="45">45 min</option>
-          <option [value]="60">1 hour</option>
-          <option [value]="90">1.5 hours</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-ftr">
-      <button type="button" class="btn-ghost" (click)="closeAdd()">Cancel</button>
-      <button type="button" class="btn-primary"
-        [disabled]="!newAppt.patientName || !newAppt.type"
-        (click)="saveAppt()">Create appointment</button>
-    </div>
-  </div>
-</div> -->
-
-<!-- ── APPOINTMENT DETAIL MODAL ─────────────────────────── -->
-<!-- <div class="overlay" *ngIf="detailAppt" (click)="closeDetail()">
-  <div class="modal sm" (click)="$event.stopPropagation()">
-    <div class="modal-hdr">
-      <h3>Appointment details</h3>
-      <button type="button" class="modal-x" (click)="closeDetail()">×</button>
-    </div>
-    <ng-container *ngIf="detailAppt as a">
-      <div class="modal-body">
-        <div class="det-row"><span class="det-lbl">Patient</span><span class="det-val">{{a.patientName}}</span></div>
-        <div class="det-row"><span class="det-lbl">Type</span><span class="det-val">{{a.type}}</span></div>
-        <div class="det-row"><span class="det-lbl">Day</span><span class="det-val">{{days[a.day]}}</span></div>
-        <div class="det-row">
-          <span class="det-lbl">Time</span>
-          <span class="det-val">{{fmtHour(a.startHour)}} · {{a.durationMinutes}} min</span>
-        </div>
-        <div class="det-row">
-          <span class="det-lbl">Status</span>
-          <span class="status-bdg" [ngClass]="a.status">{{a.status}}</span>
-        </div>
-        <div class="status-actions">
-          <button type="button" class="btn-st scheduled" (click)="setStatus('scheduled')">Scheduled</button>
-          <button type="button" class="btn-st completed"  (click)="setStatus('completed')">Completed</button>
-          <button type="button" class="btn-st cancelled"  (click)="setStatus('cancelled')">Cancelled</button>
-        </div>
-      </div>
-    </ng-container>
-    <div class="modal-ftr">
-      <button type="button" class="btn-ghost" (click)="closeDetail()">Close</button>
-    </div>
-  </div>
-</div> -->
-
-
-
-<link href="https://fonts.googleapis.com/css2?family=
-DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <div class="shell">
 
@@ -444,13 +11,13 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
       <div class="doctor-name">{{ profile.name }}</div>
       <div class="doctor-role">{{ profile.title }}</div>
       <div class="hospital-chips">
-        <span class="hospital-chip" *ngFor="let h of profile.hospitals"><i class="bi bi-hospital"></i>  {{ h }}</span>
+        <span class="hospital-chip" *ngFor="let h of profile.hospitals">{{ h }}</span>
       </div>
       <div class="badge-verified"><div class="badge-dot"></div> Active &amp; Verified</div>
     </div>
 
     <div class="profile-body">
-      <div class="profile-section">
+      <div>
         <div class="section-label">Contact &amp; Details</div>
         <div class="info-row">
           <div class="info-icon">
@@ -472,21 +39,21 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
         </div>
       </div>
 
-      <div class="profile-section">
+      <div>
         <div class="section-label">Specialty</div>
         <div class="tag-row">
           <span class="tag">{{ profile.specialty }}</span>
         </div>
       </div>
 
-      <div class="profile-section">
+      <div>
         <div class="section-label">Title / Role</div>
         <div class="tag-row">
           <span class="tag">{{ profile.title }}</span>
         </div>
       </div>
 
-      <button class="edit-btn" (click)="openEditModal()">&#9998; Edit Profile</button>
+      <button class="edit-btn" (click)="openEditModal()">✎ Edit Profile</button>
     </div>
   </div>
 
@@ -531,7 +98,7 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
         </label>
         <div style="display:flex;flex-direction:column;gap:4px">
           <button class="create-sched-btn" (click)="createSchedule()">Create</button>
-          <span *ngIf="scheduleError" style="font-size:10px;color:var(--red-600)">⚠ {{ scheduleError }}</span>
+          <span *ngIf="scheduleError" style="font-size:10px;color:var(--r600)">⚠ {{ scheduleError }}</span>
         </div>
       </div>
 
@@ -540,23 +107,23 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
           <tr><th>ID</th><th>Active</th><th>Start</th><th>End</th><th></th></tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of schedules; let i = index" [id]="'sched-row-' + i">
-            <td style="font-weight:600;font-size:11px;color:var(--blue-800)">{{ s.id }}</td>
+          <tr *ngFor="let s of schedules; let i = index">
+            <td style="font-weight:700;font-size:10px;color:var(--b600)">{{ s.id }}</td>
             <td>
               <select class="inline-select" [(ngModel)]="s.active">
                 <option [ngValue]="true">Yes</option>
                 <option [ngValue]="false">No</option>
               </select>
             </td>
-            <td style="color:var(--gray-600)">{{ fmt(s.start) }}</td>
-            <td style="color:var(--gray-600)">{{ fmt(s.end) }}</td>
-            <td style="display:flex;gap:6px;align-items:center">
-              <button class="update-btn" (click)="editSchedule(i)"><i class="bi bi-pencil-square"></i> Edit</button>
+            <td style="color:var(--t2)">{{ fmt(s.start) }}</td>
+            <td style="color:var(--t2)">{{ fmt(s.end) }}</td>
+            <td style="display:flex;gap:4px">
+              <button class="update-btn" (click)="editSchedule(i)">Edit</button>
               <button class="delete-btn" (click)="deleteSchedule(i)">✕</button>
             </td>
           </tr>
           <tr *ngIf="schedules.length === 0">
-            <td colspan="5" style="color:var(--gray-400);font-size:11px">No schedules yet.</td>
+            <td colspan="5" style="color:var(--t3);font-size:11px">No schedules yet.</td>
           </tr>
         </tbody>
       </table>
@@ -579,17 +146,17 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
           <tr><th>ID</th><th>Schedule</th><th>Status</th><th>Start</th><th>End</th><th></th></tr>
         </thead>
         <tbody>
-          <tr *ngFor="let slot of filteredSlots; let i = index" [id]="'slot-row-' + slot.id">
-            <td style="font-weight:600;font-size:11px;color:var(--gray-600)">{{ slot.id }}</td>
-            <td style="color:var(--gray-400);font-size:11px">{{ slot.scheduleId }}</td>
+          <tr *ngFor="let slot of filteredSlots">
+            <td style="color:var(--t3);font-size:10px">{{ slot.id }}</td>
+            <td style="color:var(--t3);font-size:10px">{{ slot.scheduleId }}</td>
             <td>
               <span class="status-pill" [ngClass]="slot.status">
                 <span class="status-dot"></span>{{ slot.status }}
               </span>
             </td>
-            <td style="color:var(--gray-600)">{{ fmt(slot.start) }}</td>
-            <td style="color:var(--gray-600)">{{ fmt(slot.end) }}</td>
-            <td style="display:flex;gap:6px;align-items:center">
+            <td style="color:var(--t2)">{{ fmt(slot.start) }}</td>
+            <td style="color:var(--t2)">{{ fmt(slot.end) }}</td>
+            <td style="display:flex;gap:4px;align-items:center">
               <select class="inline-select" [(ngModel)]="slot.status">
                 <option value="free">free</option>
                 <option value="busy">busy</option>
@@ -599,21 +166,18 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
             </td>
           </tr>
           <tr *ngIf="filteredSlots.length === 0">
-            <td colspan="6" style="color:var(--gray-400);font-size:11px">No slots.</td>
+            <td colspan="6" style="color:var(--t3);font-size:11px">No slots.</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- ADD SLOT FORM -->
       <div class="add-slot-row">
-
         <label>Schedule
           <select [(ngModel)]="newSlot.scheduleId">
             <option value="" disabled>Select…</option>
             <option *ngFor="let s of schedules" [value]="s.id">{{ s.id }} ({{ s.active ? 'Active' : 'Inactive' }})</option>
           </select>
         </label>
-
         <label>Start Time
           <input type="datetime-local" [(ngModel)]="newSlot.start">
         </label>
@@ -628,8 +192,8 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
           </select>
         </label>
         <div style="display:flex;flex-direction:column;gap:4px">
-            <button class="create-slot-btn" (click)="createSlot()">Create Slot</button>
-            <span *ngIf="slotError" style="font-size:10px;color:var(--red-600)">⚠ {{ slotError }}</span>
+          <button class="create-slot-btn" (click)="createSlot()">Create Slot</button>
+          <span *ngIf="slotError" style="font-size:10px;color:var(--r600)">⚠ {{ slotError }}</span>
         </div>
       </div>
     </div>
@@ -638,183 +202,102 @@ DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500&display=swap" rel=
 
   <!-- RIGHT SIDEBAR -->
   <div class="right-sidebar">
-    <!-- <div>
-      <div class="sidebar-section-title">Quick Actions</div>
-      <div class="quick-action" (click)="showSchedForm = true">
-        <div class="qa-icon blue">
-          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
-        </div>
-        <div><div class="qa-label">New Schedule</div><div class="qa-sub">Define time block</div></div>
-      </div>
-      <div class="quick-action" (click)="openEditModal()">
-        <div class="qa-icon amber">
-          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
-        <div><div class="qa-label">Edit Profile</div><div class="qa-sub">Update your info</div></div>
-      </div>
-    </div> -->
-
-    <div class="sidebar-divider"></div>
 
     <div>
       <div class="sidebar-section-title">Today's Summary</div>
       <div class="summary-row"><span class="sum-key">Total slots</span><span class="sum-val">{{ slots.length }}</span></div>
-      <div class="summary-row"><span class="sum-key">Free</span><span class="sum-val" style="color:var(--green-600)">{{ freeCount }}</span></div>
-      <div class="summary-row"><span class="sum-key">Busy</span><span class="sum-val" style="color:var(--red-600)">{{ busyCount }}</span></div>
-      <div class="summary-row"><span class="sum-key">Unavailable</span><span class="sum-val" style="color:var(--amber-600)">{{ unavailableCount }}</span></div>
-      <div class="summary-row"><span class="sum-key">Schedules</span><span class="sum-val" style="color:var(--blue-600)">{{ schedules.length }}</span></div>
+      <div class="summary-row"><span class="sum-key">Free</span><span class="sum-val" style="color:var(--g600)">{{ freeCount }}</span></div>
+      <div class="summary-row"><span class="sum-key">Busy</span><span class="sum-val" style="color:var(--r600)">{{ busyCount }}</span></div>
+      <div class="summary-row"><span class="sum-key">Unavailable</span><span class="sum-val" style="color:var(--a600)">{{ unavailableCount }}</span></div>
+      <div class="summary-row"><span class="sum-key">Schedules</span><span class="sum-val" style="color:var(--b600)">{{ schedules.length }}</span></div>
     </div>
-
-
-
 
     <div class="sidebar-divider"></div>
 
-    <!-- DEFINITIONS -->
     <div>
       <div class="sidebar-section-title">Glossary</div>
-
       <div class="def-item">
         <div class="def-term">Schedule</div>
-        <div class="def-desc">A time window during which a doctor is available. It acts as a container for slots (e.g. "April 1–30, 08:00–18:00").</div>
+        <div class="def-desc">A time window during which a doctor is available. Container for slots (e.g. "Apr 1–30, 08:00–18:00").</div>
       </div>
-
       <div class="def-item">
         <div class="def-term">Slot</div>
-        <div class="def-desc">A specific bookable time unit within a schedule (e.g. "09:00–09:30"). Patients book slots, not schedules.</div>
+        <div class="def-desc">A specific bookable unit within a schedule (e.g. "09:00–09:30"). Patients book slots, not schedules.</div>
       </div>
-
       <div class="def-item">
-        <div class="def-term">
-          <span class="def-badge free">Free</span>
-        </div>
-        <div class="def-desc">Slot is open and available for patient booking.</div>
+        <div class="def-term"><span class="def-badge free">Free</span></div>
+        <div class="def-desc">Open and available for patient booking.</div>
       </div>
-
       <div class="def-item">
-        <div class="def-term">
-          <span class="def-badge busy">Busy</span>
-        </div>
-        <div class="def-desc">Slot is already booked by a patient.</div>
+        <div class="def-term"><span class="def-badge busy">Busy</span></div>
+        <div class="def-desc">Already booked by a patient.</div>
       </div>
-
       <div class="def-item">
-        <div class="def-term">
-          <span class="def-badge unavail">Unavailable</span>
-        </div>
-        <div class="def-desc">Slot is blocked by the doctor (e.g. break, admin time). Cannot be booked.</div>
+        <div class="def-term"><span class="def-badge unavail">Unavailable</span></div>
+        <div class="def-desc">Blocked by the doctor — break or admin time. Cannot be booked.</div>
       </div>
-    </div>
-<!-- 
-    <div class="sidebar-divider"></div>
-
-    <div>
-      <div class="sidebar-section-title">Recent Activity</div>
-      <div class="recent-item">
-        <div class="ri-avatar">AK</div>
-        <div><div class="ri-name">Ahmed K.</div><div class="ri-time">Viewed · 14 min ago</div></div>
-      </div>
-      <div class="recent-item">
-        <div class="ri-avatar" style="background:var(--teal-50);color:var(--teal-600)">FS</div>
-        <div><div class="ri-name">Fatima S.</div><div class="ri-time">Record opened · 1h ago</div></div>
-      </div>
-    </div>
-  </div> -->
-</div>
-
-<!-- EDIT MODAL -->
-<div *ngIf="showEditModal"
-     style="position:fixed;inset:0;background:rgba(15,28,50,0.45);z-index:500;display:flex;align-items:center;justify-content:center"
-     (click)="showEditModal=false">
-  <div style="background:#fff;border-radius:14px;width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden"
-       (click)="$event.stopPropagation()">
-    <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:16px;font-weight:600">Edit Profile</span>
-      <span style="cursor:pointer;font-size:20px;color:var(--gray-400);line-height:1" (click)="showEditModal=false">&times;</span>
-    </div>
-    <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <label style="grid-column:span 2;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Full Name
-        <input type="text" [(ngModel)]="editDraft.name" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-      <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Title
-        <input type="text" [(ngModel)]="editDraft.title" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-      <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Specialty
-        <input type="text" [(ngModel)]="editDraft.specialty" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-      <label style="grid-column:span 2;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Address
-        <input type="text" [(ngModel)]="editDraft.address" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-
-      <label style="grid-column:span 2;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Phone
-        <input type="text" [(ngModel)]="editDraft.phone" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-
-      <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px">
-        <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400)">Hospitals</span>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">
-          <span *ngFor="let h of editDraft.hospitals"
-                style="display:inline-flex;align-items:center;gap:5px;background:var(--blue-50);color:var(--blue-800);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">
-            {{ h }}
-            <span (click)="removeHospital(h)" style="cursor:pointer;font-size:14px;line-height:1;color:var(--blue-400)">&times;</span>
-          </span>
-        </div>
-        <div style="display:flex;gap:6px">
-          <input type="text" [(ngModel)]="editDraft.newHospital" placeholder="Add hospital…"
-                (keydown.enter)="addHospital()"
-                style="flex:1;padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-          <button (click)="addHospital()" style="padding:8px 14px;background:var(--blue-600);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Add</button>
-        </div>
-      </div>
-
-    </div>
-    <div style="padding:12px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px">
-      <button (click)="showEditModal=false" style="padding:8px 18px;border:1px solid #e2e8f0;background:#fff;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--gray-600)">Cancel</button>
-      <button (click)="saveProfile()" style="padding:8px 18px;background:var(--blue-600);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Save Changes</button>
     </div>
   </div>
 </div>
 
-
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="showEditModal=false">
+  <div class="modal-box" style="width:440px" (click)="$event.stopPropagation()">
+    <div class="modal-hdr">
+      <span>Edit Profile</span>
+      <span class="modal-close" (click)="showEditModal=false">&times;</span>
+    </div>
+    <div class="modal-body" style="grid-template-columns:1fr 1fr">
+      <label class="fg" style="grid-column:span 2">Full Name<input type="text" [(ngModel)]="editDraft.name"></label>
+      <label class="fg">Title<input type="text" [(ngModel)]="editDraft.title"></label>
+      <label class="fg">Specialty<input type="text" [(ngModel)]="editDraft.specialty"></label>
+      <label class="fg" style="grid-column:span 2">Address<input type="text" [(ngModel)]="editDraft.address"></label>
+      <label class="fg" style="grid-column:span 2">Phone<input type="text" [(ngModel)]="editDraft.phone"></label>
+      <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3)">Hospitals</span>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          <span *ngFor="let h of editDraft.hospitals"
+            style="display:inline-flex;align-items:center;gap:4px;background:var(--b50);color:var(--b800);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:500">
+            {{ h }}
+            <span (click)="removeHospital(h)" style="cursor:pointer;font-size:13px;line-height:1;color:var(--b400)">&times;</span>
+          </span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="text" [(ngModel)]="editDraft.newHospital" placeholder="Add hospital…"
+            (keydown.enter)="addHospital()"
+            style="flex:1;padding:7px 9px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;outline:none;font-family:inherit">
+          <button (click)="addHospital()" style="padding:7px 12px;background:var(--b600);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" (click)="showEditModal=false">Cancel</button>
+      <button class="btn-save" (click)="saveProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
 
 <!-- EDIT SCHEDULE MODAL -->
-<div *ngIf="editingSchedule"
-     style="position:fixed;inset:0;background:rgba(15,28,50,0.45);z-index:500;display:flex;align-items:center;justify-content:center"
-     (click)="editingSchedule=null">
-  <div style="background:#fff;border-radius:14px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden"
-       (click)="$event.stopPropagation()">
-    <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:16px;font-weight:600">Edit Schedule</span>
-      <span style="cursor:pointer;font-size:20px;color:var(--gray-400)" (click)="editingSchedule=null">&times;</span>
+<div class="modal-overlay" *ngIf="editingSchedule" (click)="editingSchedule=null">
+  <div class="modal-box" style="width:400px" (click)="$event.stopPropagation()">
+    <div class="modal-hdr">
+      <span>Edit Schedule</span>
+      <span class="modal-close" (click)="editingSchedule=null">&times;</span>
     </div>
-    <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-      <label style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Start Date &amp; Time
-        <input type="datetime-local" [(ngModel)]="editingSchedule.start" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-      <label style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        End Date &amp; Time
-        <input type="datetime-local" [(ngModel)]="editingSchedule.end" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
-      </label>
-      <label style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--gray-400);display:flex;flex-direction:column;gap:4px">
-        Active
-        <select [(ngModel)]="editingSchedule.active" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none">
+    <div class="modal-body">
+      <label class="fg">Start Date &amp; Time<input type="datetime-local" [(ngModel)]="editingSchedule.start"></label>
+      <label class="fg">End Date &amp; Time<input type="datetime-local" [(ngModel)]="editingSchedule.end"></label>
+      <label class="fg">Active
+        <select [(ngModel)]="editingSchedule.active">
           <option [ngValue]="true">Yes</option>
           <option [ngValue]="false">No</option>
         </select>
       </label>
-      <div *ngIf="scheduleEditError" style="font-size:11px;color:var(--red-600);background:var(--red-50);padding:8px 10px;border-radius:6px">
-        {{ scheduleEditError }}
-      </div>
+      <div *ngIf="scheduleEditError" style="font-size:11px;color:var(--r600);background:var(--r50);padding:7px 10px;border-radius:6px">{{ scheduleEditError }}</div>
     </div>
-    <div style="padding:12px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px">
-      <button (click)="editingSchedule=null" style="padding:8px 18px;border:1px solid #e2e8f0;background:#fff;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--gray-600)">Cancel</button>
-      <button (click)="saveScheduleEdit()" style="padding:8px 18px;background:var(--blue-600);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Save</button>
+    <div class="modal-ftr">
+      <button class="btn-cancel" (click)="editingSchedule=null">Cancel</button>
+      <button class="btn-save" (click)="saveScheduleEdit()">Save</button>
     </div>
   </div>
 </div>
