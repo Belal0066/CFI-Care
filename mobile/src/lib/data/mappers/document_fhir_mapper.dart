@@ -143,6 +143,17 @@ class DocumentFhirMapper {
           ],
           'text': value.name,
         };
+        case TypeOfEventEnum.surgery:
+        return {
+          'coding': [
+            {
+              'system': 'http://loinc.org',
+              'code': '11504-8',
+              'display': 'Surgical operation note',
+            },
+          ],
+          'text': value.name,
+        };
     }
   }
 

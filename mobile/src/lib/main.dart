@@ -18,13 +18,6 @@ import 'presentation/viewmodels/major_event_provider.dart';
 import 'domain/repository/vitals_repository_impl.dart';
 import 'data/services/datasources/health_connect_data_source.dart';
 
-
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print("Handling a background message: ${message.messageId}");
-}
-
 // auth
 import 'presentation/viewmodels/auth_viewmodel.dart';
 import 'domain/usecases/auth_usecases.dart';
@@ -32,6 +25,13 @@ import 'data/services/datasources/keycloak_remote_data_source.dart';
 import 'data/repositories/auth_repo_impl.dart';
 
 import 'presentation/routes/app_router.dart';
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
+
+
 
 void main() async {
   
