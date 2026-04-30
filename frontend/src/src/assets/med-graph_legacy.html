@@ -1213,7 +1213,7 @@ body.dark-mode .tutorial-card {
       function isNodeInRejectedBranch(nodeId) {
         let current = data.find(d => d.id === nodeId);
         while (current) {
-          if ((current.isDiagnosis || current.isManualBranch) && current.branchState === "rejected") {
+          if ((current.isDiagnosis || current.isManualBranch) && current.branchState === "discontinued") {
             return true;
           }
           if (current.father === null) break;
@@ -1261,7 +1261,7 @@ body.dark-mode .tutorial-card {
 
       function showRejectedWarning() {
         const tooltip = document.getElementById("tooltip");
-        tooltip.innerText = "⛔ This branch is rejected. Change its state first.";
+        tooltip.innerText = "⛔ This branch is discontinued. Change its state first.";
         tooltip.style.display = "block";
         tooltip.style.background = "#EF4444";
         tooltip.style.position = "fixed";
@@ -2061,7 +2061,9 @@ body.dark-mode .tutorial-card {
     let manualBranches = new Map(); // Track manually created branches: nodeId -> branchId
     let createBranchMode = false; // Track branch creation mode
     let nextManualBranchId = 1000; // Start manual branch IDs from 1000 to avoid conflicts
-    let mainBranchState = "in_progress"; // "in_progress" | "finish_case"
+    //let mainBranchState = "in_progress"; // "in_progress" | "finish_case"
+    // Persistent main timeline state — case is fully closed
+    let mainBranchState = "finish_case";
     let linkerNodeCounter = 0;
 
     // --- TIMELINE CONSTANTS ---
@@ -2386,11 +2388,11 @@ setTimeout(() => {
         const starterNode = data.find(d => d.id === branchStartId);
         const branchState = starterNode?.branchState || "in_progress";
 
-        const lineColor = branchState === "rejected"    ? "#EF4444"
+        const lineColor = branchState === "discontinued"    ? "#EF4444"
                 : branchState === "completed"   ? "#4ADE80"
                 : branchState === "finish_case" ? "#8B5CF6"
                 : TIMELINE_CONFIG.SUB_BRANCH_COLOR;
-        const lineOpacity = branchState === "rejected" ? 0.4 : 0.9;
+        const lineOpacity = branchState === "discontinued" ? 0.4 : 0.9;
 
         // Visible branch line
         container.append("line")
@@ -2435,7 +2437,7 @@ setTimeout(() => {
             });
 
         // REJECTED: vertical red wall at end of branch
-        if (branchState === "rejected") {
+        if (branchState === "discontinued") {
             const wallX = maxX + 24;
             container.append("rect")
                 .attr("class", "branch-rejection-wall")
@@ -2455,7 +2457,7 @@ setTimeout(() => {
                 .style("font-size", "24px")
                 .style("font-weight", "700")
                 .style("letter-spacing", "1.5px")
-                .text("REJECTED");
+                .text("DISCONTINUED");
         }
 
         // FINISH CASE: purple finish flag at end of main timeline
@@ -2508,13 +2510,14 @@ setTimeout(() => {
 
             if (needsLinker && !existingLinker) {
                 // Create linker node and re-render — drawing happens on next render
-                linkerNodeCounter++;
+                // linkerNodeCounter++;
                 const newId = Math.max(...data.map(d => d.id)) + 1;
                 const rootNodeRef = data.find(d => d.father === null);
 
                 const linkerNode = {
                     id: newId,
-                    text_1: `Branch Merge Point #${linkerNodeCounter}`,
+                    // text_1: `Branch Merge Point #${linkerNodeCounter}`,
+                    text_1: `Branch Merge Point id:${branchStartId}`,
                     father: rootNodeRef ? rootNodeRef.id : null,
                     category: "Linker",
                     priority: "Low",
@@ -2543,18 +2546,30 @@ setTimeout(() => {
             }
 
             if (!mergeTarget) {
-                // No linker needed (branch date <= latest main date) — find nearest main node
-                let nearestDiff = Infinity;
-                mainNodes.forEach(mn => {
-                    const mnPos = nodePositions.get(mn.id);
-                    if (!mnPos) return;
-                    const diff = Math.abs(new Date(mn.dateIssued).getTime() - new Date(lastBranchDate).getTime());
-                    if (diff < nearestDiff) {
-                        nearestDiff = diff;
-                        mergeTarget = { pos: mnPos };
-                    }
-                });
-            }
+              // Create a dedicated linker node for this branch too
+              // linkerNodeCounter++;
+              const newId = Math.max(...data.map(d => d.id)) + 1;
+              const rootNodeRef = data.find(d => d.father === null);
+              const linkerNode = {
+                  id: newId,
+                  // text_1: `Branch Merge Point #${linkerNodeCounter}`,
+                  text_1: `Branch Merge Point id:${branchStartId}`,
+                  father: rootNodeRef ? rootNodeRef.id : null,
+                  category: "Linker",
+                  priority: "Low",
+                  normality: "Normal",
+                  dateIssued: lastBranchDate,
+                  details: "Auto-generated merge point.",
+                  isDiagnosis: false,
+                  isManualBranch: false,
+                  _linkedBranchId: branchStartId,
+                  _isLinkerNode: true
+              };
+              data.push(linkerNode);
+              postNodeUpdate("add", linkerNode);
+              setTimeout(() => renderChronologicalGraph(), 0);
+              return;
+          }
 
             if (!mergeTarget) return;
 
@@ -2620,7 +2635,7 @@ function openBranchStateMenu(branchStartId, pageX, pageY, currentState) {
         ]
       : [
           { value: "in_progress", label: "In Progress", icon: "🔵", desc: "Branch is active",            color: "#3B82F6" },
-          { value: "rejected",    label: "Rejected",    icon: "🔴", desc: "Block this branch",           color: "#EF4444" },
+          { value: "discontinued",    label: "Discontinued",    icon: "🔴", desc: "Block this branch",           color: "#EF4444" },
           { value: "completed",   label: "Completed",   icon: "🟢", desc: "Merge back to main timeline", color: "#10B981" }
         ];
 
@@ -2724,7 +2739,7 @@ function openBranchStateMenu(branchStartId, pageX, pageY, currentState) {
             const starterNode = branchStartId ? data.find(n => n.id === branchStartId) : null;
             const branchState = starterNode?.branchState || "in_progress";
 
-            if (branchState === "rejected")  linkColor = "#EF4444";
+            if (branchState === "discontinued")  linkColor = "#EF4444";
             else if (branchState === "completed") linkColor = "#4ADE80";
             else linkColor = TIMELINE_CONFIG.SUB_BRANCH_COLOR;
 

@@ -42,7 +42,7 @@ import { Component, OnInit } from '@angular/core';
 import { SelectedPatientService } from '../services/selectedPatient/selected-patient';
 import { PatientApiService } from '../services/patientApi/patient-api-service';
 import { Router } from '@angular/router';
-import { PatientDetailsDTO } from '../models/patient.model';
+import { PatientDetailsDTO, Episode  } from '../models/patient.model';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -54,6 +54,8 @@ import { CommonModule } from '@angular/common';
 export class UserInfo {
 
   patientDetails: PatientDetailsDTO | null = null;
+  selectedEpisode: Episode | null = null;
+  episodeDropdownOpen = false;
   // loading: boolean = false;
   // error: string | null = null;
 
@@ -105,27 +107,68 @@ export class UserInfo {
   //   });
   // }
 
+  // loadPatientDetails(id: number) {
+  //   // 🔧 BACKEND PLACEHOLDER (mock data)
+  //   this.patientDetails = {
+  //     id,
+  //     name: 'Mahmoud Karim',
+  //     age: 23,
+  //     gender: "Male",
+  //     lastUpdated: '2026-02-18',
+
+  //     primaryDiagnosis: 'Type 2 Diabetes',
+  //     activeConditions: ['Hypertension', 'Hyperlipidemia'],
+  //     currentMedications: ['Metformin', 'Atorvastatin'],
+  //     recentLabResults: ['HbA1c 7.2%', 'LDL 110 mg/dL'],
+  //     recentProcedures: ['Cardiac Stress Test']
+  //   };
+  // }
+
+
   loadPatientDetails(id: number) {
     // 🔧 BACKEND PLACEHOLDER (mock data)
     this.patientDetails = {
       id,
       name: 'Mahmoud Karim',
       age: 23,
-      gender: "Male",
+      gender: 'Male',
       lastUpdated: '2026-02-18',
-
-      primaryDiagnosis: 'Type 2 Diabetes',
-      activeConditions: ['Hypertension', 'Hyperlipidemia'],
-      currentMedications: ['Metformin', 'Atorvastatin'],
-      recentLabResults: ['HbA1c 7.2%', 'LDL 110 mg/dL'],
-      recentProcedures: ['Cardiac Stress Test']
+      episodes: [
+        {
+          id: 101,
+          label: 'Cardiac Issue',
+          date: '2026-01-10',
+          primaryDiagnosis: 'Hypertensive Heart Disease',
+          activeConditions: ['Hypertension', 'Arrhythmia'],
+          currentMedications: ['Amlodipine', 'Bisoprolol'],
+          recentLabResults: ['ECG: Sinus Tachycardia', 'Troponin: 0.01'],
+          recentProcedures: ['Cardiac Stress Test', 'Echocardiogram'],
+        },
+        {
+          id: 102,
+          label: 'Metabolic Issue',
+          date: '2026-02-18',
+          primaryDiagnosis: 'Type 2 Diabetes',
+          activeConditions: ['Hyperlipidemia', 'Obesity'],
+          currentMedications: ['Metformin', 'Atorvastatin'],
+          recentLabResults: ['HbA1c 7.2%', 'LDL 110 mg/dL'],
+          recentProcedures: ['Fasting Glucose Test'],
+        },
+      ],
     };
+    // Always default to first episode
+    this.selectedEpisode = this.patientDetails.episodes[0] ?? null;
   }
 
   openMedFlowGraph() {
-    if (this.patientDetails) {
-      this.router.navigate(['/med-graph', this.patientDetails.id]);
+    if (this.patientDetails && this.selectedEpisode) {
+      this.router.navigate(['/med-graph', this.selectedEpisode.id]);
     }
+  }
+
+  selectEpisode(ep: Episode) {
+    this.selectedEpisode = ep;
+    this.episodeDropdownOpen = false;
   }
 
   //FETCHING FROM BACKEND (EDIT AS U NEED)
