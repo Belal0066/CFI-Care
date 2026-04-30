@@ -23,13 +23,40 @@
         <div class="card-body mt-2" style="border-bottom: #ccc 1px solid;">
 
             <div class="d-flex justify-content-between align-items-start">
-            <h4 id="patient-name" class="mb-0">
-                {{ patientDetails.name }}
-            </h4>
+              <div>
+                <h4 id="patient-name" class="mb-0">{{ patientDetails.name }}</h4>
 
-            <button (click)="openMedFlowGraph()" class="btn btn-primary btn-md">
-                Open MedFlow Graph <i class="bi bi-box-arrow-up-right " style="margin-left: 7px;"></i>
-            </button>
+                <!-- Episode selector — only shown when >1 episode -->
+                <div *ngIf="patientDetails.episodes.length > 1"
+                     style="position:relative;display:inline-block;margin-top:8px">
+                  <button (click)="episodeDropdownOpen = !episodeDropdownOpen"
+                          style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
+                                 border:1px solid #d0dff5;border-radius:20px;background:#f0f6ff;
+                                 color:#1E6ED3;font-size:12px;font-weight:600;cursor:pointer">
+                    <i class="bi bi-journals"></i>
+                    {{ selectedEpisode?.label ?? 'Select Episode' }}
+                    <i class="bi" [ngClass]="episodeDropdownOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </button>
+
+                  <div *ngIf="episodeDropdownOpen"
+                       style="position:absolute;top:calc(100% + 6px);left:0;z-index:200;
+                              background:#fff;border:1px solid #e2e8f0;border-radius:10px;
+                              box-shadow:0 8px 24px rgba(0,0,0,0.1);min-width:220px;overflow:hidden">
+                    <div *ngFor="let ep of patientDetails.episodes"
+                         (click)="selectEpisode(ep)"
+                         style="padding:10px 14px;cursor:pointer;font-size:12px;
+                                border-bottom:1px solid #f1f5f9;transition:background 0.12s"
+                         [style.background]="ep.id === selectedEpisode?.id ? '#f0f6ff' : '#fff'">
+                      <div style="font-weight:600;color:#1a2332">{{ ep.label }}</div>
+                      <div style="color:#888;font-size:11px;margin-top:2px">{{ ep.date }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button (click)="openMedFlowGraph()" class="btn btn-primary btn-md">
+                Open MedFlow Graph <i class="bi bi-box-arrow-up-right" style="margin-left:7px"></i>
+              </button>
             </div>
 
             <p class="card-title fs-6 mt-1" style="margin-bottom: 10px;">
@@ -53,7 +80,7 @@
         border-radius: 10px;
         display: flex;           
         padding: 12px;">
-        <p class="mb-0 mt-0"> {{ patientDetails.primaryDiagnosis }}</p>
+        <p class="mb-0 mt-0"> {{ selectedEpisode?.primaryDiagnosis }}</p>
 
         </div>
     </div>
@@ -68,7 +95,7 @@
         display: flex;           
         ">
             <span class="badge text-bg-info me-2"
-                *ngFor="let cond of patientDetails.activeConditions">
+                *ngFor="let cond of selectedEpisode?.activeConditions">
                 {{ cond }}
             </span>
         </div>
@@ -83,7 +110,7 @@
         border-radius: 10px;           
         padding: 12px;">
         <p class="mb-1 mt-1"
-            *ngFor="let med of patientDetails.currentMedications">
+            *ngFor="let med of selectedEpisode?.currentMedications">
             {{ med }}
         </p>
 
@@ -101,7 +128,7 @@
         padding: 12px;">
             <div class="accordion accordion-flush" id="accordionFlushExample" style="width: 100%;">
                 <div class="accordion-item"
-                    *ngFor="let lab of patientDetails.recentLabResults; let i = index">
+                    *ngFor="let lab of selectedEpisode?.recentLabResults; let i = index">
                     <h2 class="accordion-header">
                     <button class="accordion-button collapsed"
                             type="button"
@@ -129,7 +156,7 @@
         border-radius: 10px;
         display: flex;           
         padding: 12px;">
-        <p *ngFor="let proc of patientDetails.recentProcedures">
+        <p *ngFor="let proc of selectedEpisode?.recentProcedures">
             {{ proc }}
         </p>
 
