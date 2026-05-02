@@ -32,9 +32,11 @@ services:
       - nginx-network
 
 
-  redisStore:
+  redisstore:
     container_name: redisStore
-    image: redis:7
+    build:
+      context: ./services/redis
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - 6379:6379
@@ -48,9 +50,11 @@ services:
     networks:
       - nginx-network
 
-  redisAudit:
+  redisaudit:
     container_name: redisAudit
-    image: redis:7
+    build:
+      context: ./services/redis
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - 6380:6379

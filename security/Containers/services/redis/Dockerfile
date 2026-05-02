@@ -1,4 +1,4 @@
 
-# FROM redis:7.2.11-alpine
+# FROM redis:8.6.2-alpine
 
-FROM redis@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7
+FROM redis@sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17
