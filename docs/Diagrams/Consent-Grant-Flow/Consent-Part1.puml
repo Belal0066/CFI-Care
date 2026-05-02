@@ -18,32 +18,32 @@ participant "Browser" as FE
 actor "Practitioner" as U2
 
 == Phase 1: Handshake Generation ==
-U1 -> App : Tap "Generate Consent Code" button
-App -> BE: POST /handshake/create
-BE -> BE: Generate temp code
-BE -> Cache : SET code:<code> 600 Patient_ID
-BE -> App: Return <code>
-App -> U1: Display Code
+U1 -> App : Tap "Generate Consent OTP" button
+App -> BE: POST /handshake/request-otp
+BE -> BE: Generate temp otp
+BE -> Cache : SET otp:<otp> 600 Patient_ID
+BE -> App: Return <otp>
+App -> U1: Display otp
 
 == Phase 2: Handshake Verification ==
-U1 -> U2: Share <code> (Out-of-Band)
-U2 -> FE: Enter <code>
-FE -> BE : POST /handshake/verify {code: <code>}
-BE -> Cache: GET code:<code>
-alt Code Found
+U1 -> U2: Share <otp> (Out-of-Band)
+U2 -> FE: Enter <otp>
+FE -> BE : POST /handshake/verify-otp {otp: <otp>}
+BE -> Cache: GET otp:<otp>
+alt OTP Found
     Cache -> BE: Return Patient_ID
     BE -> FE: HTTP 200 "Request Sent"
     
     BE -> U1: Push Notification for request
-else Code Not Found / Expired
-    BE -> FE: HTTP 404 "Invalid Code"
+else OTP Not Found / Expired
+    BE -> FE: HTTP 404 "Invalid otp"
 end
 
 == Phase 3: JIT Consent Grant ==
 U1 -> App: Tap "Approve"
-App -> BE: POST /handshake/approve
+App -> BE: POST /handshake/grants
 BE -> BE: Generate Consent grant
-BE -> DB: insert grant {Patinet_ID, Practitioner_ID, expiry}
+BE -> DB: insert grant {grantId,Patinet_ID, Practitioner_ID,status, scopes,createdAt, expiry}
 BE-> AuditLog : log successful creation of grant
 BE -> App: Success
 ' BE -> FE: Display "Consent Granted"
