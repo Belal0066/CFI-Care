@@ -1,0 +1,16 @@
+# redisOTP:
+#     container_name: redisOTP
+#     image: redis:7
+#     restart: unless-stopped
+#     ports:
+#       - 6381:6379
+#     command: redis-server --appendonly yes --appendfsync everysec
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 3
+#     volumes:
+#       - redis_audit_data:/data
+#     networks:
+#       - nginx-network

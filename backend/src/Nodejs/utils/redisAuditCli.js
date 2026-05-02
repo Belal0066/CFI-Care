@@ -1,7 +1,7 @@
 const { createClient } = require('redis');
 
 const auditRedisClient = createClient({
-    url: process.env.REDIS_AUDIT_URL || 'redis://redisAudit:6379',
+    url: process.env.REDIS_AUDIT_URL ,
     socket: {
         reconnectStrategy: (retries) => {
             if (retries > 10) {
