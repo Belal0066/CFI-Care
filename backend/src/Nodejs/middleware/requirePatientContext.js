@@ -43,7 +43,7 @@ function methodToAction(method) {
 function isGrantActive(grant) {
   if (!grant || grant.status !== "active") return false;
   if (!grant.expiresAt) return false;
-  return new Date(grant.expiresAt) < new Date();
+  return new Date(grant.expiresAt) > new Date();
 }
 
 function isActionAllowed(permissions, action) {
@@ -66,6 +66,7 @@ function requirePatientContext(options = {}) {
   const adminRoles = parseCsvSet(process.env.OWNERSHIP_BYPASS_ROLES);
   const practitionerRoles = parseCsvSet(process.env.PRACTITIONER_ROLES);
   const caregiverRoles = parseCsvSet(process.env.CAREGIVER_ROLES);
+  
 
   return async function (req, res, next) {
     try {
@@ -79,6 +80,7 @@ function requirePatientContext(options = {}) {
         return res.status(401).json({ error: "Unauthorized: missing subject claim" });
       }
 
+      
       const patientId = req.params?.[paramName];
       if (!patientId) {
         return res.status(400).json({
@@ -101,6 +103,10 @@ function requirePatientContext(options = {}) {
         return next();
       }
 
+
+      const resourceType = req.baseUrl?.split('/')[2] || 'Unknown';
+      const action = methodToAction(req.method);
+
       // caregiver
 
       const isCaregiver = hasAnyRole(roles, caregiverRoles);
@@ -114,7 +120,7 @@ function requirePatientContext(options = {}) {
           await logSecurityEvent("access", "ACCESS_DENIED", req, {
             actorType: "caregiver",
             patientId,
-            caregiverId: reqId,
+            requesterId: reqId,
             reason: "No active caregiver relationship",
             resourceType,
           });
@@ -124,13 +130,13 @@ function requirePatientContext(options = {}) {
         }
 
         const relation = JSON.parse(relationRaw);
-        const action = methodToAction(req.method);
+        // const action = methodToAction(req.method);
 
         if (!isActionAllowed(relation.permissions, action)) {
           await logSecurityEvent("access", "ACCESS_DENIED", req, {
             actorType: "caregiver",
             patientId,
-            caregiverId: reqId,
+            requesterId: reqId,
             reason: `Caregiver lacks ${action} permission`,
             relationshipId: relation.relationshipId,
             resourceType,
@@ -150,7 +156,7 @@ function requirePatientContext(options = {}) {
         await logSecurityEvent("access", "ACCESS_ALLOWED", req, {
           actorType: "caregiver",
           patientId,
-          caregiverId: reqId,
+          requesterId: reqId,
           relationshipId: relation.relationshipId,
           action,
           resourceType,
@@ -174,14 +180,16 @@ function requirePatientContext(options = {}) {
           error: "Forbidden: not admin, not patient owner, not caregiver, not practitioner",
         });
       }
+      
 
+        
       const grantKey = `grant:${reqId}:${patientId}`;
       const grantRaw = await redis.get(grantKey);
       if (!grantRaw) {
         await logSecurityEvent('access', 'CONSENT_GRANT_NOT_FOUND', req, {
                     actorType: "practitioner",
                     patientId,
-                    practitionerId: reqId,
+                    requesterId: reqId,
                     reason: "No valid grant found",
                     resourceType,
                   });
@@ -191,11 +199,11 @@ function requirePatientContext(options = {}) {
       }
 
       const grant = JSON.parse(grantRaw);
-      if (grant.status !== "active" || new Date(grant.expiresAt) < new Date()) {
+      if (!isGrantActive(grant)) {
         await logSecurityEvent('access', 'CONSENT_GRANT_INVALID', req, {
                         actorType: "practitioner",
                         patientId,
-                        practitionerId: reqId,
+                        requesterId: reqId,
                         grantId: grant?.grantId,
                         reason: "Grant expired",
                         resourceType,
@@ -204,6 +212,20 @@ function requirePatientContext(options = {}) {
           error: "Forbidden: patient consent grant is inactive",
         });
       }
+
+      if (!isActionAllowed(grant.scopes, action)) {
+          await logSecurityEvent("access", "ACCESS_DENIED", req, {
+            actorType: "practitioner",
+            patientId,
+            requesterId: reqId,
+            reason: `Practitioner lacks ${action} permission`,
+            relationshipId: relation.relationshipId,
+            resourceType,
+          });
+          return res.status(403).json({
+            error: "Forbidden: practitioner permission denied for this operation",
+          });
+        }
 
       req.accessContext = {
         type: "practitioner_delegated",
@@ -215,9 +237,9 @@ function requirePatientContext(options = {}) {
       await logSecurityEvent('access', 'CONSENT_GRANT_VALID', req, {
                         actorType: "practitioner",
                         patientId,
-                        practitionerId: reqId,
+                        requesterId: reqId,
                         grantId: grant.grantId,
-                        resourceType: req.baseUrl?.split('/')[2] || 'Unknown',
+                        resourceType,
                         reason: 'Valid grant found, access allowed'
                     });
       return next();
