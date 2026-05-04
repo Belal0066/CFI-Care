@@ -122,6 +122,7 @@ function requirePatientContext(options = {}) {
             patientId,
             requesterId: reqId,
             reason: "No active caregiver relationship",
+            action,
             resourceType,
           });
           return res.status(403).json({
@@ -138,7 +139,8 @@ function requirePatientContext(options = {}) {
             patientId,
             requesterId: reqId,
             reason: `Caregiver lacks ${action} permission`,
-            relationshipId: relation.relationshipId,
+            // relationshipId: relation.relationshipId,
+            action,
             resourceType,
           });
           return res.status(403).json({
@@ -157,7 +159,7 @@ function requirePatientContext(options = {}) {
           actorType: "caregiver",
           patientId,
           requesterId: reqId,
-          relationshipId: relation.relationshipId,
+          // relationshipId: relation.relationshipId,
           action,
           resourceType,
           reason: "Valid caregiver permission",
@@ -174,6 +176,7 @@ function requirePatientContext(options = {}) {
           patientId,
           requesterId: reqId,
           reason: "Not admin, patient owner, caregiver, or practitioner",
+          action,
           resourceType,
         });
         return res.status(403).json({
@@ -191,6 +194,7 @@ function requirePatientContext(options = {}) {
                     patientId,
                     requesterId: reqId,
                     reason: "No valid grant found",
+                    action,
                     resourceType,
                   });
         return res.status(403).json({
@@ -204,8 +208,9 @@ function requirePatientContext(options = {}) {
                         actorType: "practitioner",
                         patientId,
                         requesterId: reqId,
-                        grantId: grant?.grantId,
+                        // grantId: grant?.grantId,
                         reason: "Grant expired",
+                        action,
                         resourceType,
                       });
         return res.status(403).json({
@@ -219,7 +224,8 @@ function requirePatientContext(options = {}) {
             patientId,
             requesterId: reqId,
             reason: `Practitioner lacks ${action} permission`,
-            relationshipId: relation.relationshipId,
+            // relationshipId: relation.relationshipId,
+            action,
             resourceType,
           });
           return res.status(403).json({
@@ -238,8 +244,9 @@ function requirePatientContext(options = {}) {
                         actorType: "practitioner",
                         patientId,
                         requesterId: reqId,
-                        grantId: grant.grantId,
+                        // grantId: grant.grantId,
                         resourceType,
+                        action,
                         reason: 'Valid grant found, access allowed'
                     });
       return next();

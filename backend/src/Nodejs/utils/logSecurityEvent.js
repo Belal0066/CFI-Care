@@ -30,12 +30,15 @@ async function logSecurityEvent(namespace, eventType, req, metadata = {}) {
 
         console.log(`[SECURITY-AUDIT] ${namespace}:${eventType}`, {
             timestamp,
+            actorType:metadata.actorType || 'N/A',
             patientId: metadata.patientId || 'N/A',
-            practitionerId: metadata.practitionerId || 'N/A',
-            grantId: metadata.grantId || 'N/A',
+            requesterID: metadata.requesterId || metadata.email || 'system',
+            action: req?.method || 'N/A',
+            resource: metadata.resourceType || 'N/A',
+            // grantId: metadata.grantId || 'N/A',
             reason: metadata.reason || 'N/A',
-            ip: logEntry.ip,
-            requestId: logEntry.requestId
+            // ip: logEntry.ip,
+            // requestId: logEntry.requestId
         });
 
     } catch (error) {
@@ -54,13 +57,15 @@ async function getSecurityEventLogs(namespace, eventType, limit = 100) {
     try {
         const logKey = `audit:${namespace}:${eventType.toLowerCase()}`;
         // zRange returns oldest first, so reverse the range to get newest
-        const entries = await auditRedisClient.zRange(logKey, -limit, -1, 'WITHSCORES');
+        const logs = await auditRedisClient.zRange(logKey, 0, limit - 1, { REV: true });
+        return logs.map(log => JSON.parse(log));
+        // const entries = await auditRedisClient.zRange(logKey, -limit, -1, 'WITHSCORES');
         
-        const logs = [];
-        for (let i = 0; i < entries.length; i += 2) {
-            logs.push(JSON.parse(entries[i]));
-        }
-        return logs.reverse(); 
+        // const logs = [];
+        // for (let i = 0; i < entries.length; i += 2) {
+        //     logs.push(JSON.parse(entries[i]));
+        // }
+        // return logs.reverse(); 
     } catch (error) {
         console.error(`[SECURITY-AUDIT] Failed to retrieve logs:`, error.message);
         return [];
@@ -76,20 +81,22 @@ async function getSecurityEventLogs(namespace, eventType, limit = 100) {
 async function getPatientAuditTrail(patientId, namespace = 'access') {
     try {
         const eventTypes = [
+            'consent_grant_valid',    
+            'consent_grant_invalid',  
+            'consent_grant_not_found',
+            'access_denied',          
             'grant_issued',
             'grant_revoked',
-            'grant_access_allowed',
-            'grant_access_denied',
             'consent_approved'
         ];
 
         const allLogs = [];
         for (const eventType of eventTypes) {
             const logKey = `audit:${namespace}:${eventType}`;
-            const entries = await auditRedisClient.zRange(logKey, 0, -1, 'WITHSCORES');
+            const entries = await auditRedisClient.zRange(logKey, 0, -1);
             
-            for (let i = 0; i < entries.length; i += 2) {
-                const log = JSON.parse(entries[i]);
+            for (const entry of entries) {
+                const log = JSON.parse(entry);
                 if (log.patientId === patientId) {
                     allLogs.push(log);
                 }
