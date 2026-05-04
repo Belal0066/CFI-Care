@@ -43,7 +43,7 @@ function methodToAction(method) {
 function isGrantActive(grant) {
   if (!grant || grant.status !== "active") return false;
   if (!grant.expiresAt) return false;
-  return new Date(grant.expiresAt) > new Date();
+  return new Date(grant.expiresAt) < new Date();
 }
 
 function isActionAllowed(permissions, action) {
@@ -191,7 +191,7 @@ function requirePatientContext(options = {}) {
       }
 
       const grant = JSON.parse(grantRaw);
-      if (grant.status !== "active" || new Date(grant.expiresAt) > new Date()) {
+      if (grant.status !== "active" || new Date(grant.expiresAt) < new Date()) {
         await logSecurityEvent('access', 'CONSENT_GRANT_INVALID', req, {
                         actorType: "practitioner",
                         patientId,
@@ -215,7 +215,7 @@ function requirePatientContext(options = {}) {
       await logSecurityEvent('access', 'CONSENT_GRANT_VALID', req, {
                         actorType: "practitioner",
                         patientId,
-                        practitionerId: requesterId,
+                        practitionerId: reqId,
                         grantId: grant.grantId,
                         resourceType: req.baseUrl?.split('/')[2] || 'Unknown',
                         reason: 'Valid grant found, access allowed'
