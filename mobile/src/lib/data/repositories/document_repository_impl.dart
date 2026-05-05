@@ -175,6 +175,9 @@ class DocumentRepositoryImpl implements DocumentRepository {
       if (text.contains('appointment') || text.contains('consult')) {
         return TypeOfEventEnum.appointment;
       }
+      if (text.contains('surgery') || text.contains('operative')) {
+        return TypeOfEventEnum.surgery;
+      }
 
       final coding = (typeObj['coding'] as List?) ?? const [];
       for (final item in coding) {
@@ -183,6 +186,7 @@ class DocumentRepositoryImpl implements DocumentRepository {
         if (code == '11502-2') return TypeOfEventEnum.lab;
         if (code == '18748-4') return TypeOfEventEnum.scan;
         if (code == '11488-4') return TypeOfEventEnum.appointment;
+        if (code == '11504-8') return TypeOfEventEnum.surgery;
       }
     }
     return TypeOfEventEnum.other;
