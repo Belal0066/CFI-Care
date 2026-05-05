@@ -1,2 +1,2 @@
 // DropDownMenus
-enum TypeOfEventEnum { lab, scan, appointment,other}
+enum TypeOfEventEnum { lab, scan, appointment,surgery ,other}

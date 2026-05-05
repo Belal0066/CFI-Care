@@ -107,6 +107,7 @@ class BookingProvider with ChangeNotifier {
   // Select Doctor
   void selectDoctor(Doctor doctor) {
     _selectedDoctor = doctor;
+    print("PROVIDER HASH: ${this.hashCode}");
     // When changing doctor, we usually want to reset the time slot
     _selectedDate = null;
     _selectedTime = null;
@@ -358,6 +359,8 @@ class BookingProvider with ChangeNotifier {
 
   // Reset Everything (Call this after "Thank You" screen)
   void clearBookingData() {
+    print("ALARM: clearBookingData() was called! Stack Trace below:");
+    print(StackTrace.current);
     _selectedSpecialty = null;
     _selectedDoctor = null;
     _selectedDate = null;
