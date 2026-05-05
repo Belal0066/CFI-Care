@@ -18,7 +18,7 @@ class VitalsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _vitals = await repository.getSmartWatchData();
+      _vitals = await repository.fetchVitalSigns();
     } catch (e) {
       print("Error loading vitals: $e");
     } finally {

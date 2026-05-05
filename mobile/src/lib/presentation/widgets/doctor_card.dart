@@ -11,6 +11,7 @@ class DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("DEBUG: Checking image for ${doctor.name}. URL: ${doctor.imageUrl} | Starts with http? ${doctor.imageUrl.startsWith('http')}");
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
