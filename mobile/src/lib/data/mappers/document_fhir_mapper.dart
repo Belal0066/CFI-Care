@@ -1,4 +1,3 @@
-import 'dart:io';
 import '../../domain/models/document.dart';
 import '../../utils/enums/type_of_event.dart';
 import '../../utils/enums/speciality_event.dart';
@@ -128,6 +127,17 @@ class DocumentFhirMapper {
               'system': 'http://loinc.org',
               'code': '11488-4',
               'display': 'Consult note',
+            },
+          ],
+          'text': value.name,
+        };
+      case TypeOfEventEnum.surgery:
+        return {
+          'coding': [
+            {
+              'system': 'http://loinc.org',
+              'code': '11504-8',
+              'display': 'Surgical operation note',
             },
           ],
           'text': value.name,

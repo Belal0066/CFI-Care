@@ -17,6 +17,9 @@ final typeOfEventIcons = {
   // Calendar/Clock for Appointments
   TypeOfEventEnum.appointment: Icons.calendar_month,
 
+  // Surgery / procedure note
+  TypeOfEventEnum.surgery: Icons.medical_information,
+
   // Generic category icon
   TypeOfEventEnum.other: Icons.category,
 };
