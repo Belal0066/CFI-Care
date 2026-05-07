@@ -23,8 +23,16 @@ export interface PatientDetailsDTO {
   episodes?: Episode[];
 }
 
+export interface EncounterSummary {
+  id: string;
+  type: string;
+  reason: string;
+  date: string;
+  status: string;
+}
+
 export interface Episode {
-  id: number;
+  id: string;
   label: string;
   date: string;
   primaryDiagnosis: string;
@@ -32,6 +40,31 @@ export interface Episode {
   currentMedications: string[];
   recentLabResults: string[];
   recentProcedures: string[];
+  encounters: EncounterSummary[];
+}
+
+export function fhirEOCToEpisode(eoc: any): Episode {
+  const typeEntry = eoc.type?.[0];
+  const label =
+    typeEntry?.text ||
+    typeEntry?.coding?.[0]?.display ||
+    `Episode ${eoc.id}`;
+  const date = eoc.period?.start
+    ? new Date(eoc.period.start).toLocaleDateString()
+    : eoc.meta?.lastUpdated
+      ? new Date(eoc.meta.lastUpdated).toLocaleDateString()
+      : '';
+  return {
+    id: eoc.id,
+    label,
+    date,
+    primaryDiagnosis: '',
+    activeConditions: [],
+    currentMedications: [],
+    recentLabResults: [],
+    recentProcedures: [],
+    encounters: [],
+  };
 }
 
 // Raw FHIR Patient resource type (for direct FHIR responses)

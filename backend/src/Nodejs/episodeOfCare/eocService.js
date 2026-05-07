@@ -240,8 +240,34 @@ async function deleteEpisodeOfCare(eocId) {
   }
 }
 
+// Get all EpisodeOfCare resources for a patient
+async function getEpisodeOfCareByPatient(patientId) {
+  const cacheKey = `eoc:patient:${patientId}`;
+
+  try {
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const response = await fhirApi.get("/EpisodeOfCare", {
+      params: { patient: `Patient/${patientId}` },
+    });
+    const data = response.data.entry
+      ? response.data.entry.map((e) => e.resource)
+      : [];
+
+    await setInCache(cacheKey, data, CACHE_EXPIRATION.EOC);
+    return data;
+  } catch (error) {
+    console.error("FHIR Server Error:", error.message);
+    throw new Error("Could not connect to the FHIR server.");
+  }
+}
+
 module.exports = {
   getEpisodeOfCareById,
+  getEpisodeOfCareByPatient,
   createEpisodeOfCareWithSpecificId,
   getEncountersByEpisodeOfCareId,
   updateEpisodeOfCare,

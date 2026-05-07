@@ -5,6 +5,7 @@ const EOCController = require("./eocController");
 const { requireApiAuth } = require('../middleware/requireApiAuth');
 
 
+router.get("/patient/:patientId", requireApiAuth, EOCController.getEpisodeOfCareByPatient);
 router.get("/:id/encounters", requireApiAuth, EOCController.getEncountersByEpisodeOfCareId);
 router.put("/", requireApiAuth, EOCController.createEpisodeOfCareWithSpecificId);
 router.get("/:id", requireApiAuth, EOCController.getEpisodeOfCareById);

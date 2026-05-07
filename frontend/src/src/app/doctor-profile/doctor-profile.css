@@ -78,24 +78,12 @@ html, body {
 .sf-btn.active{background:var(--b50);border-color:var(--b200);color:var(--b800)}
 .sf-btn:not(.active):hover{background:var(--surf)}
 
-.schedules-table,.slots-table{width:100%;border-collapse:collapse; display: block; overflow-y: auto; flex:1; flex-grow: 1; background: #fff;}
-.schedules-table th,.slots-table th{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3);padding:7px 12px;text-align:left;border-bottom:1px solid var(--bdr);font-weight:600}
+.table-scroll{overflow-y:auto;flex:1}
+.schedules-table,.slots-table{width:100%;border-collapse:collapse;background:#fff;table-layout:auto}
+.schedules-table th,.slots-table th{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3);padding:7px 12px;text-align:left;border-bottom:1px solid var(--bdr);font-weight:600;position:sticky;top:0;z-index:5;background:var(--surf);white-space:nowrap}
 .schedules-table td,.slots-table td{padding:8px 12px;border-bottom:1px solid #F8FAFC;font-size:11px;color:var(--t1);vertical-align:middle}
 .schedules-table tr:last-child td,.slots-table tr:last-child td{border-bottom:none}
 .schedules-table tbody tr:hover td,.slots-table tbody tr:hover td{background:var(--b50)}
-.schedules-table tbody, .slots-table tbody {
-  display: table;
-  width: 100%;
-  min-height: 100px;
-}
-.schedules-table thead, .slots-table thead {
-  display: table;
-  width: 100%;
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--surf);
-}
 
 .status-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
 .status-pill.free{background:var(--g50);color:var(--g600)}

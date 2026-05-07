@@ -1077,6 +1077,7 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
 
 async function getGraphForPatient(patientId, options = {}) {
   const {
+    eocId = null,
     limit = null,
     offset = 0,
     filterCategory = null,
@@ -1095,20 +1096,43 @@ async function getGraphForPatient(patientId, options = {}) {
       return cachedToonData;
     }
 
+    // If filtering by EOC, fetch encounter IDs for that EOC first
+    let eocEncounterIds = null;
+    if (eocId) {
+      try {
+        const encounters = await eocService.getEncountersByEpisodeOfCareId(eocId);
+        eocEncounterIds = encounters.map((e) => e.id);
+      } catch (err) {
+        console.warn("Could not fetch EOC encounters for graph filter:", err.message);
+      }
+      // If EOC has no encounters yet, return empty graph immediately
+      if (eocEncounterIds !== null && eocEncounterIds.length === 0) {
+        const emptyResult = { nodes: [], eocId, pagination: null };
+        await setToonNodes(patientId, emptyResult, options, TOON_CACHE_EXPIRATION.NODE_COLLECTION);
+        return emptyResult;
+      }
+    }
+
     await ensureDbConnection();
 
     let nodesQuery = `
-      SELECT 
-        encounter_fhir_id, patient_id, title, category, priority, 
+      SELECT
+        encounter_fhir_id, patient_id, title, category, priority,
         normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id,
         created_at, updated_at, CASE WHEN is_deleted THEN deleted_at ELSE NULL END as deleted_at
-      FROM encounter_nodes 
+      FROM encounter_nodes
       WHERE patient_id = $1
         AND (is_deleted IS NULL OR is_deleted = FALSE)
     `;
 
     const params = [patientId];
     let paramCount = 2;
+
+    if (eocEncounterIds !== null) {
+      nodesQuery += ` AND encounter_fhir_id = ANY($${paramCount})`;
+      params.push(eocEncounterIds);
+      paramCount++;
+    }
 
     if (filterCategory) {
       nodesQuery += ` AND category = $${paramCount}`;
@@ -1173,25 +1197,27 @@ async function getGraphForPatient(patientId, options = {}) {
         : null;
     });
 
-    // Try to get the eocId from existing FHIR encounters
-    let eocId = null;
-    const encounterCandidates = nodesRes.rows.filter(
-      (row) => row.category === "Consultation" || row.category === "FollowUp",
-    );
-    for (const row of encounterCandidates) {
-      try {
-        const encounterResponse = await encounterService.getEncounterById(
-          row.encounter_fhir_id,
-        );
-        if (encounterResponse?.episodeOfCare?.[0]?.reference) {
-          eocId = encounterResponse.episodeOfCare[0].reference.replace(
-            "EpisodeOfCare/",
-            "",
+    // Try to get the eocId from existing FHIR encounters (only when not already known)
+    let foundEocId = eocId || null;
+    if (!foundEocId) {
+      const encounterCandidates = nodesRes.rows.filter(
+        (row) => row.category === "Consultation" || row.category === "FollowUp",
+      );
+      for (const row of encounterCandidates) {
+        try {
+          const encounterResponse = await encounterService.getEncounterById(
+            row.encounter_fhir_id,
           );
-          break;
+          if (encounterResponse?.episodeOfCare?.[0]?.reference) {
+            foundEocId = encounterResponse.episodeOfCare[0].reference.replace(
+              "EpisodeOfCare/",
+              "",
+            );
+            break;
+          }
+        } catch (err) {
+          console.log("Could not retrieve eocId from FHIR:", err.message);
         }
-      } catch (err) {
-        console.log("Could not retrieve eocId from FHIR:", err.message);
       }
     }
 
@@ -1217,7 +1243,7 @@ async function getGraphForPatient(patientId, options = {}) {
 
     const result = {
       nodes: formattedData,
-      eocId,
+      eocId: foundEocId,
       pagination: limit
         ? { limit, offset, total: nodesRes.rowCount + offset }
         : null,
