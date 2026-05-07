@@ -54,8 +54,10 @@ export class PatientApiService {
   }
 
   // Get patient graph data from historyGraph endpoint
-  getPatientGraph(id: string | number): Observable<any> {
-    return this.http.get<any>(`${this.graphUrl}/${id}`);
+  getPatientGraph(id: string | number, eocId?: string): Observable<any> {
+    const params: Record<string, string> = {};
+    if (eocId) params['eocId'] = eocId;
+    return this.http.get<any>(`${this.graphUrl}/${id}`, { params });
   }
 
   // Add a new node to patient graph
@@ -106,6 +108,32 @@ export class PatientApiService {
   // Get patient document references (uploaded documents)
   getPatientDocumentReferences(id: string | number): Observable<any> {
     return this.http.get<any>(`/api/documentReferences/patient/${id}`);
+  }
+
+  // Get all EpisodeOfCare resources for a patient
+  getPatientEpisodesOfCare(patientId: string | number): Observable<any[]> {
+    return this.http.get<any[]>(`/api/episodeOfCare/patient/${patientId}`);
+  }
+
+  // Get encounters linked to an EpisodeOfCare
+  getEpisodeEncounters(eocId: string): Observable<any[]> {
+    return this.http.get<any[]>(`/api/episodeOfCare/${eocId}/encounters`);
+  }
+
+  // Create a new EpisodeOfCare (no graph root node created)
+  createEpisodeOfCare(eocData: {
+    id: string;
+    status: string;
+    patient: { reference: string };
+    type?: Array<{ text: string }>;
+    period?: { start: string };
+  }): Observable<any> {
+    return this.http.put<any>('/api/episodeOfCare', eocData);
+  }
+
+  // Fetch a FHIR Binary resource (returns JSON with base64 data field)
+  getBinaryResource(binaryId: string): Observable<any> {
+    return this.http.get<any>(`/api/binary/${binaryId}`);
   }
 
   // Create a new patient

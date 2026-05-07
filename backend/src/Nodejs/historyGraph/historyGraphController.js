@@ -35,6 +35,7 @@ const getGraphData = async (req, res) => {
     const { patientId } = req.params;
     // Extract query parameters for filtering/pagination
     const options = {
+      eocId: req.query.eocId || null,
       limit: req.query.limit ? parseInt(req.query.limit) : null,
       offset: req.query.offset ? parseInt(req.query.offset) : 0,
       filterCategory: req.query.filterCategory || null,

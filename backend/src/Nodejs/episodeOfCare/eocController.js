@@ -69,9 +69,21 @@ const deleteEpisodeOfCare = async (req, res) => {
   }
 };
 
+const getEpisodeOfCareByPatient = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const episodes = await EOCService.getEpisodeOfCareByPatient(patientId);
+    res.status(200).json(episodes);
+  } catch (error) {
+    console.error("Error in getEpisodeOfCareByPatient controller:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   createEpisodeOfCareWithSpecificId,
   getEpisodeOfCareById,
+  getEpisodeOfCareByPatient,
   getEncountersByEpisodeOfCareId,
   updateEpisodeOfCare,
   deleteEpisodeOfCare,

@@ -9,11 +9,11 @@
         <div class="card-body">
 
             <div class="d-flex justify-content-between align-items-start">
-              <div>
+              <div style="flex:1;min-width:0">
                 <h4 id="patient-name" class="mb-0">{{ patientDetails.name }}</h4>
 
-                <!-- Episode selector — only shown when >1 episode -->
-                <div *ngIf="patientDetails.episodes && patientDetails.episodes.length > 1"
+                <!-- Episode selector -->
+                <div *ngIf="patientDetails.episodes && patientDetails.episodes.length > 0"
                      style="position:relative;display:inline-block;margin-top:8px">
                   <button (click)="episodeDropdownOpen = !episodeDropdownOpen"
                           style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
@@ -38,9 +38,33 @@
                     </div>
                   </div>
                 </div>
+
+                <p *ngIf="!patientDetails.episodes || patientDetails.episodes.length === 0"
+                   style="margin-top:8px;font-size:12px;color:#888">No episodes yet</p>
+
+                <!-- Create new episode -->
+                <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
+                  <input [(ngModel)]="newEpisodeName"
+                         placeholder="New episode name"
+                         (keydown.enter)="createEpisode()"
+                         style="padding:5px 10px;border:1px solid #d0dff5;border-radius:8px;
+                                font-size:12px;outline:none;width:180px"/>
+                  <button (click)="createEpisode()"
+                          [disabled]="!newEpisodeName.trim() || creatingEpisode"
+                          style="padding:5px 12px;border:none;border-radius:8px;background:#1E6ED3;
+                                 color:#fff;font-size:12px;font-weight:600;cursor:pointer;
+                                 opacity:1;transition:opacity 0.15s"
+                          [style.opacity]="(!newEpisodeName.trim() || creatingEpisode) ? '0.5' : '1'">
+                    <span *ngIf="!creatingEpisode"><i class="bi bi-plus-lg me-1"></i>Add Episode</span>
+                    <span *ngIf="creatingEpisode">Creating…</span>
+                  </button>
+                  <span *ngIf="createEpisodeError" style="color:#dc3545;font-size:11px">
+                    {{ createEpisodeError }}
+                  </span>
+                </div>
               </div>
 
-              <button (click)="openMedFlowGraph()" class="btn btn-primary btn-md graph-btn">
+              <button (click)="openMedFlowGraph()" class="btn btn-primary btn-md graph-btn ms-3">
                 Open History Graph <i class="bi bi-box-arrow-up-right ms-2"></i>
               </button>
             </div>
@@ -60,20 +84,20 @@
     <div class="info-section">
         <h6><i class="bi bi-activity me-1"></i> Primary Diagnosis</h6>
         <div class="info-box">
-            <p *ngIf="selectedEpisode?.primaryDiagnosis || patientDetails.primaryDiagnosis">
-                {{ selectedEpisode?.primaryDiagnosis ?? patientDetails.primaryDiagnosis }}
+            <p *ngIf="selectedEpisode ? selectedEpisode.primaryDiagnosis : patientDetails.primaryDiagnosis">
+                {{ selectedEpisode ? selectedEpisode.primaryDiagnosis : patientDetails.primaryDiagnosis }}
             </p>
-            <p *ngIf="!(selectedEpisode?.primaryDiagnosis || patientDetails.primaryDiagnosis)" class="text-muted">No diagnosis recorded</p>
+            <p *ngIf="!(selectedEpisode ? selectedEpisode.primaryDiagnosis : patientDetails.primaryDiagnosis)" class="text-muted">No diagnosis recorded</p>
         </div>
     </div>
 
     <div class="info-section">
         <h6><i class="bi bi-clipboard2-pulse-fill me-1"></i> Active Conditions</h6>
         <div class="conditions-box">
-            <span class="badge text-bg-info" *ngFor="let cond of (selectedEpisode?.activeConditions ?? patientDetails.activeConditions)">
+            <span class="badge text-bg-info" *ngFor="let cond of (selectedEpisode ? selectedEpisode.activeConditions : patientDetails.activeConditions)">
                 {{ cond }}
             </span>
-            <p *ngIf="!(selectedEpisode?.activeConditions ?? patientDetails.activeConditions)?.length"
+            <p *ngIf="!(selectedEpisode ? selectedEpisode.activeConditions : patientDetails.activeConditions)?.length"
                 class="text-muted mb-0">No active conditions</p>
         </div>
     </div>
@@ -81,10 +105,10 @@
     <div class="info-section">
         <h6><i class="bi bi-prescription2 me-1"></i> Current Medications</h6>
         <div class="info-box">
-            <p class="medication-item" *ngFor="let med of (selectedEpisode?.currentMedications ?? patientDetails.currentMedications)">
+            <p class="medication-item" *ngFor="let med of (selectedEpisode ? selectedEpisode.currentMedications : patientDetails.currentMedications)">
                 {{ med }}
             </p>
-            <p *ngIf="!(selectedEpisode?.currentMedications ?? patientDetails.currentMedications)?.length"
+            <p *ngIf="!(selectedEpisode ? selectedEpisode.currentMedications : patientDetails.currentMedications)?.length"
                 class="text-muted mb-0">No current medications</p>
         </div>
     </div>
@@ -93,23 +117,32 @@
         <h6><i class="bi bi-flask-fill me-1"></i> Recent Lab Results</h6>
         <div class="info-box">
             <div class="accordion accordion-flush" id="accordionFlushExample"
-                *ngIf="(selectedEpisode?.recentLabResults ?? patientDetails.recentLabResults)?.length">
+                *ngIf="patientDetails.recentLabResults?.length">
                 <div class="accordion-item"
-                    *ngFor="let lab of (selectedEpisode?.recentLabResults ?? patientDetails.recentLabResults); let i = index">
+                    *ngFor="let lab of patientDetails.recentLabResults; let i = index">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                            [attr.data-bs-target]="'#lab' + i">
-                            Lab Result {{ i + 1 }}
+                            [attr.data-bs-target]="'#lab' + i"
+                            style="display:flex;align-items:center;justify-content:space-between">
+                            <span>{{ lab }}</span>
+                            <button *ngIf="hasLabPdf(i)"
+                                    (click)="openLabPdf(i); $event.stopPropagation()"
+                                    style="margin-left:12px;padding:3px 10px;border:1px solid #1E6ED3;
+                                           border-radius:6px;background:#f0f6ff;color:#1E6ED3;
+                                           font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;
+                                           display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-file-earmark-pdf"></i> View PDF
+                            </button>
                         </button>
                     </h2>
                     <div [id]="'lab' + i" class="accordion-collapse collapse">
-                        <div class="accordion-body">
+                        <div class="accordion-body" style="font-size:13px">
                             {{ lab }}
                         </div>
                     </div>
                 </div>
             </div>
-            <p *ngIf="!(selectedEpisode?.recentLabResults ?? patientDetails.recentLabResults)?.length"
+            <p *ngIf="!patientDetails.recentLabResults?.length"
                 class="text-muted mb-0">No recent lab results</p>
         </div>
     </div>
@@ -117,10 +150,10 @@
     <div class="info-section" style="margin-bottom: 1rem;">
         <h6>Recent Procedures</h6>
         <div class="info-box">
-            <p *ngFor="let proc of (selectedEpisode?.recentProcedures ?? patientDetails.recentProcedures)">
+            <p *ngFor="let proc of (selectedEpisode ? selectedEpisode.recentProcedures : patientDetails.recentProcedures)">
                 {{ proc }}
             </p>
-            <p *ngIf="!(selectedEpisode?.recentProcedures ?? patientDetails.recentProcedures)?.length"
+            <p *ngIf="!(selectedEpisode ? selectedEpisode.recentProcedures : patientDetails.recentProcedures)?.length"
                 class="text-muted mb-0">No recent procedures</p>
         </div>
     </div>

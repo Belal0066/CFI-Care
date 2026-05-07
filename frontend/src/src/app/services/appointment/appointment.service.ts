@@ -183,6 +183,16 @@ export class AppointmentService {
     return this.http.post<any>(`/api/practitionerRoles/${roleId}`, roleData);
   }
 
+  // Delete a schedule
+  deleteSchedule(id: string): Observable<any> {
+    return this.http.delete<any>(`${this.schedulesUrl}/${id}`);
+  }
+
+  // Delete a slot
+  deleteSlot(id: string): Observable<any> {
+    return this.http.delete<any>(`${this.slotsUrl}/${id}`);
+  }
+
   // Update slot status
   updateSlotStatus(slotId: string, status: string): Observable<Slot> {
     return this.http.patch<Slot>(`${this.slotsUrl}/${slotId}`, { status });

@@ -36,9 +36,10 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Get patient ID from route params
+    // Get patient ID from route params and optional EOC ID from query params
     this.patientId = this.route.snapshot.paramMap.get('id');
-    console.log('[MED-GRAPH][ngOnInit] route patientId =', this.patientId);
+    this.eocId = this.route.snapshot.queryParamMap.get('eocId') || 'eoc-default';
+    console.log('[MED-GRAPH][ngOnInit] route patientId =', this.patientId, 'eocId =', this.eocId);
 
     if (this.patientId) {
       this.loadPatientGraph(this.patientId);
@@ -224,9 +225,12 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
     console.log(
       '[MED-GRAPH][loadPatientGraph] requesting patient graph for',
       patientId,
+      'eocId =',
+      this.eocId,
     );
 
-    this.patientApi.getPatientGraph(patientId).subscribe({
+    const eocFilter = this.eocId !== 'eoc-default' ? this.eocId : undefined;
+    this.patientApi.getPatientGraph(patientId, eocFilter).subscribe({
       next: (response) => {
         console.log('[MED-GRAPH][loadPatientGraph] raw response =', response);
         // Handle both old format (array) and new format ({ nodes, eocId })

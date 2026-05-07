@@ -6,36 +6,16 @@
   </div>
 
   <div class="right-section">
-    <button type="button" class="btn nav-btn" (click)="navigateToDashboard()">
-      <i class="bi bi-house-door"></i>
-      <span class="nav-text">Dashboard</span>
-    </button>
-
-    <button type="button" class="btn nav-btn" (click)="navigateToAppointments()">
-      <i class="bi bi-calendar-check"></i>
-      <span class="nav-text">Appointments</span>
-    </button>
-
-    <button type="button" class="btn ai-btn" (click)="navigateToChatGPT()">
-      <i class="bi bi-robot"></i>
-      <span class="ai-text">AI</span>
-    </button>
-
     <div class="user-section">
       <div class="dropdown">
-        <button class="avatar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-person-circle"></i>
+        <button class="account-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Account
         </button>
         <ul class="dropdown-menu dropdown-menu-end doctor-menu">
           <li>
             <a class="dropdown-item" routerLink="/doctor-profile">
               <i class="bi bi-person-badge me-2"></i> Doctor Profile
             </a>
-          </li>
-          <li>
-            <button class="dropdown-item" type="button" (click)="navigateToPractitionerProfile()">
-              <i class="bi bi-person me-2"></i> My Profile
-            </button>
           </li>
           <li>
             <hr class="dropdown-divider">
