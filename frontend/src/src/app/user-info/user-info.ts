@@ -4,6 +4,7 @@ import { PatientApiService } from '../services/patientApi/patient-api-service';
 import { Router } from '@angular/router';
 import {
   PatientDetailsDTO,
+  Episode,
   FHIRPatient,
   fhirPatientToDetailsDTO,
   extractConditionDisplay,
@@ -23,6 +24,8 @@ import { forkJoin } from 'rxjs';
 })
 export class UserInfo implements OnInit {
   patientDetails: PatientDetailsDTO | null = null;
+  selectedEpisode: Episode | null = null;
+  episodeDropdownOpen = false;
   loading: boolean = false;
   error: string | null = null;
 
@@ -201,8 +204,13 @@ export class UserInfo implements OnInit {
   }
 
   openMedFlowGraph() {
-    if (this.patientDetails) {
-      this.router.navigate(['/med-graph', this.patientDetails.id]);
+    if (this.patientDetails && this.selectedEpisode) {
+      this.router.navigate(['/med-graph', this.selectedEpisode.id]);
     }
+  }
+
+  selectEpisode(ep: Episode) {
+    this.selectedEpisode = ep;
+    this.episodeDropdownOpen = false;
   }
 }

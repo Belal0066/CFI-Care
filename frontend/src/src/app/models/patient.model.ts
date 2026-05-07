@@ -20,6 +20,18 @@ export interface PatientDetailsDTO {
   currentMedications?: string[];
   recentLabResults?: string[];
   recentProcedures?: string[];
+  episodes?: Episode[];
+}
+
+export interface Episode {
+  id: number;
+  label: string;
+  date: string;
+  primaryDiagnosis: string;
+  activeConditions: string[];
+  currentMedications: string[];
+  recentLabResults: string[];
+  recentProcedures: string[];
 }
 
 // Raw FHIR Patient resource type (for direct FHIR responses)
