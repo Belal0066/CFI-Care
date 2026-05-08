@@ -30,6 +30,8 @@
     body {
       margin: 0;
       padding: 0;
+      padding-top: 64px;
+      box-sizing: border-box;
       font-family: 'Inter', sans-serif;
       background: var(--bg-light);
       height: 100vh;
@@ -335,6 +337,15 @@
       flex: 1;
       background: var(--white);
       overflow: hidden;
+    }
+
+    #tree > svg {
+      min-width: 100%;
+      min-height: 100%;
+    }
+
+    #tree svg foreignObject {
+      overflow: visible;
     }
 
     /* --- Filters Panel --- */
@@ -1450,7 +1461,7 @@
 
           const isParent = dataHasChildren(node.id);
           const isExpanded = expandedNodes.has(node.id);
-          const expandBtnHtml = (!node.isDiagnosis && node.father === 1 && isParent) ? `
+          const expandBtnHtml = (node.father === rootNode.id && isParent) ? `
           <div class="expand-trigger" data-expand-btn="${node.id}">
             <i class="fa-solid fa-${isExpanded ? 'minus' : 'plus'}"></i>
           </div>` : '';
@@ -1762,8 +1773,11 @@
         const catContainer = document.getElementById("editCategoryContainer");
         const catSelect = document.getElementById("editCategory");
         catContainer.style.display = "block";
-        catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+        catSelect.innerHTML = Object.keys(CATEGORY_COLORS)
+          .filter(c => c !== 'Linker')
+          .map(c => `<option>${c}</option>`).join('');
         catSelect.value = nodeData.category;
+        if (!catSelect.value) catSelect.value = nodeData.category; // preserve if mismatch
         catSelect.disabled = false;
 
         const form = document.getElementById("editForm");
@@ -1784,7 +1798,7 @@
           nodeData.priority = document.getElementById("editPriority").value;
           nodeData.normality = document.getElementById("editNormality").value;
           nodeData.details = document.getElementById("editDetails").value;
-          nodeData.category = catSelect.value;
+          nodeData.category = catSelect.value || nodeData.category;
 
           refreshGraph();
           openNodeDetails(nodeData);
@@ -1873,7 +1887,9 @@
         const catSelect = document.getElementById("editCategory");
 
         catContainer.style.display = "block";
-        catSelect.innerHTML = Object.keys(CATEGORY_COLORS).map(c => `<option>${c}</option>`).join('');
+        catSelect.innerHTML = Object.keys(CATEGORY_COLORS)
+          .filter(c => c !== 'Linker')
+          .map(c => `<option>${c}</option>`).join('');
         catSelect.disabled = false;
 
         const form = document.getElementById("editForm");
@@ -1887,7 +1903,7 @@
             id: newId,
             text_1: document.getElementById("editTitle").value || "New Node",
             father: parentNode.id,
-            category: catSelect.value,
+            category: catSelect.value || 'Consultation',
             priority: document.getElementById("editPriority").value,
             normality: document.getElementById("editNormality").value,
             dateIssued: document.getElementById("editDate").value,
@@ -3087,7 +3103,7 @@
 
             const isParent = dataHasChildren(node.id);
             const isExpanded = expandedNodes.has(node.id);
-            const expandBtnHtml = (!node.isDiagnosis && node.father === rootNode.id && isParent) ? `
+            const expandBtnHtml = (node.father === rootNode.id && isParent) ? `
         <div class="expand-trigger" data-expand-btn="${node.id}">
           <i class="fa-solid fa-${isExpanded ? 'minus' : 'plus'}"></i>
         </div>` : '';
@@ -3126,6 +3142,7 @@
         const matchesFilter = new Set();
 
         data.forEach(node => {
+          if (node.category === 'Linker') return;
           const nodeDate = new Date(node.dateIssued);
           const matches =
             selectedCategories.includes(node.category) &&
@@ -3152,6 +3169,7 @@
         }
 
         const visibleNodes = data.filter(node => {
+          if (node.category === 'Linker') return false;
           if (!matchesFilter.has(node.id)) return false;
           if (node.father === null) return true;
 

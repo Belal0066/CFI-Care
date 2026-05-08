@@ -7,10 +7,10 @@ const {
   deleteFromCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
-const {
-  handleAwsPdfPipeline,
-  isAwsPipelineEnabled,
-} = require("../utils/awsPdfPipeline");
+// const {
+//   handleAwsPdfPipeline,
+//   isAwsPipelineEnabled,
+// } = require("../utils/awsPdfPipeline");
 
 function logBinaryStatus(action, status, details = "") {
   const suffix = details ? ` ${details}` : "";
@@ -88,48 +88,43 @@ async function createPDFBinaryResource(
     throw new Error("Could not connect to the FHIR server.");
   }
 
-  if (isAwsPipelineEnabled() && resolvedContentType.includes("pdf")) {
-    try {
-      if (!documentReferenceId) {
-        throw new Error(
-          "documentReferenceId is required for AWS pipeline S3 naming and SQS payload",
-        );
-      }
-      logBinaryStatus(
-        "AWS_PIPELINE_CREATE",
-        "STARTED",
-        `binaryId=${id} patientId=${patientId || "n/a"} documentReferenceId=${documentReferenceId}`,
-      );
-      const pdfBuffer = uploadedPdf?.buffer
-        ? uploadedPdf.buffer
-        : Buffer.from(base64Data, "base64");
-      const awsResult = await handleAwsPdfPipeline({
-        pdfId: id,
-        patientId,
-        documentReferenceId,
-        pdfBuffer,
-        contentType: resolvedContentType,
-      });
-      if (awsResult) {
-        logBinaryStatus(
-          "AWS_PIPELINE_CREATE",
-          "SUCCESS",
-          `binaryId=${id} documentReferenceId=${documentReferenceId} s3Uri=s3://${awsResult.bucket}/${awsResult.key} sqsMessageId=${awsResult.messageId}`,
-        );
-      }
-    } catch (error) {
-      console.error(
-        `[binary] action=AWS_PIPELINE_CREATE status=FAILED binaryId=${id} documentReferenceId=${documentReferenceId || "n/a"} error=${error.message}`,
-      );
-      throw new Error(`AWS PDF pipeline failed: ${error.message}`);
-    }
-  } else {
-    logBinaryStatus(
-      "AWS_PIPELINE_CREATE",
-      "SKIPPED",
-      `binaryId=${id} enabled=${isAwsPipelineEnabled()} contentType=${resolvedContentType}`,
-    );
-  }
+  // AWS PDF pipeline disabled
+  // if (isAwsPipelineEnabled() && resolvedContentType.includes("pdf")) {
+  //   try {
+  //     if (!documentReferenceId) {
+  //       throw new Error(
+  //         "documentReferenceId is required for AWS pipeline S3 naming and SQS payload",
+  //       );
+  //     }
+  //     logBinaryStatus(
+  //       "AWS_PIPELINE_CREATE",
+  //       "STARTED",
+  //       `binaryId=${id} patientId=${patientId || "n/a"} documentReferenceId=${documentReferenceId}`,
+  //     );
+  //     const pdfBuffer = uploadedPdf?.buffer
+  //       ? uploadedPdf.buffer
+  //       : Buffer.from(base64Data, "base64");
+  //     const awsResult = await handleAwsPdfPipeline({
+  //       pdfId: id,
+  //       patientId,
+  //       documentReferenceId,
+  //       pdfBuffer,
+  //       contentType: resolvedContentType,
+  //     });
+  //     if (awsResult) {
+  //       logBinaryStatus(
+  //         "AWS_PIPELINE_CREATE",
+  //         "SUCCESS",
+  //         `binaryId=${id} documentReferenceId=${documentReferenceId} s3Uri=s3://${awsResult.bucket}/${awsResult.key} sqsMessageId=${awsResult.messageId}`,
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error(
+  //       `[binary] action=AWS_PIPELINE_CREATE status=FAILED binaryId=${id} documentReferenceId=${documentReferenceId || "n/a"} error=${error.message}`,
+  //     );
+  //     throw new Error(`AWS PDF pipeline failed: ${error.message}`);
+  //   }
+  // }
 
   // Invalidate cache after successful creation
   await deleteFromCache(`binary:${id}`);
@@ -219,48 +214,43 @@ async function updateBinary(
     throw new Error("Could not connect to the FHIR server.");
   }
 
-  if (isAwsPipelineEnabled() && resolvedContentType.includes("pdf")) {
-    try {
-      if (!documentReferenceId) {
-        throw new Error(
-          "documentReferenceId is required for AWS pipeline S3 naming and SQS payload",
-        );
-      }
-      logBinaryStatus(
-        "AWS_PIPELINE_UPDATE",
-        "STARTED",
-        `binaryId=${binaryId} patientId=${patientId || "n/a"} documentReferenceId=${documentReferenceId}`,
-      );
-      const pdfBuffer = uploadedPdf?.buffer
-        ? uploadedPdf.buffer
-        : Buffer.from(base64Data, "base64");
-      const awsResult = await handleAwsPdfPipeline({
-        pdfId: binaryId,
-        patientId,
-        documentReferenceId,
-        pdfBuffer,
-        contentType: resolvedContentType,
-      });
-      if (awsResult) {
-        logBinaryStatus(
-          "AWS_PIPELINE_UPDATE",
-          "SUCCESS",
-          `binaryId=${binaryId} documentReferenceId=${documentReferenceId} s3Uri=s3://${awsResult.bucket}/${awsResult.key} sqsMessageId=${awsResult.messageId}`,
-        );
-      }
-    } catch (error) {
-      console.error(
-        `[binary] action=AWS_PIPELINE_UPDATE status=FAILED binaryId=${binaryId} documentReferenceId=${documentReferenceId || "n/a"} error=${error.message}`,
-      );
-      throw new Error(`AWS PDF pipeline failed: ${error.message}`);
-    }
-  } else {
-    logBinaryStatus(
-      "AWS_PIPELINE_UPDATE",
-      "SKIPPED",
-      `binaryId=${binaryId} enabled=${isAwsPipelineEnabled()} contentType=${resolvedContentType}`,
-    );
-  }
+  // AWS PDF pipeline disabled
+  // if (isAwsPipelineEnabled() && resolvedContentType.includes("pdf")) {
+  //   try {
+  //     if (!documentReferenceId) {
+  //       throw new Error(
+  //         "documentReferenceId is required for AWS pipeline S3 naming and SQS payload",
+  //       );
+  //     }
+  //     logBinaryStatus(
+  //       "AWS_PIPELINE_UPDATE",
+  //       "STARTED",
+  //       `binaryId=${binaryId} patientId=${patientId || "n/a"} documentReferenceId=${documentReferenceId}`,
+  //     );
+  //     const pdfBuffer = uploadedPdf?.buffer
+  //       ? uploadedPdf.buffer
+  //       : Buffer.from(base64Data, "base64");
+  //     const awsResult = await handleAwsPdfPipeline({
+  //       pdfId: binaryId,
+  //       patientId,
+  //       documentReferenceId,
+  //       pdfBuffer,
+  //       contentType: resolvedContentType,
+  //     });
+  //     if (awsResult) {
+  //       logBinaryStatus(
+  //         "AWS_PIPELINE_UPDATE",
+  //         "SUCCESS",
+  //         `binaryId=${binaryId} documentReferenceId=${documentReferenceId} s3Uri=s3://${awsResult.bucket}/${awsResult.key} sqsMessageId=${awsResult.messageId}`,
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error(
+  //       `[binary] action=AWS_PIPELINE_UPDATE status=FAILED binaryId=${binaryId} documentReferenceId=${documentReferenceId || "n/a"} error=${error.message}`,
+  //     );
+  //     throw new Error(`AWS PDF pipeline failed: ${error.message}`);
+  //   }
+  // }
 
   // Invalidate cache after successful update
   await deleteFromCache(`binary:${binaryId}`);

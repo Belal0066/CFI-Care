@@ -1,5 +1,5 @@
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
-const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+// const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+// const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 
 function logAwsStatus(step, status, details = "") {
   const suffix = details ? ` ${details}` : "";
