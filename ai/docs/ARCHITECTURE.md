@@ -1,13 +1,20 @@
-# AI Section Architecture — DOC2FHIR ↔ Clinical RAG/Graph Copilot
+# AI Section Architecture — DOC2FHIR ↔ Clinical AI System
 
 The `ai/` tree currently holds two subsystems that were developed independently
 and, until now, never lived on the same branch:
 
 - **`ai/src/DOC2FHIR/`** — OCR → structured extraction → FHIR mapping pipeline.
   Turns a scanned medical document into FHIR resources.
-- **`ai/src/ai/`** — Clinical RAG / "Clinical-Graph Copilot". Reads FHIR data
+- **`ai/src/ai/`** — Clinical AI System, an agentic RAG copilot. Reads FHIR data
   for a patient and answers clinical questions over it (retrieval + reasoning),
   backed by Qdrant hybrid (dense + sparse) vector search.
+
+For a system-level view (context diagram, data flow, invariants), see
+[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md); for what can go wrong at runtime
+and how it's actually handled, see [`FAILURE_MODES.md`](FAILURE_MODES.md);
+for why key decisions were made and what alternatives were rejected, see
+[`adr/`](adr/). This document stays focused on the port map and the
+DOC2FHIR↔Clinical-AI relationship question.
 
 ## Relationship between the two subsystems
 
@@ -27,8 +34,8 @@ Both subsystems independently target a HAPI FHIR server:
 Those ports now match (see "Fixes applied" below — DOC2FHIR's config default
 was pointing at the wrong port until this pass). That match is the only
 evidence connecting them: **the working hypothesis is that DOC2FHIR writes
-FHIR resources into the same HAPI FHIR instance that the Clinical RAG/Graph
-Copilot reads from** — i.e. they are sequential stages of one pipeline
+FHIR resources into the same HAPI FHIR instance that the Clinical AI System
+reads from** — i.e. they are sequential stages of one pipeline
 (ingest → reason), not two unrelated tools that happen to share a database
 technology.
 
