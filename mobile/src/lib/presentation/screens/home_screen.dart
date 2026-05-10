@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Major Events",
+                      "Episodes of Care",
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
