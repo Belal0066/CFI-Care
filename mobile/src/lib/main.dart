@@ -79,7 +79,7 @@ void main() async {
   final bookingRepo = BookingRepositoryImpl(apiService);
   final docRepo = DocumentRepositoryImpl(pdfService, imgService, apiService);
   final vitalsRepo = VitalsRepositoryImpl(HealthConnectDataSource());
-  final eventRepo = MajorEventRepository();
+  final eventRepo = MajorEventRepository(apiService);
 
   final router = buildRouter(authProvider);
 

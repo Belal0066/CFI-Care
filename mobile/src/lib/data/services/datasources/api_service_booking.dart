@@ -517,4 +517,63 @@ class ApiService {
       throw Exception("Network Error: $e");
     }
   }
+
+  // Returns List<FHIR EpisodeOfCare> for the given patient.
+  // Backend: GET /api/episodeOfCare/patient/{patientId}
+  Future<List<dynamic>> fetchEpisodesOfCare(String patientId) async {
+    try {
+      final response = await _authorizedRequest((headers) {
+        return http.get(
+          Uri.parse('$baseUrl/episodeOfCare/patient/$patientId'),
+          headers: headers,
+        );
+      });
+
+      print('[fetchEpisodesOfCare] status=${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        // Backend returns a plain array of FHIR resources.
+        if (decoded is List) return decoded;
+        // Defensive: FHIR bundle wrapper
+        if (decoded is Map && decoded['entry'] != null) {
+          return (decoded['entry'] as List).map((e) => e['resource']).toList();
+        }
+        return [];
+      } else {
+        throw Exception('Failed to fetch episodes: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network Error: $e');
+    }
+  }
+
+  // Returns the nodes list for a patient's episode from the history graph.
+  // Backend: GET /api/historyGraph/{patientId}?eocId={eocId}
+  // Response shape: { nodes: [...], eocId, pagination }
+  Future<List<dynamic>> fetchGraphNodesForEpisode(
+    String patientId,
+    String eocId,
+  ) async {
+    try {
+      final uri = Uri.parse('$baseUrl/historyGraph/$patientId').replace(
+        queryParameters: {'eocId': eocId},
+      );
+
+      final response = await _authorizedRequest(
+        (headers) => http.get(uri, headers: headers),
+      );
+
+      print('[fetchGraphNodesForEpisode] status=${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body) as Map<String, dynamic>;
+        return (decoded['nodes'] as List<dynamic>?) ?? [];
+      } else {
+        throw Exception('Failed to fetch graph nodes: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network Error: $e');
+    }
+  }
 }
