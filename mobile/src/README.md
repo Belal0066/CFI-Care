@@ -23,6 +23,7 @@ samples, guidance on mobile development, and a full API reference.
 ## Dev-only setup
 ### running from external device 
 - open env file and set ip to host ip (host = running containers)
+- add ip to `CORS_ORIGIN` variable in the backend env file
 - in terminal run :
 ```
     flutter run --dart-define-from-file=env/dev_env.json
