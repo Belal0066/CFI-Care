@@ -26,6 +26,21 @@ class ApiService {
         text.contains('session expired');
   }
 
+  Future<String?>? _refreshOngoing;
+
+  Future<String?> _refreshTokenSemaphore() {
+    final refresh = refreshToken;
+    if (refresh == null) return Future.value(null);
+
+    if (_refreshOngoing != null) return _refreshOngoing!;
+
+    _refreshOngoing = refresh();
+    _refreshOngoing!.whenComplete(() {
+      _refreshOngoing = null;
+    });
+
+    return _refreshOngoing!;
+  }
   Future<Map<String, String>> _authHeaders({bool json = true}) async {
     final token = await getAccessToken?.call();
     // print('[AUTH HDR] token null=${token == null} empty=${(token ?? '').isEmpty} len=${token?.length ?? 0}');
@@ -42,19 +57,19 @@ class ApiService {
   ) async {
     var headers = await _authHeaders();
 
-    if (refreshToken != null) {
-      try {
-        final refreshed = await refreshToken!.call();
-        if (refreshed != null && refreshed.isNotEmpty) {
-          headers['Authorization'] = 'Bearer $refreshed';
-        }
-      } catch (e) {
-        if (_isSessionRevokedError(e)) {
-          await onUnauthorized?.call();
-          throw Exception('Session expired, please sign in again');
-        }
-      }
-    }
+    // if (refreshToken != null) {
+    //   try {
+    //     final refreshed = await refreshToken!.call();
+    //     if (refreshed != null && refreshed.isNotEmpty) {
+    //       headers['Authorization'] = 'Bearer $refreshed';
+    //     }
+    //   } catch (e) {
+    //     if (_isSessionRevokedError(e)) {
+    //       await onUnauthorized?.call();
+    //       throw Exception('Session expired, please sign in again');
+    //     }
+    //   }
+    // }
 
     if (!headers.containsKey('Authorization')) {
       throw Exception('No access token available');
@@ -62,22 +77,31 @@ class ApiService {
 
     var response = await send(headers);
 
+    var shouldForceLogout = false;
+
     if (response.statusCode == 401 && refreshToken != null) {
       try {
-        final refreshed = await refreshToken!.call();
+        // final refreshed = await refreshToken!.call();
+        final refreshed = await _refreshTokenSemaphore();
         if (refreshed != null && refreshed.isNotEmpty) {
           // headers = await _authHeaders();
           headers['Authorization'] = 'Bearer $refreshed';
           response = await send(headers);
         } else {
-          await onUnauthorized?.call(); // refresh gave no token
+          // await onUnauthorized?.call(); // refresh gave no token
+          shouldForceLogout = true;
         }
       } catch (e) {
-        await onUnauthorized?.call();
+        // await onUnauthorized?.call();
+        if (_isSessionRevokedError(e)) {
+          shouldForceLogout = true;
+        } else {
+          rethrow;
+        }
       }
     }
 
-    if (response.statusCode == 401) {
+    if (response.statusCode == 401 && shouldForceLogout) {
       await onUnauthorized?.call(); //still unauth after retry :<
     }
 
@@ -248,20 +272,20 @@ class ApiService {
     print('[uploadDocument] /documentReferences status=${response.statusCode}');
     print('[uploadDocument] /documentReferences body=${response.body}');
 
-    if (response.statusCode == 401 && refreshToken != null) {
-      final refreshed = await refreshToken!.call();
-      if (refreshed != null && refreshed.isNotEmpty) {
-        final retry = http.MultipartRequest(
-          'POST',
-          Uri.parse('$baseUrl/documents'),
-        );
-        retry.headers['Authorization'] = 'Bearer $refreshed';
-        retry.fields.addAll(request.fields);
-        retry.files.add(await http.MultipartFile.fromPath('file', file.path));
-        final streamedResponse = await retry.send();
-        response = await http.Response.fromStream(streamedResponse);
-      }
-    }
+    // if (response.statusCode == 401 && refreshToken != null) {
+    //   final refreshed = await refreshToken!.call();
+    //   if (refreshed != null && refreshed.isNotEmpty) {
+    //     final retry = http.MultipartRequest(
+    //       'POST',
+    //       Uri.parse('$baseUrl/documents'),
+    //     );
+    //     retry.headers['Authorization'] = 'Bearer $refreshed';
+    //     retry.fields.addAll(request.fields);
+    //     retry.files.add(await http.MultipartFile.fromPath('file', file.path));
+    //     final streamedResponse = await retry.send();
+    //     response = await http.Response.fromStream(streamedResponse);
+    //   }
+    // }
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       print('[uploadDocument] completed successfully');
