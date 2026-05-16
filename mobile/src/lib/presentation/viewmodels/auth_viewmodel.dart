@@ -72,10 +72,14 @@ class AuthProvider with ChangeNotifier {
     // }
 
     } catch (e) {
-      await _clearLocalSession();
-      _session = null;
-      _errorMessage = null; 
-      _setState(AuthStatus.unauthenticated);
+      _errorMessage = e.toString();
+      if (_isSessionRevokedError(e)) {
+        await _clearLocalSession();
+        _session = null;
+        _setState(AuthStatus.unauthenticated);
+      } else {
+        _setState(AuthStatus.failure);
+      }
     }
   }
 
@@ -153,10 +157,13 @@ class AuthProvider with ChangeNotifier {
       return _session?.accessToken;
     } catch (e) {
       _errorMessage = e.toString();
-      _session = null;
-      await _clearLocalSession();
-      _setState(AuthStatus.failure);
-      _setState(AuthStatus.unauthenticated);
+      if (_isSessionRevokedError(e)) {
+        _session = null;
+        await _clearLocalSession();
+        _setState(AuthStatus.unauthenticated);
+      } else {
+        _setState(AuthStatus.failure);
+      }
       return null;
     }
   }
@@ -202,6 +209,13 @@ Future<void> updatePassword() async {
   _session = session;
   _setState(AuthStatus.authenticated);
 }
+
+bool _isSessionRevokedError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('invalid_grant') ||
+        text.contains('token_failed') ||
+        text.contains('session expired');
+  }
 
 
 }

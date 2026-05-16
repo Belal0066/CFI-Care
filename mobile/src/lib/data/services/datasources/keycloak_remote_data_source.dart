@@ -23,6 +23,17 @@ class KeycloakRemoteDataSource {
        _config = config ?? AppAuthConfig.keycloak,
        _vault = vault ?? TokenVault();
 
+
+  // trial run :(
+  Future<void> _trySyncPatientToFhir(AuthModel session) async {
+    try {
+      await _syncPatientToFhir(session);
+    } catch (e) {
+      //  profile sync failed != fail authentication
+      print('[AUTH] patient sync skipped: $e');
+    }
+  }
+
   Future<AuthModel> login() async {
     try {
       final AuthorizationTokenResponse? response = await _appAuth
@@ -75,7 +86,7 @@ class KeycloakRemoteDataSource {
         expiresAt: response.accessTokenExpirationDateTime,
       );
 
-      await _syncPatientToFhir(session);
+      await _trySyncPatientToFhir(session);
 
       return session;
     } on FlutterAppAuthUserCancelledException {
@@ -168,7 +179,8 @@ class KeycloakRemoteDataSource {
       expiresAt: response.accessTokenExpirationDateTime,
     );
 
-    await _syncPatientToFhir(session);
+    // await _syncPatientToFhir(session);
+    await _trySyncPatientToFhir(session);
 
     return session;
   }
@@ -188,7 +200,8 @@ class KeycloakRemoteDataSource {
     );
 
     if (!session.isAccessTokenExpired) {
-      await _syncPatientToFhir(session);
+      // await _syncPatientToFhir(session);
+      await _trySyncPatientToFhir(session);
       return session;
     }
 
