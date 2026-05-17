@@ -1,4 +1,4 @@
-@startuml Practitioner Patient Access Granting
+@startuml Practitioner Patient Consent Granting
 skinparam actorStyle AWESOME
 autonumber
 
@@ -22,9 +22,9 @@ participant AuditLog
 participant "Patient Data Redis" as PDR
 database FHIR
 
-database "Access Redis" as AR
+database "Consent Redis" as AR
 
-database "Access Grant Database" as ADB
+database "Consent Grant Database" as ADB
 
 ' database "FCM Token Database" as TDB
 
@@ -44,14 +44,14 @@ Browser -> nginx : req access to patient data
 nginx-> NJS: forward req
 
 NJS -> NJS : extract Practitioner ID from token
-NJS -> AR : Query access grant redis for dr and patient ids mapping
+NJS -> AR : Query Consent grant redis for dr and patient ids mapping
 alt cache hit 
-AR -> NJS : Access grant still in cache 
+AR -> NJS : Consent grant still in cache 
 NJS -> NJS : proceed to data caching
 else cache miss
-NJS -> ADB : chech DB for access grant
+NJS -> ADB : chech DB for Consent grant
     alt mapping found
-    ADB-> NJS : access grant given (with valid TTL)
+    ADB-> NJS : Consent grant given (with valid TTL)
     NJS -> NJS : proceed to data caching
     else mapping not found
     ADB-> NJS : mapping not found
@@ -80,7 +80,7 @@ NJS -> nginx: forward OK res with data
 nginx -> Browser: forward resp
 Browser -> Practitioner: display requested patient data 
 NJS -> AuditLog : Log data 
-' note right of AuditLog: access{PractitionerId, patientId, timestamp, consentId}
+' note right of AuditLog: Consent{PractitionerId, patientId, timestamp, consentId}
 
 
 

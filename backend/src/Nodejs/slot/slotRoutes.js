@@ -4,30 +4,30 @@ const { requireApiAuth } = require("../middleware/requireApiAuth");
 const slotController = require("./slotController");
 
 // Get slots by schedule ID (optional status query param: ?status=free)
-router.get("/schedule/:scheduleId", slotController.getSlotsBySchedule);
+router.get("/schedule/:scheduleId", requireApiAuth, slotController.getSlotsBySchedule);
 
 // Get slots for a specific practitioner 
 router.get(
-  "/practitioner/:practitionerId",
+  "/practitioner/:practitionerId", requireApiAuth,
   slotController.getSlotsByPractitioner,
 );
 
 // Get available slots for practitioner (query params: ?date=2026-02-15&scheduleId=123)
-router.get("/available/:practitionerId", slotController.getAvailableSlots);
+router.get("/available/:practitionerId", requireApiAuth, slotController.getAvailableSlots);
 
 // Create slot with specific ID
-router.put("/", slotController.createSlotWithSpecificId);
+router.put("/", requireApiAuth, slotController.createSlotWithSpecificId);
 
 // Create slot (auto-generated ID)
-router.post("/", slotController.createSlot);
+router.post("/", requireApiAuth, slotController.createSlot);
 
 // Get slot by ID
-router.get("/:id", slotController.getSlotById);
+router.get("/:id", requireApiAuth, slotController.getSlotById);
 
 // Update slot
-router.post("/:id", slotController.updateSlot);
+router.post("/:id", requireApiAuth, slotController.updateSlot);
 
 // Delete slot
-router.delete("/:id", slotController.deleteSlot);
+router.delete("/:id", requireApiAuth, slotController.deleteSlot);
 
 module.exports = router;

@@ -155,6 +155,39 @@ server {
     proxy_pass http://backend_node;
   }
 
+  # backend handshakes
+  location /handshakes/ {
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/start;
+
+    auth_request_set $user $upstream_http_x_auth_request_user;
+    auth_request_set $email $upstream_http_x_auth_request_email;
+    auth_request_set $token $upstream_http_x_auth_request_access_token;
+    auth_request_set $id_token $upstream_http_authorization;
+
+    # sanitize
+    proxy_set_header X-Auth-Request-User "";
+    proxy_set_header X-Auth-Request-Email "";
+    proxy_set_header X-Auth-Request-Access-Token "";
+
+
+    proxy_set_header Authorization "";
+    proxy_set_header Authorization "Bearer $token";
+
+
+    proxy_set_header X-Auth-Request-User $user;
+    proxy_set_header X-Auth-Request-Email $email;
+    proxy_set_header X-Auth-Request-Access-Token $token;
+    proxy_set_header X-Auth-Request-Id-Token $id_token;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_pass http://backend_node;
+  }
+
 
   # location /auth/ {
   #   proxy_pass http://backend_node;
@@ -192,8 +225,8 @@ server {
 
   location = /oauth2/callback {
     if ($arg_error = temporarily_unavailable) {
-    return 302 /oauth2/start?rd=/dashboard;
-  }
+      return 302 /oauth2/start?rd=/dashboard;
+    }
 
     proxy_pass http://oauth2-proxy:4180;
     proxy_set_header Host $host;

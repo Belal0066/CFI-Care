@@ -2,8 +2,8 @@ services:
   vault:
     image: hashicorp/vault:latest
     container_name: vault
-    ports:
-      - "8200:8200"
+    # ports:
+    #   - "8200:8200"
     volumes:
       - ./services/hashicorp/config:/vault/config
       - ./services/hashicorp/data:/vault/file
