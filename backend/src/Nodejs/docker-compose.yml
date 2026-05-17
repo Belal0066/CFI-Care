@@ -27,6 +27,27 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  redisotp:
+      container_name: redisotp
+      build:
+        context: ../../../security/Containers/services/redis
+        dockerfile: Dockerfile
+      restart: unless-stopped
+      ports:
+        - 6381:6379
+      command: redis-server --appendonly yes --appendfsync everysec
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+      volumes:
+        - redis_otp_data:/data
+      networks:
+        - nginx-network
+
+volumes:
+  redis_otp_data:
 
 networks:
   nginx-network:

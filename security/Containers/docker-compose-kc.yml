@@ -126,6 +126,7 @@ services:
       - "./static/mobile:/opt/keycloak/themes/mobile:ro"
       - "./static/realm:/opt/keycloak/themes/realm:ro"
       - "./static/browser:/opt/keycloak/themes/browser:ro"
+      - "./services/keycloak/verify-email/target/keycloak-emailveri-extensions.jar:/opt/keycloak/providers/email-code-spi.jar"
 
     depends_on:
       postgres:

@@ -1,26 +1,29 @@
 const express = require("express");
 const router = express.Router();
+
 const { requireApiAuth } = require("../middleware/requireApiAuth");
+const { requirePatientContext } = require("../middleware/requirePatientContext");
+
 const appointmentController = require("./appointmentController");
 
 // Get appointments by patient ID
 router.get(
   "/patient/:patientId",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   appointmentController.getAppointmentsByPatient,
 );
 
 // Get appointments by practitioner ID
 router.get(
   "/practitioner/:practitionerId",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   appointmentController.getAppointmentsByPractitioner,
 );
 
 // Create appointment with specific ID
 router.put(
   "/",
-  requireApiAuth,
+  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   appointmentController.createAppointmentWithSpecificId,
 );
 
@@ -28,12 +31,12 @@ router.put(
 router.post("/", appointmentController.createAppointment);
 
 // Get appointment by ID
-router.get("/:id", requireApiAuth, appointmentController.getAppointmentById);
+router.get("/:id", requireApiAuth,requirePatientContext({ paramName: "patientId" }), appointmentController.getAppointmentById);
 
 // Update appointment
-router.post("/:id", requireApiAuth, appointmentController.updateAppointment);
+router.post("/:id", requireApiAuth,requirePatientContext({ paramName: "patientId" }), appointmentController.updateAppointment);
 
 // Delete appointment
-router.delete("/:id", requireApiAuth, appointmentController.deleteAppointment);
+router.delete("/:id", requireApiAuth,requirePatientContext({ paramName: "patientId" }), appointmentController.deleteAppointment);
 
 module.exports = router;

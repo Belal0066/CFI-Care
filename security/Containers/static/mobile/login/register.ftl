@@ -18,6 +18,7 @@
       </div>
 
       <form id="kc-register-form" action="${url.registrationAction}" method="post">
+      <div id="registration-fields-step">
         <div class="form-group">
           <label for="firstName">${msg("firstName")}</label>
           <input type="text" id="firstName" class="form-control" name="firstName" value="${(register.formData.firstName!'')}" autocomplete="given-name"/>
@@ -80,10 +81,42 @@
           </#if>
         </div>
 
-        <div class="form-group" style="margin-top:14px;">
-          <input class="btn btn-primary" type="submit" value="${msg("doRegister")}"/>
+    <button type="button" class="btn btn-primary" onclick="showOtpStep()">
+        Continue to Verification
+    </button>
+
+    </div>
+
+
+        <div id="otp-fields-step" style="display: none;">
+        <div class="login-header">
+            <h2 class="cfi-title2">Verify Your Email</h2>
+           <p class="cfi-subtitle" style="margin-top: 20px;">We've sent a 6-digit code to your inbox</p>
         </div>
-      </form>
+
+       <div class="form-group" style="margin-top: 100px;">
+        <label for="email_code">Verification Code</label>
+        <input type="text" 
+               id="email_code" 
+               name="email_code" 
+               class="form-control" 
+               placeholder="000000"
+               inputmode="numeric" 
+               pattern="[0-9]*" 
+               maxlength="6"
+               autocomplete="one-time-code">
+    </div>
+
+        <button type="submit" class="btn btn-primary">
+            Confirm & Create Account
+        </button>
+       <div class="cfi-help" style="margin-top: 40px;">
+        <a href="javascript:void(0)" onclick="showRegistrationStep()" class="cfi-help">
+            <i class="bi bi-arrow-left"></i> Back to Details
+        </a>
+    </div>
+    </div>
+</form>
 
       <script>
         (function () {
@@ -101,6 +134,59 @@
             });
           }
         })();
+
+function showOtpStep() {
+    const emailField = document.getElementById('email');
+    const email = emailField ? emailField.value : '';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client_id');
+    const tabId = urlParams.get('tab_id');
+
+    const form = document.getElementById('kc-register-form');
+    const actionUrl = new URL(form.action);
+    const sessionCode = actionUrl.searchParams.get('session_code');
+
+    console.log({ email, clientId, tabId, sessionCode });
+
+    if (!email || !clientId || !tabId || !sessionCode) {
+        alert('Required info missing. Check console for details.');
+        return;
+    }
+
+    const baseUrl = window.location.href.split('/login-actions')[0];
+    const url = baseUrl + '/email-code/send' 
+              + '?email=' + encodeURIComponent(email)
+              + '&session_code=' + encodeURIComponent(sessionCode)
+              + '&tab_id=' + encodeURIComponent(tabId)
+              + '&client_id=' + encodeURIComponent(clientId);
+
+    fetch(url, { 
+        method: 'POST',
+        credentials: 'include' 
+    })
+    .then(async response => {
+        const data = await response.json();
+        if (response.ok) {
+            document.getElementById('registration-fields-step').style.display = 'none';
+            document.getElementById('otp-fields-step').style.display = 'block';
+        } else {
+            alert('Error: ' + (data.error || 'Check logs'));
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+    function showRegistrationStep() {
+        document.getElementById('registration-fields-step').style.display = 'block';
+        document.getElementById('otp-fields-step').style.display = 'none';
+    }
+   <#if messagesPerField.existsError('email_code')>
+        setTimeout(function() {
+            document.getElementById('registration-fields-step').style.display = 'none';
+            document.getElementById('otp-fields-step').style.display = 'block';
+        }, 10);
+    </#if>
       </script>
     </div>
   <#elseif section = "info" >

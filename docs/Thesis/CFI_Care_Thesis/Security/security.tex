@@ -126,17 +126,17 @@ Future work: validate JWTs independently to implement defense in depth,
 leverage FHIR server's built-in SMART on FHIR policy enforcement for
 resource-level access control based on scopes and patient context.
 
-\subsection{Doctor–Patient Consent \& Access Grants}
+\subsection{Doctor–Patient Consent \& Consent Grants}
 The intended model supports patient-granted access for doctors, with grants
 stored in a database (grant key, scopes, TTL)
-Access grants are cached in redis after access for performance but the databae is the main source
+Consent grants are cached in redis after access for performance but the databae is the main source
 The BFF verifies an active grant before calling FHIR for doctor requests.
 Future work: finalize consent persistence, and enforce patient binding in scope validation
 
 % \begin{figure}[H]
 %     \centering
 %     \includegraphics[width=0.85\linewidth]{images/Doctor-Patient-access-granting.puml}
-%     \caption{Doctor-Patient Access Granting Flow: Patients grant doctors access to their data with scoped permissions and TTL-based revocation.}
+%     \caption{Doctor-Patient Consent Granting Flow: Patients grant doctors access to their data with scoped permissions and TTL-based revocation.}
 %     \label{fig:doctor-patient-access}
 % \end{figure}
 
@@ -223,7 +223,7 @@ Future work:
 % \subsubsection{Mobile Device Access}
 
 % \subsection{Authorization Flow}
-% \subsubsection{Patient-Doctor Access Granting}
+% \subsubsection{Patient-Doctor Consent Granting}
 
 % \subsubsection{Session Management \& Revocation}
 

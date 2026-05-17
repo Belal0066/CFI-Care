@@ -38,7 +38,7 @@ function requireBearerJwt(req, res, next) {
   // console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
 
 
-  const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew, ...(allowedAudiences.length ? { audience: allowedAudiences } : {}) };
+  const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew,  audience: allowedAudiences };
 
   // console.log("[JWT-VERIFY] Options:", { allowedIssuers, allowedAudiences: allowedAudiences.length ? allowedAudiences : "none" });
 

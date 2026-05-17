@@ -35,6 +35,7 @@ const deviceRoutes = require("./device/deviceRoutes");
 const relatedPersonRoutes = require("./relatedPerson/relatedPersonRoutes");
 
 const authRoutes = require("./auth/authRoutes");
+const handshakeRoutes = require("./auth/handshakes");
 const { requireApiAuth } = require("./middleware/requireApiAuth");
 
 const session = require("express-session");
@@ -170,6 +171,7 @@ app.use(generalLimiter);
 
 // app.use("/auth/provisioning", provisioningRoutes);
 app.use("/auth", authRoutes);
+app.use("/handshakes", handshakeRoutes);
 
 app.use("/api", requireApiAuth);
 
