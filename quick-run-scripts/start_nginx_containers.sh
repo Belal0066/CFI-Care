@@ -13,11 +13,11 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Wait for Docker to start
 while ! docker info >/dev/null 2>&1; do
-    log_message "Waiting for Docker to start..."
+    # log_message "Waiting for Docker to start..."
     sleep 5
 done
-log_message "Docker is running. Starting containers..."
+# log_message "Docker is running. Starting containers..."
 
-cd "$REPO_ROOT/security/Containers/
+cd "$REPO_ROOT/security/Containers/"
 docker compose -f docker-compose-nginx.yml up --build
-log_message "Containers started successfully"
+# log_message "Containers started successfully"
