@@ -3,6 +3,6 @@ export const environment = {
   production: false,
   apiUrl: '/api',  
   authUrl : '/auth',
-  keycloakHost: 'https://192.168.1.2:8443',
-  appDashboardUrl: 'https://192.168.1.2/dashboard'
+  keycloakHost: 'https://${PUBLIC_HOSTNAME}:8443',
+  appDashboardUrl: 'https://${PUBLIC_HOSTNAME}/dashboard'
 };

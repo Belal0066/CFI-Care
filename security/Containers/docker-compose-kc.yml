@@ -45,11 +45,12 @@ services:
         # 'start',
         "start-dev",
         '--import-realm',
-        # '-Dkeycloak.migration.action=import',
-        # '-Dkeycloak.migration.provider=singleFile',
-        # '-Dkeycloak.migration.realmName=CFI-Care',
+        '-Dkeycloak.migration.action=import',
+        '-Dkeycloak.migration.provider=singleFile',
+        '-Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}',
         # '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
-        # '-Dkeycloak.migration.file=/import/realms.json',
+        '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
+        '-Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json',
         "--https-key-store-file=conf/server.keystore",
         "--https-key-store-password=password",
         "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
@@ -75,7 +76,7 @@ services:
       KC_HTTPS_CERTIFICATE_FILE: /etc/keycloak/certs/cert.pem
       KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/keycloak/certs/key.pem
 
-      KC_PROXY_HEADERS: forwarded
+      KC_PROXY_HEADERS: xforwarded
 
       # KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
       # KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
