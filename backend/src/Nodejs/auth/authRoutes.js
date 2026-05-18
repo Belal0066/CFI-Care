@@ -27,7 +27,7 @@ const regProvisioningRoutes = require("./regProvisioningRoute");
 
 router.use("/provisioning", regProvisioningRoutes);
 
-const kcHost = process.env.KC_HOSTNAME;
+const kcHost = process.env.KC_HOST_FULL;
 const internal = process.env.KC_HOSTNAME_INTERNAL;
 const realm = process.env.KEYCLOAK_REALM;
 const clientId = process.env.KC_CLIENT_ID;
@@ -126,7 +126,7 @@ router.get('/session-init', requireApiAuth, async (req, res) => {
 async function revokeTokens(refreshToken, accessToken) {
   if (!refreshToken) return;
 
-  const kcHost = process.env.KC_HOSTNAME;
+  const kcHost = process.env.KC_HOST_FULL;
   const realm = process.env.KEYCLOAK_REALM;
   const revokeUrl = `${kcHost}/realms/${realm}/protocol/openid-connect/revoke`;
 
@@ -152,7 +152,7 @@ async function revokeTokens(refreshToken, accessToken) {
 router.get('/logout', async (req, res) => {
   try {
 
-    const kcHost = process.env.KC_HOSTNAME;
+    const kcHost = process.env.KC_HOST_FULL;
     const realm = process.env.KEYCLOAK_REALM;
 
     const userId = req.session.user?.sub;
@@ -523,7 +523,7 @@ module.exports = router;
 //     const idToken = req.session.tokens?.id;
 //     const refreshToken = req.session.tokens?.refresh;
 //     const accessToken = req.session.tokens?.access;
-//     const kcHost = process.env.KC_HOSTNAME;
+//     const kcHost = process.env.KC_HOST_FULL;
 //     const realm = process.env.KEYCLOAK_REALM;
 //     const frontendReturn = process.env.FRONTEND_HOST;
 
