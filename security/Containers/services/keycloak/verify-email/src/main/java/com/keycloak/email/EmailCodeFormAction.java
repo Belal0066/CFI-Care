@@ -1,4 +1,4 @@
-package com.keycloak;
+package com.keycloak.email;
 
 import jakarta.ws.rs.core.MultivaluedMap;
 import org.keycloak.authentication.FormAction;
@@ -27,9 +27,10 @@ public class EmailCodeFormAction implements FormAction {
     private static final String AUTH_NOTE_EMAIL_CODE = "email-code";
     private static final String AUTH_NOTE_EMAIL_ADDRESS = "email-code-email";
     private static final String AUTH_NOTE_OTP_STEP = "otp-step";
-    
-    // Simple robust email validation regex matching standard validation patterns
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+
+    // email validation regex
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$",
+            Pattern.CASE_INSENSITIVE);
 
     @Override
     public void buildPage(FormContext context, LoginFormsProvider form) {
@@ -54,7 +55,8 @@ public class EmailCodeFormAction implements FormAction {
 
             if (existingCode == null) {
                 context.validationError(formData,
-                        Collections.singletonList(new FormMessage("email_code", "Verification session is missing. Please request a new code.")));
+                        Collections.singletonList(new FormMessage("email_code",
+                                "Verification session is missing. Please request a new code.")));
                 return;
             }
 
@@ -68,7 +70,7 @@ public class EmailCodeFormAction implements FormAction {
             return;
         }
 
-        // --- STEP 1: EAGER REGISTRATION DETAIL VALIDATION ---
+        // reg details validation
         List<FormMessage> errors = new ArrayList<>();
         KeycloakSession session = context.getSession();
         RealmModel realm = session.getContext().getRealm();
@@ -80,52 +82,57 @@ public class EmailCodeFormAction implements FormAction {
         String password = firstNonNull(formData, "password");
         String passwordConfirm = firstNonNull(formData, "password-confirm");
 
-        // 1. Basic Blank Value Isolation Checks
-        if (isBlank(firstName)) errors.add(new FormMessage("firstName", "First name is required."));
-        if (isBlank(lastName)) errors.add(new FormMessage("lastName", "Last name is required."));
-        if (isBlank(email)) errors.add(new FormMessage("email", "Email is required."));
-        if (isBlank(password)) errors.add(new FormMessage("password", "Password is required."));
-        if (isBlank(passwordConfirm)) errors.add(new FormMessage("password-confirm", "Password confirmation is required."));
+        if (isBlank(firstName))
+            errors.add(new FormMessage("firstName", "First name is required."));
+        if (isBlank(lastName))
+            errors.add(new FormMessage("lastName", "Last name is required."));
+        if (isBlank(email))
+            errors.add(new FormMessage("email", "Email is required."));
+        if (isBlank(password))
+            errors.add(new FormMessage("password", "Password is required."));
+        if (isBlank(passwordConfirm))
+            errors.add(new FormMessage("password-confirm", "Password confirmation is required."));
 
         if (!errors.isEmpty()) {
             context.validationError(formData, errors);
             return;
         }
 
-        // 2. Format Checks: Enforce actual email structure
         if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
-            context.validationError(formData, Collections.singletonList(new FormMessage("email", "Invalid email address format.")));
+            context.validationError(formData,
+                    Collections.singletonList(new FormMessage("email", "Invalid email address format.")));
             return;
         }
 
-        // 3. Credential Checks: Passwords must match
         if (!password.equals(passwordConfirm)) {
-            context.validationError(formData, Collections.singletonList(new FormMessage("password-confirm", "Passwords do not match.")));
+            context.validationError(formData,
+                    Collections.singletonList(new FormMessage("password-confirm", "Passwords do not match.")));
             return;
         }
 
-        // 4. Policy Checks: Query Keycloak Password Policy Core Engine
         PasswordPolicyManagerProvider policyManager = session.getProvider(PasswordPolicyManagerProvider.class);
         if (policyManager != null) {
             PolicyError policyError = policyManager.validate(realm, new DummyUser(email.trim()), password);
             if (policyError != null) {
-                context.validationError(formData, Collections.singletonList(new FormMessage("password", policyError.getMessage())));
+                context.validationError(formData,
+                        Collections.singletonList(new FormMessage("password", policyError.getMessage())));
                 return;
             }
         }
 
-        // 5. Uniqueness Checks: Intercept existing user conflicts
         if (session.users().getUserByUsername(realm, username) != null) {
-            context.validationError(formData, Collections.singletonList(new FormMessage("username", "Username already exists.")));
+            context.validationError(formData,
+                    Collections.singletonList(new FormMessage("username", "Username already exists.")));
             return;
         }
 
         if (session.users().getUserByEmail(realm, email) != null) {
-            context.validationError(formData, Collections.singletonList(new FormMessage("email", "Email address already registered.")));
+            context.validationError(formData,
+                    Collections.singletonList(new FormMessage("email", "Email address already registered.")));
             return;
         }
 
-        // --- ALL SYSTEM CONSTRAINTS PASSED CLEANLY ---
+        // checks passed
         String code = generateCode();
         authSession.setAuthNote(AUTH_NOTE_EMAIL_CODE, code);
         authSession.setAuthNote(AUTH_NOTE_EMAIL_ADDRESS, email.trim());
@@ -135,12 +142,13 @@ public class EmailCodeFormAction implements FormAction {
             sendVerificationEmail(context, email.trim(), code);
         } catch (EmailException e) {
             e.printStackTrace();
-            context.validationError(formData, Collections.singletonList(new FormMessage("email", "Unable to send verification code.")));
+            context.validationError(formData,
+                    Collections.singletonList(new FormMessage("email", "Unable to send verification code.")));
             return;
         }
 
-        // Send confirmation as a clean structural message back to the template state controller
-        context.validationError(formData, Collections.singletonList(new FormMessage("email_code", "Verification code sent to your email address.")));
+        context.validationError(formData, Collections
+                .singletonList(new FormMessage("email_code", "Verification code sent to your email address.")));
     }
 
     private static boolean isBlank(String s) {
@@ -171,17 +179,17 @@ public class EmailCodeFormAction implements FormAction {
 
     @Override
     public void success(FormContext context) {
-        UserModel user = context.getUser();
-        if (user != null) {
-            user.setEmailVerified(true);
-        }
+        // UserModel user = context.getUser();
+        // if (user != null) {
+        // user.setEmailVerified(true);
+        // }
 
-        AuthenticationSessionModel authSession = context.getAuthenticationSession();
-        if (authSession != null) {
-            authSession.removeAuthNote(AUTH_NOTE_EMAIL_CODE);
-            authSession.removeAuthNote(AUTH_NOTE_EMAIL_ADDRESS);
-            authSession.removeAuthNote(AUTH_NOTE_OTP_STEP);
-        }
+        // AuthenticationSessionModel authSession = context.getAuthenticationSession();
+        // if (authSession != null) {
+        // authSession.removeAuthNote(AUTH_NOTE_EMAIL_CODE);
+        // authSession.removeAuthNote(AUTH_NOTE_EMAIL_ADDRESS);
+        // authSession.removeAuthNote(AUTH_NOTE_OTP_STEP);
+        // }
     }
 
     @Override
