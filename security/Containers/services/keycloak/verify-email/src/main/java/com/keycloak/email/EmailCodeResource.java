@@ -1,4 +1,4 @@
-package com.keycloak;
+package com.keycloak.email;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;

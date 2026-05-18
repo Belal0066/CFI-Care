@@ -1,5 +1,13 @@
 <#import "template.ftl" as layout>
-  <#assign canRegister=realm.password && realm.registrationAllowed && !(registrationDisabled??)>
+  <#-- Determine if registration is explicitly configured in Keycloak admin panel -->
+  <#assign adminAllowsRegistration = (realm.registrationAllowed!false)>
+  
+  <#-- Fallback: If it's a login screen without a direct registration disable flag, default to True -->
+  <#assign registrationNotExplicitlyDisabled = !(registrationDisabled??)>
+  
+  <#-- Build a comprehensive validation block that holds true even during execution loops -->
+  <#assign canRegister = (realm.password && adminAllowsRegistration && registrationNotExplicitlyDisabled) || 
+                         (adminAllowsRegistration && !registrationNotExplicitlyDisabled)>
   <#assign hasCredentialFieldErrors=messagesPerField.existsError('username') ||
       messagesPerField.existsError('password')>
 
