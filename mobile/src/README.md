@@ -21,7 +21,7 @@ samples, guidance on mobile development, and a full API reference.
 
 
 ## Dev-only setup
-### running from external device 
+### running using specific environment variables
 - open env file and set ip to host ip (host = running containers)
 - in terminal run :
 ```
@@ -34,7 +34,7 @@ samples, guidance on mobile development, and a full API reference.
 
 #### linux implementation
 
-run these cmds in the terminal at the project rot dir
+run these cmds in the terminal at the project root dir
 
 ```
 cd mobile/src/android/app/src/debug/res/
