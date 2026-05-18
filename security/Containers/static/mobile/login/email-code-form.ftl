@@ -1,30 +1,32 @@
-<!-- <#import "template.ftl" as layout>
-<@layout.registrationLayout displayInfo=true; section>
-    <#if section = "header">
-        ${msg("emailVerifyTitle", "Verify Your Email")}
-    <#elseif section = "form">
-        <p class="instruction-text">
-            We've sent a verification code to your email address 
-            Please enter it below to continue.
-        </p>
+<#import "template.ftl" as layout>
+<@layout.registrationLayout displayMessage=true displayInfo=false; section>
+  <#if section = "header">
+    Verify Your Email
+  <#elseif section = "form">
+    <div class="cfi-form cfi-form-otp">
+      <div class="cfi-brand">
+        <h2 class="cfi-title">Verify Your Email</h2>
+        <p class="cfi-subtitle">We've sent a 6-digit verification code to your inbox.</p>
+      </div>
 
-        <form id="kc-email-code-login-form" class="${properties.kcFormClass!}" action="${url.loginAction}" method="post">
-            <div class="${properties.kcFormGroupClass!}">
-                <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="code" class="${properties.kcLabelClass!}">Verification Code</label>
-                </div>
-                <div class="${properties.kcInputWrapperClass!}">
-                    <input type="text" id="code" name="code" class="${properties.kcInputClass!}" 
-                           autofocus autocomplete="off" />
-                </div>
-            </div>
+      <form id="kc-otp-login-form" action="${url.loginAction}" method="post">
+        <div class="form-group">
+          <label for="email_code">Verification Code</label>
+          <input type="text" id="email_code" name="email_code" class="form-control" 
+                 placeholder="000000" inputmode="numeric" pattern="[0-9]*" maxlength="6" 
+                 autocomplete="one-time-code" autofocus />
+        </div>
 
-            <div class="${properties.kcFormGroupClass!}">
-                <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
-                    <input class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}" 
-                           name="login" id="kc-login" type="submit" value="${msg("doSubmit")}"/>
-                </div>
-            </div>
-        </form>
-    </#if>
-</@layout.registrationLayout> -->
+        <button type="submit" class="btn btn-primary">
+          Confirm & Create Account
+        </button>
+      </form>
+      
+      <div class="cfi-help" style="margin-top: 20px;">
+        <a href="${url.loginUrl}" class="cfi-back-link">
+          <i class="bi bi-arrow-left"></i> Cancel & Return to Login
+        </a>
+      </div>
+    </div>
+  </#if>
+</@layout.registrationLayout>
