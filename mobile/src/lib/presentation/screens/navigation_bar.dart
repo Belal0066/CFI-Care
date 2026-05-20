@@ -54,9 +54,32 @@ class _MyAppState extends State<MyApp> {
       print('User granted permission');
     }
 
-    // Get Token 
+    // Get Token
     String? token = await messaging.getToken();
     print("FCM Token: $token");
+
+    // TODO: Send this FCM token to the backend so the server can push
+    // notifications to this device when a doctor requests access.
+    //
+    // How to do it:
+    //   1. After the user logs in and this token is available, POST it to a
+    //      backend endpoint, e.g.:
+    //
+    //        await apiService.postData(
+    //          endpoint: '/users/fcm-token',
+    //          data: {'fcmToken': token},
+    //        );
+    //
+    //   2. The backend should store it in Redis (or the DB) keyed by patientId:
+    //        redis.set(`fcm_token:${patientId}`, token)
+    //
+    //   3. Also handle token refresh — FirebaseMessaging.instance.onTokenRefresh
+    //      fires when the token rotates and you should re-send it:
+    //
+    //        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+    //          apiService.postData(endpoint: '/users/fcm-token',
+    //                              data: {'fcmToken': newToken});
+    //        });
 
     // Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
