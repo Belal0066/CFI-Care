@@ -94,11 +94,38 @@ router.post('/verify-otp', requireApiAuth, async (req, res) => {
     };
 
     // hancall func yb3t notif hena -> assigned to the coolest flutter head <3
+    
+    // TODO: Send an FCM push notification to the patient here so their app
+    // receives the access request instantly (type: 'grant_request').
+    //
+    // Prerequisites:
+    //   - The patient's device must have POSTed its FCM token to the backend
+    //     after login (see navigation_bar.dart → setupInteractedMessage).
+    //   - Store it in Redis when received, e.g.:
+    //       redis.set(`fcm_token:${patientId}`, fcmToken)
+    //
+    // How to send the notification (Firebase Admin SDK):
+    //
+    //   const admin = require('firebase-admin');          // init once in app.js
+    //
+    //   const patientFcmToken = await redis.get(`fcm_token:${patientId}`);
+    //   if (patientFcmToken) {
+    //     await admin.messaging().send({
+    //       token: patientFcmToken,
+    //       data: { type: 'grant_request', handshakeId },   // data-only message
+    //       notification: {                                  // shown in system tray
+    //         title: 'Access Request',
+    //         body:  'A doctor is requesting access to your health data.',
+    //       },
+    //       android: { priority: 'high' },
+    //       apns:    { payload: { aps: { contentAvailable: true } } },
+    //     });
+    //   }
 
     await redis.set(
       `pending_grant:${handshakeId}`,
       JSON.stringify(pending),
-      'EX',
+      "EX",
       600,
     );
     await redis.sAdd(`patient_pending:${patientId}`, handshakeId);
@@ -110,7 +137,7 @@ router.post('/verify-otp', requireApiAuth, async (req, res) => {
       message: "OTP verified. Waiting for patient approval.",
       handshakeId,
       targetpatientId: patientId,
-      expiresIn: "10 min"
+      expiresIn: "10 min",
     });
   } catch (e) {
     return res
