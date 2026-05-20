@@ -83,8 +83,7 @@
 
         <div class="form-group cfi-floating-group">
           <#-- The username input field below now includes the conditional <#if lockUsernameField> readonly aria-readonly="true"</#if> block -->
-          <input tabindex="1" id="username" class="form-control" name="username" value="${(login.username!'')}"
-            type="text" <#if !lockUsernameField>autofocus</#if> autocomplete="username" placeholder=" " <#if lockUsernameField>readonly aria-readonly="true"</#if> />
+          <input tabindex="1" id="username" class="form-control" name="username" value="${(login.username!'')}" type="text" <#if !lockUsernameField>autofocus</#if> autocomplete="username" placeholder=" " <#if lockUsernameField>readonly aria-readonly="true"</#if> />
           <label for="username" class="cfi-floating-label">
             <#if realm.loginWithEmailAllowed>
               ${msg("usernameOrEmail")}
@@ -165,28 +164,45 @@
           (function () {
             var btn = document.getElementById('kc-pass-toggle');
             var input = document.querySelector('#password, input[type="password"]');
-            if (!btn || !input) return;
-            btn.addEventListener('click', function (e) {
-              if (input.type === 'password') {
-                input.type = 'text';
-                btn.querySelector('i').classList.remove('bi-eye');
-                btn.querySelector('i').classList.add('bi-eye-slash');
-              } else {
-                input.type = 'password';
-                btn.querySelector('i').classList.remove('bi-eye-slash');
-                btn.querySelector('i').classList.add('bi-eye');
-              }
-            });
+            var usernameInput = document.getElementById('username');
 
-            // Fallback script ensuring DOM matches URL parameters on load
-            var search = (window.location && window.location.search) ? window.location.search : '';
-            var href = (window.location && window.location.href) ? window.location.href : '';
-            if (search.indexOf('kc_action=') !== -1 || href.indexOf('kc_action=') !== -1) {
-              var usernameInput = document.getElementById('username');
-              if (usernameInput && usernameInput.value && usernameInput.value.trim().length > 0) {
+            function getQueryParam(name) {
+              var search = (window.location && window.location.search) ? window.location.search : '';
+              if (!search) return '';
+              try {
+                return new URLSearchParams(search).get(name) || '';
+              } catch (e) {
+                return '';
+              }
+            }
+
+            if (usernameInput) {
+              var loginHint = getQueryParam('login_hint');
+              if ((!usernameInput.value || usernameInput.value.trim().length === 0) && loginHint) {
+                usernameInput.value = loginHint;
+              }
+
+              var search = (window.location && window.location.search) ? window.location.search : '';
+              var href = (window.location && window.location.href) ? window.location.href : '';
+              var isKcActionFlow = search.indexOf('kc_action=') !== -1 || href.indexOf('kc_action=') !== -1;
+              if (isKcActionFlow && usernameInput.value && usernameInput.value.trim().length > 0) {
                 usernameInput.setAttribute('readonly', 'readonly');
                 usernameInput.setAttribute('aria-readonly', 'true');
               }
+            }
+
+            if (btn && input) {
+              btn.addEventListener('click', function (e) {
+                if (input.type === 'password') {
+                  input.type = 'text';
+                  btn.querySelector('i').classList.remove('bi-eye');
+                  btn.querySelector('i').classList.add('bi-eye-slash');
+                } else {
+                  input.type = 'password';
+                  btn.querySelector('i').classList.remove('bi-eye-slash');
+                  btn.querySelector('i').classList.add('bi-eye');
+                }
+              });
             }
           })();
         </script>
