@@ -1,7 +1,6 @@
-// const Redis = require("ioredis");
-// const redis = new Redis(process.env.REDIS_URL);
+const redis = require("../utils/redisOTPCli");
 
-const { logSecurityEvent } = require('../utils/logSecurityEvent');
+const { logSecurityEvent } = require("../utils/logSecurityEvent");
 
 function getClaims(req) {
   if (req.jwt && typeof req.jwt === "object") return req.jwt;
@@ -23,7 +22,12 @@ function collectRoles(claims) {
 
 function parseCsvSet(v, fallback = []) {
   if (!v || typeof v !== "string") return new Set(fallback);
-  return new Set(v.split(",").map(x => x.trim()).filter(Boolean));
+  return new Set(
+    v
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
 }
 
 function hasAnyRole(roles, allowed) {
@@ -36,7 +40,8 @@ function hasAnyRole(roles, allowed) {
 function methodToAction(method) {
   const m = String(method || "").toUpperCase();
   if (m === "GET" || m === "HEAD") return "read";
-  if (m === "POST" || m === "PUT" || m === "PATCH" || m === "DELETE") return "write";
+  if (m === "POST" || m === "PUT" || m === "PATCH" || m === "DELETE")
+    return "write";
   return "unknown";
 }
 
@@ -55,7 +60,6 @@ function isActionAllowed(permissions, action) {
   return false;
 }
 
-
 // if req is the patient -> allow :D
 // if req is admin -> allow :)
 // if req is dr with active grant -> allow, attach grant to req
@@ -66,22 +70,32 @@ function requirePatientContext(options = {}) {
   const adminRoles = parseCsvSet(process.env.OWNERSHIP_BYPASS_ROLES);
   const practitionerRoles = parseCsvSet(process.env.PRACTITIONER_ROLES);
   const caregiverRoles = parseCsvSet(process.env.CAREGIVER_ROLES);
-  
 
   return async function (req, res, next) {
     try {
       const claims = getClaims(req);
       if (!claims) {
-        return res.status(401).json({ error: "Unauthorized: missing token claims" });
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: missing token claims" });
       }
 
       const reqId = claims.sub;
       if (!reqId) {
-        return res.status(401).json({ error: "Unauthorized: missing subject claim" });
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: missing subject claim" });
       }
 
-      
-      const patientId = req.params?.[paramName];
+      let patientId = req.params?.[paramName] || req.body?.[paramName] || req.query?.[paramName];
+      // Fallback: extract from FHIR patient.reference or subject.reference (e.g. "Patient/some-id")
+      if (!patientId) {
+        const fhirRef = req.body?.patient?.reference || req.body?.subject?.reference;
+        if (fhirRef) {
+          const ref = String(fhirRef);
+          patientId = ref.includes("/") ? ref.split("/").pop() : ref;
+        }
+      }
       if (!patientId) {
         return res.status(400).json({
           error: `Bad request: missing route parameter '${paramName}'`,
@@ -90,9 +104,8 @@ function requirePatientContext(options = {}) {
 
       const roles = collectRoles(claims);
 
-
       // for (const role of roles) {
-        if (hasAnyRole(roles, adminRoles)) {
+      if (hasAnyRole(roles, adminRoles)) {
         req.accessContext = { type: "admin", reqId, patientId };
         return next();
       }
@@ -103,18 +116,15 @@ function requirePatientContext(options = {}) {
         return next();
       }
 
-
-      const resourceType = req.baseUrl?.split('/')[2] || 'Unknown';
+      const resourceType = req.baseUrl?.split("/")[2] || "Unknown";
       const action = methodToAction(req.method);
 
       // caregiver
 
       const isCaregiver = hasAnyRole(roles, caregiverRoles);
       if (isCaregiver) {
-        
-
-        // FHIR
-        // relationRaw = database query using id
+        // TODO: replace null with FHIR RelatedPerson DB query for (reqId, patientId)
+        const relationRaw = null;
 
         if (!relationRaw) {
           await logSecurityEvent("access", "ACCESS_DENIED", req, {
@@ -168,7 +178,6 @@ function requirePatientContext(options = {}) {
         return next();
       }
 
-
       const isPractitioner = hasAnyRole(roles, practitionerRoles);
       if (!isPractitioner) {
         await logSecurityEvent("access", "ACCESS_DENIED", req, {
@@ -180,23 +189,22 @@ function requirePatientContext(options = {}) {
           resourceType,
         });
         return res.status(403).json({
-          error: "Forbidden: not admin, not patient owner, not caregiver, not practitioner",
+          error:
+            "Forbidden: not admin, not patient owner, not caregiver, not practitioner",
         });
       }
-      
 
-        
       const grantKey = `grant:${reqId}:${patientId}`;
       const grantRaw = await redis.get(grantKey);
       if (!grantRaw) {
-        await logSecurityEvent('access', 'CONSENT_GRANT_NOT_FOUND', req, {
-                    actorType: "practitioner",
-                    patientId,
-                    requesterId: reqId,
-                    reason: "No valid grant found",
-                    action,
-                    resourceType,
-                  });
+        await logSecurityEvent("access", "CONSENT_GRANT_NOT_FOUND", req, {
+          actorType: "practitioner",
+          patientId,
+          requesterId: reqId,
+          reason: "No valid grant found",
+          action,
+          resourceType,
+        });
         return res.status(403).json({
           error: "Forbidden: no active patient consent grant",
         });
@@ -204,34 +212,34 @@ function requirePatientContext(options = {}) {
 
       const grant = JSON.parse(grantRaw);
       if (!isGrantActive(grant)) {
-        await logSecurityEvent('access', 'CONSENT_GRANT_INVALID', req, {
-                        actorType: "practitioner",
-                        patientId,
-                        requesterId: reqId,
-                        // grantId: grant?.grantId,
-                        reason: "Grant expired",
-                        action,
-                        resourceType,
-                      });
+        await logSecurityEvent("access", "CONSENT_GRANT_INVALID", req, {
+          actorType: "practitioner",
+          patientId,
+          requesterId: reqId,
+          // grantId: grant?.grantId,
+          reason: "Grant expired",
+          action,
+          resourceType,
+        });
         return res.status(403).json({
           error: "Forbidden: patient consent grant is inactive",
         });
       }
 
       if (!isActionAllowed(grant.scopes, action)) {
-          await logSecurityEvent("access", "ACCESS_DENIED", req, {
-            actorType: "practitioner",
-            patientId,
-            requesterId: reqId,
-            reason: `Practitioner lacks ${action} permission`,
-            // relationshipId: relation.relationshipId,
-            action,
-            resourceType,
-          });
-          return res.status(403).json({
-            error: "Forbidden: practitioner permission denied for this operation",
-          });
-        }
+        await logSecurityEvent("access", "ACCESS_DENIED", req, {
+          actorType: "practitioner",
+          patientId,
+          requesterId: reqId,
+          reason: `Practitioner lacks ${action} permission`,
+          // relationshipId: relation.relationshipId,
+          action,
+          resourceType,
+        });
+        return res.status(403).json({
+          error: "Forbidden: practitioner permission denied for this operation",
+        });
+      }
 
       req.accessContext = {
         type: "practitioner_delegated",
@@ -240,15 +248,15 @@ function requirePatientContext(options = {}) {
         grant,
       };
 
-      await logSecurityEvent('access', 'CONSENT_GRANT_VALID', req, {
-                        actorType: "practitioner",
-                        patientId,
-                        requesterId: reqId,
-                        // grantId: grant.grantId,
-                        resourceType,
-                        action,
-                        reason: 'Valid grant found, access allowed'
-                    });
+      await logSecurityEvent("access", "CONSENT_GRANT_VALID", req, {
+        actorType: "practitioner",
+        patientId,
+        requesterId: reqId,
+        // grantId: grant.grantId,
+        resourceType,
+        action,
+        reason: "Valid grant found, access allowed",
+      });
       return next();
     } catch (err) {
       return res.status(500).json({

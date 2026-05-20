@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:medflow/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:medflow/presentation/widgets/build_section_profile.dart';
-import 'package:medflow/presentation/screens/sign_in_up.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../widgets/account_sec_section.dart';
 import 'package:flutter/services.dart';
-import 'dart:math';
+import '../viewmodels/access_grant_provider.dart';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -36,8 +35,13 @@ class _MyProfileState extends State<MyProfile> {
   bool editMedical = false;
   bool editEmergency = false;
 
-  //initial generated code
-  String currentAccessCode = "123456";
+  // Pending request inline state (per handshakeId)
+  final Map<String, int> _pendingDurations = {};
+  final Map<String, String> _pendingAccessLevels = {};
+  final Map<String, bool> _pendingResponding = {};
+
+  // Revoke state (per practitionerId)
+  final Map<String, bool> _revoking = {};
 
   // --- FIX 1: Initialize Maps with DEFAULT KEYS so they are never empty ---
   Map<String, String> personalInfo = {
@@ -89,13 +93,11 @@ class _MyProfileState extends State<MyProfile> {
   void initState() {
     super.initState();
     _loadProfile();
-    _generateNewCode();
-  }
-
-  void _generateNewCode() {
-    setState(() {
-      // Generates a random 6-digit number
-      currentAccessCode = (Random().nextInt(900000) + 100000).toString();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<AccessGrantProvider>();
+      provider.fetchPendingGrants();
+      provider.fetchActiveGrants();
+      provider.requestOtp();
     });
   }
 
@@ -326,6 +328,7 @@ class _MyProfileState extends State<MyProfile> {
   }
 
   Widget _buildSharedAccessSection(TextTheme textTheme) {
+    final grantProvider = context.watch<AccessGrantProvider>();
     return Column(
       children: [
         // Master Toggle Header
@@ -350,6 +353,9 @@ class _MyProfileState extends State<MyProfile> {
         if (showSharedAccess) ...[
           const Divider(),
 
+          // --- PENDING ACCESS REQUESTS ---
+          _buildPendingRequestsSection(grantProvider),
+
           // --- SECTION 1: FAMILY I CAN ACCESS ---
           _buildSubHeader("Family Members I Can Access"),
           _buildAccountList(
@@ -359,14 +365,12 @@ class _MyProfileState extends State<MyProfile> {
           const SizedBox(height: 16),
           const Divider(),
 
-          // --- SECTION 2: WHO HAS ACCESS TO ME ---
-          _buildSubHeader("Doctors & Family Accessing My Data"),
-          _buildAccountList(
-            sharedAccounts.where((a) => a['type'] == 'authorized').toList(),
-          ),
+          // --- SECTION 2: DOCTORS WITH ACTIVE ACCESS ---
+          _buildSubHeader("Doctors Accessing My Data"),
+          _buildActiveGrantsList(grantProvider),
 
-          // --- CODE GENERATOR UI ---
-          _buildCodeGeneratorCard(),
+          // --- OTP CARD ---
+          _buildCodeGeneratorCard(grantProvider),
         ],
       ],
     );
@@ -433,59 +437,386 @@ class _MyProfileState extends State<MyProfile> {
     );
   }
 
-  // The Random Code Generator Card
-  Widget _buildCodeGeneratorCard() {
+  Widget _buildPendingRequestsSection(AccessGrantProvider provider) {
+    final grants = provider.pendingGrants;
+    if (provider.isLoadingPending) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (grants.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.notifications_active, color: Colors.orange, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'Access Requests (${grants.length})',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange, fontSize: 13),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18, color: Colors.black45),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => provider.fetchPendingGrants(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ...grants.map((grant) {
+          final id = grant.handshakeId;
+          final duration = _pendingDurations[id] ?? 60;
+          final accessLevel = _pendingAccessLevels[id] ?? 'read';
+          final responding = _pendingResponding[id] ?? false;
+
+          List<String> scopes() {
+            if (accessLevel == 'write') return ['read', 'write'];
+            if (accessLevel == 'full_access') return ['full_access'];
+            return ['read'];
+          }
+
+          Future<void> respond(bool approved) async {
+            setState(() => _pendingResponding[id] = true);
+            final ok = await provider.respondToGrant(
+              handshakeId: id,
+              approved: approved,
+              durationMinutes: duration,
+              scopes: scopes(),
+            );
+            if (mounted) {
+              setState(() => _pendingResponding.remove(id));
+              if (approved && ok) provider.fetchActiveGrants();
+              Fluttertoast.showToast(
+                msg: ok
+                    ? (approved ? 'Access granted' : 'Request denied')
+                    : 'Something went wrong. Try again.',
+              );
+            }
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFFDDEAF9),
+                      child: Icon(Icons.person_outline, color: Color(0xFF1E6ED3), size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Practitioner', style: TextStyle(fontSize: 11, color: Colors.black45)),
+                          Text(
+                            provider.practitionerName(grant.practitionerId),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Text('Pending',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text('Duration', style: TextStyle(fontSize: 11, color: Colors.black45)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    for (final preset in [30, 60, 240])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _pendingDurations[id] = preset),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: duration == preset ? const Color(0xFF1E6ED3) : const Color(0xFFF1F4F8),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: duration == preset ? const Color(0xFF1E6ED3) : const Color(0xFFDDE3EC)),
+                            ),
+                            child: Text(
+                              preset < 60 ? '${preset}m' : '${preset ~/ 60}h',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: duration == preset ? Colors.white : Colors.black87),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text('Access level', style: TextStyle(fontSize: 11, color: Colors.black45)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final entry in [
+                      ('read', 'Read', Colors.blue),
+                      ('write', 'Read+Write', Colors.orange),
+                      ('full_access', 'Full Access', Colors.red),
+                    ])
+                      GestureDetector(
+                        onTap: () => setState(() => _pendingAccessLevels[id] = entry.$1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: accessLevel == entry.$1
+                                ? entry.$3.withValues(alpha: 0.12)
+                                : const Color(0xFFF1F4F8),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: accessLevel == entry.$1 ? entry.$3 : const Color(0xFFDDE3EC)),
+                          ),
+                          child: Text(entry.$2,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: accessLevel == entry.$1 ? entry.$3 : Colors.black54)),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: responding ? null : () => respond(false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          minimumSize: const Size(0, 40),
+                        ),
+                        child: responding
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Deny', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: responding ? null : () => respond(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E6ED3),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          minimumSize: const Size(0, 40),
+                        ),
+                        child: responding
+                            ? const SizedBox(
+                                width: 14, height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Approve', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildActiveGrantsList(AccessGrantProvider provider) {
+    if (provider.isLoadingActive) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (provider.activeError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, size: 16, color: Colors.red),
+            const SizedBox(width: 6),
+            const Expanded(child: Text('Failed to load. Tap to retry.', style: TextStyle(fontSize: 12, color: Colors.red))),
+            TextButton(onPressed: () => provider.fetchActiveGrants(), child: const Text('Retry', style: TextStyle(fontSize: 12))),
+          ],
+        ),
+      );
+    }
+    if (provider.activeGrants.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Text('No doctors currently have access to your data.', style: TextStyle(fontSize: 12, color: Colors.black45)),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: provider.activeGrants.length,
+      itemBuilder: (context, index) {
+        final grant = provider.activeGrants[index];
+        final minsLeft = grant.minutesRemaining;
+        final isRevoking = _revoking[grant.practitionerId] ?? false;
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
+                      child: const Icon(Icons.medical_services_outlined, color: Colors.blueAccent, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(provider.practitionerName(grant.practitionerId),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              overflow: TextOverflow.ellipsis),
+                          Text(
+                            '${grant.scopes.join(', ')} • ${minsLeft > 0 ? 'Expires in $minsLeft min' : 'Expired'}',
+                            style: TextStyle(fontSize: 11, color: minsLeft < 10 ? Colors.red : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Text('Active',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: isRevoking
+                        ? null
+                        : () async {
+                            setState(() => _revoking[grant.practitionerId] = true);
+                            final ok = await provider.revokeGrant(grant.practitionerId);
+                            if (mounted) {
+                              setState(() => _revoking.remove(grant.practitionerId));
+                              Fluttertoast.showToast(
+                                  msg: ok ? 'Access revoked' : 'Failed to revoke. Try again.');
+                            }
+                          },
+                    icon: isRevoking
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+                        : const Icon(Icons.remove_circle_outline, size: 16),
+                    label: Text(isRevoking ? 'Revoking…' : 'Revoke Access', style: const TextStyle(fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      minimumSize: const Size(0, 40),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCodeGeneratorCard(AccessGrantProvider provider) {
     return Container(
       margin: const EdgeInsets.only(top: 16, bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blueAccent.withOpacity(0.05),
+        color: Colors.blueAccent.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
-          const Text(
-            "Share Access Code with Doctor",
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.blueAccent,
-            ),
-          ),
+          const Text('Share Access Code with Doctor',
+              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueAccent)),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // THE CODE
-              Text(
-                currentAccessCode,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                  color: Colors.black87,
+          if (provider.isRequestingOtp)
+            const CircularProgressIndicator()
+          else if (provider.otpError != null)
+            Column(
+              children: [
+                const Text('Failed to generate code.', style: TextStyle(fontSize: 12, color: Colors.red)),
+                TextButton(onPressed: () => provider.requestOtp(), child: const Text('Retry')),
+              ],
+            )
+          else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  provider.otp?.otp ?? '------',
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4, color: Colors.black87),
                 ),
-              ),
-              const SizedBox(width: 20),
-              // COPY BUTTON
-              IconButton(
-                icon: const Icon(Icons.copy, size: 20),
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: currentAccessCode));
-                  Fluttertoast.showToast(msg: "Code copied!");
-                },
-              ),
-              // RELOAD BUTTON
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.green, size: 24),
-                onPressed: _generateNewCode, // Calls the refresh logic
-              ),
-            ],
-          ),
-          const Text(
-            "Valid for 24 hours",
-            style: TextStyle(fontSize: 11, color: Colors.grey),
-          ),
+                const SizedBox(width: 20),
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 20),
+                  onPressed: () {
+                    final code = provider.otp?.otp;
+                    if (code != null) {
+                      Clipboard.setData(ClipboardData(text: code));
+                      Fluttertoast.showToast(msg: 'Code copied!');
+                    }
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.green, size: 24),
+                  onPressed: () => provider.requestOtp(),
+                ),
+              ],
+            ),
+            Text(
+              provider.otp != null ? 'Valid for ${provider.otp!.expiresIn}' : 'Tap refresh to generate a code',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
         ],
       ),
     );

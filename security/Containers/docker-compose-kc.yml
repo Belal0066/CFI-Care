@@ -75,7 +75,7 @@ services:
       KC_HTTPS_CERTIFICATE_FILE: /etc/keycloak/certs/cert.pem
       KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/keycloak/certs/key.pem
 
-      KC_PROXY_HEADERS: forwarded
+      KC_PROXY_HEADERS: xforwarded
 
       # KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
       # KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}

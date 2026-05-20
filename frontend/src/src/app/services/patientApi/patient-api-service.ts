@@ -116,8 +116,8 @@ export class PatientApiService {
   }
 
   // Get encounters linked to an EpisodeOfCare
-  getEpisodeEncounters(eocId: string): Observable<any[]> {
-    return this.http.get<any[]>(`/api/episodeOfCare/${eocId}/encounters`);
+  getEpisodeEncounters(eocId: string, patientId: string): Observable<any[]> {
+    return this.http.get<any[]>(`/api/episodeOfCare/${eocId}/encounters`, { params: { patientId } });
   }
 
   // Create a new EpisodeOfCare (no graph root node created)

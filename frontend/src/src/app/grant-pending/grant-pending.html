@@ -1,0 +1,75 @@
+<div class="page-wrapper">
+  <div class="page-header">
+    <h4 class="page-title">Access Requests</h4>
+    <p class="page-desc">Practitioners waiting for your approval to view your records.</p>
+  </div>
+
+  <div class="loading-state" *ngIf="loading">
+    <span class="spinner"></span>
+    <span>Loading requests...</span>
+  </div>
+
+  <div class="error-state" *ngIf="error && !loading">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ error }}</span>
+    <button class="btn-retry" (click)="load()">Retry</button>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !error && pendingCount === 0">
+    <i class="bi bi-check2-circle"></i>
+    <p>No pending access requests.</p>
+  </div>
+
+  <div class="request-list" *ngIf="!loading && !error">
+    <div class="request-card" *ngFor="let item of items">
+
+      <!-- Done state -->
+      <div class="done-banner approved" *ngIf="item.done && item.result === 'approved'">
+        <i class="bi bi-check-circle-fill"></i> Access granted for {{ item.durationMinutes }} min
+      </div>
+      <div class="done-banner denied" *ngIf="item.done && item.result === 'denied'">
+        <i class="bi bi-x-circle-fill"></i> Request denied
+      </div>
+
+      <!-- Pending state -->
+      <ng-container *ngIf="!item.done">
+        <div class="card-header-row">
+          <div class="avatar"><i class="bi bi-person-badge"></i></div>
+          <div class="card-info">
+            <p class="practitioner-id">{{ item.practitionerId }}</p>
+            <p class="request-time">Requested at {{ item.createdAt | date:'shortTime' }}</p>
+          </div>
+        </div>
+
+        <div class="duration-row">
+          <label class="duration-label">Grant access for</label>
+          <div class="duration-controls">
+            <button class="btn-duration" (click)="item.durationMinutes = 30">30 min</button>
+            <button class="btn-duration" (click)="item.durationMinutes = 60">1 hr</button>
+            <button class="btn-duration" (click)="item.durationMinutes = 240">4 hr</button>
+            <input
+              class="duration-input"
+              type="number"
+              min="1"
+              [(ngModel)]="item.durationMinutes"
+              placeholder="Custom"
+            />
+            <span class="duration-unit">min</span>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn-deny" (click)="deny(item)" [disabled]="item.responding">
+            <span class="spinner-sm" *ngIf="item.responding"></span>
+            Deny
+          </button>
+          <button class="btn-approve" (click)="approve(item)" [disabled]="item.responding || item.durationMinutes < 1">
+            <span class="spinner-sm" *ngIf="item.responding"></span>
+            Approve
+          </button>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+</div>

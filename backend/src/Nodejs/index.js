@@ -172,6 +172,7 @@ app.use(generalLimiter);
 // app.use("/auth/provisioning", provisioningRoutes);
 app.use("/auth", authRoutes);
 app.use("/handshakes", handshakeRoutes);
+app.use("/api/handshakes", handshakeRoutes); // Flutter uses baseUrl=/api so needs this path
 
 app.use("/api", requireApiAuth);
 

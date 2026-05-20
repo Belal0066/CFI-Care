@@ -198,6 +198,11 @@ server {
   # }
   #keycloak
   location /keycloak/ {
+    # Keycloak's admin console uses a hidden iframe for session checking.
+    # SameSite=Lax (set globally above) blocks cookies in iframes, causing
+    # an infinite auth redirect loop. Override to None here.
+    proxy_cookie_flags ~ secure samesite=none;
+
     proxy_pass https://keycloak_server;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
