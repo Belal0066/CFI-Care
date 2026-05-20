@@ -34,7 +34,7 @@ router.post("/sync-fhir", patientController.syncPatientToFHIR);
 
 router.get(
   "/toon-everything/:id",
-  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
+  requireApiAuth,requirePatientContext({ paramName: "id" }),
   attachForwardedToken,
   patientController.toonPatientEverything,
 );
@@ -56,7 +56,7 @@ router.put(
 
 router.get(
   "/:id",
-  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
+  requireApiAuth,requirePatientContext({ paramName: "id" }),
   attachForwardedToken,
   requireApiAuth,
   requireScopes(["patient/*.rs"]),
@@ -66,21 +66,21 @@ router.get(
 //still need to add scopes :/
 router.get(
   "/:id/related-data",
-  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
+  requireApiAuth,requirePatientContext({ paramName: "id" }),
   attachForwardedToken,
   requireApiAuth,
   patientController.getPatientAllRelatedData,
 );
 router.get(
   "/:id/observations",
-  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
+  requireApiAuth,requirePatientContext({ paramName: "id" }),
   attachForwardedToken,
   requireApiAuth,
   patientController.getPatientObservations,
 );
 router.get(
   "/:id/encounters",
-  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
+  requireApiAuth,requirePatientContext({ paramName: "id" }),
   attachForwardedToken,
   requireApiAuth,
   patientController.getPatientEncounters,

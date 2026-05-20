@@ -68,8 +68,13 @@
     </div>
 
     <div class="otp-status forwarded" *ngIf="otpState === 'forwarded'">
-      <i class="bi bi-send-check-fill"></i>
-      <span>Request forwarded. Waiting for patient approval.</span>
+      <span class="spinner"></span>
+      <span>Request forwarded. Waiting for patient approval...</span>
+    </div>
+
+    <div class="otp-status error" *ngIf="otpState === 'invalid'">
+      <i class="bi bi-x-circle-fill"></i>
+      <span>Invalid code. Please check and try again.</span>
     </div>
 
     <div class="otp-status error" *ngIf="otpState === 'expired'">

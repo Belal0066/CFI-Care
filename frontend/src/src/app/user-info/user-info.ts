@@ -184,7 +184,7 @@ export class UserInfo implements OnInit {
     this.selectedEpisode = { ...ep };
     this.episodeDropdownOpen = false;
 
-    this.patientApi.getEpisodeEncounters(ep.id).subscribe({
+    this.patientApi.getEpisodeEncounters(ep.id, this.patientDetails!.id).subscribe({
       next: (encounters: any[]) => {
         const encounterRefs = new Set(
           encounters.map((e: any) => `Encounter/${e.id}`),

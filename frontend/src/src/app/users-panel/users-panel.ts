@@ -1,10 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Users } from '../users/users';
 import { NgOtpInputModule } from 'ng-otp-input';
-import { PatientApiService } from '../services/patientApi/patient-api-service';
 import { PatientSummaryDTO } from '../models/patient.model';
+import { HandshakeService } from '../services/handshake/handshake.service';
+import { Subscription, interval } from 'rxjs';
+import { switchMap, takeWhile } from 'rxjs/operators';
+import { VerifyOtpResponse, HandshakeStatus } from '../models/grant.model';
 
 @Component({
   selector: 'app-users-panel',
@@ -13,7 +16,7 @@ import { PatientSummaryDTO } from '../models/patient.model';
   templateUrl: './users-panel.html',
   styleUrl: './users-panel.css',
 })
-export class UsersPanel implements OnInit {
+export class UsersPanel implements OnInit, OnDestroy {
   // Data State
   allPatients: PatientSummaryDTO[] = [];
   filteredPatients: PatientSummaryDTO[] = [];
@@ -41,19 +44,25 @@ export class UsersPanel implements OnInit {
     | 'invalid'
     | 'not_found' = 'idle';
 
-  constructor(private patientApi: PatientApiService) {}
+  private pollSub: Subscription | null = null;
+
+  constructor(private handshake: HandshakeService) {}
 
   ngOnInit() {
     this.fetchPatients();
+  }
+
+  ngOnDestroy() {
+    this.pollSub?.unsubscribe();
   }
 
   // --- Data Fetching ---
   fetchPatients() {
     this.loading = true;
     this.error = null;
-    this.patientApi.getPatients().subscribe({
-      next: (patients: PatientSummaryDTO[]) => {
-        this.allPatients = patients;
+    this.handshake.getGrantedPatients().subscribe({
+      next: (res: { patients: PatientSummaryDTO[] }) => {
+        this.allPatients = res.patients;
         this.filteredPatients = [...this.allPatients];
         this.loading = false;
       },
@@ -73,7 +82,6 @@ export class UsersPanel implements OnInit {
       this.applyFilter();
       return;
     }
-    // Match names that contain the query
     this.filteredPatients = this.allPatients.filter((p) =>
       p.name.toLowerCase().includes(q),
     );
@@ -86,19 +94,16 @@ export class UsersPanel implements OnInit {
   applyFilter() {
     let list = [...this.allPatients];
 
-    // Apply search string
     const q = this.searchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter((p) => p.name.toLowerCase().includes(q));
     }
 
-    // Apply age bounds (fallback to 0 if age is undefined)
     list = list.filter((p) => {
       const age = p.age || 0;
       return age >= this.ageMin && age <= this.ageMax;
     });
 
-    // Apply sorting
     if (this.sortBy === 'name') {
       list.sort((a, b) => a.name.localeCompare(b.name));
     } else if (this.sortBy === 'age') {
@@ -129,10 +134,12 @@ export class UsersPanel implements OnInit {
     this.modalOpen = true;
     this.otpValue = '';
     this.otpState = 'idle';
+    this.pollSub?.unsubscribe();
   }
 
   closeModal() {
     this.modalOpen = false;
+    this.pollSub?.unsubscribe();
   }
 
   onOtpChange(otp: string) {
@@ -144,15 +151,40 @@ export class UsersPanel implements OnInit {
     if (!this.otpComplete) return;
     this.otpState = 'loading';
 
-    // Placeholder timeout logic for UI simulation.
-    // Replace this block with your actual OTP verification API call later.
-    setTimeout(() => {
-      const code = this.otpValue;
-      if (code === '000000') this.otpState = 'expired';
-      else if (code === '222222') this.otpState = 'not_found';
-      else if (code === '333333') this.otpState = 'forwarded';
-      else this.otpState = 'success';
-    }, 1200);
+    this.handshake.verifyOtp(this.otpValue).subscribe({
+      next: (res: VerifyOtpResponse) => {
+        this.otpState = 'forwarded';
+        this.startPolling(res.handshakeId, res.targetpatientId);
+      },
+      error: (err: { status: number }) => {
+        if (err.status === 401) this.otpState = 'invalid';
+        else if (err.status === 404) this.otpState = 'not_found';
+        else this.otpState = 'expired';
+      },
+    });
+  }
+
+  private startPolling(handshakeId: string, patientId: string) {
+    this.pollSub?.unsubscribe();
+
+    this.pollSub = interval(3000)
+      .pipe(
+        switchMap(() => this.handshake.pollStatus(handshakeId, patientId)),
+        takeWhile((s: HandshakeStatus) => s.status === 'pending', true)
+      )
+      .subscribe({
+        next: (s: HandshakeStatus) => {
+          if (s.status === 'approved') {
+            this.otpState = 'success';
+            this.fetchPatients();
+          } else if (s.status === 'expired') {
+            this.otpState = 'expired';
+          }
+        },
+        error: () => {
+          this.otpState = 'expired';
+        },
+      });
   }
 
   get otpComplete(): boolean {

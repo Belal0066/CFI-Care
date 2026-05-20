@@ -109,6 +109,26 @@ class ApiService {
     return response;
   }
 
+  Future<http.Response> getData({required String endpoint}) async {
+    try {
+      return _authorizedRequest((headers) {
+        return http.get(Uri.parse('$baseUrl$endpoint'), headers: headers);
+      });
+    } catch (e) {
+      throw Exception("Network Error during GET: $e");
+    }
+  }
+
+  Future<http.Response> deleteData({required String endpoint}) async {
+    try {
+      return _authorizedRequest((headers) {
+        return http.delete(Uri.parse('$baseUrl$endpoint'), headers: headers);
+      });
+    } catch (e) {
+      throw Exception("Network Error during DELETE: $e");
+    }
+  }
+
   Future<http.Response> postData({
     required String endpoint,
     required Map<String, dynamic> data,

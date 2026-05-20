@@ -5,6 +5,8 @@ import 'package:medflow/presentation/screens/my_profile.dart';
 import 'package:medflow/presentation/screens/home_screen.dart';
 import 'package:medflow/presentation/screens/search_doctor_speciality.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart';
+import '../viewmodels/access_grant_provider.dart';
 // import 'package:firebase_core/firebase_core.dart';
 // import '../../utils/themes/theme.dart';
 // import '../screens/home_screen.dart';
@@ -58,14 +60,20 @@ class _MyAppState extends State<MyApp> {
 
     // Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      if (message.notification != null) {
-        print('Message body: ${message.notification!.body}');
-        
-        // Optional: Show a Snackbar when a message arrives while app is open
+      if (!mounted) return;
+      if (message.data['type'] == 'grant_request') {
+        context.read<AccessGrantProvider>().fetchPendingGrants();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('A doctor is requesting access to your data'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      } else if (message.notification != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message.notification!.title ?? "New Message"),
+            content: Text(message.notification!.title ?? 'New Message'),
             backgroundColor: Colors.blue,
           ),
         );
@@ -84,9 +92,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _handleMessage(RemoteMessage message) {
-    // Navigate to specific screen if needed
     if (message.data['type'] == 'chat') {
-       // Example: Navigator.pushNamed(context, '/chat');
+      // Example: Navigator.pushNamed(context, '/chat');
+    }
+    if (message.data['type'] == 'grant_request') {
+      if (mounted) context.read<AccessGrantProvider>().fetchPendingGrants();
     }
   }
 

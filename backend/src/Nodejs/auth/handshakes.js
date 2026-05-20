@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const axios = require('axios');
 // const Redis = require('ioredis');
 
 const { requireApiAuth } = require('../middleware/requireApiAuth');
@@ -7,6 +8,11 @@ const { logSecurityEvent } = require('../utils/logSecurityEvent');
 
 const router = express.Router();
 const redis = require('../utils/redisOTPCli');
+
+const fhirApi = axios.create({
+  baseURL: process.env.FHIR_SERVER_URL,
+  headers: { 'Content-Type': 'application/fhir+json' },
+});
 
 router.post('/request-otp', requireApiAuth, async (req, res) => {
   try {
@@ -174,7 +180,7 @@ router.post('/grants', requireApiAuth, async (req, res) => {
       scopes:
         Array.isArray(scopes) && scopes.length
           ? scopes
-          : [`${patientId}/*.read`],
+          : ["read"],
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + ttlSeconds * 1000).toISOString(),
 
@@ -248,6 +254,152 @@ router.delete("/grants/:practitionerId", requireApiAuth, async (req, res) => {
     return res
       .status(500)
       .json({ error: "Grant revoke failed", detail: e.message });
+  }
+});
+
+// Patient: list all pending grant requests waiting for their approval
+router.get('/pending', requireApiAuth, async (req, res) => {
+  try {
+    const patientId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
+    if (!patientId) return res.status(401).json({ error: "Unauthorized" });
+
+    const handshakeIds = await redis.sMembers(`patient_pending:${patientId}`);
+    if (!handshakeIds || handshakeIds.length === 0) {
+      return res.status(200).json({ pending: [] });
+    }
+
+    const pending = [];
+    for (const handshakeId of handshakeIds) {
+      const raw = await redis.get(`pending_grant:${handshakeId}`);
+      if (raw) {
+        pending.push(JSON.parse(raw));
+      } else {
+        // expired — clean up the set
+        await redis.sRem(`patient_pending:${patientId}`, handshakeId);
+      }
+    }
+
+    return res.status(200).json({ pending });
+  } catch (e) {
+    return res.status(500).json({ error: "Failed to fetch pending grants", detail: e.message });
+  }
+});
+
+// Patient: list all active grants they have issued
+router.get('/grants', requireApiAuth, async (req, res) => {
+  try {
+    const patientId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
+    if (!patientId) return res.status(401).json({ error: "Unauthorized" });
+
+    const keys = await redis.keys(`grant:*:${patientId}`);
+    if (!keys || keys.length === 0) {
+      return res.status(200).json({ grants: [] });
+    }
+
+    const grants = [];
+    for (const key of keys) {
+      const raw = await redis.get(key);
+      if (raw) {
+        const grant = JSON.parse(raw);
+        if (new Date(grant.expiresAt) > new Date()) {
+          grants.push(grant);
+        } else {
+          await redis.del(key);
+        }
+      }
+    }
+
+    return res.status(200).json({ grants });
+  } catch (e) {
+    return res.status(500).json({ error: "Failed to fetch grants", detail: e.message });
+  }
+});
+
+// Practitioner: list all patients who have granted them access
+router.get('/my-patients', requireApiAuth, async (req, res) => {
+  try {
+    const practitionerId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
+    if (!practitionerId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const keys = await redis.keys(`grant:${practitionerId}:*`);
+    if (!keys || keys.length === 0) {
+      return res.status(200).json({ patients: [] });
+    }
+
+    const patients = [];
+    for (const key of keys) {
+      const grantRaw = await redis.get(key);
+      if (!grantRaw) continue;
+      const grant = JSON.parse(grantRaw);
+      if (!grant?.patientId || new Date(grant.expiresAt) <= new Date()) {
+        await redis.del(key);
+        continue;
+      }
+      try {
+        const fhirRes = await fhirApi.get(`/Patient/${grant.patientId}`);
+        const p = fhirRes.data;
+        const namePart = p.name?.[0];
+        const fullName = namePart
+          ? `${namePart.given?.join(' ') || ''} ${namePart.family || ''}`.trim()
+          : 'Unknown';
+        let age = null;
+        if (p.birthDate) {
+          const bd = new Date(p.birthDate);
+          const today = new Date();
+          age = today.getFullYear() - bd.getFullYear();
+          const m = today.getMonth() - bd.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+        }
+        patients.push({
+          id: grant.patientId,
+          name: fullName,
+          age,
+          lastUpdated: p.meta?.lastUpdated || grant.createdAt,
+          grantExpiresAt: grant.expiresAt,
+        });
+      } catch (_) {
+        // patient not in FHIR — skip
+      }
+    }
+
+    return res.status(200).json({ patients });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to fetch granted patients', detail: e.message });
+  }
+});
+
+// Practitioner: poll whether patient approved a specific handshake
+router.get('/status/:handshakeId', requireApiAuth, async (req, res) => {
+  try {
+    const practitionerId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
+    if (!practitionerId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { handshakeId } = req.params;
+    const pendingRaw = await redis.get(`pending_grant:${handshakeId}`);
+
+    if (pendingRaw) {
+      const pending = JSON.parse(pendingRaw);
+      if (pending.practitionerId !== practitionerId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      return res.status(200).json({ status: "pending", handshakeId });
+    }
+
+    // pending_grant is gone — check if an active grant was issued
+    const patientId = req.query.patientId;
+    if (patientId) {
+      const grantRaw = await redis.get(`grant:${practitionerId}:${patientId}`);
+      if (grantRaw) {
+        const grant = JSON.parse(grantRaw);
+        if (new Date(grant.expiresAt) > new Date()) {
+          return res.status(200).json({ status: "approved", grant });
+        }
+      }
+    }
+
+    return res.status(200).json({ status: "expired" });
+  } catch (e) {
+    return res.status(500).json({ error: "Failed to fetch status", detail: e.message });
   }
 });
 
