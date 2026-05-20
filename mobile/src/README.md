@@ -45,10 +45,12 @@ cp $(mkcert -CAROOT)/rootCA.pem mobile/src/android/app/src/debug/res/raw/
 
 mv rootCA.pem rootca.pem 
 
-# i left a public port open for dev on keycloak
-adb reverse tcp:8443 tcp:8443
 
 ```
+
+<!-- 
+# i left a public port open for dev on keycloak
+adb reverse tcp:8443 tcp:8443 -->
 
 <!-- not needed ig -->
 <!-- adb push "$(mkcert -CAROOT)/rootCA.pem" /sdcard/Download/rootCA.pem -->

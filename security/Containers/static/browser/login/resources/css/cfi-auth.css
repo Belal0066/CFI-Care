@@ -460,7 +460,6 @@ body {
   font-size: 1.1rem;
 }
 
-/* Hide small top-left user-info / restart-login produced by theme/header */
 #kc-attempted-username,
 #reset-login,
 #reset-login .kc-login-tooltip,
@@ -469,7 +468,17 @@ display: none !important;
 visibility: hidden !important;
 pointer-events: none !important;
 }
+#kc-form-login #username[readonly] {
+  background: #959696d8 !important;
+  color: #f2f3f6 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  cursor: not-allowed;
+  opacity: 0.9;
+}
 
+#kc-form-login #username[readonly]::placeholder {
+  color: #9ca3af !important;
+}
 
 
 /* --- Responsiveness System --- */
