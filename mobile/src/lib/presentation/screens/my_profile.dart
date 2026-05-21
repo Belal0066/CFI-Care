@@ -39,6 +39,7 @@ class _MyProfileState extends State<MyProfile> {
   final Map<String, int> _pendingDurations = {};
   final Map<String, String> _pendingAccessLevels = {};
   final Map<String, bool> _pendingResponding = {};
+  final Map<String, TextEditingController> _durationControllers = {};
 
   // Revoke state (per practitionerId)
   final Map<String, bool> _revoking = {};
@@ -99,6 +100,14 @@ class _MyProfileState extends State<MyProfile> {
       provider.fetchActiveGrants();
       provider.requestOtp();
     });
+  }
+
+  @override
+  void dispose() {
+    for (final c in _durationControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -452,11 +461,19 @@ class _MyProfileState extends State<MyProfile> {
       children: [
         Row(
           children: [
-            const Icon(Icons.notifications_active, color: Colors.orange, size: 18),
+            const Icon(
+              Icons.notifications_active,
+              color: Colors.orange,
+              size: 18,
+            ),
             const SizedBox(width: 6),
             Text(
               'Access Requests (${grants.length})',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange, fontSize: 13),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+                fontSize: 13,
+              ),
             ),
             const Spacer(),
             IconButton(
@@ -515,36 +532,61 @@ class _MyProfileState extends State<MyProfile> {
                     const CircleAvatar(
                       radius: 18,
                       backgroundColor: Color(0xFFDDEAF9),
-                      child: Icon(Icons.person_outline, color: Color(0xFF1E6ED3), size: 18),
+                      child: Icon(
+                        Icons.person_outline,
+                        color: Color(0xFF1E6ED3),
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Practitioner', style: TextStyle(fontSize: 11, color: Colors.black45)),
+                          const Text(
+                            'Practitioner',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.black45,
+                            ),
+                          ),
                           Text(
                             provider.practitionerName(grant.practitionerId),
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.orange.shade200),
                       ),
-                      child: Text('Pending',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
+                      child: Text(
+                        'Pending',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Text('Duration', style: TextStyle(fontSize: 11, color: Colors.black45)),
+                const Text(
+                  'Duration',
+                  style: TextStyle(fontSize: 11, color: Colors.black45),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -552,29 +594,87 @@ class _MyProfileState extends State<MyProfile> {
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: GestureDetector(
-                          onTap: () => setState(() => _pendingDurations[id] = preset),
+                          onTap: () {
+                            setState(() => _pendingDurations[id] = preset);
+                            _durationControllers[id]?.clear();
+                          },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
-                              color: duration == preset ? const Color(0xFF1E6ED3) : const Color(0xFFF1F4F8),
+                              color: duration == preset
+                                  ? const Color(0xFF1E6ED3)
+                                  : const Color(0xFFF1F4F8),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color: duration == preset ? const Color(0xFF1E6ED3) : const Color(0xFFDDE3EC)),
+                                color: duration == preset
+                                    ? const Color(0xFF1E6ED3)
+                                    : const Color(0xFFDDE3EC),
+                              ),
                             ),
                             child: Text(
                               preset < 60 ? '${preset}m' : '${preset ~/ 60}h',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: duration == preset ? Colors.white : Colors.black87),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: duration == preset
+                                    ? Colors.white
+                                    : Colors.black87,
+                              ),
                             ),
                           ),
                         ),
                       ),
+                    Expanded(
+                      child: TextField(
+                        controller: _durationControllers.putIfAbsent(
+                          id,
+                          () => TextEditingController(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'Custom',
+                          suffixText: 'min',
+                          suffixStyle: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black45,
+                          ),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFDDE3EC),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1E6ED3),
+                            ),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val);
+                          if (parsed != null && parsed > 0) {
+                            setState(() => _pendingDurations[id] = parsed);
+                          }
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Text('Access level', style: TextStyle(fontSize: 11, color: Colors.black45)),
+                const Text(
+                  'Access level',
+                  style: TextStyle(fontSize: 11, color: Colors.black45),
+                ),
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 6,
@@ -585,22 +685,34 @@ class _MyProfileState extends State<MyProfile> {
                       ('full_access', 'Full Access', Colors.red),
                     ])
                       GestureDetector(
-                        onTap: () => setState(() => _pendingAccessLevels[id] = entry.$1),
+                        onTap: () =>
+                            setState(() => _pendingAccessLevels[id] = entry.$1),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: accessLevel == entry.$1
                                 ? entry.$3.withValues(alpha: 0.12)
                                 : const Color(0xFFF1F4F8),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: accessLevel == entry.$1 ? entry.$3 : const Color(0xFFDDE3EC)),
+                              color: accessLevel == entry.$1
+                                  ? entry.$3
+                                  : const Color(0xFFDDE3EC),
+                            ),
                           ),
-                          child: Text(entry.$2,
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: accessLevel == entry.$1 ? entry.$3 : Colors.black54)),
+                          child: Text(
+                            entry.$2,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: accessLevel == entry.$1
+                                  ? entry.$3
+                                  : Colors.black54,
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -614,12 +726,23 @@ class _MyProfileState extends State<MyProfile> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(color: Colors.red),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           minimumSize: const Size(0, 40),
                         ),
                         child: responding
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('Deny', style: TextStyle(fontSize: 13)),
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Deny',
+                                style: TextStyle(fontSize: 13),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -630,14 +753,24 @@ class _MyProfileState extends State<MyProfile> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E6ED3),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           minimumSize: const Size(0, 40),
                         ),
                         child: responding
                             ? const SizedBox(
-                                width: 14, height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('Approve', style: TextStyle(fontSize: 13)),
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Approve',
+                                style: TextStyle(fontSize: 13),
+                              ),
                       ),
                     ),
                   ],
@@ -665,8 +798,16 @@ class _MyProfileState extends State<MyProfile> {
           children: [
             const Icon(Icons.error_outline, size: 16, color: Colors.red),
             const SizedBox(width: 6),
-            const Expanded(child: Text('Failed to load. Tap to retry.', style: TextStyle(fontSize: 12, color: Colors.red))),
-            TextButton(onPressed: () => provider.fetchActiveGrants(), child: const Text('Retry', style: TextStyle(fontSize: 12))),
+            const Expanded(
+              child: Text(
+                'Failed to load. Tap to retry.',
+                style: TextStyle(fontSize: 12, color: Colors.red),
+              ),
+            ),
+            TextButton(
+              onPressed: () => provider.fetchActiveGrants(),
+              child: const Text('Retry', style: TextStyle(fontSize: 12)),
+            ),
           ],
         ),
       );
@@ -674,7 +815,10 @@ class _MyProfileState extends State<MyProfile> {
     if (provider.activeGrants.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
-        child: Text('No doctors currently have access to your data.', style: TextStyle(fontSize: 12, color: Colors.black45)),
+        child: Text(
+          'No doctors currently have access to your data.',
+          style: TextStyle(fontSize: 12, color: Colors.black45),
+        ),
       );
     }
     return ListView.builder(
@@ -688,7 +832,9 @@ class _MyProfileState extends State<MyProfile> {
         return Card(
           elevation: 2,
           margin: const EdgeInsets.symmetric(vertical: 4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
@@ -698,32 +844,55 @@ class _MyProfileState extends State<MyProfile> {
                   children: [
                     CircleAvatar(
                       backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
-                      child: const Icon(Icons.medical_services_outlined, color: Colors.blueAccent, size: 20),
+                      child: const Icon(
+                        Icons.medical_services_outlined,
+                        color: Colors.blueAccent,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(provider.practitionerName(grant.practitionerId),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              overflow: TextOverflow.ellipsis),
+                          Text(
+                            provider.practitionerName(grant.practitionerId),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           Text(
                             '${grant.scopes.join(', ')} • ${minsLeft > 0 ? 'Expires in $minsLeft min' : 'Expired'}',
-                            style: TextStyle(fontSize: 11, color: minsLeft < 10 ? Colors.red : Colors.black54),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: minsLeft < 10
+                                  ? Colors.red
+                                  : Colors.black54,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.green.shade200),
                       ),
-                      child: Text('Active',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+                      child: Text(
+                        'Active',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -736,22 +905,43 @@ class _MyProfileState extends State<MyProfile> {
                     onPressed: isRevoking
                         ? null
                         : () async {
-                            setState(() => _revoking[grant.practitionerId] = true);
-                            final ok = await provider.revokeGrant(grant.practitionerId);
+                            setState(
+                              () => _revoking[grant.practitionerId] = true,
+                            );
+                            final ok = await provider.revokeGrant(
+                              grant.practitionerId,
+                            );
                             if (mounted) {
-                              setState(() => _revoking.remove(grant.practitionerId));
+                              setState(
+                                () => _revoking.remove(grant.practitionerId),
+                              );
                               Fluttertoast.showToast(
-                                  msg: ok ? 'Access revoked' : 'Failed to revoke. Try again.');
+                                msg: ok
+                                    ? 'Access revoked'
+                                    : 'Failed to revoke. Try again.',
+                              );
                             }
                           },
                     icon: isRevoking
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.red,
+                            ),
+                          )
                         : const Icon(Icons.remove_circle_outline, size: 16),
-                    label: Text(isRevoking ? 'Revoking…' : 'Revoke Access', style: const TextStyle(fontSize: 13)),
+                    label: Text(
+                      isRevoking ? 'Revoking…' : 'Revoke Access',
+                      style: const TextStyle(fontSize: 13),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       minimumSize: const Size(0, 40),
                     ),
                   ),
@@ -775,16 +965,27 @@ class _MyProfileState extends State<MyProfile> {
       ),
       child: Column(
         children: [
-          const Text('Share Access Code with Doctor',
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueAccent)),
+          const Text(
+            'Share Access Code with Doctor',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.blueAccent,
+            ),
+          ),
           const SizedBox(height: 12),
           if (provider.isRequestingOtp)
             const CircularProgressIndicator()
           else if (provider.otpError != null)
             Column(
               children: [
-                const Text('Failed to generate code.', style: TextStyle(fontSize: 12, color: Colors.red)),
-                TextButton(onPressed: () => provider.requestOtp(), child: const Text('Retry')),
+                const Text(
+                  'Failed to generate code.',
+                  style: TextStyle(fontSize: 12, color: Colors.red),
+                ),
+                TextButton(
+                  onPressed: () => provider.requestOtp(),
+                  child: const Text('Retry'),
+                ),
               ],
             )
           else ...[
@@ -793,7 +994,12 @@ class _MyProfileState extends State<MyProfile> {
               children: [
                 Text(
                   provider.otp?.otp ?? '------',
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4, color: Colors.black87),
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                    color: Colors.black87,
+                  ),
                 ),
                 const SizedBox(width: 20),
                 IconButton(
@@ -807,13 +1013,19 @@ class _MyProfileState extends State<MyProfile> {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.green, size: 24),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: Colors.green,
+                    size: 24,
+                  ),
                   onPressed: () => provider.requestOtp(),
                 ),
               ],
             ),
             Text(
-              provider.otp != null ? 'Valid for ${provider.otp!.expiresIn}' : 'Tap refresh to generate a code',
+              provider.otp != null
+                  ? 'Valid for ${provider.otp!.expiresIn}'
+                  : 'Tap refresh to generate a code',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
