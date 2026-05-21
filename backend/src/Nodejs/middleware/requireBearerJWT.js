@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
 
-const kcHost = process.env.KC_HOST_FULL;
+const kcHost = process.env.KC_HOSTNAME;
 const realm = process.env.KEYCLOAK_REALM;
 const issuer = process.env.KC_ISSUER || `${kcHost}/realms/${realm}`;
 const internalIssuer = process.env.KC_INTERNAL_ISSUER
@@ -38,7 +38,7 @@ function requireBearerJwt(req, res, next) {
   // console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
 
 
-  const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew, ...(allowedAudiences.length ? { audience: allowedAudiences } : {}) };
+  const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew,  audience: allowedAudiences };
 
   // console.log("[JWT-VERIFY] Options:", { allowedIssuers, allowedAudiences: allowedAudiences.length ? allowedAudiences : "none" });
 

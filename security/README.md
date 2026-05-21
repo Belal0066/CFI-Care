@@ -25,12 +25,19 @@
 - Scan the image for CVEs :
 
 ```
-trivy image --severity HIGH,CRITICAL <image-name>:<tag>
+trivy image --severity HIGH,CRITICAL,MEDIUM <image-name>:<tag>
 ```
 
 
 
 ## Services
+
+## Shared Vault over Tailscale
+
+
+- Set `VAULT_API_ADDR` on the host to the Tailscale-reachable address
+- Each developer machine should use its own auth path or limited token, not the root token !
+
 
 ### Keycloak 
 

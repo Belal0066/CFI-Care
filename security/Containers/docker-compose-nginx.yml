@@ -93,15 +93,29 @@ services:
 
     # '--skip-auth-preflight=true',
 
+    # command:
+    #   [
+    #     # 'signin-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_in',
+    #     # 'signout-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_out',
+    #     '--proxy-prefix=/oauth2',
+    #     '--skip-provider-button=true',
+    #     '--standard-logging=true',
+    #     '--auth-logging=true',
+    #     '--request-logging=true',
+    #   ]
+
+    entrypoint: ["/bin/sh", "-lc"]
     command:
       [
-        # 'signin-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_in',
-        # 'signout-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_out',
-        '--proxy-prefix=/oauth2',
-        '--skip-provider-button=true',
-        '--standard-logging=true',
-        '--auth-logging=true',
-        '--request-logging=true',
+        "while [ ! -f /etc/oauth/.env.oauth ]; 
+        do sleep 1; done && 
+        set -a && . /etc/oauth/.env.oauth && set +a && 
+        exec oauth2-proxy 
+        --proxy-prefix=/oauth2 
+        --skip-provider-button=true 
+        --standard-logging=true 
+        --auth-logging=true 
+        --request-logging=true",
       ]
 
     restart: unless-stopped
@@ -113,7 +127,7 @@ services:
 
       # General Provider options
       OAUTH2_PROXY_CLIENT_ID: ${CLIENT_ID}
-      OAUTH2_PROXY_CLIENT_SECRET: ${CLIENT_SECRET}
+      # OAUTH2_PROXY_CLIENT_SECRET: ${CLIENT_SECRET}
       OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
       OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: true
       OAUTH2_PROXY_OIDC_ISSUER_URL: ${PROTOCOL}://${KC_HOSTNAME}/${KEYCLOAK_REALM_PATH}
@@ -140,7 +154,7 @@ services:
       OAUTH2_PROXY_COOKIE_NAME: ${COOKIE_NAME}
       # OAUTH2_PROXY_COOKIE_REFRESH: 25m
       OAUTH2_PROXY_COOKIE_SAMESITE: 'none'
-      OAUTH2_PROXY_COOKIE_SECRET: ${COOKIE_SECRET}
+      # OAUTH2_PROXY_COOKIE_SECRET: ${COOKIE_SECRET}
       OAUTH2_PROXY_COOKIE_SECURE: true
       OAUTH2_PROXY_PASS_REFRESH_TOKEN: true
 
@@ -197,13 +211,34 @@ services:
 
     env_file:
       - ./.env
+      # - ./secrets/oauth/.env.oauth
+    
+    volumes:
+      - ./secrets/oauth:/etc/oauth:ro
     depends_on:
       redis:
         condition: service_healthy
+      # oauth-vault-agent:
+      #   condition: service_healthy
       # kc.localhost:
       #   condition: service_healthy
     networks:
       - nginx-network
+  
+
+  oauth-vault-agent:
+    image: hashicorp/vault:1.21.2
+    env_file:
+      - ./.env.vault
+    command: vault agent -config=/etc/vault/agent/oauth-agent.hcl
+    networks:
+      - nginx-network
+    volumes:
+      - ./services/oauth2-proxy/vault/agent:/etc/vault/agent:ro
+      - ./services/oauth2-proxy/vault/role:/etc/vault/role
+      - ./services/oauth2-proxy/vault/templates:/etc/vault/templates:ro
+      - ./secrets/oauth:/etc/oauth
+
 
   
 networks:

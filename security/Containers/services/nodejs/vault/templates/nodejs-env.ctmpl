@@ -1,0 +1,9 @@
+DB_USER={{ with secret "secret/data/dev/nodejs/db" }}{{ .Data.data.DB_USER }}{{ end }}
+DB_PASSWORD={{ with secret "secret/data/dev/nodejs/db" }}{{ .Data.data.DB_PASSWORD }}{{ end }}
+DB_HOST={{ with secret "secret/data/dev/nodejs/db" }}{{ .Data.data.DB_HOST }}{{ end }}
+DB_PORT={{ with secret "secret/data/dev/nodejs/db" }}{{ .Data.data.DB_PORT }}{{ end }}
+DB_NAME={{ with secret "secret/data/dev/nodejs/db" }}{{ .Data.data.DB_NAME }}{{ end }}
+
+KC_CLIENT_SECRET={{ with secret "secret/data/dev/nodejs/keys" }}{{ .Data.data.KC_CLIENT_SECRET }}{{ end }}
+CLIENT_SECRET={{ with secret "secret/data/dev/nodejs/keys" }}{{ .Data.data.CLIENT_SECRET }}{{ end }}
+SESSION_SECRET={{ with secret "secret/data/dev/nodejs/keys" }}{{ .Data.data.SESSION_SECRET }}{{ end }}

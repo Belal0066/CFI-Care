@@ -32,13 +32,29 @@ envsubst < "$REPO_ROOT/mobile/src/lib/config/app_config.template.dart" > "$REPO_
 envsubst < "$REPO_ROOT/frontend/src/src/environments/environment.template.ts" > "$REPO_ROOT/frontend/src/src/environments/environment.ts"
 # envsubst < "$REPO_ROOT/mobile/src/env/dev_env.template.json" > "$REPO_ROOT/mobile/src/env/dev_env.json"
 
-gnome-terminal -- bash -c "./start_kc_containers.sh; exec bash"
+shopt -s nullglob
+VAULT_FILE=("$SCRIPT_DIR/vault/key")
+VAULT_EXISTS="${VAULT_FILE[0]:-}"
+shopt -s nullglob
+
+if [[ "$VAULT_EXISTS" ]];then
+
 gnome-terminal -- bash -c "./start_vault_container.sh; exec bash"
+
+echo " Initializing vault :/"
+"$SCRIPT_DIR/vault_id_refresh.sh"
+
+fi
+
+echo "------------------------------------------------------------"
+echo "Starting Containers :D"
+gnome-terminal -- bash -c "./start_kc_containers.sh; exec bash"
 gnome-terminal -- bash -c "./start_nodejs_containers.sh; exec bash"
 gnome-terminal -- bash -c "./start_fhir_container.sh; exec bash"
 gnome-terminal -- bash -c "./start_frontend.sh; exec bash"
 gnome-terminal -- bash -c "./start_nginx_containers.sh; exec bash"
 
+echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"
 echo "You can access the browser using https://${PUBLIC_HOSTNAME} •ᴗ•"
 echo "------------------------------------------------------------"

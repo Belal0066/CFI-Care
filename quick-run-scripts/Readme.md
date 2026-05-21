@@ -142,7 +142,9 @@ powershell -ExecutionPolicy Bypass -File .\start_containers.ps1
     ```powershell
     powershell -ExecutionPolicy Bypass -File .\start_vault_container.ps1
     ``` 
-  - **Notes:** ensure Vault data volume and env are configured
+  - **Notes:** 
+    - **Shared Vault:** set `VAULT_API_ADDR` to the Tailscale IP (or public hostname of the Vault host) before starting it
+    - **Default:** if `VAULT_API_ADDR` is not set, Vault advertises `http://127.0.0.1:8200` for local dev :D
 
 - **Stop / teardown:** [./stop_containers.sh](./stop_containers.sh#L1)  
   - **Purpose:** Bring down all compose stacks 
