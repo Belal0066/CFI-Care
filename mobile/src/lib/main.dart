@@ -27,6 +27,8 @@ import 'data/repositories/auth_repo_impl.dart';
 import 'presentation/routes/app_router.dart';
 import 'domain/repository/access_grant_repository.dart';
 import 'presentation/viewmodels/access_grant_provider.dart';
+import 'domain/repository/patient_repository.dart';
+import 'presentation/viewmodels/patient_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -83,6 +85,7 @@ void main() async {
   final vitalsRepo = VitalsRepositoryImpl(HealthConnectDataSource());
   final eventRepo = MajorEventRepository(apiService);
   final accessGrantRepo = AccessGrantRepository(apiService);
+  final patientRepo = PatientRepository(apiService);
 
   final router = buildRouter(authProvider);
 
@@ -94,6 +97,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => VitalsProvider(vitalsRepo)),
         ChangeNotifierProvider(create: (_) => MajorEventProvider(eventRepo)),
         ChangeNotifierProvider(create: (_) => AccessGrantProvider(accessGrantRepo)),
+        ChangeNotifierProvider(create: (_) => PatientProvider(patientRepo)),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
       ],
       child: MaterialApp.router(
