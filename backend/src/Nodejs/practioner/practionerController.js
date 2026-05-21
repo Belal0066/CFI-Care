@@ -59,9 +59,21 @@ const deletePractitioner = async (req, res) => {
   }
 };
 
+const getAllPractitioners = async (req, res) => {
+  try {
+    const { specialtyDetail } = req.query; // Extract query parameter
+    const doctors = await practitonerService.getAllPractitioners(specialtyDetail);
+    res.status(200).json(doctors);
+  } catch (error) {
+    console.error("Error in getAllPractitioners controller:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getPractitionerById,
   createPractitionerWithSpecificId,
   updatePractitioner,
   deletePractitioner,
+  getAllPractitioners,
 };

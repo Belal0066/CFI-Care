@@ -43,12 +43,17 @@ class AppointmentCard extends StatelessWidget {
                   ),
                   child: CircleAvatar(
                     radius: 30,
-                    backgroundImage: NetworkImage(appointment.doctor.imageUrl),
+                    backgroundImage: appointment.doctor.imageUrl.isNotEmpty
+                        ? NetworkImage(appointment.doctor.imageUrl)
+                        : null,
                     backgroundColor: Colors.grey.shade200,
+                    child: appointment.doctor.imageUrl.isEmpty
+                        ? const Icon(Icons.person, color: Colors.grey)
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Details
                 Expanded(
                   child: Column(
@@ -60,25 +65,38 @@ class AppointmentCard extends StatelessWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: isCanceled ? Colors.grey : Colors.black87,
-                          decoration: isCanceled ? TextDecoration.lineThrough : null,
+                          decoration: isCanceled
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         appointment.doctor.title,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                        maxLines: 1, 
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       // Date & Time Row
                       Row(
                         children: [
-                          Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.calendar_today,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             "${appointment.date} • ${appointment.time}",
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
                           ),
                         ],
                       ),
@@ -86,12 +104,19 @@ class AppointmentCard extends StatelessWidget {
                       // Location Row
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               appointment.doctor.address,
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -104,13 +129,15 @@ class AppointmentCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Status Footer
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: isCanceled ? Colors.red.shade50 : const Color(0xFFE3F2FD),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -129,17 +156,21 @@ class AppointmentCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: isCanceled ? Colors.red : const Color(0xFF0073CF),
+                        color: isCanceled
+                            ? Colors.red
+                            : const Color(0xFF0073CF),
                       ),
                     ),
                   ],
                 ),
-                
+
                 // Cancel Button (Only show if not canceled)
                 if (!isCanceled)
                   InkWell(
                     onTap: () {
-                      context.read<BookingProvider>().cancelAppointment(appointment.id);
+                      context.read<BookingProvider>().cancelAppointment(
+                        appointment.id,
+                      );
                     },
                     child: const Text(
                       "Cancel",

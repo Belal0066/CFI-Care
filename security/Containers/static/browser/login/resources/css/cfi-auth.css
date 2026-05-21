@@ -1,0 +1,494 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css");
+
+:root {
+  --cfi-primary: #1e6ed3;
+
+  --cfi-primary-dark: #195eb2;
+
+  --cfi-accent: #06b6d4;
+
+  --cfi-accent-2: #6366f1;
+
+  --cfi-surface: rgba(255, 255, 255, 0.1);
+
+  --cfi-surface-strong: rgba(255, 255, 255, 0.16);
+
+  --cfi-border: rgba(255, 255, 255, 0.18);
+
+  --cfi-text: #ffffff;
+
+  --cfi-muted: rgba(255, 255, 255, 0.85);
+
+  --cfi-danger: #ef4444;
+
+  --cfi-success: #22c55e;
+
+  --cfi-font-stack: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+html,
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  /* Replaced gradient with the exact flat vibrant blue from the target */
+  background: #1565D8 !important;
+  color: var(--cfi-text);
+  font-family: var(--cfi-font-stack) !important;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#kc-header,
+#kc-header-wrapper,
+#kc-page-title,
+.kc-logo-text {
+  display: none !important;
+}
+
+.login-pf-page {
+  width: 100%;
+  max-width: 1200px;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.cfi-shell {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 5rem;
+  align-items: center;
+}
+
+/* --- Hero & Brand Styling --- */
+.cfi-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.cfi-brand-mark {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.cfi-brand-copy h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.cfi-brand-copy p {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  color: var(--cfi-muted);
+}
+
+/* --- Feature Card Rows --- */
+.cfi-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cfi-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.130);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+
+  /* Smoothly transitions transform, background, and shadow over 200ms */
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+  will-change: transform;
+  /* Optimizes hardware acceleration in the browser */
+}
+
+.cfi-feature:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateX(6px);
+  /* Shifts the card slightly to the right on hover */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.cfi-feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.cfi-feature-copy h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.cfi-feature-copy p {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cfi-muted);
+  line-height: 1.4;
+}
+
+/* --- Login Form Panel Card --- */
+.cfi-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 3.5rem 2.5rem;
+  border-radius: 24px;
+  /* Balanced opacity to combat the "cloudy/glass" over-blur effect */
+  background: rgba(255, 255, 255, 0.130);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  /* Added a softer, wider dark drop-shadow to give it the exact elevation depth of the target */
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  margin-left: auto;
+}
+
+.cfi-card-head {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.cfi-card-head h2 {
+  margin: 0;
+  font-size: 2.50rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cfi-card-head p {
+  margin: 8px 0 0;
+  font-size: 1.20rem;
+  color: var(--cfi-muted);
+}
+
+/* --- Input Fields (Standard Uniform Placeholders) --- */
+.cfi-floating-group {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.cfi-form .form-control {
+  width: 100% !important;
+  height: 54px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  padding: 0 16px !important;
+  color: #ffffff !important;
+  font-size: 15px !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: all 0.2s ease;
+}
+
+.cfi-form .form-control:focus {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Traditional Native Floating Mechanics matching Target Visual standard */
+.cfi-floating-label {
+  position: absolute;
+  left: 18px;
+  /* Matched to input padding */
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.6);
+  /* Slightly brighter to match target */
+  font-size: 18px;
+  /* Scaled up from 15px */
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.cfi-form .form-control:focus~.cfi-floating-label,
+.cfi-form .form-control:not(:placeholder-shown)~.cfi-floating-label {
+  display: none;
+  /* Emulates standard native placeholders seen in original */
+}
+
+/* --- Password Custom Visibility Wrap --- */
+.cfi-password-wrap {
+  position: relative;
+}
+
+.cfi-password-wrap .form-control {
+  padding-right: 48px !important;
+}
+
+.cfi-password-toggle {
+  position: absolute;
+  right: 18px;
+  /* Pushed closer to the edge */
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+}
+
+/* --- Actions Row --- */
+.cfi-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.cfi-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cfi-muted);
+  cursor: pointer;
+}
+
+.cfi-remember input {
+  width: 16px;
+  height: 16px;
+  accent-color: #00bcd4;
+}
+
+.cfi-link {
+  color: var(--cfi-muted);
+  text-decoration: none;
+}
+
+.cfi-link:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+/* --- Main Sign In Button --- */
+.cfi-submit {
+  width: 100% !important;
+  height: 54px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  /* Changed to a clean 135deg flow mimicking the exact blend ratio of the original button */
+  background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%) !important;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  transition: all 0.2s ease;
+}
+
+.cfi-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+}
+
+/* --- Divider line split --- */
+.cfi-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.75rem 0;
+  color: var(--cfi-muted);
+  font-size: 0.95rem;
+}
+
+.cfi-divider::before,
+.cfi-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cfi-divider:not(:empty)::before {
+  margin-right: 12px;
+}
+
+.cfi-divider:not(:empty)::after {
+  margin-left: 12px;
+}
+
+/* --- Social Bars Layout --- */
+.cfi-social {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 1.75rem;
+}
+
+.cfi-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.cfi-social-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Footer Link Bottom --- */
+.cfi-help {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 1.20rem;
+  color: var(--cfi-muted);
+}
+
+.cfi-help a {
+  color: #ffffff;
+  text-decoration: underline;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+/* Normal, clean spacing by default */
+.cfi-form .form-group {
+  position: relative;
+  margin-bottom: 1.25rem; 
+}
+
+/* Expands immediately on page reload ONLY if an error is present */
+.cfi-form .form-group.has-error {
+  margin-bottom: 2.5rem; 
+}
+
+/* Keep your working absolute positioning exactly as it was */
+.kc-feedback-text {
+  position: absolute;
+  top: calc(100% + 6px); 
+  left: 4px;
+  z-index: 10;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ff9999;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  line-height: 1.2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: cfiFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* --- Secondary Layout Button Configuration --- */
+.cfi-secondary-btn {
+  width: 100% !important;
+  height: 54px !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cfi-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Fix inline message styling layout variables to match original theme tokens */
+.cfi-inline-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cfi-inline-info i {
+  color: #06b6d4;
+  font-size: 1.1rem;
+}
+
+.cfi-inline-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #ffb3b3;
+}
+
+.cfi-inline-error i {
+  color: #ef4444;
+  font-size: 1.1rem;
+}
+
+#kc-attempted-username,
+#reset-login,
+#reset-login .kc-login-tooltip,
+#reset-login .kc-tooltip-text {
+display: none !important;
+visibility: hidden !important;
+pointer-events: none !important;
+}
+#kc-form-login #username[readonly] {
+  background: #959696d8 !important;
+  color: #f2f3f6 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+
+#kc-form-login #username[readonly]::placeholder {
+  color: #9ca3af !important;
+}
+
+
+/* --- Responsiveness System --- */
+@media (max-width: 992px) {
+  .cfi-shell {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .cfi-card {
+    margin: 0 auto;
+  }
+}

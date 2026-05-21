@@ -5,49 +5,81 @@ const patientController = require("./patientController");
 
 const validateRequest = require("../middleware/validateRequest");
 const { createPatientSchema } = require("../models/patientValidation");
-const { requireSession } = require('../middleware/requireSession');
+const { requireApiAuth } = require("../middleware/requireApiAuth");
 
 // GET all patients
-router.get("/", requireSession,patientController.getAllPatients);
-//Authz tokens 
-const { verifyToken } = require('../middleware/keycloakJWT');
+router.get("/", requireApiAuth, patientController.getAllPatients);
+//Authz tokens
+const { verifyToken } = require("../middleware/keycloakJWT");
 
 //scopes
-const requireScopes = require('../middleware/validateScopes');
-const attachForwardedToken = require('../middleware/attachForwardedToken');
+const requireScopes = require("../middleware/validateScopes");
+const attachForwardedToken = require("../middleware/attachForwardedToken");
 // const requireOwnership = require('../middleware/requireOwnership');
-
-
-
-
-
 
 router.post(
   "/",
   validateRequest(createPatientSchema),
-  patientController.createPatient
+  patientController.createPatient,
 );
 
 router.put("/", patientController.createPatientWithSpecificId);
 
-router.get("/toon-everything/:id", requireSession, attachForwardedToken, patientController.toonPatientEverything);
-router.get('/', requireSession, attachForwardedToken, patientController.getCurrentPatient);
+// Sync patient to FHIR (create FHIR Patient from mobile app user data)
+router.post("/sync-fhir", patientController.syncPatientToFHIR);
+
+router.get(
+  "/toon-everything/:id",
+  requireApiAuth,
+  attachForwardedToken,
+  patientController.toonPatientEverything,
+);
+router.get(
+  "/",
+  requireApiAuth,
+  attachForwardedToken,
+  patientController.getCurrentPatient,
+);
 
 router.put(
   "/:id",
   // validateRequest(createPatientSchema),
-  attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rs']),
-  patientController.createPatientWithSpecificId
+  attachForwardedToken,
+  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireScopes(["patient/*.rs"]),
+  patientController.createPatientWithSpecificId,
 );
 
-
-
-
-router.get("/:id",requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), requireScopes(['patient/*.rs']), patientController.getPatientById);
+router.get(
+  "/:id",
+  requireApiAuth,
+  attachForwardedToken,
+  verifyToken(process.env.EXPECTED_AUDIENCE),
+  requireScopes(["patient/*.rs"]),
+  patientController.getPatientById,
+);
 
 //still need to add scopes :/
-router.get("/:id/related-data",requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientAllRelatedData);
-router.get("/:id/observations", requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientObservations);
-router.get("/:id/encounters", requireSession ,attachForwardedToken,verifyToken(process.env.EXPECTED_AUDIENCE), patientController.getPatientEncounters);
+router.get(
+  "/:id/related-data",
+  requireApiAuth,
+  attachForwardedToken,
+  verifyToken(process.env.EXPECTED_AUDIENCE),
+  patientController.getPatientAllRelatedData,
+);
+router.get(
+  "/:id/observations",
+  requireApiAuth,
+  attachForwardedToken,
+  verifyToken(process.env.EXPECTED_AUDIENCE),
+  patientController.getPatientObservations,
+);
+router.get(
+  "/:id/encounters",
+  requireApiAuth,
+  attachForwardedToken,
+  verifyToken(process.env.EXPECTED_AUDIENCE),
+  patientController.getPatientEncounters,
+);
 
 module.exports = router;

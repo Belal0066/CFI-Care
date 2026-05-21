@@ -11,4 +11,4 @@ function Wait-Docker {
 
 Wait-Docker
 Set-Location "$PSScriptRoot/security/Containers"
-docker compose -f docker-compose-nginx.yml up
+docker compose -f docker-compose-nginx.yml up --build

@@ -28,11 +28,29 @@
 trivy image --severity HIGH,CRITICAL <image-name>:<tag>
 ```
 
+
+
 ## Services
 
-### Keycloak
+### Keycloak 
 
-- To import keycloak realms, either uncomment these lines within the main docker-compose in the keycloak container part(kc.localhost):
+>for manual steps in case you don't want to run scripts
+
+- To build Keycloak FHIR Provisioner (for at-registration resource creation) jar file :
+
+```bash
+cd security/Containers/services/keycloak/fhir-listener
+mvn clean package
+```
+
+- To build Keycloak Verify email jar file :
+  
+```bash
+cd security/Containers/services/keycloak/verify-email
+mvn clean package
+```
+
+- To import keycloak realms, either uncomment these lines within the main docker-compose in the keycloak container part(localhost):
 
     ```yml
     command:[
@@ -51,13 +69,14 @@ trivy image --severity HIGH,CRITICAL <image-name>:<tag>
     *or* run this command to import the file from its volume :
     
         ```
-            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realms.json"
+            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realm.json"
         ```
 
 - To export keycloak realms within a single file, start container, then run this command within a terminal :
-
+- 
+<!--  docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json" -->
         ```
-            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json"
+            docker exec -i kc.localhost  sh -c  "/opt/keycloak/bin/kc.sh export --realm CFI-Care --file /export/realm.json"
 
         ```
 
@@ -68,17 +87,16 @@ trivy image --severity HIGH,CRITICAL <image-name>:<tag>
 - To set keycloak local certs in security/Containers/certs/ directory (chmod 644 so containers can read them) :
 
     ``` 
-    mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost 127.0.0.1 ::1
+    mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost kc.localhost 127.0.0.1 ::1
 
-    mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+    mkcert -key-file key.pem -cert-file cert.pem localhost kc.localhost 127.0.0.1 ::1
 
     openssl pkcs12 -export -in cert.pem -inkey key.pem -out keystore.p12 -name tomcat -password pass:secret
 
     cp $(mkcert -CAROOT)/rootCA.pem ./
 
     chmod 666 *.pem 
+    chmod 666 *.p12
     
     ```
-
-
 

@@ -1,4 +1,4 @@
-@startuml
+@startuml Init Token Flow Sequence <<Seqence Diagram>>
 actor User
 participant Browser
 participant Keycloak

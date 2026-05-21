@@ -32,10 +32,10 @@ class DBHelper {
     await db.execute('''
       CREATE TABLE users (
         userId TEXT PRIMARY KEY,
-        email TEXT NOT NULL,
-        password TEXT NOT NULL
+        email TEXT NOT NULL
       )
     ''');
+    // password TEXT NOT NULL
 
     // 2. Events
     await db.execute("""
@@ -113,13 +113,13 @@ class DBHelper {
   static Future<int> insertUser({
     required String userId,
     required String email,
-    required String password,
+    // required String password,
   }) async {
     final db = await database;
     return await db.insert('users', {
       'userId': userId,
       'email': email,
-      'password': password,
+      // 'password': password,
     }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
@@ -127,8 +127,8 @@ class DBHelper {
     final db = await database;
     final res = await db.query(
       'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+      where: 'email = ?',
+      whereArgs: [email],
       limit: 1,
     );
     if (res.isNotEmpty) return res.first['userId'] as String;
@@ -308,4 +308,69 @@ class DBHelper {
       whereArgs: [doc.id],
     );
   }
+
+
+  static Future<String?> findUserIdByEmail(String email) async {
+  final db = await database;
+  final res = await db.query(
+    'users',
+    columns: ['userId'],
+    where: 'email = ?',
+    whereArgs: [email],
+    limit: 1,
+  );
+  if (res.isEmpty) return null;
+  return res.first['userId'] as String?;
+}
+
+static Future<bool> userExistsById(String userId) async {
+  final db = await database;
+  final res = await db.query(
+    'users',
+    columns: ['userId'],
+    where: 'userId = ?',
+    whereArgs: [userId],
+    limit: 1,
+  );
+  return res.isNotEmpty;
+}
+
+static Future<void> ensureUserAndProfile({
+  required String userId,
+  required String email,
+  String? firstName,
+  String? lastName,
+}) async {
+  final exists = await userExistsById(userId);
+  if (!exists) {
+    await insertUser(
+      userId: userId,
+      email: email
+    );
+  }
+
+  final existingProfile = await getUserProfile(userId);
+  if (existingProfile == null) {
+    await upsertProfile(userId, {
+      'firstName': firstName ?? '',
+      'lastName': lastName ?? '',
+      'email': email,
+      'phone': '',
+      'address': '',
+      'dob': '',
+      'gender': '',
+      'bloodType': '',
+      'height': '',
+      'weight': '',
+      'allergies': '',
+      'conditions': '',
+      'medications': '',
+      'geneticConditions': '',
+      'chronicDiseases': '',
+      'emergencyContact': '',
+      'insuranceProvider': '',
+      'policyNumber': '',
+    });
+  }
+}
 }

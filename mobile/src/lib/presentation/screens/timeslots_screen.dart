@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; 
+import 'package:provider/provider.dart';
 import '../viewmodels/booking_provider.dart';
-import '../../domain/models/appointments.dart';
+import '../../data/repositories/booking_repo_impl.dart';
 import 'confirmation_screen.dart';
 
 class TimeSlotScreen extends StatefulWidget {
-  
-  const TimeSlotScreen({super.key});
+  final String dayRawDate; // The raw date to filter slots (e.g., "2026-02-16")
+
+  const TimeSlotScreen({super.key, required this.dayRawDate});
 
   @override
   State<TimeSlotScreen> createState() => _TimeSlotScreenState();
 }
 
 class _TimeSlotScreenState extends State<TimeSlotScreen> {
-  int _expandedIndex = 0; // Open the first available day by default
+  String? _selectedSlotId;
   String? _selectedTime;
 
   @override
   Widget build(BuildContext context) {
-    // GET DOCTOR FROM PROVIDER
-    // We use read() here because we just need the data once to build the list.
-    // Use '!' because we are sure a doctor was selected previously.
-    final doctor = context.read<BookingProvider>().selectedDoctor!;
-    final schedule = doctor.schedule;
+    final provider = context.watch<BookingProvider>();
+    // Filter slots for the selected day only
+    final allSlots = provider.availableSlots;
+    final slots = allSlots
+        .where((slot) => slot.rawDate == widget.dayRawDate)
+        .toList();
+    final isLoading = provider.isLoadingSlots;
+    final error = provider.slotsError;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -38,38 +42,50 @@ class _TimeSlotScreenState extends State<TimeSlotScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: schedule.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                return _buildDayAccordion(context, index, schedule[index]);
-              },
-            ),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        "Error loading slots: $error",
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                : slots.isEmpty
+                ? const Center(
+                    child: Text(
+                      "No available time slots",
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: slots.length,
+                    itemBuilder: (context, index) {
+                      return _buildTimeSlotCard(context, slots[index]);
+                    },
+                  ),
           ),
-          
+
           // Confirm Button (Only shows if a time is selected)
-          if (_selectedTime != null)
+          if (_selectedTime != null && _selectedSlotId != null)
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.white,
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  if (_selectedTime != null) {
-                    // --- SAVE TIME SLOT TO PROVIDER ---
-                    
-                    DateTime selectedDate = schedule[_expandedIndex].date;
-                    context.read<BookingProvider>().setTimeSlot(selectedDate, _selectedTime!);
-
-                    // --- NAVIGATE CLEANLY ---
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ConfirmationScreen(),
-                      ),
-                    );
-                  }
+                  // Navigate to confirmation screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ConfirmationScreen(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD32F2F), // Red
@@ -93,87 +109,76 @@ class _TimeSlotScreenState extends State<TimeSlotScreen> {
     );
   }
 
-  Widget _buildDayAccordion(
-    BuildContext context,
-    int index,
-    AppointmentDay dayData,
-  ) {
-    final bool isExpanded = index == _expandedIndex;
-    final List<String> slots = dayData.availableSlots;
+  Widget _buildTimeSlotCard(BuildContext context, DoctorSlot slot) {
+    final bool isSelected = slot.id == _selectedSlotId;
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF0073CF) : Colors.grey.shade300,
+          width: isSelected ? 2 : 1,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF0073CF).withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
-      child: Column(
-        children: [
-          ListTile(
-            onTap: () {
-              setState(() {
-                _expandedIndex = isExpanded ? -1 : index;
-                _selectedTime = null; // Reset selection when changing days
-              });
-            },
-            title: Text(
-              dayData.dayName,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-            ),
-            trailing: Icon(
-              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              color: const Color(0xFF0073CF),
-            ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: () {
+          final selectedTime = "${slot.startTime} - ${slot.endTime}";
+          context.read<BookingProvider>().selectSlot(slot);
+          setState(() {
+            _selectedSlotId = slot.id;
+            _selectedTime = selectedTime;
+          });
+        },
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF0073CF).withOpacity(0.1)
+                : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
           ),
-
-          if (isExpanded)
-            if (slots.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Text(
-                  "No slots available",
-                  style: TextStyle(color: Colors.grey),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: slots.map((time) {
-                    final bool isSelected = time == _selectedTime;
-                    return SizedBox(
-                      width: (MediaQuery.of(context).size.width - 64) / 3,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() => _selectedTime = time);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isSelected
-                              ? const Color(0xFF005bb5)
-                              : const Color(0xFF0073CF),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          time,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-        ],
+          child: Icon(
+            Icons.access_time,
+            color: isSelected ? const Color(0xFF0073CF) : Colors.grey.shade600,
+          ),
+        ),
+        title: Text(
+          "${slot.startTime} - ${slot.endTime}",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: isSelected ? const Color(0xFF0073CF) : Colors.black87,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              slot.date,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              "Available",
+              style: TextStyle(fontSize: 13, color: Colors.green.shade600),
+            ),
+          ],
+        ),
+        trailing: isSelected
+            ? const Icon(Icons.check_circle, color: Color(0xFF0073CF))
+            : Icon(Icons.circle_outlined, color: Colors.grey.shade400),
       ),
     );
   }

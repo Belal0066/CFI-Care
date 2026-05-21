@@ -1,0 +1,63 @@
+@startuml Practitioner Patient Access Granting
+skinparam actorStyle AWESOME
+autonumber
+
+
+' actor Practitioner
+' participant Browser
+
+' participant RAG
+
+
+
+' participant oauth2Proxy
+
+' participant Keycloak
+
+participant "Backend" as NJS
+
+participant AuditLog
+
+
+participant "Patient Data Redis" as PDR
+database FHIR
+
+database "Access Redis" as AR
+
+database "Access Grant Database" as ADB
+
+' database "FCM Token Database" as TDB
+
+' participant RAGRedis as RR
+
+participant FastAPI as FAPI
+
+' participant Firebase
+participant nginx
+
+participant "Application" as App
+actor "Patient \n(Data Owner)"  as Patient 
+==Patient Revokes access==
+' drs with access are listed??
+Patient -> App : revoke dr access 
+
+App -> nginx: request deletion of access grant
+nginx -> NJS : forward deletion request
+
+NJS -> ADB : Update access granrt to revoked
+ADB -> NJS : grant updated
+
+NJS -> AR : Delete cached grant
+AR -> NJS : deletion confirmation
+
+NJS -> PDR : Delete cached patient data for this grant
+NJS -> FAPI : Clear RAG data for this grant
+FAPI -> NJS : Confirm deletion 
+
+NJS -> AuditLog : Log access revocation
+
+NJS-> nginx: return HTTP 200 OK 
+nginx-> App: forward OK response
+App-> Patient: display revocation confirmation
+
+@enduml
