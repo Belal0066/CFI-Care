@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:medflow/presentation/widgets/build_section_profile.dart'; 
+import 'package:medflow/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:medflow/presentation/widgets/build_section_profile.dart';
 import 'package:medflow/presentation/screens/sign_in_up.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/db_helper.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../widgets/account_sec_section.dart';
+
+
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -171,16 +176,18 @@ class _MyProfileState extends State<MyProfile> {
           const SliverAppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            pinned: false, 
-            floating: true, 
-            snap: true, 
+            pinned: false,
+            floating: true,
+            snap: true,
           ),
 
           SliverToBoxAdapter(
             child: ListView(
               padding: const EdgeInsets.all(16.0),
-              shrinkWrap: true, // Added shrinkWrap safely inside SliverToBoxAdapter
-              physics: const NeverScrollableScrollPhysics(), // Let outer scroll view handle scrolling
+              shrinkWrap:
+                  true, // Added shrinkWrap safely inside SliverToBoxAdapter
+              physics:
+                  const NeverScrollableScrollPhysics(), // Let outer scroll view handle scrolling
               children: [
                 // --- Profile Header ---
                 Center(
@@ -209,7 +216,9 @@ class _MyProfileState extends State<MyProfile> {
                 ),
                 const SizedBox(height: 24),
                 const Divider(),
-
+                
+                AccountSecuritySection(),
+                SizedBox(height: 12),
                 // --- Personal Info Section ---
                 BuildSectionProfile(
                   leading: Icons.person_outline_outlined,
@@ -283,13 +292,14 @@ class _MyProfileState extends State<MyProfile> {
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.clear();
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignInUp()),
-                        (r) => false,
-                      );
-                    }
+                    await context.read<AuthProvider>().logout();
+                    // if (context.mounted) {
+                    //   Navigator.pushAndRemoveUntil(
+                    //     context,
+                    //     MaterialPageRoute(builder: (_) => const SignInUp()),
+                    //     (r) => false,
+                    //   );
+                    // }
                   },
                 ),
                 const SizedBox(height: 40),
@@ -337,9 +347,11 @@ class _MyProfileState extends State<MyProfile> {
                 child: ListTile(
                   leading: CircleAvatar(
                     // --- FIX 2: Use standard withOpacity instead of withValues ---
-                    backgroundColor: Colors.blueAccent.withValues(), 
+                    backgroundColor: Colors.blueAccent.withValues(),
                     child: Text(
-                      account['name']![0], 
+                      (account['name']?.isNotEmpty ?? false)
+                          ? account['name']![0]
+                          : '?',
                       style: const TextStyle(
                         color: Colors.blueAccent,
                         fontWeight: FontWeight.bold,
@@ -347,7 +359,7 @@ class _MyProfileState extends State<MyProfile> {
                     ),
                   ),
                   title: Text(
-                    account['name']!,
+                    account['name'] ?? 'Unknown User',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(

@@ -14,8 +14,23 @@
 
 # FROM quay.io/keycloak/keycloak:26.4.0
 
+
+FROM maven:3.9.9-eclipse-temurin-17 AS spi-builder
+WORKDIR /build
+
+COPY ./fhir-listener/pom.xml ./fhir-listener/pom.xml
+COPY ./fhir-listener/src ./fhir-listener/src
+
+RUN mvn -q -f ./fhir-listener/pom.xml clean package -DskipTests
+
+
 FROM quay.io/keycloak/keycloak@sha256:5f3fb534cde6bf006d79f5912473e5d2c828c707cdfc52e16972803aca9d43dd
 # COPY ../../import/ /opt/keycloak/import/
+
+# COPY ./fhir-listener/target/keycloak-fhir-listener-1.0.0.jar /opt/keycloak/providers/
+COPY --from=spi-builder /build/fhir-listener/target/keycloak-fhir-listener-1.0.0.jar /opt/keycloak/providers/
+RUN /opt/keycloak/bin/kc.sh build
+
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 

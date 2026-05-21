@@ -17,21 +17,21 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.initState();
     // if you want to control the Lottie animation:
     _controller = AnimationController(vsync: this);
-    _goToNextAfterDelay();
+    // _goToNextAfterDelay();
   }
 
-  void _goToNextAfterDelay() async {
-    await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const SignInUp(),
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 800),
-      ),
-    );
-  }
+  // void _goToNextAfterDelay() async {
+  //   await Future.delayed(const Duration(seconds: 3));
+  //   if (!mounted) return;
+  //   Navigator.of(context).pushReplacement(
+  //     PageRouteBuilder(
+  //       pageBuilder: (_, __, ___) => const SignInUp(),
+  //       transitionsBuilder: (_, anim, __, child) =>
+  //           FadeTransition(opacity: anim, child: child),
+  //       transitionDuration: const Duration(milliseconds: 800),
+  //     ),
+  //   );
+  // }
 
   @override
   void dispose() {
@@ -51,7 +51,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             onLoaded: (composition) {
               _controller
                 ..duration = composition.duration
-                ..forward();
+                ..repeat();
+                // ..forward();
             },
           ),
         ),

@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { requireSession } = require('../middleware/requireSession');
+const { requireApiAuth } = require('../middleware/requireApiAuth');
 
 const binaryController = require("./binaryController");
 
 
-router.put("/", requireSession, binaryController.createPDFBinaryResource);
-router.get("/:id", requireSession, binaryController.getPDFBinaryResource);
+router.put("/", requireApiAuth, binaryController.createPDFBinaryResource);
+router.get("/:id", requireApiAuth, binaryController.getPDFBinaryResource);
 router.post("/:id", binaryController.updateBinary);
 router.delete("/:id", binaryController.deleteBinary);
 

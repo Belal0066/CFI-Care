@@ -11,4 +11,4 @@ function Wait-Docker {
 
 Wait-Docker
 Set-Location "$PSScriptRoot/backend/src/FHIR"
-docker compose -f docker-compose.yml up
+docker compose -f docker-compose.yml up --build

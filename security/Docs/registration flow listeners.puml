@@ -1,0 +1,38 @@
+@startuml
+title Keycloak Registration Event Listener Flow
+
+actor "New User" as User
+participant "Browser / Application" as Client
+participant "Keycloak" as KC
+participant "Registration Event Listener" as Listener
+participant "Node.js BFF" as BFF
+participant "FHIR" as FHIR
+
+== User Registration ==
+User -> Client : submit registration data
+Client -> KC : register account
+KC -> KC : create user and store credentials 
+
+== Event-Driven Provisioning ==
+KC -> Listener : "REGISTER" event
+Listener -> KC : Client credentials grant
+KC --> Listener : Service access token
+Listener -> BFF : Post to the registration endpoint
+
+== BFF Security Enforcement ==
+BFF -> BFF : Validate JWT
+BFF -> BFF : check client_id 
+
+alt Allowed browser client mapping
+  BFF -> FHIR : Create Practitioner resource
+  FHIR --> BFF : 201 Created
+  BFF --> Listener : 200 OK
+else Allowed mobile client mapping
+  BFF -> FHIR : Create Patient resource
+  FHIR --> BFF : 201 Created
+  BFF --> Listener : 200 OK
+else Unknown or disallowed client mapping
+  BFF --> Listener : 403 Forbidden
+end
+
+@enduml
