@@ -47,6 +47,19 @@ async function getPatientById(patientId, accessToken) {
   }
 }
 
+// Normalize any common date format to YYYY-MM-DD (required by FHIR).
+function normalizeFhirDate(str) {
+  if (!str || typeof str !== 'string') return str;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  const dm = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (dm) return `${dm[3]}-${dm[2].padStart(2, '0')}-${dm[1].padStart(2, '0')}`;
+  // YYYY/MM/DD or YYYY.MM.DD
+  const yd = str.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if (yd) return `${yd[1]}-${yd[2].padStart(2, '0')}-${yd[3].padStart(2, '0')}`;
+  return str;
+}
+
 // Create patient with Specific ID
 async function createPatientWithSpecificId(patientData) {
   const patientId = patientData.id;
@@ -60,6 +73,23 @@ async function createPatientWithSpecificId(patientData) {
     resourceType: "Patient",
     ...patientData,
   };
+
+  // Normalize birthDate to YYYY-MM-DD
+  if (fhirPatientResource.birthDate) {
+    fhirPatientResource.birthDate = normalizeFhirDate(fhirPatientResource.birthDate);
+  }
+
+  // Inject minimal narrative (dom-6 best-practice; required in strict validation mode)
+  if (!fhirPatientResource.text) {
+    const namePart = (fhirPatientResource.name || [])[0];
+    const displayName = namePart
+      ? `${(namePart.given || []).join(' ')} ${namePart.family || ''}`.trim()
+      : 'Patient';
+    fhirPatientResource.text = {
+      status: 'generated',
+      div: `<div xmlns="http://www.w3.org/1999/xhtml">${displayName}</div>`,
+    };
+  }
 
   console.log(`Attempting to PUT patient to /Patient/${patientId}`);
 

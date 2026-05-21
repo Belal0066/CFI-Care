@@ -80,7 +80,13 @@ const toonPatientEverything = async (req, res) => {
 
 const createPatientWithSpecificId = async (req, res) => {
   try {
-    const patientData = req.body;
+    // Use route param as the authoritative id to prevent body spoofing.
+    // Fall back to body id for the no-param (PUT /) variant.
+    const id = req.params.id || req.body?.id;
+    if (!id) {
+      return res.status(400).json({ error: "Patient id is required" });
+    }
+    const patientData = { ...req.body, id };
     const newPatientResource =
       await patientService.createPatientWithSpecificId(patientData);
 
@@ -265,7 +271,12 @@ const getAllPatients = async (req, res) => {
 // Sync patient to FHIR (create if not exists)
 const syncPatientToFHIR = async (req, res) => {
   try {
-    const subject = req.user?.sub || req.session?.user?.sub || null;
+    // requireApiAuth populates req.jwt; fall back to session for web callers
+    const subject =
+      req.jwt?.sub ||
+      req.kauth?.token?.grant?.sub ||
+      req.session?.user?.sub ||
+      null;
     if (!subject) {
       return res.status(401).json({ error: "Not authenticated" });
     }

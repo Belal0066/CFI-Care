@@ -8,6 +8,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../widgets/account_sec_section.dart';
 import 'package:flutter/services.dart';
 import '../viewmodels/access_grant_provider.dart';
+import '../viewmodels/patient_provider.dart';
+import '../../domain/repository/patient_repository.dart';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -43,6 +45,8 @@ class _MyProfileState extends State<MyProfile> {
 
   // Revoke state (per practitionerId)
   final Map<String, bool> _revoking = {};
+
+  PatientProvider? _patientProviderRef;
 
   // --- FIX 1: Initialize Maps with DEFAULT KEYS so they are never empty ---
   Map<String, String> personalInfo = {
@@ -95,19 +99,50 @@ class _MyProfileState extends State<MyProfile> {
     super.initState();
     _loadProfile();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<AccessGrantProvider>();
-      provider.fetchPendingGrants();
-      provider.fetchActiveGrants();
-      provider.requestOtp();
+      _patientProviderRef = context.read<PatientProvider>();
+      _patientProviderRef!.addListener(_syncFromFhir);
+
+      final grantProvider = context.read<AccessGrantProvider>();
+      grantProvider.fetchPendingGrants();
+      grantProvider.fetchActiveGrants();
+      grantProvider.requestOtp();
     });
   }
 
   @override
   void dispose() {
+    _patientProviderRef?.removeListener(_syncFromFhir);
     for (final c in _durationControllers.values) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  void _syncFromFhir() {
+    final profile = _patientProviderRef?.profile;
+    if (profile == null || !mounted) return;
+    // Don't overwrite in-progress edits
+    if (editPersonal || editMedical || editEmergency) return;
+    setState(() {
+      if (profile.firstName.isNotEmpty) firstName = profile.firstName;
+      if (profile.lastName.isNotEmpty) lastName = profile.lastName;
+      if (profile.email.isNotEmpty) email = profile.email;
+      if (profile.phone.isNotEmpty) personalInfo['Phone'] = profile.phone;
+      if (profile.address.isNotEmpty) personalInfo['Address'] = profile.address;
+      if (profile.dob.isNotEmpty) personalInfo['Date of Birth'] = profile.dob;
+      if (profile.gender.isNotEmpty) personalInfo['Gender'] = profile.gender;
+      if (profile.bloodType.isNotEmpty) medicalInfo['Blood Type'] = profile.bloodType;
+      if (profile.height.isNotEmpty) medicalInfo['Height (cm)'] = profile.height;
+      if (profile.weight.isNotEmpty) medicalInfo['Weight (kg)'] = profile.weight;
+      if (profile.allergies.isNotEmpty) medicalInfo['Allergies'] = profile.allergies;
+      if (profile.conditions.isNotEmpty) medicalInfo['Medical Conditions'] = profile.conditions;
+      if (profile.medications.isNotEmpty) medicalInfo['Medications'] = profile.medications;
+      if (profile.geneticConditions.isNotEmpty) medicalInfo['Genetic Conditions'] = profile.geneticConditions;
+      if (profile.chronicDiseases.isNotEmpty) medicalInfo['Chronic Diseases'] = profile.chronicDiseases;
+      if (profile.emergencyContact.isNotEmpty) emergencyInfo['Emergency Contact'] = profile.emergencyContact;
+      if (profile.insuranceProvider.isNotEmpty) emergencyInfo['Insurance Provider'] = profile.insuranceProvider;
+      if (profile.policyNumber.isNotEmpty) emergencyInfo['Policy Number'] = profile.policyNumber;
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -119,22 +154,19 @@ class _MyProfileState extends State<MyProfile> {
       return;
     }
 
-    Map<String, dynamic>? data = await DBHelper.getUserProfile(currentUserId!);
+    final data = await DBHelper.getUserProfile(currentUserId!);
 
     if (data != null) {
       setState(() {
         firstName = data['firstName'] ?? 'User';
         lastName = data['lastName'] ?? '';
         email = data['email'] ?? '';
-
-        // Update the maps with real data
         personalInfo = {
           'Phone': data['phone'] ?? '',
           'Address': data['address'] ?? '',
           'Date of Birth': data['dob'] ?? '',
           'Gender': data['gender'] ?? '',
         };
-
         medicalInfo = {
           'Blood Type': data['bloodType'] ?? '',
           'Height (cm)': data['height'] ?? '',
@@ -145,7 +177,6 @@ class _MyProfileState extends State<MyProfile> {
           'Genetic Conditions': data['geneticConditions'] ?? '',
           'Chronic Diseases': data['chronicDiseases'] ?? '',
         };
-
         emergencyInfo = {
           'Emergency Contact': data['emergencyContact'] ?? '',
           'Insurance Provider': data['insuranceProvider'] ?? '',
@@ -156,12 +187,19 @@ class _MyProfileState extends State<MyProfile> {
     } else {
       setState(() => isLoading = false);
     }
+
+    // Fetch from FHIR in the background — _syncFromFhir() will update UI when done.
+    // By the time DB operations complete, addPostFrameCallback has already run
+    // and the listener is registered.
+    if (mounted) {
+      context.read<PatientProvider>().fetchProfile(currentUserId!);
+    }
   }
 
   Future<void> _saveChanges() async {
     if (currentUserId == null) return;
 
-    final Map<String, dynamic> updateData = {
+    final updateData = <String, dynamic>{
       'firstName': firstName,
       'lastName': lastName,
       'email': email,
@@ -182,7 +220,40 @@ class _MyProfileState extends State<MyProfile> {
       'policyNumber': emergencyInfo['Policy Number'],
     };
 
+    // Save locally first (fast, offline-safe)
     await DBHelper.upsertProfile(currentUserId!, updateData);
+
+    // Sync to FHIR backend
+    if (!mounted) return;
+    final profile = PatientProfile(
+      patientId: currentUserId!,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: personalInfo['Phone'] ?? '',
+      address: personalInfo['Address'] ?? '',
+      dob: personalInfo['Date of Birth'] ?? '',
+      gender: personalInfo['Gender'] ?? '',
+      bloodType: medicalInfo['Blood Type'] ?? '',
+      height: medicalInfo['Height (cm)'] ?? '',
+      weight: medicalInfo['Weight (kg)'] ?? '',
+      allergies: medicalInfo['Allergies'] ?? '',
+      conditions: medicalInfo['Medical Conditions'] ?? '',
+      medications: medicalInfo['Medications'] ?? '',
+      geneticConditions: medicalInfo['Genetic Conditions'] ?? '',
+      chronicDiseases: medicalInfo['Chronic Diseases'] ?? '',
+      emergencyContact: emergencyInfo['Emergency Contact'] ?? '',
+      insuranceProvider: emergencyInfo['Insurance Provider'] ?? '',
+      policyNumber: emergencyInfo['Policy Number'] ?? '',
+    );
+
+    final ok = await context.read<PatientProvider>().saveProfile(profile);
+    if (mounted && !ok) {
+      Fluttertoast.showToast(
+        msg: 'Saved locally. Server sync failed — will retry next time.',
+        toastLength: Toast.LENGTH_LONG,
+      );
+    }
   }
 
   @override
