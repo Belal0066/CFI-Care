@@ -17,6 +17,7 @@ route.html
 decode_jwt.py
 
 *.json
+!vault-config.template.json
 
 /test_mobile/*
 
@@ -28,3 +29,10 @@ decode_jwt.py
 
 test-summary*
 .env.test
+
+**/role_id
+**/secret_id
+
+**/hashicorp
+
+**/secrets
