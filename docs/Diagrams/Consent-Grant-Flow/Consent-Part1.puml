@@ -1,0 +1,62 @@
+@startuml
+skinparam actorStyle AWESOME
+autonumber
+
+actor "Patient \n(Data Owner)" as U1
+participant "Application" as App
+
+participant "Backend" as BE
+
+participant "Audit Log Cache" as AuditLog
+
+
+database "Consent Redis" as Cache
+database "Consent Grant Database" as DB
+
+participant nginx
+participant "Browser" as FE
+actor "Practitioner" as U2
+
+== Phase 1: Handshake Generation ==
+U1 -> App : Tap "Generate Consent OTP" button
+App -> BE: POST /handshake/request-otp
+BE -> BE: Generate temp otp
+BE -> Cache : SET otp:<otp> 600 Patient_ID
+BE -> App: Return <otp>
+App -> U1: Display otp
+
+== Phase 2: Handshake Verification ==
+U1 -> U2: Share <otp> (Out-of-Band)
+U2 -> FE: Enter <otp>
+FE -> BE : POST /handshake/verify-otp {otp: <otp>}
+BE -> Cache: GET otp:<otp>
+alt OTP Found
+    Cache -> BE: Return Patient_ID
+    BE -> FE: HTTP 200 "Request Sent"
+    
+    BE -> U1: Push Notification for request
+else OTP Not Found / Expired
+    BE -> FE: HTTP 404 "Invalid otp"
+end
+
+== Phase 3: JIT Consent Grant ==
+U1 -> App: Tap "Approve"
+App -> BE: POST /handshake/grants
+BE -> BE: Generate Consent grant
+BE -> DB: insert grant {grantId,Patinet_ID, Practitioner_ID,status, scopes,createdAt, expiry}
+BE-> AuditLog : log successful creation of grant
+BE -> App: Success
+' BE -> FE: Display "Consent Granted"
+BE -> FE: Forward  Grant to be stored in session
+
+== Phase 4: Cross-Session Token Retrieval ==
+U2 -> FE: successfully logs in 
+FE -> BE: GET practitioner/active-grants {ID: ID_Token}
+
+BE -> DB: SELECT * FROM active_grants WHERE Practitioner_ID = ID
+DB -> BE: List of valid tokens
+BE->BE : Map tokens' Patient IDs to Patients' main data
+BE -> FE: Forward tokens , main data
+FE -> FE: Store tokens in Session Mem
+FE -> U2: Display Patients list
+@enduml
