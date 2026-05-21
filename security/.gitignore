@@ -18,8 +18,6 @@ decode_jwt.py
 
 *.json
 
-!realm.*
-
 /test_mobile/*
 
 
@@ -28,3 +26,5 @@ decode_jwt.py
 **/target/
 **/*.class
 
+test-summary*
+.env.test
