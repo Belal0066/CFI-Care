@@ -7,3 +7,6 @@ DB_NAME={{ with secret "secret/data/dev/nodejs/db" }}{{ .Data.data.DB_NAME }}{{ 
 KC_CLIENT_SECRET={{ with secret "secret/data/dev/nodejs/keys" }}{{ .Data.data.KC_CLIENT_SECRET }}{{ end }}
 CLIENT_SECRET={{ with secret "secret/data/dev/nodejs/keys" }}{{ .Data.data.CLIENT_SECRET }}{{ end }}
 SESSION_SECRET={{ with secret "secret/data/dev/nodejs/keys" }}{{ .Data.data.SESSION_SECRET }}{{ end }}
+
+
+ REDIS_URL_PATIENTS={{ with secret "secret/data/dev/nodejs/thirdparty" }}{{ .Data.data.REDIS_URL_PATIENTS }}{{ end }}
