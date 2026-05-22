@@ -1,7 +1,7 @@
 // const axios = require('axios');
 
-// const KEYCLOAK_TOKEN_URL = `${process.env.KC_HOSTNAME}/protocol/openid-connect/token`;
-// const INTROSPECT_URL = `${process.env.KC_HOSTNAME}/protocol/openid-connect/token/introspect`;
+// const KEYCLOAK_TOKEN_URL = `${process.env.KC_HOST_FULL}/protocol/openid-connect/token`;
+// const INTROSPECT_URL = `${process.env.KC_HOST_FULL}/protocol/openid-connect/token/introspect`;
 // const client_id = process.env.KC_CLIENT_ID;
 // const client_secret = process.env.KC_CLIENT_SECRET;
 

@@ -1,4 +1,4 @@
-package com.keycloak;
+package com.keycloak.email;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -10,19 +10,16 @@ import org.keycloak.services.resource.RealmResourceProvider;
 import org.keycloak.email.EmailTemplateProvider;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.List;
 import java.util.stream.Stream;
-import org.keycloak.models.ClientModel;
-import org.keycloak.services.managers.AuthenticationSessionManager;
-import org.keycloak.sessions.AuthenticationSessionModel;
-
 
 import org.keycloak.models.utils.ReadOnlyUserModelDelegate;
 
 public class EmailCodeResource implements RealmResourceProvider {
 
     private static final org.jboss.logging.Logger logger = org.jboss.logging.Logger.getLogger(EmailCodeResource.class);
+    private static final String AUTH_NOTE_EMAIL_CODE = "email-code";
+    private static final String AUTH_NOTE_EMAIL_ADDRESS = "email-code-email";
     private final KeycloakSession session;
 
     public EmailCodeResource(KeycloakSession session) {
@@ -32,10 +29,6 @@ public class EmailCodeResource implements RealmResourceProvider {
     @Override
     public Object getResource() {
         return this;
-    }
-
-    protected AuthenticationSessionManager createAuthenticationSessionManager() {
-        return new AuthenticationSessionManager(session);
     }
 
     @POST
@@ -48,14 +41,20 @@ public class EmailCodeResource implements RealmResourceProvider {
         try {
             RealmModel realm = session.getContext().getRealm();
 
-           
-            ClientModel client = realm.getClientByClientId(clientId);
+            if (email == null || email.trim().isEmpty()) {
+                return Response.status(400).entity("{\"error\":\"Email is required\"}").build();
+            }
+
+            org.keycloak.models.ClientModel client = realm.getClientByClientId(clientId);
             if (client == null) {
                 return Response.status(400).entity("{\"error\":\"Invalid client_id\"}").build();
             }
 
-            AuthenticationSessionManager asm = createAuthenticationSessionManager();
-            AuthenticationSessionModel authSession = asm.getCurrentAuthenticationSession(realm, client, tabId);
+            org.keycloak.services.managers.AuthenticationSessionManager asm = new org.keycloak.services.managers.AuthenticationSessionManager(
+                    session);
+
+            org.keycloak.sessions.AuthenticationSessionModel authSession = asm.getCurrentAuthenticationSession(realm,
+                    client, tabId);
 
             if (authSession == null) {
                 return Response.status(401).entity("{\"error\":\"Session not found. Ensure cookies are enabled.\"}")
@@ -63,11 +62,12 @@ public class EmailCodeResource implements RealmResourceProvider {
             }
 
             String code = String.format("%06d", new java.util.Random().nextInt(999999));
-            authSession.setAuthNote("email-code", code);
+            authSession.setAuthNote(AUTH_NOTE_EMAIL_CODE, code);
+            authSession.setAuthNote(AUTH_NOTE_EMAIL_ADDRESS, email.trim());
 
             EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
             emailProvider.setRealm(realm);
-            emailProvider.setUser(new DummyUser(email));
+            emailProvider.setUser(new DummyUser(email.trim()));
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("code", code);
