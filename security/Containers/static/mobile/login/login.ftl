@@ -17,6 +17,11 @@
   <#if section = "header">
     
   <#elseif section = "form">
+  <style>
+    #kc-username, .instruction, #kc-page-title, a[href*="restartAuth"] { 
+      display: none !important; 
+    }
+  </style>
     <div class="cfi-form">
       <div class="cfi-brand">
         <div class="cfi-logo">

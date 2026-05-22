@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
 
-const kcHost = process.env.KC_HOSTNAME;
+const kcHost = process.env.KC_HOST_FULL;
 const realm = process.env.KEYCLOAK_REALM;
 const issuer = process.env.KC_ISSUER || `${kcHost}/realms/${realm}`;
 const internalIssuer = process.env.KC_INTERNAL_ISSUER

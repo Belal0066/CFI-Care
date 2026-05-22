@@ -18,6 +18,8 @@ decode_jwt.py
 
 *.json
 
+!realm.*
+
 /test_mobile/*
 
 
