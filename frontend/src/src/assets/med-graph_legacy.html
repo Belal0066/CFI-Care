@@ -184,6 +184,11 @@
       color: #FECACA;
     }
 
+    body.dark-mode .tag-pending {
+      background: #374151;
+      color: #D1D5DB;
+    }
+
     body.dark-mode svg {
       background: #1E293B !important;
     }
@@ -590,6 +595,11 @@
     .tag-critical {
       background: #FEE2E2;
       color: #991B1B;
+    }
+
+    .tag-pending {
+      background: #F3F4F6;
+      color: #374151;
     }
 
     /* Edit Form Overrides */
@@ -1074,6 +1084,16 @@
     let patientId = null;
     let eocId = null;
 
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     // Store pending operations for rollback
     let pendingEdits = new Map();
     let pendingDeletes = new Map();
@@ -1088,7 +1108,7 @@
       if (parentNodeId !== undefined) {
         message.parentNodeId = parentNodeId;
       }
-      window.parent.postMessage(message, "*");
+      window.parent.postMessage(message, window.location.origin);
     }
 
     //Handlers for communication with angular components 
@@ -1206,6 +1226,10 @@
       form.style.display = "block";
 
       document.getElementById("saveEditBtn").onclick = () => {
+        if (!document.getElementById("editDate").value) {
+          showToast("⚠️ Please enter a date before saving.");
+          return;
+        }
         const newId = 'temp-' + Date.now();
         const newNode = {
           id: newId,
@@ -1267,10 +1291,11 @@
 
       const rootNodes = data.filter(d => d.father === null);
       let virtualRootId = null;
+      let virtualRootNode = null;
 
       if (rootNodes.length > 1) {
         virtualRootId = '__virtual_root__';
-        const virtualRoot = {
+        virtualRootNode = {
           id: virtualRootId,
           text_1: 'Patient Journey',
           father: null,
@@ -1282,18 +1307,18 @@
           isDiagnosis: false,
           isVirtualRoot: true
         };
-
-        data = [virtualRoot, ...data.map(node => {
-          if (node.father === null && node.id !== virtualRootId) {
-            return { ...node, father: virtualRootId };
-          }
-          return node;
-        })];
-
         expandedNodes.add(virtualRootId);
       }
 
-      const rootNode = data.find(d => d.father === null);
+      // Returns display-only data with virtual root injected; never mutates global data
+      function getDisplayData() {
+        if (!virtualRootNode) return data;
+        return [virtualRootNode, ...data.map(node =>
+          node.father === null ? { ...node, father: virtualRootId } : node
+        )];
+      }
+
+      const rootNode = virtualRootNode || data.find(d => d.father === null);
       if (rootNode) {
         expandedNodes.add(rootNode.id);
       }
@@ -1442,7 +1467,7 @@
                 <div class="node-dot" style="background-color: #6B7280; border: 2px dashed #9CA3AF;">
                 </div>
                 <div class="node-label" style="color: #6B7280; font-style: italic;">
-                  ${node.text_1}
+                  ${escapeHtml(node.text_1)}
                 </div>
               </div>
             `;
@@ -1483,8 +1508,8 @@
               </div>
               ${siblingBadgeHtml}
               <div class="node-content">
-                <div class="node-title" title="${node.text_1}">${node.text_1}</div>
-                <div class="node-date">${node.dateIssued}</div>
+                <div class="node-title" title="${escapeHtml(node.text_1)}">${escapeHtml(node.text_1)}</div>
+                <div class="node-date">${escapeHtml(node.dateIssued)}</div>
               </div>
             </div>
           `;
@@ -1570,7 +1595,7 @@
       }
 
       refreshGraph = function () {
-
+        const displayData = getDisplayData();
         const matchesFilter = new Set();
 
         data.forEach(node => {
@@ -1586,10 +1611,13 @@
           if (matches) matchesFilter.add(node.id);
         });
 
+        // Propagate matches up to parents; use displayData so virtual root is reachable
+        if (virtualRootId) matchesFilter.add(virtualRootId);
         let changed = true;
         while (changed) {
           changed = false;
-          data.forEach(node => {
+          displayData.forEach(node => {
+            if (node.isVirtualRoot) return;
             if (matchesFilter.has(node.id) && node.father !== null) {
               if (!matchesFilter.has(node.father)) {
                 matchesFilter.add(node.father);
@@ -1599,18 +1627,15 @@
           });
         }
 
-        const visibleNodes = data.filter(node => {
+        const visibleNodes = displayData.filter(node => {
           if (!matchesFilter.has(node.id)) return false;
           if (node.father === null) return true;
 
           let currentNode = node;
           while (currentNode.father !== null) {
-            const parentNode = data.find(d => d.id === currentNode.father);
+            const parentNode = displayData.find(d => d.id === currentNode.father);
             if (!parentNode) break;
-
-            if (!expandedNodes.has(parentNode.id)) {
-              return false;
-            }
+            if (!expandedNodes.has(parentNode.id)) return false;
             currentNode = parentNode;
           }
           return true;
@@ -1697,33 +1722,48 @@
 
         let normalityClass = "tag-normal";
         if (node.normality === "Abnormal") normalityClass = "tag-abnormal";
-        if (node.normality === "Pending") normalityClass = "tag-critical";
+        if (node.normality === "Pending") normalityClass = "tag-pending";
 
         sidebarBody.innerHTML = `
           <div class="detail-item">
             <div class="detail-label">Title</div>
-            <div class="detail-value" style="font-weight:600; font-size:16px;">${node.text_1}</div>
+            <div class="detail-value" style="font-weight:600; font-size:16px;">${escapeHtml(node.text_1)}</div>
           </div>
           <div class="detail-item">
             <div class="detail-label">Status</div>
-            <span class="tag ${normalityClass}">${node.normality}</span>
-            <span class="tag" style="background:#f3f4f6; color:#333;">${node.priority} Priority</span>
+            <span class="tag ${normalityClass}">${escapeHtml(node.normality)}</span>
+            <span class="tag" style="background:#f3f4f6; color:#333;">${escapeHtml(node.priority)} Priority</span>
           </div>
           <div class="detail-item">
             <div class="detail-label">Date Issued</div>
-            <div class="detail-value">${node.dateIssued}</div>
+            <div class="detail-value">${escapeHtml(node.dateIssued)}</div>
           </div>
           <div class="detail-item">
             <div class="detail-label">Category</div>
             <div class="detail-value" style="display:flex; align-items:center; gap:6px;">
-              <div style="width:10px; height:10px; border-radius:50%; background:${CATEGORY_COLORS[node.category]}"></div>
-              ${node.category}
+              <div style="width:10px; height:10px; border-radius:50%; background:${CATEGORY_COLORS[node.category] || '#999'}"></div>
+              ${escapeHtml(node.category)}
             </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">Details</div>
-            <div class="detail-value" style="background:#f9fafb; padding:10px; border-radius:4px;">${node.details}</div>
+            <div class="detail-value" style="background:#f9fafb; padding:10px; border-radius:4px;">${escapeHtml(node.details)}</div>
           </div>
+          ${node.category === 'FollowUp' && node.practitionerInfo ? `
+          <div class="detail-item" style="margin-top:12px; border-top:1px solid #e5e7eb; padding-top:12px;">
+            <div class="detail-label" style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; margin-bottom:8px;">Assigned Doctor</div>
+            <div style="display:flex; align-items:flex-start; gap:12px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px;">
+              <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#6366f1); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:16px; flex-shrink:0;">
+                ${escapeHtml((node.practitionerInfo.name || 'D').charAt(0).toUpperCase())}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; font-size:14px; color:#1e3a5f;">${escapeHtml(node.practitionerInfo.name || 'Unknown Doctor')}</div>
+                ${node.practitionerInfo.title ? `<div style="font-size:12px; color:#4b5563; margin-top:2px;">${escapeHtml(node.practitionerInfo.title)}</div>` : ''}
+                ${node.practitionerInfo.specialtyDetail ? `<div style="font-size:12px; color:#2563eb; margin-top:3px;">&#9670; ${escapeHtml(node.practitionerInfo.specialtyDetail)}</div>` : ''}
+                ${node.practitionerInfo.address ? `<div style="font-size:12px; color:#6b7280; margin-top:4px;">&#128205; ${escapeHtml(node.practitionerInfo.address)}</div>` : ''}
+              </div>
+            </div>
+          </div>` : ''}
         `;
       }
 
@@ -1893,11 +1933,21 @@
         catSelect.disabled = false;
 
         const form = document.getElementById("editForm");
-        form.style.top = (rect.bottom + 10) + "px";
-        form.style.left = rect.left + "px";
+        let addTop = rect.bottom + window.scrollY + 10;
+        let addLeft = rect.left + window.scrollX;
+
+        if (addLeft + 300 > window.innerWidth) addLeft = window.innerWidth - 320;
+        if (addTop + 400 > window.innerHeight) addTop = window.innerHeight - 420;
+
+        form.style.top = addTop + "px";
+        form.style.left = addLeft + "px";
         form.style.display = "block";
 
         document.getElementById("saveEditBtn").onclick = () => {
+          if (!document.getElementById("editDate").value) {
+            showToast("⚠️ Please enter a date before saving.");
+            return;
+          }
           const newId = 'temp-' + Date.now();
           const newNode = {
             id: newId,
@@ -1929,12 +1979,13 @@
 
         document.querySelectorAll(".tree-node-wrapper").forEach(w => {
           const id = w.dataset.id;
-          if (data.find(d => d.id === id).father === null) return;
+          const nodeForDelete = data.find(d => d.id === id);
+          if (!nodeForDelete || nodeForDelete.father === null) return;
 
           w.classList.add("selectable-delete");
           w.onclick = (evt) => {
             evt.stopPropagation();
-            const node = data.find(d => d.id === id);
+            const node = nodeForDelete;
             if (isLinkerNode(id)) {
               showToast("⚙️ System merge point nodes cannot be manually deleted. Change the branch state to remove them.");
               resetModes();
@@ -2843,11 +2894,11 @@
 
         return `
             <div style="text-align: center;">
-                <div class="chrono-node-title" title="${node.text_1}">
-                    ${node.text_1}
+                <div class="chrono-node-title" title="${escapeHtml(node.text_1)}">
+                    ${escapeHtml(node.text_1)}
                 </div>
                 <div class="chrono-node-date">
-                    ${node.dateIssued}
+                    ${escapeHtml(node.dateIssued)}
                 </div>
                 ${priorityBanner}
             </div>
@@ -2914,6 +2965,10 @@
         form.style.display = "block";
 
         document.getElementById("saveEditBtn").onclick = () => {
+          if (!document.getElementById("editDate").value) {
+            showToast("⚠️ Please enter a date before saving.");
+            return;
+          }
           const newId = 'temp-' + Date.now();
 
           const newNode = {
@@ -3082,7 +3137,7 @@
                   <div class="node-dot" style="background-color: #6B7280; border: 2px dashed #9CA3AF;">
                   </div>
                   <div class="node-label" style="color: #6B7280; font-style: italic;">
-                    ${node.text_1}
+                    ${escapeHtml(node.text_1)}
                   </div>
                 </div>
               `;
@@ -3125,8 +3180,8 @@
                         </div>
                         ${siblingBadgeHtml}
                         <div class="node-content">
-                            <div class="node-title" title="${node.text_1}">${node.text_1}</div>
-                            <div class="node-date">${node.dateIssued}</div>
+                            <div class="node-title" title="${escapeHtml(node.text_1)}">${escapeHtml(node.text_1)}</div>
+                            <div class="node-date">${escapeHtml(node.dateIssued)}</div>
                         </div>
                     </div>
                 `;
@@ -3139,6 +3194,7 @@
       }
 
       function applyCategoricalFilters() {
+        const displayData = getDisplayData();
         const matchesFilter = new Set();
 
         data.forEach(node => {
@@ -3155,10 +3211,13 @@
           if (matches) matchesFilter.add(node.id);
         });
 
+        // Propagate matches up to parents; use displayData so virtual root is reachable
+        if (virtualRootId) matchesFilter.add(virtualRootId);
         let changed = true;
         while (changed) {
           changed = false;
-          data.forEach(node => {
+          displayData.forEach(node => {
+            if (node.isVirtualRoot) return;
             if (matchesFilter.has(node.id) && node.father !== null) {
               if (!matchesFilter.has(node.father)) {
                 matchesFilter.add(node.father);
@@ -3168,7 +3227,7 @@
           });
         }
 
-        const visibleNodes = data.filter(node => {
+        const visibleNodes = displayData.filter(node => {
           if (node.category === 'Linker') return false;
           if (!matchesFilter.has(node.id)) return false;
           if (node.father === null) return true;
@@ -3176,7 +3235,7 @@
           let currentParentId = node.father;
           while (currentParentId !== null) {
             if (!expandedNodes.has(currentParentId)) return false;
-            const parentNode = data.find(d => d.id === currentParentId);
+            const parentNode = displayData.find(d => d.id === currentParentId);
             currentParentId = parentNode ? parentNode.father : null;
           }
 
@@ -3187,6 +3246,15 @@
       }
 
       refreshGraph = function () {
+        const realNodes = data.filter(d => !d.isVirtualRoot);
+        if (realNodes.length === 0) {
+          emptyState.style.display = "block";
+          treeDiv.style.display = "none";
+          legend.style.display = "none";
+          refreshGraph = function () { initializeGraph(); };
+          setupAddNodeButton();
+          return;
+        }
         if (currentMode === 'categorical') {
           applyCategoricalFilters();
         } else {
@@ -3500,8 +3568,18 @@
         });
         await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
 
-        const svgW = parseFloat(svgEl.getAttribute("width")) || 1200;
-        const svgH = parseFloat(svgEl.getAttribute("height")) || 600;
+        // The SVG uses width/height="100%" — read actual dimensions from viewBox instead.
+        let svgW = 1200, svgH = 600;
+        const viewBox = svgEl.getAttribute("viewBox");
+        if (viewBox) {
+          const parts = viewBox.split(/\s+|,/).map(parseFloat);
+          if (parts.length >= 4 && parts[2] > 0) svgW = parts[2];
+          if (parts.length >= 4 && parts[3] > 0) svgH = parts[3];
+        } else {
+          const bbox = svgEl.getBoundingClientRect();
+          if (bbox.width > 0) svgW = bbox.width;
+          if (bbox.height > 0) svgH = bbox.height;
+        }
 
         const clone = svgEl.cloneNode(true);
         const contentGroup = clone.querySelector(".timeline-content");

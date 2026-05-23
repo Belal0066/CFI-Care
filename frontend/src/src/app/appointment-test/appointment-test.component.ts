@@ -189,7 +189,9 @@ export class AppointmentTestComponent implements OnInit {
         this.errorMessage = '';
         this.showScheduleForm = false;
         this.resetScheduleForm();
-        this.loadSchedules();
+        // Optimistic update: push directly from response so it appears instantly
+        // without waiting for FHIR search index to catch up
+        this.schedules = [...this.schedules, schedule];
       },
       error: (error) => {
         this.errorMessage = `Error creating schedule: ${error.error?.error || error.message}`;
@@ -225,7 +227,9 @@ export class AppointmentTestComponent implements OnInit {
         this.errorMessage = '';
         this.showSlotForm = false;
         this.resetSlotForm();
-        this.loadSlots();
+        // Optimistic update: push directly from response so it appears instantly
+        // without waiting for FHIR search index to catch up
+        this.slots = [...this.slots, slot];
       },
       error: (error) => {
         this.errorMessage = `Error creating slot: ${error.error?.error || error.message}`;

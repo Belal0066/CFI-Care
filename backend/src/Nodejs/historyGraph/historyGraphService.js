@@ -13,7 +13,7 @@ const {
 } = require("../middleware/cacheHelper");
 
 // DB Setup
-const { Client } = require("pg");
+const { Pool } = require("pg");
 const { randomUUID } = require("crypto");
 
 // FHIR client (generic) for non-Encounter resources
@@ -22,63 +22,51 @@ const fhirApi = axios.create({
   headers: { "Content-Type": "application/fhir+json" },
 });
 
-const client = new Client({
+const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
-  // ssl: {
-  //   rejectUnauthorized: false,
-  // },
+  max: 10,
+  idleTimeoutMillis: 30000,
 });
 
-async function connectToDb() {
-  try {
-    await client.connect();
-    console.log("Connected to PostgreSQL database (HistoryGraph Service)");
-  } catch (err) {
-    if (err.code !== "err_client_already_connected") {
-      console.error("Error connecting to PostgreSQL:", err);
-    }
-  }
-}
-
-connectToDb();
-
-async function ensureDbConnection() {
-  try {
-    await client.query("SELECT 1");
-  } catch (err) {
-    console.log("Re-connecting to DB...");
-    await client.connect();
-  }
-}
+pool
+  .query(
+    "ALTER TABLE encounter_nodes ADD COLUMN IF NOT EXISTS practitioner_id VARCHAR(255)",
+  )
+  .catch((err) =>
+    console.warn(
+      "[SCHEMA] Could not ensure practitioner_id column:",
+      err.message,
+    ),
+  );
 
 // Try to reuse an existing EpisodeOfCare for this patient so all nodes share one EOC
 async function getExistingEocForPatient(patientId) {
-  await ensureDbConnection();
-  const res = await client.query(
-    "SELECT encounter_fhir_id FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE) AND category IN ('Consultation','FollowUp') ORDER BY created_at DESC LIMIT 5",
+  const res = await pool.query(
+    "SELECT encounter_fhir_id FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE AND category IN ('Consultation','FollowUp') ORDER BY created_at DESC LIMIT 5",
     [patientId],
   );
 
-  for (const row of res.rows) {
-    try {
-      const enc = await encounterService.getEncounterById(
-        row.encounter_fhir_id,
-      );
-      const ref = enc?.episodeOfCare?.[0]?.reference;
-      if (ref) return ref.replace("EpisodeOfCare/", "");
-    } catch (err) {
-      console.log(
-        "Could not fetch encounter for existing EOC check:",
-        err.message,
-      );
-    }
+  if (res.rows.length === 0) return null;
+
+  try {
+    return await Promise.any(
+      res.rows.map(async (row) => {
+        const enc = await encounterService.getEncounterById(
+          row.encounter_fhir_id,
+        );
+        const ref = enc?.episodeOfCare?.[0]?.reference;
+        if (!ref) throw new Error("no eoc");
+        return ref.replace("EpisodeOfCare/", "");
+      }),
+    );
+  } catch {
+    return null;
   }
-  return null;
 }
 
 // ==========================================
@@ -220,57 +208,13 @@ function normalizeRelationshipType(value) {
   return value;
 }
 
-let edgeSoftDeleteSupported;
-let edgeRelationshipTypeSupported;
-
-async function checkEdgeSoftDeleteSupport() {
-  if (edgeSoftDeleteSupported !== undefined) return edgeSoftDeleteSupported;
-  await ensureDbConnection();
-  const res = await client.query(
-    "SELECT 1 FROM information_schema.columns WHERE table_name = 'node_relations' AND column_name = 'is_deleted' LIMIT 1",
-  );
-  edgeSoftDeleteSupported = res.rowCount > 0;
-  if (!edgeSoftDeleteSupported) {
-    console.warn("node_relations lacks is_deleted; edge soft deletes disabled");
-  }
-  return edgeSoftDeleteSupported;
-}
-
-async function checkEdgeRelationshipTypeSupport() {
-  if (edgeRelationshipTypeSupported !== undefined)
-    return edgeRelationshipTypeSupported;
-  await ensureDbConnection();
-  const res = await client.query(
-    "SELECT 1 FROM information_schema.columns WHERE table_name = 'node_relations' AND column_name = 'relationship_type' LIMIT 1",
-  );
-  edgeRelationshipTypeSupported = res.rowCount > 0;
-  if (!edgeRelationshipTypeSupported) {
-    console.warn(
-      "node_relations lacks relationship_type; edge metadata disabled",
-    );
-  }
-  return edgeRelationshipTypeSupported;
-}
-
 async function insertEdge(relationId, sourceId, targetId, relationshipType) {
-  const hasSoftDelete = await checkEdgeSoftDeleteSupport();
-  const hasRelType = await checkEdgeRelationshipTypeSupport();
-
-  const columns = ["relation_id", "source_node_id", "target_node_id"];
-  const values = [relationId, sourceId, targetId];
-
-  if (hasRelType) {
-    columns.push("relationship_type");
-    values.push(relationshipType);
-  }
-  if (hasSoftDelete) {
-    columns.push("is_deleted", "deleted_at");
-    values.push(false, null);
-  }
-
-  const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(", ");
-  const sql = `INSERT INTO node_relations (${columns.join(", ")}) VALUES (${placeholders}) ON CONFLICT (relation_id) DO NOTHING`;
-  await client.query(sql, values);
+  await pool.query(
+    `INSERT INTO node_relations (relation_id, source_node_id, target_node_id, relationship_type, is_deleted, deleted_at)
+     VALUES ($1, $2, $3, $4, FALSE, NULL)
+     ON CONFLICT (relation_id) DO NOTHING`,
+    [relationId, sourceId, targetId, relationshipType],
+  );
 }
 
 function normalizeDate(dateValue) {
@@ -402,7 +346,13 @@ async function deleteFHIRResource(resourceType, id) {
   }
 }
 
-function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
+function mapNodeToFHIRResources(
+  node,
+  patientId,
+  eocId,
+  isDiagnosis = false,
+  practitionerId = null,
+) {
   const category = node.category || "Consultation";
   const priority = node.priority || "Low";
   const normality = node.normality || "Pending";
@@ -862,6 +812,14 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
             actor: { reference: `Patient/${patientId}` },
             status: "accepted",
           },
+          ...(practitionerId
+            ? [
+                {
+                  actor: { reference: `Practitioner/${practitionerId}` },
+                  status: "accepted",
+                },
+              ]
+            : []),
         ],
         text: {
           status: "generated",
@@ -985,12 +943,14 @@ function mapNodeToFHIRResources(node, patientId, eocId, isDiagnosis = false) {
 
 async function persistMappedResources(mappedResources) {
   const { primaryResource, relatedResources = [] } = mappedResources;
-  const primaryResult = await upsertFHIRResource(primaryResource);
-  const relatedResults = [];
 
-  for (const res of relatedResources) {
-    relatedResults.push(await upsertFHIRResource(res));
-  }
+  // Upsert primary resource first so HAPI reference validation passes for related resources
+  // (e.g. DiagnosticReport.result references Observation — must exist before DiagnosticReport is created)
+  const primaryResult = await upsertFHIRResource(primaryResource);
+
+  const relatedResults = await Promise.all(
+    relatedResources.map((res) => upsertFHIRResource(res)),
+  );
 
   return { primaryResult, relatedResults };
 }
@@ -1032,7 +992,6 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
   const createdFHIR = await persistMappedResources(mappedResources);
 
   // 2. Insert into Graph (encounter_nodes)
-  await ensureDbConnection();
 
   const insertNodeQuery = `
     INSERT INTO encounter_nodes 
@@ -1056,7 +1015,7 @@ async function createheadNodeEncounter(patientId, eocId, nodeData) {
     null, // branch_id is NULL for root nodes
   ];
 
-  await client.query(insertNodeQuery, nodeValues);
+  await pool.query(insertNodeQuery, nodeValues);
 
   return {
     primary: createdFHIR.primaryResult,
@@ -1083,10 +1042,14 @@ async function getGraphForPatient(patientId, options = {}) {
     let eocEncounterIds = null;
     if (eocId) {
       try {
-        const encounters = await eocService.getEncountersByEpisodeOfCareId(eocId);
+        const encounters =
+          await eocService.getEncountersByEpisodeOfCareId(eocId);
         eocEncounterIds = encounters.map((e) => e.id);
       } catch (err) {
-        console.warn("Could not fetch EOC encounters for graph filter:", err.message);
+        console.warn(
+          "Could not fetch EOC encounters for graph filter:",
+          err.message,
+        );
       }
       // If EOC has no encounters yet, return empty graph immediately
       if (eocEncounterIds !== null && eocEncounterIds.length === 0) {
@@ -1094,16 +1057,14 @@ async function getGraphForPatient(patientId, options = {}) {
       }
     }
 
-    await ensureDbConnection();
-
     let nodesQuery = `
       SELECT
         encounter_fhir_id, patient_id, title, category, priority,
         normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id,
-        created_at, updated_at, CASE WHEN is_deleted THEN deleted_at ELSE NULL END as deleted_at
+        practitioner_id, created_at, updated_at, CASE WHEN is_deleted THEN deleted_at ELSE NULL END as deleted_at
       FROM encounter_nodes
       WHERE patient_id = $1
-        AND (is_deleted IS NULL OR is_deleted = FALSE)
+        AND is_deleted = FALSE
     `;
 
     const params = [patientId];
@@ -1141,7 +1102,20 @@ async function getGraphForPatient(patientId, options = {}) {
       paramCount++;
     }
 
-    nodesQuery += ` ORDER BY ${sortBy} ${sortOrder}`;
+    const SORTABLE_COLUMNS = new Set([
+      "event_date",
+      "created_at",
+      "category",
+      "priority",
+      "normality",
+    ]);
+    const SORT_ORDERS = new Set(["ASC", "DESC"]);
+    const safeSortBy = SORTABLE_COLUMNS.has(sortBy) ? sortBy : "event_date";
+    const safeSortOrder = SORT_ORDERS.has(sortOrder?.toUpperCase())
+      ? sortOrder.toUpperCase()
+      : "DESC";
+
+    nodesQuery += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
 
     if (limit) {
       nodesQuery += ` LIMIT $${paramCount}`;
@@ -1151,31 +1125,22 @@ async function getGraphForPatient(patientId, options = {}) {
       params.push(offset);
     }
 
-    const nodesRes = await client.query(nodesQuery, params);
-
-    const hasEdgeRelType = await checkEdgeRelationshipTypeSupport();
-    const hasEdgeSoftDelete = await checkEdgeSoftDeleteSupport();
-    const edgesSelectRel = hasEdgeRelType ? ", nr.relationship_type" : "";
-    const edgesSoftDeleteFilter = hasEdgeSoftDelete
-      ? "AND (nr.is_deleted IS NULL OR nr.is_deleted = FALSE)"
-      : "";
+    const nodesRes = await pool.query(nodesQuery, params);
 
     const edgesQuery = `
-      SELECT nr.source_node_id, nr.target_node_id${edgesSelectRel}
+      SELECT nr.source_node_id, nr.target_node_id, nr.relationship_type
       FROM node_relations nr
       JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id
       WHERE en.patient_id = $1
-        ${edgesSoftDeleteFilter}
+        AND nr.is_deleted = FALSE
     `;
-    const edgesRes = await client.query(edgesQuery, [patientId]);
+    const edgesRes = await pool.query(edgesQuery, [patientId]);
 
     const parentMap = {};
     const relationshipMap = {};
     edgesRes.rows.forEach((edge) => {
       parentMap[edge.target_node_id] = edge.source_node_id;
-      relationshipMap[edge.target_node_id] = hasEdgeRelType
-        ? edge.relationship_type
-        : null;
+      relationshipMap[edge.target_node_id] = edge.relationship_type;
     });
 
     // Try to get the eocId from existing FHIR encounters (only when not already known)
@@ -1184,20 +1149,20 @@ async function getGraphForPatient(patientId, options = {}) {
       const encounterCandidates = nodesRes.rows.filter(
         (row) => row.category === "Consultation" || row.category === "FollowUp",
       );
-      for (const row of encounterCandidates) {
+      if (encounterCandidates.length > 0) {
         try {
-          const encounterResponse = await encounterService.getEncounterById(
-            row.encounter_fhir_id,
+          foundEocId = await Promise.any(
+            encounterCandidates.map(async (row) => {
+              const enc = await encounterService.getEncounterById(
+                row.encounter_fhir_id,
+              );
+              const ref = enc?.episodeOfCare?.[0]?.reference;
+              if (!ref) throw new Error("no eoc");
+              return ref.replace("EpisodeOfCare/", "");
+            }),
           );
-          if (encounterResponse?.episodeOfCare?.[0]?.reference) {
-            foundEocId = encounterResponse.episodeOfCare[0].reference.replace(
-              "EpisodeOfCare/",
-              "",
-            );
-            break;
-          }
-        } catch (err) {
-          console.log("Could not retrieve eocId from FHIR:", err.message);
+        } catch {
+          // No EOC reference found in any encounter
         }
       }
     }
@@ -1217,6 +1182,7 @@ async function getGraphForPatient(patientId, options = {}) {
       branchState: row.branch_state || "in_progress",
       branchId: row.branch_id || null,
       relatedResourceIds: row.related_resource_ids || {},
+      practitionerId: row.practitioner_id || null,
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
       deletedAt: row.deleted_at ? new Date(row.deleted_at).toISOString() : null,
@@ -1245,8 +1211,6 @@ async function getGraphForPatient(patientId, options = {}) {
 
 // Create Mock Data for Testing
 async function seedSampleData(patientId, nodes) {
-  await ensureDbConnection();
-
   const eocId = `eoc-seed-${randomUUID()}`;
 
   const eocData = {
@@ -1324,7 +1288,7 @@ async function seedSampleData(patientId, nodes) {
       }
     }
 
-    await client.query(insertNodeQuery, [
+    await pool.query(insertNodeQuery, [
       n.id,
       patientId,
       n.title,
@@ -1352,7 +1316,13 @@ async function seedSampleData(patientId, nodes) {
 }
 
 // add new node to graph
-async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
+async function addNode(
+  patientId,
+  eocId,
+  nodeData,
+  parentNodeId = null,
+  practitionerId = null,
+) {
   if (!patientId) throw new Error("patientId is required");
   if (!nodeData) throw new Error("nodeData is required");
   try {
@@ -1426,6 +1396,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     patientId,
     finalEocId,
     isDiagnosis,
+    practitionerId,
   );
 
   // Keep graph/node id aligned to Encounter id
@@ -1461,8 +1432,6 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     createdResources.relatedResults,
   );
 
-  await ensureDbConnection();
-
   // Calculate branch ID:
   // - If this is a branch starter (isDiagnosis or isManualBranch): branchId = NULL (it's the root)
   // - If this has a parent:
@@ -1476,7 +1445,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
       FROM encounter_nodes 
       WHERE encounter_fhir_id = $1
     `;
-    const parentResult = await client.query(parentQuery, [parentNodeId]);
+    const parentResult = await pool.query(parentQuery, [parentNodeId]);
     if (parentResult.rows.length > 0) {
       const parent = parentResult.rows[0];
       // If parent is a branch starter, child's branchId = parent's ID
@@ -1490,9 +1459,9 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   }
 
   const insertNodeQuery = `
-    INSERT INTO encounter_nodes 
-    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id, is_deleted, deleted_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, NULL)
+    INSERT INTO encounter_nodes
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id, practitioner_id, is_deleted, deleted_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, FALSE, NULL)
     ON CONFLICT (encounter_fhir_id) DO UPDATE SET
       title = EXCLUDED.title,
       category = EXCLUDED.category,
@@ -1505,6 +1474,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
       related_resource_ids = EXCLUDED.related_resource_ids,
       branch_state = EXCLUDED.branch_state,
       branch_id = EXCLUDED.branch_id,
+      practitioner_id = COALESCE(EXCLUDED.practitioner_id, encounter_nodes.practitioner_id),
       is_deleted = FALSE,
       deleted_at = NULL,
       updated_at = NOW()
@@ -1525,11 +1495,12 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
     relatedResourceIds,
     branchState,
     branchId,
+    practitionerId,
   ];
 
   let dbNodeResult;
   try {
-    dbNodeResult = await client.query(insertNodeQuery, nodeValues);
+    dbNodeResult = await pool.query(insertNodeQuery, nodeValues);
     console.log(`Node inserted into encounter_nodes table: ${nodeData.id}`);
   } catch (err) {
     throw new Error(`Failed to insert node into database: ${err.message}`);
@@ -1540,7 +1511,7 @@ async function addNode(patientId, eocId, nodeData, parentNodeId = null) {
   if (parentNodeId) {
     const parentCheckQuery =
       "SELECT encounter_fhir_id FROM encounter_nodes WHERE encounter_fhir_id = $1";
-    const parentCheckResult = await client.query(parentCheckQuery, [
+    const parentCheckResult = await pool.query(parentCheckQuery, [
       parentNodeId,
     ]);
 
@@ -1606,8 +1577,6 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     throw { statusCode: 400, errors: { updatedData: err.message } };
   }
 
-  await ensureDbConnection();
-
   const title = updatedData.text_1 || updatedData.title;
   const category = updatedData.category;
   const priority = updatedData.priority || "Medium";
@@ -1649,7 +1618,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   }
 
   // Get existing category and branchState to detect changes
-  const existingNodeQuery = await client.query(
+  const existingNodeQuery = await pool.query(
     "SELECT category, event_date, branch_state FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
     [nodeId, patientId],
   );
@@ -1732,7 +1701,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
   }
 
   // Get existing node data for reference
-  const existingNodeResult = await client.query(
+  const existingNodeResult = await pool.query(
     "SELECT branch_id FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
     [nodeId, patientId],
   );
@@ -1761,7 +1730,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
         FROM encounter_nodes 
         WHERE encounter_fhir_id = $1
       `;
-      const newParentResult = await client.query(newParentQuery, [
+      const newParentResult = await pool.query(newParentQuery, [
         newParentNodeId,
       ]);
       if (newParentResult.rows.length > 0) {
@@ -1783,7 +1752,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     RETURNING encounter_fhir_id, branch_id
   `;
 
-  const result = await client.query(updateQuery, [
+  const result = await pool.query(updateQuery, [
     title,
     category,
     priority,
@@ -1822,10 +1791,10 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
         WHERE nr.source_node_id = $1 
           AND en.patient_id = $2
           AND en.category = 'Linker'
-          AND (en.is_deleted IS NULL OR en.is_deleted = FALSE)
+          AND en.is_deleted = FALSE
       `;
 
-      const linkerResults = await client.query(linkerNodesQuery, [
+      const linkerResults = await pool.query(linkerNodesQuery, [
         nodeId,
         patientId,
       ]);
@@ -1850,7 +1819,7 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
 
   // Get current parent relationship from database
   let currentParentId = null;
-  const parentQuery = await client.query(
+  const parentQuery = await pool.query(
     "SELECT source_node_id FROM node_relations WHERE target_node_id = $1",
     [nodeId],
   );
@@ -1868,12 +1837,12 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
     console.log(
       `Updating parent relationship for ${nodeId} to ${newParentNodeId}`,
     );
-    await client.query("DELETE FROM node_relations WHERE target_node_id = $1", [
+    await pool.query("DELETE FROM node_relations WHERE target_node_id = $1", [
       nodeId,
     ]);
 
     if (newParentNodeId !== null) {
-      const parentCheck = await client.query(
+      const parentCheck = await pool.query(
         "SELECT encounter_fhir_id FROM encounter_nodes WHERE encounter_fhir_id = $1",
         [newParentNodeId],
       );
@@ -1931,33 +1900,27 @@ async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
 
 // Helper: recursively collect descendants for deletion
 async function collectDescendants(nodeIds) {
-  const queue = [...nodeIds];
-  const all = new Set(queue);
+  const res = await pool.query(
+    `WITH RECURSIVE descendants AS (
+       SELECT nr.target_node_id
+       FROM node_relations nr
+       WHERE nr.source_node_id = ANY($1) AND nr.is_deleted = FALSE
+       UNION
+       SELECT nr.target_node_id
+       FROM node_relations nr
+       INNER JOIN descendants d ON nr.source_node_id = d.target_node_id
+       WHERE nr.is_deleted = FALSE
+     )
+     SELECT DISTINCT target_node_id FROM descendants`,
+    [nodeIds],
+  );
 
-  while (queue.length) {
-    const current = queue.shift();
-    const hasEdgeSoftDelete = await checkEdgeSoftDeleteSupport();
-    const res = await client.query(
-      `SELECT target_node_id FROM node_relations WHERE source_node_id = $1 ${
-        hasEdgeSoftDelete
-          ? "AND (is_deleted IS NULL OR is_deleted = FALSE)"
-          : ""
-      }`,
-      [current],
-    );
-    res.rows.forEach((r) => {
-      if (!all.has(r.target_node_id)) {
-        all.add(r.target_node_id);
-        queue.push(r.target_node_id);
-      }
-    });
-  }
-  return Array.from(all);
+  return [...nodeIds, ...res.rows.map((r) => r.target_node_id)];
 }
 
 async function fetchNodeMetadata(nodeIds) {
   if (!nodeIds || nodeIds.length === 0) return {};
-  const res = await client.query(
+  const res = await pool.query(
     "SELECT encounter_fhir_id, category, event_date, related_resource_ids FROM encounter_nodes WHERE encounter_fhir_id = ANY($1)",
     [nodeIds],
   );
@@ -2023,93 +1986,63 @@ async function deleteNode(patientId, nodeId) {
   if (!patientId) throw new Error("patientId is required");
   if (!nodeId) throw new Error("nodeId is required");
 
-  await ensureDbConnection();
-
   // Collect node + descendants
   const targets = await collectDescendants([nodeId]);
   const metadataMap = await fetchNodeMetadata(targets);
 
-  // Delete from FHIR server first
-  const fhirDeleteResults = [];
+  // Build the full list of FHIR resources to delete across all targets, then delete in parallel
+  const globalSeen = new Set();
+  const allResourcesToDelete = [];
   for (const targetId of targets) {
     const meta = metadataMap[targetId] || { category: "Consultation" };
-    const relatedResourceIds = meta.relatedResourceIds || {};
-
-    const seen = new Set();
-    const resourceInfos = [];
     const addResource = (resourceType, id) => {
       if (!resourceType || !id) return;
       const key = `${resourceType}:${id}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      resourceInfos.push({ resourceType, id });
+      if (globalSeen.has(key)) return;
+      globalSeen.add(key);
+      allResourcesToDelete.push({ resourceType, id });
     };
-
-    Object.entries(relatedResourceIds || {}).forEach(([resourceType, ids]) => {
-      (ids || []).forEach((id) => addResource(resourceType, id));
-    });
-
-    const categoryDerived = resolveResourceIdentifiers(
-      meta.category,
-      targetId,
-      meta.eventDate,
+    Object.entries(meta.relatedResourceIds || {}).forEach(
+      ([resourceType, ids]) => {
+        (ids || []).forEach((id) => addResource(resourceType, id));
+      },
     );
-    categoryDerived.forEach((info) => addResource(info.resourceType, info.id));
+    resolveResourceIdentifiers(meta.category, targetId, meta.eventDate).forEach(
+      (info) => addResource(info.resourceType, info.id),
+    );
+  }
 
-    for (const info of resourceInfos) {
+  const fhirDeleteResults = await Promise.all(
+    allResourcesToDelete.map(async (info) => {
       try {
         await deleteFHIRResource(info.resourceType, info.id);
-        fhirDeleteResults.push({
-          id: info.id,
-          resourceType: info.resourceType,
-          success: true,
-        });
         console.log(
           `FHIR ${info.resourceType} ${info.id} deleted successfully`,
         );
+        return { id: info.id, resourceType: info.resourceType, success: true };
       } catch (err) {
         console.error(
           `Failed to delete FHIR ${info.resourceType} ${info.id}:`,
           err.message,
         );
-        fhirDeleteResults.push({
+        return {
           id: info.id,
           resourceType: info.resourceType,
           success: false,
           error: err.message,
-        });
+        };
       }
-    }
-  }
+    }),
+  );
 
-  const hasEdgeSoftDelete = await checkEdgeSoftDeleteSupport();
-
-  if (hasEdgeSoftDelete) {
-    try {
-      await client.query(
-        "UPDATE node_relations SET is_deleted = TRUE, deleted_at = NOW() WHERE source_node_id = ANY($1) OR target_node_id = ANY($1)",
-        [targets],
-      );
-    } catch (err) {
-      console.warn(
-        "Soft delete edges failed, falling back to hard delete:",
-        err.message,
-      );
-      await client.query(
-        "DELETE FROM node_relations WHERE source_node_id = ANY($1) OR target_node_id = ANY($1)",
-        [targets],
-      );
-    }
-  } else {
-    await client.query(
-      "DELETE FROM node_relations WHERE source_node_id = ANY($1) OR target_node_id = ANY($1)",
-      [targets],
-    );
-  }
+  await pool.query(
+    "UPDATE node_relations SET is_deleted = TRUE, deleted_at = NOW() WHERE source_node_id = ANY($1) OR target_node_id = ANY($1)",
+    [targets],
+  );
 
   // Soft delete encounters; fallback to hard delete on failure
   try {
-    await client.query(
+    await pool.query(
       "UPDATE encounter_nodes SET is_deleted = TRUE, deleted_at = NOW() WHERE patient_id = $1 AND encounter_fhir_id = ANY($2)",
       [patientId, targets],
     );
@@ -2118,7 +2051,7 @@ async function deleteNode(patientId, nodeId) {
       "Soft delete nodes failed, falling back to hard delete:",
       err.message,
     );
-    await client.query(
+    await pool.query(
       "DELETE FROM encounter_nodes WHERE patient_id = $1 AND encounter_fhir_id = ANY($2)",
       [patientId, targets],
     );
@@ -2139,21 +2072,8 @@ async function restoreNode(patientId, nodeId) {
   if (!patientId) throw new Error("patientId is required");
   if (!nodeId) throw new Error("nodeId is required");
 
-  await ensureDbConnection();
-  const hasSoftDelete = await checkEdgeSoftDeleteSupport();
-
-  if (!hasSoftDelete) {
-    throw {
-      statusCode: 400,
-      errors: {
-        restore:
-          "Soft delete not supported on node_relations; undelete unavailable",
-      },
-    };
-  }
-
   try {
-    const result = await client.query(
+    const result = await pool.query(
       "UPDATE encounter_nodes SET is_deleted = FALSE, deleted_at = NULL WHERE patient_id = $1 AND encounter_fhir_id = $2 RETURNING encounter_fhir_id",
       [patientId, nodeId],
     );
@@ -2163,7 +2083,7 @@ async function restoreNode(patientId, nodeId) {
     }
 
     // Restore edges
-    await client.query(
+    await pool.query(
       "UPDATE node_relations SET is_deleted = FALSE, deleted_at = NULL WHERE (source_node_id = $1 OR target_node_id = $1)",
       [nodeId],
     );
@@ -2190,31 +2110,32 @@ async function restoreNode(patientId, nodeId) {
 }
 
 // Get graph analytics and metrics
+// getGraphStats is unused — commented out pending optimisation (fix #4)
+/*
 async function getGraphStats(patientId) {
   if (!patientId) throw new Error("patientId is required");
 
-  await ensureDbConnection();
 
   try {
-    const totalNodesRes = await client.query(
+    const totalNodesRes = await pool.query(
       "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1",
       [patientId],
     );
     const totalNodes = parseInt(totalNodesRes.rows[0].count, 10);
 
-    const activeNodesRes = await client.query(
-      "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE)",
+    const activeNodesRes = await pool.query(
+      "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE",
       [patientId],
     );
     const activeNodes = parseInt(activeNodesRes.rows[0].count, 10);
 
-    const deletedNodesRes = await client.query(
+    const deletedNodesRes = await pool.query(
       "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = TRUE",
       [patientId],
     );
     const deletedNodes = parseInt(deletedNodesRes.rows[0].count, 10);
 
-    const totalEdgesRes = await client.query(
+    const totalEdgesRes = await pool.query(
       "SELECT COUNT(*) as count FROM node_relations nr JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id WHERE en.patient_id = $1",
       [patientId],
     );
@@ -2225,16 +2146,16 @@ async function getGraphStats(patientId) {
     let deletedEdges = 0;
 
     if (hasSoftDelete) {
-      const activeEdgesRes = await client.query(
-        "SELECT COUNT(*) as count FROM node_relations nr JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id WHERE en.patient_id = $1 AND (nr.is_deleted IS NULL OR nr.is_deleted = FALSE)",
+      const activeEdgesRes = await pool.query(
+        "SELECT COUNT(*) as count FROM node_relations nr JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id WHERE en.patient_id = $1 AND nr.is_deleted = FALSE",
         [patientId],
       );
       activeEdges = parseInt(activeEdgesRes.rows[0].count, 10);
       deletedEdges = totalEdges - activeEdges;
     }
 
-    const categoryBreakdownRes = await client.query(
-      "SELECT category, COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE) GROUP BY category",
+    const categoryBreakdownRes = await pool.query(
+      "SELECT category, COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE GROUP BY category",
       [patientId],
     );
 
@@ -2243,8 +2164,8 @@ async function getGraphStats(patientId) {
       categoryBreakdown[row.category || "Unknown"] = parseInt(row.count, 10);
     });
 
-    const priorityBreakdownRes = await client.query(
-      "SELECT priority, COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE) GROUP BY priority",
+    const priorityBreakdownRes = await pool.query(
+      "SELECT priority, COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE GROUP BY priority",
       [patientId],
     );
 
@@ -2253,8 +2174,8 @@ async function getGraphStats(patientId) {
       priorityBreakdown[row.priority || "Unknown"] = parseInt(row.count, 10);
     });
 
-    const ageRes = await client.query(
-      "SELECT MIN(event_date) as oldest, MAX(event_date) as newest FROM encounter_nodes WHERE patient_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE)",
+    const ageRes = await pool.query(
+      "SELECT MIN(event_date) as oldest, MAX(event_date) as newest FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE",
       [patientId],
     );
 
@@ -2283,6 +2204,7 @@ async function getGraphStats(patientId) {
     };
   }
 }
+*/
 
 module.exports = {
   InitalizeHistoryGraph,
@@ -2293,7 +2215,7 @@ module.exports = {
   updateNode,
   deleteNode,
   restoreNode,
-  getGraphStats,
+  // getGraphStats, // commented out — unused
   validateNodeData,
   buildErrorResponse,
   ALLOWED_CATEGORIES,

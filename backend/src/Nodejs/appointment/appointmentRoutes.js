@@ -16,7 +16,7 @@ router.get(
 // Get appointments by practitioner ID
 router.get(
   "/practitioner/:practitionerId",
-  requireApiAuth,requirePatientContext({ paramName: "patientId" }),
+  requireApiAuth,
   appointmentController.getAppointmentsByPractitioner,
 );
 

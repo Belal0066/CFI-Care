@@ -20,25 +20,29 @@ const fhirApi = axios.create({
 // Fetch schedules by actor (practitioner, location, etc.)
 async function getSchedulesByActor(actorReference) {
   const cacheKey = `schedules:actor:${actorReference}`;
+  const dirtyKey = `${cacheKey}:dirty`;
 
   try {
-    // Check cache first
-    const cachedData = await getFromCache(cacheKey);
-    if (cachedData) {
-      return cachedData;
+    // Skip cache entirely during the dirty window after a write to avoid
+    // re-populating it with stale FHIR search results before indexing completes
+    const isDirty = await getFromCache(dirtyKey);
+    if (!isDirty) {
+      const cachedData = await getFromCache(cacheKey);
+      if (cachedData) return cachedData;
     }
 
     const response = await fhirApi.get(`/Schedule?actor=${actorReference}`);
     const bundle = response.data;
 
-    // Extract resources from bundle entries
     let schedules = [];
     if (bundle.entry && bundle.entry.length > 0) {
       schedules = bundle.entry.map((entry) => entry.resource);
     }
 
-    // Store in cache
-    await setInCache(cacheKey, schedules, CACHE_EXPIRATION.DEFAULT);
+    // Only store in cache when outside the dirty window
+    if (!isDirty) {
+      await setInCache(cacheKey, schedules, CACHE_EXPIRATION.DEFAULT);
+    }
 
     return schedules;
   } catch (error) {
@@ -97,8 +101,8 @@ async function createScheduleWithSpecificId(scheduleData) {
       fhirScheduleResource,
     );
 
-    // Invalidate caches after successful creation/update
-    await invalidateScheduleCache(scheduleId, scheduleData);
+    // Use response.data so actor references match exactly what FHIR stored
+    await invalidateScheduleCache(scheduleId, response.data);
 
     return response.data;
   } catch (error) {
@@ -133,8 +137,8 @@ async function createSchedule(scheduleData) {
   try {
     const response = await fhirApi.post("/Schedule", fhirScheduleResource);
 
-    // Invalidate caches after successful creation
-    await invalidateScheduleCache(response.data.id, scheduleData);
+    // Use response.data so actor references match exactly what FHIR stored
+    await invalidateScheduleCache(response.data.id, response.data);
 
     return response.data;
   } catch (error) {
@@ -232,14 +236,15 @@ async function deleteSchedule(scheduleId) {
 
 // Helper function to invalidate schedule caches
 async function invalidateScheduleCache(scheduleId, scheduleData) {
-  // Invalidate schedule cache
   await deleteFromCache(`schedule:${scheduleId}`);
 
-  // Invalidate actor schedules cache if actor reference exists
   if (scheduleData.actor) {
     for (const actor of scheduleData.actor) {
       if (actor.reference) {
         await deleteFromCache(`schedules:actor:${actor.reference}`);
+        // Set a 15-second dirty flag so reads during the FHIR indexing window
+        // don't re-populate the cache with stale search results
+        await setInCache(`schedules:actor:${actor.reference}:dirty`, 1, 15);
       }
     }
   }

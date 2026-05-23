@@ -17,6 +17,7 @@ interface Slot {
   status: 'free' | 'busy' | 'busy-unavailable';
   start: string;
   end: string;
+  patientName?: string;
 }
 
 @Component({
@@ -158,8 +159,34 @@ export class DoctorProfileComponent implements OnInit {
       .subscribe({
         next: (data: any[]) => {
           this.slots = (data || []).map((s) => this.mapSlot(s));
+          this.enrichSlotsWithPatients();
         },
         error: () => {},
+      });
+  }
+
+  private enrichSlotsWithPatients(): void {
+    this.appointmentService
+      .getAppointmentsByPractitioner(this.practitionerId)
+      .subscribe({
+        next: (bundle: any) => {
+          // Backend injects _patientName into each appointment resource
+          const slotToPatientName: Record<string, string> = {};
+          for (const entry of (bundle?.entry || [])) {
+            const appt = entry.resource;
+            if (!appt) continue;
+            const slotRef = appt.slot?.[0]?.reference;
+            if (!slotRef || !appt._patientName) continue;
+            const slotId = slotRef.split('/').pop();
+            slotToPatientName[slotId] = appt._patientName;
+          }
+
+          this.slots = this.slots.map((slot) => {
+            const name = slotToPatientName[slot.id];
+            return name ? { ...slot, patientName: name } : slot;
+          });
+        },
+        error: (err) => { console.error('[enrichSlotsWithPatients]', err); },
       });
   }
 
@@ -360,11 +387,15 @@ export class DoctorProfileComponent implements OnInit {
     };
 
     this.appointmentService.createSchedule(payload).subscribe({
-      next: () => {
+      next: (newSchedule: any) => {
         this.newSchedule = { start: '', end: '', active: true };
         this.showSchedForm = false;
         this.message = 'Schedule created.';
-        this.loadSchedules();
+        const mapped = this.mapSchedule(newSchedule);
+        this.schedules = [...this.schedules, mapped];
+        if (!this.newSlot.scheduleId && mapped.id) {
+          this.newSlot.scheduleId = mapped.id;
+        }
       },
       error: (err) => {
         this.scheduleError = `Failed to create schedule: ${err.error?.error || err.message}`;
@@ -452,10 +483,10 @@ export class DoctorProfileComponent implements OnInit {
     };
 
     this.appointmentService.createSlot(payload).subscribe({
-      next: () => {
+      next: (newSlot: any) => {
         this.newSlot = { start: '', end: '', status: 'free', scheduleId: this.newSlot.scheduleId };
         this.message = 'Slot created.';
-        this.loadSlots();
+        this.slots = [...this.slots, this.mapSlot(newSlot)];
       },
       error: (err) => {
         this.slotError = `Failed to create slot: ${err.error?.error || err.message}`;

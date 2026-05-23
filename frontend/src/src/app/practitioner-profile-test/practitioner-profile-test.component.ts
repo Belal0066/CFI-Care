@@ -351,11 +351,16 @@ export class PractitionerProfileTestComponent implements OnInit {
     };
 
     this.appointmentService.createSchedule(scheduleData).subscribe({
-      next: () => {
+      next: (newSchedule) => {
         this.savingSchedule = false;
         this.message = 'Schedule created successfully.';
         this.newScheduleForm = { startDate: '', endDate: '', active: true };
-        this.loadSchedules();
+        // Optimistic update: push directly from response so it appears instantly
+        // without waiting for FHIR search index to catch up
+        this.schedules = [...this.schedules, newSchedule];
+        if (!this.newSlotForm.scheduleId && newSchedule.id) {
+          this.newSlotForm.scheduleId = newSchedule.id;
+        }
       },
       error: (error) => {
         this.savingSchedule = false;
@@ -387,7 +392,7 @@ export class PractitionerProfileTestComponent implements OnInit {
     };
 
     this.appointmentService.createSlot(slotData).subscribe({
-      next: () => {
+      next: (newSlot) => {
         this.savingSlot = false;
         this.message = 'Slot created successfully.';
         this.newSlotForm = {
@@ -396,7 +401,9 @@ export class PractitionerProfileTestComponent implements OnInit {
           endDateTime: '',
           status: 'free',
         };
-        this.loadSlots();
+        // Optimistic update: push directly from response so it appears instantly
+        // without waiting for FHIR search index to catch up
+        this.slots = [...this.slots, newSlot];
       },
       error: (error) => {
         this.savingSlot = false;

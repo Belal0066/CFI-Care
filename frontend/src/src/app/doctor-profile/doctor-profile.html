@@ -163,7 +163,7 @@
       <div class="table-scroll">
         <table class="slots-table">
           <thead>
-            <tr><th>ID</th><th>Schedule</th><th>Status</th><th>Start</th><th>End</th><th></th></tr>
+            <tr><th>ID</th><th>Schedule</th><th>Status</th><th>Patient</th><th>Start</th><th>End</th><th></th></tr>
           </thead>
           <tbody>
             <tr *ngFor="let slot of filteredSlots">
@@ -173,6 +173,15 @@
                 <span class="status-pill" [ngClass]="slot.status">
                   <span class="status-dot"></span>{{ slot.status }}
                 </span>
+              </td>
+              <td>
+                <span *ngIf="slot.patientName; else noPatient"
+                  style="font-size:12px;font-weight:600;color:#1e3a5f;white-space:nowrap">
+                  {{ slot.patientName }}
+                </span>
+                <ng-template #noPatient>
+                  <span style="color:var(--t3);font-size:11px">—</span>
+                </ng-template>
               </td>
               <td style="color:var(--t2)">{{ fmt(slot.start) }}</td>
               <td style="color:var(--t2)">{{ fmt(slot.end) }}</td>
@@ -186,7 +195,7 @@
               </div></td>
             </tr>
             <tr *ngIf="filteredSlots.length === 0">
-              <td colspan="6" style="color:var(--t3);font-size:11px">No slots.</td>
+              <td colspan="7" style="color:var(--t3);font-size:11px">No slots.</td>
             </tr>
           </tbody>
         </table>
