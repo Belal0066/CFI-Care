@@ -2,5 +2,6 @@
 # */.env
 *.log
 *.asc
+.env.test
 
 *.pem

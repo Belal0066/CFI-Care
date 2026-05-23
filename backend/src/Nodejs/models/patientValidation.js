@@ -10,7 +10,7 @@ const createPatientSchema = Joi.object({
   birthDate: Joi.string().isoDate().required(),
 
   password: Joi.string().min(8).required(),
-});
+}).unknown(true); // allow extra fields so validation is permissive
 
 module.exports = {
   createPatientSchema,
