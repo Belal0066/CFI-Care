@@ -6,7 +6,14 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand --forceExit --testPathIgnorePatterns=\"database.test\"",
+    "test:all": "jest --runInBand --forceExit",
+    "test:coverage": "jest --coverage --runInBand --forceExit --testPathIgnorePatterns=\"database.test\"",
+    "test:unit": "jest --testPathPatterns=\"__tests__/.*(validation|validateRequest|cacheHelper)\" --runInBand --forceExit",
+    "test:integration": "jest --testPathPatterns=\"__tests__/.*(Service|Routes).integration|Routes.test\" --runInBand --forceExit",
+    "test:e2e": "jest --testPathPatterns=\"__tests__/e2e\" --runInBand --forceExit",
+    "test:history-graph": "jest --testPathPatterns=\"historyGraph/__tests__\" --runInBand --forceExit",
+    "test:watch": "jest --watch"
   },
   "keywords": [],
   "author": "",
@@ -38,15 +45,18 @@
   },
   "devDependencies": {
     "@toon-format/toon": "^2.1.0",
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
     "axios-mock-adapter": "^2.1.0",
     "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
     "dox": "^1.0.0",
     "jest": "^30.2.0",
+    "jest-html-reporters": "^3.1.7",
+    "jest-junit": "^16.0.0",
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^3.2.2",
-    "pg": "^8.16.3",
-    "redis": "^5.10.0",
-    "supertest": "^7.1.4",
+    "supertest": "^7.2.2",
     "toon": "^0.0.1"
   }
 }
