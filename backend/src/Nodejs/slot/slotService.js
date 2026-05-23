@@ -43,12 +43,14 @@ async function fetchAllBundleEntries(initialPath) {
 async function getSlotsBySchedule(scheduleId, status) {
   const statusParam = status ? `&status=${status}` : "";
   const cacheKey = `slots:schedule:${scheduleId}:status:${status || "all"}`;
+  const dirtyKey = `${cacheKey}:dirty`;
 
   try {
-    // Check cache first
-    const cachedData = await getFromCache(cacheKey);
-    if (cachedData) {
-      return cachedData;
+    // Skip cache during the dirty window after a write to prevent stale re-caching
+    const isDirty = await getFromCache(dirtyKey);
+    if (!isDirty) {
+      const cachedData = await getFromCache(cacheKey);
+      if (cachedData) return cachedData;
     }
 
     const response = await fhirApi.get(
@@ -56,8 +58,9 @@ async function getSlotsBySchedule(scheduleId, status) {
     );
     const bundle = response.data;
 
-    // Store in cache
-    await setInCache(cacheKey, bundle, CACHE_EXPIRATION.SHORT);
+    if (!isDirty) {
+      await setInCache(cacheKey, bundle, CACHE_EXPIRATION.SHORT);
+    }
 
     return bundle;
   } catch (error) {
@@ -114,43 +117,37 @@ async function getSlotsByPractitioner(practitionerId, status) {
       return [];
     }
 
-    // For each schedule, fetch slots 
-    const allSlots = [];
-    for (const scheduleEntry of schedulesBundle.entry) {
-      const scheduleId = scheduleEntry.resource.id;
-      const statusQuery = status ? `&status=${status}` : "";
-      console.log(
-        `Fetching ${status || "all"} slots for Schedule/${scheduleId}`,
-      );
+    // Fetch slots for all schedules in parallel
+    const statusQuery = status ? `&status=${status}` : "";
+    const slotArrays = await Promise.all(
+      schedulesBundle.entry.map(async (scheduleEntry) => {
+        const scheduleId = scheduleEntry.resource.id;
+        try {
+          const slotEntries = await fetchAllBundleEntries(
+            `/Slot?schedule=Schedule/${scheduleId}${statusQuery}`,
+          );
+          return slotEntries
+            .map((entry) => entry.resource)
+            .filter((slot) => !!slot)
+            .map((slot) => ({
+              resourceType: "Slot",
+              id: slot.id,
+              schedule: slot.schedule,
+              start: slot.start,
+              end: slot.end,
+              status: slot.status,
+            }));
+        } catch (slotError) {
+          console.error(
+            `Error fetching slots for Schedule/${scheduleId}:`,
+            slotError.message,
+          );
+          return [];
+        }
+      }),
+    );
 
-      try {
-        const slotEntries = await fetchAllBundleEntries(
-          `/Slot?schedule=Schedule/${scheduleId}${statusQuery}`,
-        );
-
-        // Extract and simplify the slots
-        const slots = slotEntries
-          .map((entry) => entry.resource)
-          .filter((slot) => !!slot)
-          .map((slot) => ({
-            resourceType: "Slot",
-            id: slot.id,
-            schedule: slot.schedule,
-            start: slot.start,
-            end: slot.end,
-            status: slot.status,
-          }));
-
-        allSlots.push(...slots);
-      } catch (slotError) {
-        console.error(
-          `Error fetching slots for Schedule/${scheduleId}:`,
-          slotError.message,
-        );
-        // Continue with other schedules even if one fails
-      }
-    }
-
+    const allSlots = slotArrays.flat();
     console.log(
       `Found ${allSlots.length} ${status || "all"} slots for Practitioner/${practitionerId}`,
     );
@@ -209,8 +206,8 @@ async function createSlotWithSpecificId(slotData) {
   try {
     const response = await fhirApi.put(`/Slot/${slotId}`, fhirSlotResource);
 
-    // Invalidate caches after successful creation/update
-    await invalidateSlotCache(slotId, slotData);
+    // Use response.data so schedule references match exactly what FHIR stored
+    await invalidateSlotCache(slotId, response.data);
 
     return response.data;
   } catch (error) {
@@ -245,8 +242,8 @@ async function createSlot(slotData) {
   try {
     const response = await fhirApi.post("/Slot", fhirSlotResource);
 
-    // Invalidate caches after successful creation
-    await invalidateSlotCache(response.data.id, slotData);
+    // Use response.data so schedule references match exactly what FHIR stored
+    await invalidateSlotCache(response.data.id, response.data);
 
     return response.data;
   } catch (error) {
@@ -344,16 +341,19 @@ async function deleteSlot(slotId) {
 
 // Helper function to invalidate slot caches
 async function invalidateSlotCache(slotId, slotData) {
-  // Invalidate slot cache
   await deleteFromCache(`slot:${slotId}`);
 
-  // Invalidate schedule slots cache if schedule reference exists
   if (slotData.schedule?.reference) {
     const scheduleId = slotData.schedule.reference.split("/")[1];
-    await deleteFromCache(`slots:schedule:${scheduleId}:status:all`);
-    await deleteFromCache(
-      `slots:schedule:${scheduleId}:status:${slotData.status || "all"}`,
-    );
+    const allKey = `slots:schedule:${scheduleId}:status:all`;
+    const statusKey = `slots:schedule:${scheduleId}:status:${slotData.status || "all"}`;
+    await deleteFromCache(allKey);
+    await deleteFromCache(statusKey);
+    // Set dirty flags for 15s to prevent stale re-caching during FHIR indexing window
+    await setInCache(`${allKey}:dirty`, 1, 15);
+    if (statusKey !== allKey) {
+      await setInCache(`${statusKey}:dirty`, 1, 15);
+    }
   }
 }
 

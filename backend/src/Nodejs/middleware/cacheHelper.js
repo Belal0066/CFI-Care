@@ -72,7 +72,7 @@ async function setInCache(key, data, expirationTime = DEFAULT_EXPIRATION) {
 async function deleteFromCache(keys) {
   try {
     const keysArray = Array.isArray(keys) ? keys : [keys];
-    const result = await redisClient.del(keysArray);
+    const result = await redisClient.del(...keysArray);
     console.log(`[CACHE DELETE] Deleted ${result} key(s)`);
     return result;
   } catch (error) {
@@ -88,7 +88,14 @@ async function deleteFromCache(keys) {
  */
 async function deleteByPattern(pattern) {
   try {
-    const keys = await redisClient.keys(pattern);
+    const keys = [];
+    for await (const batch of redisClient.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+      if (Array.isArray(batch)) {
+        keys.push(...batch);
+      } else {
+        keys.push(batch);
+      }
+    }
     if (keys.length === 0) {
       console.log(`[CACHE PATTERN] No keys found for pattern: ${pattern}`);
       return 0;
@@ -230,11 +237,14 @@ async function flushAllCache() {
  */
 async function getCacheStats() {
   try {
-    const keys = await redisClient.keys("*");
+    let totalKeys = 0;
+    for await (const batch of redisClient.scanIterator({ COUNT: 100 })) {
+      totalKeys += Array.isArray(batch) ? batch.length : 1;
+    }
     const info = await redisClient.info("memory");
 
     return {
-      totalKeys: keys.length,
+      totalKeys,
       memoryInfo: info,
       timestamp: new Date().toISOString(),
     };

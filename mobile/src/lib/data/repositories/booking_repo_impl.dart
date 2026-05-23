@@ -392,9 +392,9 @@ class BookingRepositoryImpl {
     }
   }
 
-  Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
+  Future<Map<String, dynamic>> cancelAppointment(String appointmentId, {String? patientId}) async {
     try {
-      final result = await apiService.cancelAppointment(appointmentId);
+      final result = await apiService.cancelAppointment(appointmentId, patientId: patientId);
       return result;
     } catch (e) {
       print("Error cancelling appointment: $e");

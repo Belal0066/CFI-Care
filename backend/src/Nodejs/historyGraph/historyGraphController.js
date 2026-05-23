@@ -149,12 +149,17 @@ const addNode = async (req, res) => {
       return res.status(400).json({ error: "nodeData is required" });
     }
 
+    // If the caller is a practitioner (not the patient themselves), capture their ID
+    const callerId = req.accessContext?.reqId;
+    const practitionerId = callerId && callerId !== patientId ? callerId : null;
+
     // Call the service to add the node
     const result = await historyGraphService.addNode(
       patientId,
       eocId,
       nodeData,
       parentNodeId,
+      practitionerId,
     );
 
     res.status(201).json(result);

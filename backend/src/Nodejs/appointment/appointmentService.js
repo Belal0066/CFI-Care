@@ -20,12 +20,13 @@ const fhirApi = axios.create({
 // Fetch all appointments for a patient
 async function getAppointmentsByPatient(patientId) {
   const cacheKey = `appointments:patient:${patientId}`;
+  const dirtyKey = `${cacheKey}:dirty`;
 
   try {
-    // Check cache first
-    const cachedData = await getFromCache(cacheKey);
-    if (cachedData) {
-      return cachedData;
+    const isDirty = await getFromCache(dirtyKey);
+    if (!isDirty) {
+      const cachedData = await getFromCache(cacheKey);
+      if (cachedData) return cachedData;
     }
 
     const response = await fhirApi.get(
@@ -33,8 +34,9 @@ async function getAppointmentsByPatient(patientId) {
     );
     const bundle = response.data;
 
-    // Store in cache
-    await setInCache(cacheKey, bundle, CACHE_EXPIRATION.DEFAULT);
+    if (!isDirty) {
+      await setInCache(cacheKey, bundle, CACHE_EXPIRATION.DEFAULT);
+    }
 
     return bundle;
   } catch (error) {
@@ -43,15 +45,16 @@ async function getAppointmentsByPatient(patientId) {
   }
 }
 
-// Fetch all appointments for a practitioner
+// Fetch all appointments for a practitioner, enriched with patient display names
 async function getAppointmentsByPractitioner(practitionerId) {
   const cacheKey = `appointments:practitioner:${practitionerId}`;
+  const dirtyKey = `${cacheKey}:dirty`;
 
   try {
-    // Check cache first
-    const cachedData = await getFromCache(cacheKey);
-    if (cachedData) {
-      return cachedData;
+    const isDirty = await getFromCache(dirtyKey);
+    if (!isDirty) {
+      const cachedData = await getFromCache(cacheKey);
+      if (cachedData) return cachedData;
     }
 
     const response = await fhirApi.get(
@@ -59,8 +62,54 @@ async function getAppointmentsByPractitioner(practitionerId) {
     );
     const bundle = response.data;
 
-    // Store in cache
-    await setInCache(cacheKey, bundle, CACHE_EXPIRATION.DEFAULT);
+    // Enrich each appointment entry with the patient's display name so the
+    // frontend doesn't need a separate (consent-gated) patient API call.
+    if (Array.isArray(bundle.entry) && bundle.entry.length > 0) {
+      const patientIds = new Set();
+      for (const entry of bundle.entry) {
+        const appt = entry.resource || {};
+        for (const p of appt.participant || []) {
+          const ref = p.actor?.reference || "";
+          if (ref.startsWith("Patient/")) {
+            patientIds.add(ref.split("/")[1]);
+          }
+        }
+      }
+
+      const nameMap = {};
+      await Promise.all(
+        [...patientIds].map(async (pid) => {
+          try {
+            const patientRes = await fhirApi.get(`/Patient/${pid}`);
+            const patient = patientRes.data;
+            const nameObj = patient?.name?.[0];
+            const given = (nameObj?.given || []).join(" ");
+            const family = nameObj?.family || "";
+            nameMap[pid] = `${given} ${family}`.trim() || pid;
+          } catch {
+            nameMap[pid] = pid;
+          }
+        }),
+      );
+
+      bundle.entry = bundle.entry.map((entry) => {
+        const appt = entry.resource || {};
+        const patientParticipant = (appt.participant || []).find((p) =>
+          (p.actor?.reference || "").startsWith("Patient/"),
+        );
+        if (patientParticipant) {
+          const pid = patientParticipant.actor.reference.split("/")[1];
+          if (nameMap[pid]) {
+            entry = { ...entry, resource: { ...appt, _patientName: nameMap[pid] } };
+          }
+        }
+        return entry;
+      });
+    }
+
+    if (!isDirty) {
+      await setInCache(cacheKey, bundle, CACHE_EXPIRATION.DEFAULT);
+    }
 
     return bundle;
   } catch (error) {
@@ -247,6 +296,7 @@ function normalizeAppointmentUpdatePayload(
   delete normalized.symptomsText;
   delete normalized.documentReferenceIds;
   delete normalized.reasonCode;
+  delete normalized.patientId;
 
   return {
     ...existingAppointment,
@@ -505,12 +555,14 @@ async function invalidateAppointmentCache(appointmentId, appointmentData) {
   for (const patientId of patientIds) {
     if (patientId) {
       await deleteFromCache(`appointments:patient:${patientId}`);
+      await setInCache(`appointments:patient:${patientId}:dirty`, 1, 15);
     }
   }
 
   for (const practitionerId of practitionerIds) {
     if (practitionerId) {
       await deleteFromCache(`appointments:practitioner:${practitionerId}`);
+      await setInCache(`appointments:practitioner:${practitionerId}:dirty`, 1, 15);
     }
   }
 }

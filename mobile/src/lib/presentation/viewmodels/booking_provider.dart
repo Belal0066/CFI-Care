@@ -327,8 +327,9 @@ class BookingProvider with ChangeNotifier {
     if (index == -1) return;
     final doctorId = _appointments[index].doctor.id;
 
+    final patientId = Session.currentUserId;
     try {
-      await repository.cancelAppointment(id);
+      await repository.cancelAppointment(id, patientId: patientId);
     } catch (e) {
       print("Failed to cancel appointment on server: $e");
       return;

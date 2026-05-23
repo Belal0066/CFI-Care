@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { PatientApiService } from '../services/patientApi/patient-api-service';
 import { ChatSection } from '../chat-section/chat-section';
 
@@ -215,7 +216,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
   sendMessage(message: any) {
     if (this.iframe?.nativeElement?.contentWindow) {
       console.log('[MED-GRAPH][angular->iframe] posting message =', message);
-      this.iframe.nativeElement.contentWindow.postMessage(message, '*');
+      this.iframe.nativeElement.contentWindow.postMessage(message, window.location.origin);
     }
   }
 
@@ -231,18 +232,39 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
 
     const eocFilter = this.eocId !== 'eoc-default' ? this.eocId : undefined;
     this.patientApi.getPatientGraph(patientId, eocFilter).subscribe({
-      next: (response) => {
+      next: async (response) => {
         console.log('[MED-GRAPH][loadPatientGraph] raw response =', response);
         // Handle both old format (array) and new format ({ nodes, eocId })
-        if (Array.isArray(response)) {
-          this.data = response;
-        } else {
-          this.data = response.nodes || [];
-          // Update eocId if provided by backend
-          if (response.eocId) {
-            this.eocId = response.eocId;
-          }
+        let nodes: any[] = Array.isArray(response) ? response : (response.nodes || []);
+        if (!Array.isArray(response) && response.eocId) {
+          this.eocId = response.eocId;
         }
+
+        // Enrich FollowUp nodes with practitioner info
+        const practitionerIds = [...new Set(
+          nodes
+            .filter((n: any) => n.category === 'FollowUp' && n.practitionerId)
+            .map((n: any) => n.practitionerId as string)
+        )] as string[];
+
+        if (practitionerIds.length > 0) {
+          const infos = await Promise.all(
+            practitionerIds.map((id) =>
+              firstValueFrom(this.patientApi.getPractitionerById(id)).catch(() => null)
+            )
+          );
+          const practitionerMap: Record<string, any> = {};
+          practitionerIds.forEach((id, i) => {
+            if (infos[i]) practitionerMap[id] = infos[i];
+          });
+          nodes = nodes.map((node: any) =>
+            node.category === 'FollowUp' && node.practitionerId && practitionerMap[node.practitionerId]
+              ? { ...node, practitionerInfo: practitionerMap[node.practitionerId] }
+              : node
+          );
+        }
+
+        this.data = nodes;
         console.log(
           '[MED-GRAPH][loadPatientGraph] parsed nodes =',
           this.data.length,
@@ -305,7 +327,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
         patientId: this.patientId,
         eocId: this.eocId,
       },
-      '*',
+      window.location.origin,
     );
   }
 }

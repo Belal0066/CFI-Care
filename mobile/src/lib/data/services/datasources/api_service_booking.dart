@@ -542,13 +542,16 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
+  Future<Map<String, dynamic>> cancelAppointment(String appointmentId, {String? patientId}) async {
     try {
       final response = await _authorizedRequest((headers) {
         return http.post(
           Uri.parse('$baseUrl/appointments/$appointmentId'),
           headers: headers,
-          body: json.encode({"status": "cancelled"}),
+          body: json.encode({
+            "status": "cancelled",
+            if (patientId != null) "patientId": patientId,
+          }),
         );
       });
 

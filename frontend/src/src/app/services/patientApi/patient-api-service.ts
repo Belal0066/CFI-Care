@@ -75,6 +75,11 @@ export class PatientApiService {
     return this.http.delete<any>(`${this.graphUrl}/${patientId}/${nodeId}`);
   }
 
+  // Get practitioner info by ID (name, specialty, title, address)
+  getPractitionerById(practitionerId: string): Observable<any> {
+    return this.http.get<any>(`/api/practitioners/${practitionerId}`);
+  }
+
   // Get all related data for a patient
   getPatientRelatedData(id: string | number): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/${id}/related-data`);
