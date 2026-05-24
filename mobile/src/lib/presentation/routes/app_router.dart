@@ -6,7 +6,9 @@ import '../screens/auth_screen.dart';
 import '../screens/splash_screen.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
-GoRouter buildRouter(AuthProvider authProvider) {
+import '../../data/services/datasources/api_service_booking.dart';
+
+GoRouter buildRouter(AuthProvider authProvider, ApiService apiService) {
   return GoRouter(
     initialLocation: '/loading',
     refreshListenable: authProvider,
@@ -49,7 +51,7 @@ GoRouter buildRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/app',
-        builder: (context, state) => const MyApp(),
+        builder: (context, state) => MyApp(apiService: apiService),
       ),
     ],
   );

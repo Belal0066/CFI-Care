@@ -32,11 +32,11 @@ class _NewEventState extends State<NewEvent> {
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();
   final _detailsController = TextEditingController();
-  
+
   TimeOfDay _selectedTime = const TimeOfDay(hour: 0, minute: 0);
   TypeOfEventEnum _selectedEventCategory = TypeOfEventEnum.other;
   SpecialityEventEnum _selectedSpecialityCategory = SpecialityEventEnum.other;
-  
+
   // --- Attachment Logic ---
   String? _filePath;
 
@@ -62,15 +62,16 @@ class _NewEventState extends State<NewEvent> {
     try {
       final scanner = FlutterDocScanner();
       final scanned = await scanner.getScannedDocumentAsPdf(page: 4);
-      if (scanned != null && scanned['pdfUri'] != null) {
-        String path = scanned['pdfUri'];
+      // if (scanned != null && scanned['pdfUri'] != null) {
+      //   String path = scanned['pdfUri'];
+      if (scanned != null && scanned.pdfUri != null) {
+        String path = scanned.pdfUri!;
         path = path.replaceFirst("file://", "");
         await _copyFileToAppDir(path);
       }
     } catch (e) {
       if (mounted) {
-        Fluttertoast.showToast(msg:"Scan failed: $e");
-        
+        Fluttertoast.showToast(msg: "Scan failed: $e");
       }
     }
   }
@@ -80,7 +81,8 @@ class _NewEventState extends State<NewEvent> {
     if (!file.existsSync()) return;
 
     final appDir = await getApplicationDocumentsDirectory();
-    final newPath = '${appDir.path}/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+    final newPath =
+        '${appDir.path}/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
     final newFile = await file.copy(newPath);
 
     setState(() {
@@ -102,7 +104,7 @@ class _NewEventState extends State<NewEvent> {
 
     if (userId == null) {
       if (mounted) {
-        Fluttertoast.showToast(msg:"Error: No user logged in");
+        Fluttertoast.showToast(msg: "Error: No user logged in");
       }
       return;
     }
@@ -119,12 +121,8 @@ class _NewEventState extends State<NewEvent> {
     );
 
     // 4. Save to Database
-    await DBHelper.insertEvent(
-      userId,
-      newEvent,
-      widget.selectedDate,
-    );
-    
+    await DBHelper.insertEvent(userId, newEvent, widget.selectedDate);
+
     // 5. Refresh Parent UI
     await widget.refreshEvents();
 
@@ -161,10 +159,10 @@ class _NewEventState extends State<NewEvent> {
       height: double.infinity,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          16, 
-          16, 
-          16, 
-          MediaQuery.of(context).viewInsets.bottom + 16
+          16,
+          16,
+          16,
+          MediaQuery.of(context).viewInsets.bottom + 16,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -183,7 +181,7 @@ class _NewEventState extends State<NewEvent> {
                   ),
                 ),
               ),
-              
+
               const Text(
                 "Add Event",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -201,7 +199,7 @@ class _NewEventState extends State<NewEvent> {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // 2. Summary
               TextField(
                 controller: _summaryController,
@@ -253,16 +251,23 @@ class _NewEventState extends State<NewEvent> {
                       decoration: const InputDecoration(
                         labelText: "Type",
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                       items: TypeOfEventEnum.values.map((cat) {
                         return DropdownMenuItem(
                           value: cat,
-                          child: Text(cat.name.toUpperCase(), style: const TextStyle(fontSize: 12)),
+                          child: Text(
+                            cat.name.toUpperCase(),
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedEventCategory = val);
+                        if (val != null)
+                          setState(() => _selectedEventCategory = val);
                       },
                     ),
                   ),
@@ -273,27 +278,38 @@ class _NewEventState extends State<NewEvent> {
                       decoration: const InputDecoration(
                         labelText: "Speciality",
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                       isExpanded: true,
                       items: SpecialityEventEnum.values.map((cat) {
                         return DropdownMenuItem(
                           value: cat,
-                          child: Text(cat.name.toUpperCase(), style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            cat.name.toUpperCase(),
+                            style: const TextStyle(fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedSpecialityCategory = val);
+                        if (val != null)
+                          setState(() => _selectedSpecialityCategory = val);
                       },
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
 
               // --- Attach Files ---
-              const Text("Attach File", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Attach File",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -303,7 +319,7 @@ class _NewEventState extends State<NewEvent> {
                   _buildAttachButton(Icons.camera_alt, "Scan", scanDocument),
                 ],
               ),
-              
+
               // Show selected file preview
               if (_filePath != null) ...[
                 const SizedBox(height: 12),
@@ -327,7 +343,7 @@ class _NewEventState extends State<NewEvent> {
                       IconButton(
                         icon: const Icon(Icons.close, size: 20),
                         onPressed: () => setState(() => _filePath = null),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -344,9 +360,14 @@ class _NewEventState extends State<NewEvent> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text("Save Event", style: TextStyle(fontSize: 16)),
+                  child: const Text(
+                    "Save Event",
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -372,11 +393,13 @@ class _NewEventState extends State<NewEvent> {
           children: [
             Icon(icon, color: Colors.grey[700]),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: Colors.grey[800], fontSize: 12)),
+            Text(
+              label,
+              style: TextStyle(color: Colors.grey[800], fontSize: 12),
+            ),
           ],
         ),
       ),
     );
   }
 }
-

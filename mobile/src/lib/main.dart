@@ -29,6 +29,9 @@ import 'domain/repository/access_grant_repository.dart';
 import 'presentation/viewmodels/access_grant_provider.dart';
 import 'domain/repository/patient_repository.dart';
 import 'presentation/viewmodels/patient_provider.dart';
+import 'domain/repository/family_access_repository.dart';
+import 'presentation/viewmodels/family_access_provider.dart';
+import 'presentation/viewmodels/proxy_session_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -86,8 +89,9 @@ void main() async {
   final eventRepo = MajorEventRepository(apiService);
   final accessGrantRepo = AccessGrantRepository(apiService);
   final patientRepo = PatientRepository(apiService);
+  final familyAccessRepo = FamilyAccessRepository(apiService);
 
-  final router = buildRouter(authProvider);
+  final router = buildRouter(authProvider, apiService);
 
   runApp(
     MultiProvider(
@@ -98,6 +102,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MajorEventProvider(eventRepo)),
         ChangeNotifierProvider(create: (_) => AccessGrantProvider(accessGrantRepo)),
         ChangeNotifierProvider(create: (_) => PatientProvider(patientRepo)),
+        ChangeNotifierProvider(create: (_) => FamilyAccessProvider(familyAccessRepo)),
+        ChangeNotifierProvider(create: (_) => ProxySessionProvider()),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
       ],
       child: MaterialApp.router(
