@@ -35,9 +35,9 @@ class MockMajorEventRepository extends _i1.Mock
   }
 
   @override
-  _i3.Future<List<_i4.MajorEvent>> getMajorEvents() =>
+  _i3.Future<List<_i4.MajorEvent>> getMajorEvents(String? patientId) =>
       (super.noSuchMethod(
-            Invocation.method(#getMajorEvents, []),
+            Invocation.method(#getMajorEvents, [patientId]),
             returnValue: _i3.Future<List<_i4.MajorEvent>>.value(
               <_i4.MajorEvent>[],
             ),
@@ -45,9 +45,10 @@ class MockMajorEventRepository extends _i1.Mock
           as _i3.Future<List<_i4.MajorEvent>>);
 
   @override
-  _i3.Future<List<_i5.EventNode>> getNodesForEvent(String? eventId) =>
+  _i3.Future<List<_i5.EventNode>> getNodesForEvent(
+          String? patientId, String? eocId) =>
       (super.noSuchMethod(
-            Invocation.method(#getNodesForEvent, [eventId]),
+            Invocation.method(#getNodesForEvent, [patientId, eocId]),
             returnValue: _i3.Future<List<_i5.EventNode>>.value(
               <_i5.EventNode>[],
             ),

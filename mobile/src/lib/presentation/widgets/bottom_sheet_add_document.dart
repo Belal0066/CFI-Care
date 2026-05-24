@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // <--- Import Provider
 import 'package:fluttertoast/fluttertoast.dart';
@@ -223,11 +224,15 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                   widget.viewModel.pickPDF,
                 ),
                 buildAttachButton(
-                  Icons.image,
-                  "Image",
+                  Icons.photo_library,
+                  "Gallery",
                   widget.viewModel.pickImage,
                 ),
-                buildAttachButton(Icons.camera_alt, "Scan", () => widget.viewModel.scanDocument(context),),
+                buildAttachButton(
+                  Icons.document_scanner,
+                  "Scan",
+                  () => widget.viewModel.scanDocument(context),
+                ),
                 // StreamBuilder<AccelerometerEvent>(
                 //   stream: accelerometerEventStream(),
                 //   builder: (context, snapshot) {
@@ -288,6 +293,50 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
             // --- SELECTED FILE PREVIEW ---
             if (widget.viewModel.filePath != null) ...[
               const SizedBox(height: 12),
+
+              // Image thumbnail (images only)
+              if (!widget.viewModel.isPdf)
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        // Use a UniqueKey so Flutter re-renders when filePath
+                        // changes after applying the magic filter
+                        key: ValueKey(widget.viewModel.filePath),
+                        File(widget.viewModel.filePath!),
+                        width: double.infinity,
+                        height: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    // Loading overlay while filter is being applied
+                    if (widget.viewModel.isApplyingFilter)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(color: Colors.white),
+                              SizedBox(height: 8),
+                              Text(
+                                'Enhancing…',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+              const SizedBox(height: 8),
+
+              // Filename row with remove button
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -318,6 +367,91 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                   ],
                 ),
               ),
+
+              // --- BLUR WARNING ---
+              if (widget.viewModel.isCheckingBlur)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Checking image quality…',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!widget.viewModel.isPdf &&
+                  widget.viewModel.isBlurry) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Image looks blurry. Try retaking or enhance it.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // --- FILTER ERROR ---
+              if (widget.viewModel.filterError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.viewModel.filterError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ],
+
+              // --- MAGIC FILTER BUTTON (images only) ---
+              if (!widget.viewModel.isPdf) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: widget.viewModel.isApplyingFilter
+                        ? null
+                        : widget.viewModel.applyMagicFilter,
+                    icon: const Icon(Icons.auto_fix_high, size: 18),
+                    label: const Text(
+                      'Magic Filter  (auto-enhance)',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade700,
+                      side: BorderSide(color: Colors.blue.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: 24),

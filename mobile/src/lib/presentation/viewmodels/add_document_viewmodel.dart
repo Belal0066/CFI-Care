@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../data/services/permission_handler_widget.dart';
+import '../../data/services/image_quality_service.dart';
 import '../widgets/scanner_with_spirit_level.dart';
 import '../widgets/multiple_page_scanner.dart';
 
@@ -51,6 +52,19 @@ class DocumentAddViewModel extends ChangeNotifier {
   String? filePath;
   bool isPdf = false;
 
+  // Image Quality State
+  bool _isCheckingBlur = false;
+  bool _isApplyingFilter = false;
+  bool _isBlurry = false;
+  double? _blurScore;
+  String? _filterError;
+
+  bool get isCheckingBlur => _isCheckingBlur;
+  bool get isApplyingFilter => _isApplyingFilter;
+  bool get isBlurry => _isBlurry;
+  double? get blurScore => _blurScore;
+  String? get filterError => _filterError;
+
   // Enums / Time
   TimeOfDay selectedTime = TimeOfDay.now();
   TypeOfEventEnum selectedType = TypeOfEventEnum.other;
@@ -87,11 +101,57 @@ class DocumentAddViewModel extends ChangeNotifier {
   }
 
   Future<void> pickImage() async {
-    // final picker = ImagePicker();
-    // final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      await _copyFileToAppDir(pickedFile.path, isPDF: false);
+    if (pickedFile == null) return;
+
+    await _copyFileToAppDir(pickedFile.path, isPDF: false);
+    await _runBlurCheck();
+  }
+
+  Future<void> takePhoto() async {
+    final pickedFile = await _imagePicker.pickImage(source: ImageSource.camera);
+    if (pickedFile == null) return;
+
+    await _copyFileToAppDir(pickedFile.path, isPDF: false);
+    await _runBlurCheck();
+  }
+
+  // Shared blur detection — called right after any image is captured or picked.
+  Future<void> _runBlurCheck() async {
+    if (filePath == null) return;
+
+    _isCheckingBlur = true;
+    _isBlurry = false;
+    _blurScore = null;
+    _filterError = null;
+    notifyListeners();
+
+    _blurScore = await ImageQualityService.computeBlurScore(filePath!);
+    _isBlurry = (_blurScore ?? 999) < ImageQualityService.blurThreshold;
+    _isCheckingBlur = false;
+    notifyListeners();
+  }
+
+  /// Replaces the current image with a magic-filtered (auto-enhanced) version.
+  Future<void> applyMagicFilter() async {
+    if (filePath == null || isPdf) return;
+
+    _isApplyingFilter = true;
+    _filterError = null;
+    notifyListeners();
+
+    try {
+      final enhancedPath = await ImageQualityService.applyMagicFilter(filePath!);
+      filePath = enhancedPath;
+
+      // Re-check blur score on the enhanced image
+      _blurScore = await ImageQualityService.computeBlurScore(filePath!);
+      _isBlurry = (_blurScore ?? 999) < ImageQualityService.blurThreshold;
+    } catch (e) {
+      _filterError = 'Enhancement failed: $e';
+    } finally {
+      _isApplyingFilter = false;
+      notifyListeners();
     }
   }
 
@@ -113,7 +173,7 @@ class DocumentAddViewModel extends ChangeNotifier {
   //   }
   // }
 
-Future<void> scanDocument(BuildContext context) async { 
+Future<void> scanDocument(BuildContext context) async {
     final hasPermission = await handlePermission(Permission.camera, "Camera");
     if (!hasPermission) return;
 
@@ -124,7 +184,10 @@ Future<void> scanDocument(BuildContext context) async {
       );
 
       if (resultPath != null) {
-        await _copyFileToAppDir(resultPath, isPDF:  true);
+        await _copyFileToAppDir(resultPath, isPDF: true);
+        // Scanned documents are PDFs — no blur check needed for PDFs.
+        // If the scanner ever returns a JPEG instead, swap isPDF to false
+        // in _copyFileToAppDir and call _runBlurCheck() here.
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "Scan failed: $e");
@@ -133,6 +196,9 @@ Future<void> scanDocument(BuildContext context) async {
 
   void clearFile() {
     filePath = null;
+    _isBlurry = false;
+    _blurScore = null;
+    _filterError = null;
     notifyListeners();
   }
 

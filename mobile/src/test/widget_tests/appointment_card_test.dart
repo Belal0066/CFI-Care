@@ -13,9 +13,13 @@ import 'package:medflow/domain/models/doctors.dart';
 // 1. Create a Mock for your Provider
 class MockBookingProvider extends Mock implements BookingProvider {
   @override
-  void cancelAppointment(String? id) {
-    super.noSuchMethod(Invocation.method(#cancelAppointment, [id]));
-  }
+  Future<void> cancelAppointment(String id) =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelAppointment, [id]),
+            returnValue: Future<void>.value(),
+            returnValueForMissingStub: Future<void>.value(),
+          )
+          as Future<void>);
 }
 
 void main() {

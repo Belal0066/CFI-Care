@@ -9,6 +9,9 @@ import '../widgets/account_sec_section.dart';
 import 'package:flutter/services.dart';
 import '../viewmodels/access_grant_provider.dart';
 import '../viewmodels/patient_provider.dart';
+import '../viewmodels/family_access_provider.dart';
+import '../viewmodels/proxy_session_provider.dart';
+import '../widgets/family_otp_input.dart';
 import '../../domain/repository/patient_repository.dart';
 
 class MyProfile extends StatefulWidget {
@@ -76,23 +79,8 @@ class _MyProfileState extends State<MyProfile> {
   // Track the current user's ID
   String? currentUserId;
 
-  // Dummy Data for Shared Access
-  final List<Map<String, String>> sharedAccounts = [
-    {
-      'name': 'Martha Doe',
-      'relation': 'Mother',
-      'id': 'user_002',
-      'access': 'Read Only',
-      'type': 'external', // Added for layout filters to work
-    },
-    {
-      'name': 'Timmy Doe',
-      'relation': 'Son',
-      'id': 'user_003',
-      'access': 'Full Access',
-      'type': 'authorized', // Added for layout filters to work
-    },
-  ];
+  // Family request responding state (per handshakeId)
+  final Map<String, bool> _familyResponding = {};
 
   @override
   void initState() {
@@ -106,6 +94,10 @@ class _MyProfileState extends State<MyProfile> {
       grantProvider.fetchPendingGrants();
       grantProvider.fetchActiveGrants();
       grantProvider.requestOtp();
+
+      final familyProvider = context.read<FamilyAccessProvider>();
+      familyProvider.fetchAccessibleMembers();
+      familyProvider.fetchPendingRequests();
     });
   }
 
@@ -378,6 +370,26 @@ class _MyProfileState extends State<MyProfile> {
 
                 const Divider(),
 
+                // --- Switch Back (visible only when proxying) ---
+                Consumer<ProxySessionProvider>(
+                  builder: (context, proxy, _) {
+                    if (!proxy.isProxying) return const SizedBox.shrink();
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.swap_horiz,
+                        color: Colors.purple,
+                      ),
+                      title: Text(
+                        'Switch Back to My Profile',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.purple,
+                        ),
+                      ),
+                      onTap: proxy.switchBack,
+                    );
+                  },
+                ),
+
                 // --- Logout ---
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
@@ -409,6 +421,7 @@ class _MyProfileState extends State<MyProfile> {
 
   Widget _buildSharedAccessSection(TextTheme textTheme) {
     final grantProvider = context.watch<AccessGrantProvider>();
+    final familyProvider = context.watch<FamilyAccessProvider>();
     return Column(
       children: [
         // Master Toggle Header
@@ -433,14 +446,16 @@ class _MyProfileState extends State<MyProfile> {
         if (showSharedAccess) ...[
           const Divider(),
 
-          // --- PENDING ACCESS REQUESTS ---
+          // --- PENDING DOCTOR ACCESS REQUESTS ---
           _buildPendingRequestsSection(grantProvider),
+
+          // --- PENDING FAMILY ACCESS REQUESTS (y's view) ---
+          _buildPendingFamilyRequestsSection(familyProvider),
 
           // --- SECTION 1: FAMILY I CAN ACCESS ---
           _buildSubHeader("Family Members I Can Access"),
-          _buildAccountList(
-            sharedAccounts.where((a) => a['type'] == 'external').toList(),
-          ),
+          _buildFamilyOtpInput(familyProvider),
+          _buildFamilyMembersList(familyProvider),
 
           const SizedBox(height: 16),
           const Divider(),
@@ -470,50 +485,6 @@ class _MyProfileState extends State<MyProfile> {
           ),
         ),
       ),
-    );
-  }
-
-  // The List of accounts (Reusable) - Using safety checks from HEAD branch
-  Widget _buildAccountList(List<Map<String, String>> accounts) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: accounts.length,
-      itemBuilder: (context, index) {
-        final account = accounts[index];
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blueAccent.withOpacity(0.1),
-              child: Text(
-                (account['name']?.isNotEmpty ?? false)
-                    ? account['name']![0]
-                    : '?',
-                style: const TextStyle(
-                  color: Colors.blueAccent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            title: Text(
-              account['name'] ?? 'Unknown User',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text("${account['relation']} • ${account['access']}"),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-            onTap: () {
-              Fluttertoast.showToast(
-                msg: "Switching to ${account['name']}'s profile...",
-              );
-            },
-          ),
-        );
-      },
     );
   }
 
@@ -823,6 +794,278 @@ class _MyProfileState extends State<MyProfile> {
                         onPressed: responding ? null : () => respond(true),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E6ED3),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          minimumSize: const Size(0, 40),
+                        ),
+                        child: responding
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Approve',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  // ----------------------------------------------------------------
+  // FAMILY — OTP input (x enters y's 6-digit code)
+  // ----------------------------------------------------------------
+  Widget _buildFamilyOtpInput(FamilyAccessProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: FamilyOtpInput(
+        isSubmitting: provider.isSubmitting,
+        errorText: provider.submitError,
+        onSubmit: (code) async {
+          final ok = await provider.submitCode(code);
+          if (mounted) {
+            Fluttertoast.showToast(
+              msg: ok
+                  ? 'Request sent — waiting for their approval'
+                  : (provider.submitError ?? 'Failed. Try again.'),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------------
+  // FAMILY — list of patients x can access
+  // ----------------------------------------------------------------
+  Widget _buildFamilyMembersList(FamilyAccessProvider provider) {
+    if (provider.isLoadingMembers) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (provider.accessibleMembers.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(bottom: 8),
+        child: Text(
+          'No family members added yet.',
+          style: TextStyle(fontSize: 12, color: Colors.black45),
+        ),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: provider.accessibleMembers.length,
+      itemBuilder: (context, index) {
+        final member = provider.accessibleMembers[index];
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
+              child: Text(
+                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: Colors.blueAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Text(
+              member.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: const Text('Full Access'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            onTap: () {
+              context
+                  .read<ProxySessionProvider>()
+                  .switchTo(member.patientId, member.name);
+              Fluttertoast.showToast(
+                msg: "Switching to ${member.name}'s profile…",
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // ----------------------------------------------------------------
+  // FAMILY — pending requests y received (y's view, Accept / Deny)
+  // ----------------------------------------------------------------
+  Widget _buildPendingFamilyRequestsSection(FamilyAccessProvider provider) {
+    if (provider.isLoadingPending) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (provider.pendingRequests.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.family_restroom, color: Colors.purple, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'Family Access Requests (${provider.pendingRequests.length})',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.purple,
+                fontSize: 13,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18, color: Colors.black45),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: provider.fetchPendingRequests,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ...provider.pendingRequests.map((req) {
+          final responding = _familyResponding[req.handshakeId] ?? false;
+
+          Future<void> respond(bool approved) async {
+            setState(() => _familyResponding[req.handshakeId] = true);
+            final ok = await provider.respondToRequest(
+              req.handshakeId,
+              approved,
+            );
+            if (mounted) {
+              setState(() => _familyResponding.remove(req.handshakeId));
+              Fluttertoast.showToast(
+                msg: ok
+                    ? (approved ? 'Access granted' : 'Request denied')
+                    : 'Something went wrong. Try again.',
+              );
+            }
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.purple.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFFEDE7F6),
+                      child: Icon(
+                        Icons.person_outline,
+                        color: Colors.purple,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Family Member',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.black45,
+                            ),
+                          ),
+                          Text(
+                            req.requesterName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.purple.shade200),
+                      ),
+                      child: Text(
+                        'Pending',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: responding ? null : () => respond(false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          minimumSize: const Size(0, 40),
+                        ),
+                        child: responding
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.red,
+                                ),
+                              )
+                            : const Text('Deny', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: responding ? null : () => respond(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

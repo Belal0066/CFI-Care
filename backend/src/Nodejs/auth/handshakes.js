@@ -9,6 +9,24 @@ const { logSecurityEvent } = require('../utils/logSecurityEvent');
 const router = express.Router();
 const redis = require('../utils/redisOTPCli');
 
+const admin = require('firebase-admin');
+
+// Called by Flutter after login — stores device FCM token in Redis
+router.post('/fcm-token', requireApiAuth, async (req, res) => {
+  try {
+    const patientId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
+    if (!patientId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { fcmToken } = req.body || {};
+    if (!fcmToken) return res.status(400).json({ error: 'fcmToken is required' });
+
+    await redis.set(`fcm_token:${patientId}`, fcmToken);
+    return res.status(200).json({ message: 'FCM token stored' });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to store FCM token', detail: e.message });
+  }
+});
+
 const fhirApi = axios.create({
   baseURL: process.env.FHIR_SERVER_URL,
   headers: { 'Content-Type': 'application/fhir+json' },
@@ -94,7 +112,7 @@ router.post('/verify-otp', requireApiAuth, async (req, res) => {
     };
 
     // hancall func yb3t notif hena -> assigned to the coolest flutter head <3
-    
+
     // TODO: Send an FCM push notification to the patient here so their app
     // receives the access request instantly (type: 'grant_request').
     //
@@ -121,7 +139,21 @@ router.post('/verify-otp', requireApiAuth, async (req, res) => {
     //       apns:    { payload: { aps: { contentAvailable: true } } },
     //     });
     //   }
-
+    
+    // Send FCM push notification to patient
+    const patientFcmToken = await redis.get(`fcm_token:${patientId}`);
+    if (patientFcmToken) {
+      await admin.messaging().send({
+        token: patientFcmToken,
+        data: { type: 'grant_request', handshakeId },
+        notification: {
+          title: 'Access Request',
+          body: 'A doctor is requesting access to your health data.',
+        },
+        android: { priority: 'high' },
+        apns: { payload: { aps: { contentAvailable: true } } },
+      });
+    }
     await redis.set(
       `pending_grant:${handshakeId}`,
       JSON.stringify(pending),
