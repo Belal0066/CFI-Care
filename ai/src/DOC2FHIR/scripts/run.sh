@@ -7,7 +7,7 @@
 #
 # Commands:
 #   ocr       Start OCR service (vLLM Docker + API wrapper on :7862)
-#   mapper    Start Mapper service (llama.cpp + Gemma-4 on :8080)
+#   mapper    Start Mapper service (llama.cpp + Gemma-4 on :8070)
 #   gateway   Start Gateway API (FastAPI on :8001)
 #   ui        Start Pipeline UI (Streamlit on :8502)
 #   mapper-ui Start Mapper testing UI (Streamlit on :8501)

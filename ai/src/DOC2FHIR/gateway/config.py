@@ -31,10 +31,10 @@ class GatewaySettings:
     max_upload_mb: int = 25
     allowed_extensions: tuple[str, ...] = (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp")
     ocr_base_url: str = "http://127.0.0.1:7862"
-    mapper_base_url: str = "http://127.0.0.1:8080"
+    mapper_base_url: str = "http://127.0.0.1:8070"
     downstream_docfhir_url: str = "http://127.0.0.1:3000/v1/docfhir/"
     downstream_type: str = "nodejs"
-    hapi_fhir_base_url: str = "http://127.0.0.1:8090/fhir"
+    hapi_fhir_base_url: str = "http://127.0.0.1:8080/fhir"
     fhir_version: str = "5.0"
     structured_pipeline_enabled: bool = False
     structured_output_mode: str = "auto"
