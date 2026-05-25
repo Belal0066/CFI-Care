@@ -28,7 +28,7 @@ class MajorEventProvider with ChangeNotifier {
   // --- ACTIONS ---
 
   Future<void> fetchEvents() async {
-    final patientId = Session.currentUserId;
+   final patientId = Session.currentApiUserId ?? Session.currentUserId;
     if (patientId == null || patientId.isEmpty) {
       _eventsError = 'No patient session';
       notifyListeners();
@@ -51,7 +51,7 @@ class MajorEventProvider with ChangeNotifier {
   }
 
   Future<void> fetchNodes(String eocId) async {
-    final patientId = Session.currentUserId;
+    final patientId = Session.currentApiUserId ?? Session.currentUserId;
     if (patientId == null || patientId.isEmpty) {
       _nodesError = 'No patient session';
       notifyListeners();

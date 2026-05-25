@@ -71,8 +71,29 @@ class ApiService {
     //   }
     // }
 
-    if (!headers.containsKey('Authorization')) {
-      throw Exception('No access token available');
+     if (!headers.containsKey('Authorization')) {
+      if (refreshToken != null) {
+        try {
+          final refreshed = await _refreshTokenSemaphore();
+          if (refreshed != null && refreshed.isNotEmpty) {
+            headers['Authorization'] = 'Bearer $refreshed';
+          } else {
+            // no refresh toen
+            await onUnauthorized?.call();
+            throw Exception('No access token available');
+          }
+        } catch (e) {
+          if (_isSessionRevokedError(e)) {
+            await onUnauthorized?.call();
+            throw Exception('Session expired, please sign in again');
+          }
+          rethrow;
+        }
+      } else {
+        // no refresh conf
+        await onUnauthorized?.call();
+        throw Exception('No access token available');
+      }
     }
 
     var response = await send(headers);

@@ -35,7 +35,7 @@ class AccessGrantRepository {
     List<String>? scopes,
   }) async {
     final response = await apiService.postData(
-      endpoint: '/handshakes/grants',
+      endpoint: '/handshakes/create-grant',
       data: {
         'handshakeId': handshakeId,
         'approved': approved,
@@ -53,7 +53,7 @@ class AccessGrantRepository {
 
   Future<void> revokeGrant(String practitionerId) async {
     final response = await apiService.deleteData(
-      endpoint: '/handshakes/grants/$practitionerId',
+      endpoint: '/api/patient-grants/grants/$practitionerId',
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to revoke grant: ${response.body}');
@@ -61,7 +61,7 @@ class AccessGrantRepository {
   }
 
   Future<List<Grant>> getActiveGrants() async {
-    final response = await apiService.getData(endpoint: '/handshakes/grants');
+    final response = await apiService.getData(endpoint: '/api/patient-grants/grants');
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
       final list = body['grants'] as List<dynamic>? ?? [];

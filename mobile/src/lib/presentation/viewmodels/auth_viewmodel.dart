@@ -61,7 +61,8 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(resolvedLocalUserId);
+      await _syncUserId(localUserId: resolvedLocalUserId, apiUserId: restored.subject);
+
 
       _setState(AuthStatus.authenticated);
     // } catch (e) {
@@ -112,7 +113,8 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(resolvedLocalUserId);
+      await _syncUserId(localUserId: resolvedLocalUserId, apiUserId: session.subject);
+
 
       _setState(AuthStatus.authenticated);
     } catch (e) {
@@ -150,7 +152,10 @@ class AuthProvider with ChangeNotifier {
         _setState(AuthStatus.refreshing);
         final refreshed = await _authUsecases.refreshSession();
         _session = refreshed;
-        await _syncUserId(refreshed.subject);
+        await _syncUserId(
+          localUserId: Session.currentUserId ?? refreshed.subject,
+          apiUserId: refreshed.subject,
+        );
         _setState(AuthStatus.authenticated);
       }
 
@@ -186,16 +191,23 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _syncUserId(String subject) async {
+  Future<void> _syncUserId({
+    required String localUserId,
+    required String apiUserId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('currentUserId', subject);
-    Session.currentUserId = subject;
+    await prefs.setString('currentUserId', localUserId);
+    await prefs.setString('currentApiUserId', apiUserId);
+    Session.currentUserId = localUserId;
+    Session.currentApiUserId = apiUserId;
   }
 
   Future<void> _clearLocalSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('currentUserId');
+    await prefs.remove('currentApiUserId');
     Session.currentUserId = null;
+    Session.currentApiUserId = null;
   }
 
   Future<void> configureTotp() async {

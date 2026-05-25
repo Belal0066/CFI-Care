@@ -190,7 +190,12 @@ class KeycloakRemoteDataSource {
     final refresh = await _vault.readRefreshToken();
     final id = await _vault.readIdToken();
 
-    if (access == null || access.isEmpty) return null;
+    if (access == null || access.isEmpty) {
+      if (refresh == null || refresh.isEmpty) {
+        return null;
+      }
+      return refreshSession(refreshToken: refresh);
+    }
 
     final session = _mapToSession(
       accessToken: access,
