@@ -286,10 +286,27 @@ if st.button("Start Pipeline", type="primary", use_container_width=True):
         else:
             st.info("No metrics available")
 
-    # Final state
+    # Neon DB verification from completion event
+    if job["state"] == "COMPLETED":
+        last_event = events[-1] if events else {}
+        event_payload = last_event.get("payload", {}) or {}
+        verification = event_payload.get("verification")
+        created = event_payload.get("created_resources")
+
     st.divider()
     if job["state"] == "COMPLETED":
         st.success("Pipeline completed successfully")
+        if verification:
+            with st.expander("Neon DB Verification", expanded=True):
+                if "error" in verification:
+                    st.warning(f"Verification query returned: {verification['error']}")
+                else:
+                    st.success(f"Resource `{verification.get('resource_type', '?')}/{verification.get('resource_id', '?')}` created and persisted in Neon DB")
+                    st.code(verification.get("verified_resource", ""))
+        if created:
+            with st.expander("Created Resources", expanded=False):
+                for loc in created:
+                    st.code(loc)
     else:
         st.warning(f"Pipeline ended in state: {job['state']}")
         if job.get("error_message"):

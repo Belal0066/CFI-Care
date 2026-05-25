@@ -270,6 +270,27 @@ class JobRepository:
             json.dump(ocr_data, f, indent=2, default=str)
         return output_path
 
+    def save_normalized_output(self, job_id: str, output_dir: Path, normalized: dict[str, Any]) -> Path:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{job_id}_normalized.json"
+        with open(output_path, "w") as f:
+            json.dump(normalized, f, indent=2, default=str)
+        return output_path
+
+    def save_classification_output(self, job_id: str, output_dir: Path, classification: dict[str, Any]) -> Path:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{job_id}_classification.json"
+        with open(output_path, "w") as f:
+            json.dump(classification, f, indent=2, default=str)
+        return output_path
+
+    def save_intermediate_output(self, job_id: str, output_dir: Path, extraction: dict[str, Any]) -> Path:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{job_id}_extraction.json"
+        with open(output_path, "w") as f:
+            json.dump(extraction, f, indent=2, default=str)
+        return output_path
+
     def save_fhir_output(self, job_id: str, output_dir: Path, fhir_bundle: dict[str, Any]) -> Path:
         """Save FHIR output to disk and record path in database.
 

@@ -60,7 +60,7 @@ NC='\033[0m'
 # Health check URLs
 OCR_BACKEND_URL="${OCR_HEALTH_URL:-http://127.0.0.1:8118/v1/models}"
 OCR_API_URL="${OCR_API_HEALTH_URL:-http://127.0.0.1:7862/status}"
-MAPPER_URL="${MAPPER_HEALTH_URL:-http://127.0.0.1:8080/v1/models}"
+MAPPER_URL="${MAPPER_HEALTH_URL:-http://127.0.0.1:8070/v1/models}"
 GATEWAY_URL="http://127.0.0.1:8001/v1/health"
 UI_URL="http://127.0.0.1:8502"
 MAPPER_UI_URL="http://127.0.0.1:8501"
@@ -388,7 +388,7 @@ start_mapper() {
     return 1
   fi
 
-  kill_port_listener 8080 "Mapper"
+  kill_port_listener 8070 "Mapper"
 
   start_background "Mapper llama-server" "$mapper_script" "$MAPPER_PID" "$MAPPER_LOG"
 
@@ -397,7 +397,7 @@ start_mapper() {
     return 1
   fi
 
-  log DONE "Mapper service is ready on port 8080"
+  log DONE "Mapper service is ready on port 8070"
 }
 
 start_gateway() {
@@ -732,7 +732,7 @@ cmd_all() {
     echo ""
     log INFO "Service URLs:"
     log INFO "  OCR API:       http://127.0.0.1:7862"
-    log INFO "  Mapper:        http://127.0.0.1:8080"
+    log INFO "  Mapper:        http://127.0.0.1:8070"
     log INFO "  Gateway API:   http://127.0.0.1:8001"
     log INFO "  Gateway Docs:  http://127.0.0.1:8001/docs"
     [[ "$WITH_UI" == true ]] && log INFO "  Pipeline UI:   http://127.0.0.1:8502"
