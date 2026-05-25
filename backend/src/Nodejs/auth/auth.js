@@ -4,8 +4,8 @@ const jwksClient = require('jwks-rsa');
 
 const app = express();
 
-const JWKS_URI = `${process.env.KC_HOSTNAME}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/certs`;
-const ISSUER = `${process.env.KC_HOSTNAME}/realms/${process.env.KEYCLOAK_REALM}`;
+const JWKS_URI = `${process.env.KC_HOST_FULL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/certs`;
+const ISSUER = `${process.env.KC_HOST_FULL}/realms/${process.env.KEYCLOAK_REALM}`;
 
 const client = jwksClient({
     jwksUri: JWKS_URI,

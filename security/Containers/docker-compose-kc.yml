@@ -47,20 +47,21 @@ services:
         '--import-realm',
         '-Dkeycloak.migration.action=import',
         '-Dkeycloak.migration.provider=singleFile',
-        '-Dkeycloak.migration.realmName=CFI-Care',
+        '-Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}',
         # '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
         '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
-        '-Dkeycloak.migration.file=/opt/keycloak/data/import/realms.json',
+        '-Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json',
         "--https-key-store-file=conf/server.keystore",
         "--https-key-store-password=password",
         "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
+        # "--log-level=DEBUG"
       ]
 
     restart: on-failure:3
 
     #dev
-    ports:
-      - 8443:8443
+    ports: []
+      # - 8443:8443
       # - 9000:9000
 
     # healthcheck:

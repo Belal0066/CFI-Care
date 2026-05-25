@@ -38,6 +38,24 @@ const registerLimiter = rateLimit({
 });
 
 
+// Logout rate limiter
+const logoutLimiter = rateLimit({
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:login:',
+  }),
+  windowMs: 10 * 60 * 1000, // 10 mins
+//   max: 5, 
+    max: 100,   //for dev
+  message: {
+    error: 'Too many logout attempts from this IP, please try again after 10 minutes',
+    retryAfter: '10 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
 // General API rate limiter 
 const generalLimiter = rateLimit({
   store: new RedisStore({
@@ -58,5 +76,6 @@ const generalLimiter = rateLimit({
 module.exports = {
   loginLimiter,
   registerLimiter,
+  logoutLimiter,
   generalLimiter,
 };

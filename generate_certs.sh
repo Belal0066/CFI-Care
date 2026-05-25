@@ -14,8 +14,10 @@ NC='\033[0m' # No Color
 # 1. Set the target directory for certificates
 # Get the directory where the script is currently located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CERT_DIR="$SCRIPT_DIR/Containers/certs"
+CERT_DIR="$SCRIPT_DIR/security/Containers/certs"
 
+
+PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
 echo -e "${CYAN}--- Starting Certificate Generation ---${NC}"
 
 if [ ! -d "$CERT_DIR" ]; then
@@ -81,8 +83,8 @@ mkcert -install
 
 # 5. Generate Certificates
 echo -e "${YELLOW}Generating Certificates...${NC}"
-mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem localhost 127.0.0.1 ::1 host.docker.internal
-mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1 host.docker.internal
+mkcert -key-file keycloak-key.pem -cert-file keycloak-cert.pem $PUBLIC_HOSTNAME localhost 127.0.0.1 ::1  host.docker.internal
+mkcert -key-file key.pem -cert-file cert.pem $PUBLIC_HOSTNAME localhost 127.0.0.1 ::1 host.docker.internal
 
 # 6. Create Java Keystore
 echo -e "${YELLOW}Creating Java Keystore...${NC}"

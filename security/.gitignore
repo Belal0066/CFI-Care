@@ -17,10 +17,8 @@ route.html
 decode_jwt.py
 
 *.json
-<<<<<<< Updated upstream
-=======
-!vault-config.template.json
->>>>>>> Stashed changes
+
+!realm.*
 
 /test_mobile/*
 
