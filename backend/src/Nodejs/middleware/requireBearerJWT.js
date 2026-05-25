@@ -33,9 +33,10 @@ function requireBearerJwt(req, res, next) {
   }
 
   // debugging stuff :/
-  // const decoded = jwt.decode(token, { complete: true });
+  const decoded = jwt.decode(token, { complete: true });
+  console.log("[JWT-DEBUG] Token:", token);
   // console.log("[JWT-DEBUG] Token header:", decoded?.header);
-  // console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
+  console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
 
 
   const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew,  audience: allowedAudiences };

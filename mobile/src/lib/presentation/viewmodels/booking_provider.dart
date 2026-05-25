@@ -147,7 +147,7 @@ class BookingProvider with ChangeNotifier {
   }
 
   Future<void> loadAppointmentsForCurrentUser() async {
-    final patientId = Session.currentUserId;
+    final patientId = Session.currentApiUserId ?? Session.currentUserId;
     if (patientId == null || patientId.isEmpty) {
       return;
     }
@@ -245,7 +245,7 @@ class BookingProvider with ChangeNotifier {
       return false;
     }
 
-    final patientId = Session.currentUserId;
+    final patientId = Session.currentApiUserId ?? Session.currentUserId;
     if (patientId == null) {
       print("Missing patient ID in session");
       return false;

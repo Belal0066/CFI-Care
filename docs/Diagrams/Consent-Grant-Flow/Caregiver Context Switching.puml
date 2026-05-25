@@ -5,7 +5,7 @@ autonumber
 actor "User (Caregiver)" as U1
 participant "Application" as App
 participant "Backend" as BE
-database "Consent Grant Database" as DB
+database "Caregiver Consent Database" as DB
 database "FHIR" as FHIR
 participant "Audit Log Cache" as Audit
 

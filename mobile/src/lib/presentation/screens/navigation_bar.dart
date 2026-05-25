@@ -82,7 +82,7 @@ class _MyAppState extends State<MyApp> {
       try {
         // You need access to apiService here — either inject it or use a static accessor
         await widget.apiService.postData(
-          endpoint: '/handshakes/fcm-token',
+          endpoint: '/FCM/fcm-token',
           data: {'fcmToken': token},
         );
       } catch (e) {
@@ -94,7 +94,7 @@ class _MyAppState extends State<MyApp> {
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       try {
         await widget.apiService.postData(
-          endpoint: '/handshakes/fcm-token',
+          endpoint: '/FCM/fcm-token',
           data: {'fcmToken': newToken},
         );
       } catch (e) {

@@ -39,6 +39,12 @@ const healthcareServiceRoutes = require("./healthcareService/healthcareServiceRo
 const deviceRoutes = require("./device/deviceRoutes");
 const relatedPersonRoutes = require("./relatedPerson/relatedPersonRoutes");
 
+const practitionerGrantsRoutes=require("./grants/Practitioner_grants");
+const caregiverGrantsRoutes=require("./grants/Caregiver_grants");
+const patientGrantsRoutes=require("./grants/Patient_grants");
+
+const IssueFCMToken=require("./services/FCM_Token_Issuance");
+
 const authRoutes = require("./auth/authRoutes");
 const handshakeRoutes = require("./auth/handshakes");
 const { requireApiAuth } = require("./middleware/requireApiAuth");
@@ -176,7 +182,7 @@ app.use(generalLimiter);
 
 // app.use("/auth/provisioning", provisioningRoutes);
 app.use("/auth", authRoutes);
-app.use("/handshakes", handshakeRoutes);
+// app.use("/handshakes", handshakeRoutes);
 app.use("/api/handshakes", handshakeRoutes); // Flutter uses baseUrl=/api so needs this path
 
 app.use("/api", requireApiAuth);
@@ -205,6 +211,12 @@ app.use("/api/immunizations", immunizationRoutes);
 app.use("/api/healthcareServices", healthcareServiceRoutes);
 app.use("/api/devices", deviceRoutes);
 app.use("/api/relatedPersons", relatedPersonRoutes);
+
+app.use("/api/practitioner-grants", practitionerGrantsRoutes);
+app.use("/api/caregiver-grants", caregiverGrantsRoutes);
+app.use("/api/patient-grants", patientGrantsRoutes);
+
+app.use("/FCM",IssueFCMToken);
 
 // //log all requests that reach here
 // app.use((req, res, next) => {

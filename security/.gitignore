@@ -17,6 +17,10 @@ route.html
 decode_jwt.py
 
 *.json
+<<<<<<< Updated upstream
+=======
+!vault-config.template.json
+>>>>>>> Stashed changes
 
 /test_mobile/*
 
@@ -27,4 +31,15 @@ decode_jwt.py
 **/*.class
 
 test-summary*
+<<<<<<< Updated upstream
 .env.test
+=======
+.env.test
+
+**/role_id
+**/secret_id
+
+**/hashicorp
+
+**/secrets
+>>>>>>> Stashed changes

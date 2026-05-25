@@ -13,14 +13,17 @@ import { PatientSummaryDTO } from '../../models/patient.model';
   providedIn: 'root',
 })
 export class HandshakeService {
-  private readonly base = '/handshakes';
+  private readonly handshakesEndpoint = '/handshakes';
+  private readonly grantsEndpoint='/api/practitioner-grants';
+  // ma3rfsh law m7tgnha begad
+  private readonly patientEndpoint='/api/patient-grants';
 
   constructor(private http: HttpClient) {}
 
   // Practitioner: submit OTP received from patient
   verifyOtp(otp: string): Observable<VerifyOtpResponse> {
     return this.http.post<VerifyOtpResponse>(
-      `${this.base}/verify-otp`,
+      `${this.handshakesEndpoint}/verify-practitioner-otp`,
       { otp },
       { withCredentials: true }
     );
@@ -31,7 +34,7 @@ export class HandshakeService {
     const params: Record<string, string> = {};
     if (patientId) params['patientId'] = patientId;
     return this.http.get<HandshakeStatus>(
-      `${this.base}/status/${handshakeId}`,
+      `${this.handshakesEndpoint}/status/${handshakeId}`,
       { params, withCredentials: true }
     );
   }
@@ -44,7 +47,7 @@ export class HandshakeService {
     scopes?: string[]
   ): Observable<{ message: string; grant?: Grant }> {
     return this.http.post<{ message: string; grant?: Grant }>(
-      `${this.base}/grants`,
+      `${this.handshakesEndpoint}/create-grant`,
       { handshakeId, approved, durationMinutes, scopes },
       { withCredentials: true }
     );
@@ -53,7 +56,7 @@ export class HandshakeService {
   // Patient: revoke an active grant for a specific practitioner
   revokeGrant(practitionerId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(
-      `${this.base}/grants/${practitionerId}`,
+      `${this.patientEndpoint}/grants/${practitionerId}`,
       { withCredentials: true }
     );
   }
@@ -61,7 +64,7 @@ export class HandshakeService {
   // Patient: list all pending grant requests awaiting approval
   getPendingGrants(): Observable<{ pending: PendingGrant[] }> {
     return this.http.get<{ pending: PendingGrant[] }>(
-      `${this.base}/pending`,
+      `${this.patientEndpoint}/pending`,
       { withCredentials: true }
     );
   }
@@ -69,7 +72,7 @@ export class HandshakeService {
   // Patient: list all currently active grants
   getActiveGrants(): Observable<{ grants: Grant[] }> {
     return this.http.get<{ grants: Grant[] }>(
-      `${this.base}/grants`,
+      `${this.patientEndpoint}/grants`,
       { withCredentials: true }
     );
   }
@@ -77,7 +80,7 @@ export class HandshakeService {
   // Practitioner: list patients who have granted them access
   getGrantedPatients(): Observable<{ patients: PatientSummaryDTO[] }> {
     return this.http.get<{ patients: PatientSummaryDTO[] }>(
-      `${this.base}/my-patients`,
+      `${this.grantsEndpoint}/my-patients`,
       { withCredentials: true }
     );
   }
