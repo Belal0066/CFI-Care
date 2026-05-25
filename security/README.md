@@ -1,10 +1,40 @@
 # Security
 
+## Container security & Consistency
+
+- Prevent in-container privilege escalation (`security_opt: - no-new-privileges:true`)
+
+- Mount host files read-only (`:ro`) where possible and only mount the minimal files your service needs (avoid mounting a unnecessary directories/files)
+
+- To check digest or re-get it :
+
+    ```
+    docker pull <image-name>:<tag>
+    docker inspect --format='{{index .RepoDigests 0}}' <image-name>:<tag>
+    ```
+
+    sha256 digest will be in the output.
+
+    - for example :
+      
+            ```
+            docker pull quay.io/oauth2-proxy/oauth2-proxy:7.12.0-alpine
+            docker inspect --format='{{index .RepoDigests 0}}' quay.io/oauth2-proxy/oauth2-proxy:v7.12.0-alpine
+            ```
+
+- Scan the image for CVEs :
+
+```
+trivy image --severity HIGH,CRITICAL <image-name>:<tag>
+```
+
 
 
 ## Services
 
-### Keycloak
+### Keycloak 
+
+>for manual steps in case you don't want to run scripts
 
 - To build Keycloak FHIR Provisioner (for at-registration resource creation) jar file :
 
@@ -39,13 +69,14 @@ mvn clean package
     *or* run this command to import the file from its volume :
     
         ```
-            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realms.json"
+            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh import --file /import/realm.json"
         ```
 
 - To export keycloak realms within a single file, start container, then run this command within a terminal :
-
+- 
+<!--  docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json" -->
         ```
-            docker exec -i kc.localhost  sh -c   "/opt/keycloak/bin/kc.sh export --file /export/realms.json"
+            docker exec -i kc.localhost  sh -c  "/opt/keycloak/bin/kc.sh export --realm CFI-Care --file /export/realm.json"
 
         ```
 
@@ -68,32 +99,4 @@ mvn clean package
     chmod 666 *.p12
     
     ```
-
-## Container security & Consistency
-
-- Prevent in-container privilege escalation (`security_opt: - no-new-privileges:true`)
-
-- Mount host files read-only (`:ro`) where possible and only mount the minimal files your service needs (avoid mounting a unnecessary directories/files)
-
-- To check digest or re-get it :
-
-    ```
-    docker pull <image-name>:<tag>
-    docker inspect --format='{{index .RepoDigests 0}}' <image-name>:<tag>
-    ```
-
-    sha256 digest will be in the output.
-
-    - for example :
-      
-            ```
-            docker pull quay.io/oauth2-proxy/oauth2-proxy:7.12.0-alpine
-            docker inspect --format='{{index .RepoDigests 0}}' quay.io/oauth2-proxy/oauth2-proxy:v7.12.0-alpine
-            ```
-
-- Scan the image for CVEs :
-
-```
-trivy image --severity HIGH,CRITICAL <image-name>:<tag>
-```
 

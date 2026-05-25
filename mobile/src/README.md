@@ -21,7 +21,7 @@ samples, guidance on mobile development, and a full API reference.
 
 
 ## Dev-only setup
-### running from external device 
+### running using specific environment variables
 - open env file and set ip to host ip (host = running containers)
 - add ip to `CORS_ORIGIN` variable in the backend env file
 - in terminal run :
@@ -35,7 +35,7 @@ samples, guidance on mobile development, and a full API reference.
 
 #### linux implementation
 
-run these cmds in the terminal at the project rot dir
+run these cmds in the terminal at the project root dir
 
 ```
 cd mobile/src/android/app/src/debug/res/
@@ -46,10 +46,12 @@ cp $(mkcert -CAROOT)/rootCA.pem mobile/src/android/app/src/debug/res/raw/
 
 mv rootCA.pem rootca.pem 
 
-# i left a public port open for dev on keycloak
-adb reverse tcp:8443 tcp:8443
 
 ```
+
+<!-- 
+# i left a public port open for dev on keycloak
+adb reverse tcp:8443 tcp:8443 -->
 
 <!-- not needed ig -->
 <!-- adb push "$(mkcert -CAROOT)/rootCA.pem" /sdcard/Download/rootCA.pem -->

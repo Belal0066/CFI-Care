@@ -14,7 +14,7 @@
 //   console.log('[ioredis] connected to redis');
 // });
 
-// const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ID_SYSTEM || process.env.KC_HOSTNAME + '/realms/' + process.env.KEYCLOAK_REALM;
+// const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ID_SYSTEM || process.env.KC_HOST_FULL + '/realms/' + process.env.KEYCLOAK_REALM;
 // const JWKS_URI = `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`;
 // const BACKCHANNEL_AUDIENCE = process.env.BACKCHANNEL_AUDIENCE ;
 

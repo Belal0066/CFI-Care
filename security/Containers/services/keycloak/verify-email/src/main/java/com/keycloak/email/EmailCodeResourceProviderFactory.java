@@ -1,4 +1,4 @@
-package com.keycloak;
+package com.keycloak.email;
 
 import org.keycloak.Config;
 import org.keycloak.models.KeycloakSession;
