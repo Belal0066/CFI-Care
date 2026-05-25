@@ -59,14 +59,19 @@ class HapiFhirDownstreamAdapter:
     def __init__(
         self,
         base_url: str = "http://127.0.0.1:8080/fhir",
+        fhir_version: str = "5.0",
+        verify_fhir_version: bool = False,
         timeout_sec: int = 30,
         max_retries: int = 3,
         dead_letter_dir: str | None = None,
     ):
         self.base_url = base_url.rstrip("/")
+        self.fhir_version = fhir_version
+        self.verify_fhir_version = verify_fhir_version
         self.timeout_sec = timeout_sec
         self.max_retries = max_retries
         self.dead_letter_dir = dead_letter_dir
+        self._verified_version: str | None = None
 
     async def deliver_fhir_bundle(
         self,
@@ -161,10 +166,12 @@ class HapiFhirDownstreamAdapter:
         url = self.base_url
 
         async with httpx.AsyncClient(timeout=self.timeout_sec) as client:
+            if self.verify_fhir_version:
+                await self._ensure_fhir_version(client)
             response = await client.post(
                 url,
                 json=fhir_bundle,
-                headers={"Content-Type": "application/fhir+json"},
+                headers={"Content-Type": f"application/fhir+json; fhirVersion={self.fhir_version}"},
             )
 
             delivery_time = time.time() - start_time
@@ -186,6 +193,22 @@ class HapiFhirDownstreamAdapter:
             delivery_time_sec=delivery_time,
             created_resources=created_resources,
         )
+
+    async def _ensure_fhir_version(self, client: httpx.AsyncClient) -> None:
+        if self._verified_version:
+            return
+        metadata_url = f"{self.base_url}/metadata"
+        response = await client.get(metadata_url)
+        response.raise_for_status()
+        meta = response.json()
+        version = meta.get("fhirVersion")
+        if version:
+            self._verified_version = version
+            if not version.startswith(self.fhir_version):
+                raise HapiFhirDownstreamError(
+                    f"HAPI FHIR version mismatch: expected {self.fhir_version}, got {version}",
+                    retry_allowed=False,
+                )
 
     def _parse_operation_outcome(self, response: httpx.Response) -> str:
         """Extract a human-readable error message from a HAPI FHIR OperationOutcome.

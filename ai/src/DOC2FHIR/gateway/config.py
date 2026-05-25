@@ -35,6 +35,16 @@ class GatewaySettings:
     downstream_docfhir_url: str = "http://127.0.0.1:3000/v1/docfhir/"
     downstream_type: str = "nodejs"
     hapi_fhir_base_url: str = "http://127.0.0.1:8090/fhir"
+    fhir_version: str = "5.0"
+    structured_pipeline_enabled: bool = False
+    structured_output_mode: str = "auto"
+    structured_model_name: str = "default"
+    classifier_model_name: str = "default"
+    fhir_validator_jar: str | None = None
+    fhir_validator_enabled: bool = False
+    terminology_base_url: str | None = None
+    terminology_api_key: str | None = None
+    ocr_engine_name: str = "PaddleOCR"
     request_timeout_sec: int = 600
     max_background_tasks: int = 1
     queue_max_size: int = 32
@@ -69,6 +79,16 @@ class GatewaySettings:
             downstream_docfhir_url=os.getenv("DOC2FHIR_DOWNSTREAM_DOCFHIR_URL", cls.downstream_docfhir_url),
             downstream_type=os.getenv("DOC2FHIR_DOWNSTREAM_TYPE", cls.downstream_type),
             hapi_fhir_base_url=os.getenv("DOC2FHIR_HAPI_FHIR_BASE_URL", cls.hapi_fhir_base_url),
+            fhir_version=os.getenv("DOC2FHIR_FHIR_VERSION", cls.fhir_version),
+            structured_pipeline_enabled=os.getenv("DOC2FHIR_STRUCTURED_PIPELINE_ENABLED", "false").lower() == "true",
+            structured_output_mode=os.getenv("DOC2FHIR_STRUCTURED_OUTPUT_MODE", cls.structured_output_mode),
+            structured_model_name=os.getenv("DOC2FHIR_STRUCTURED_MODEL_NAME", cls.structured_model_name),
+            classifier_model_name=os.getenv("DOC2FHIR_CLASSIFIER_MODEL_NAME", cls.classifier_model_name),
+            fhir_validator_jar=os.getenv("DOC2FHIR_FHIR_VALIDATOR_JAR", cls.fhir_validator_jar or "") or None,
+            fhir_validator_enabled=os.getenv("DOC2FHIR_FHIR_VALIDATOR_ENABLED", "false").lower() == "true",
+            terminology_base_url=os.getenv("DOC2FHIR_TERMINOLOGY_BASE_URL", cls.terminology_base_url or "") or None,
+            terminology_api_key=os.getenv("DOC2FHIR_TERMINOLOGY_API_KEY", cls.terminology_api_key or "") or None,
+            ocr_engine_name=os.getenv("DOC2FHIR_OCR_ENGINE_NAME", cls.ocr_engine_name),
             request_timeout_sec=int(os.getenv("DOC2FHIR_GATEWAY_REQUEST_TIMEOUT_SEC", str(cls.request_timeout_sec))),
             max_background_tasks=int(os.getenv("DOC2FHIR_GATEWAY_MAX_BACKGROUND_TASKS", str(cls.max_background_tasks))),
             queue_max_size=int(os.getenv("DOC2FHIR_GATEWAY_QUEUE_MAX_SIZE", str(cls.queue_max_size))),
@@ -102,6 +122,11 @@ class GatewaySettings:
             "downstream_docfhir_url": self.downstream_docfhir_url,
             "downstream_type": self.downstream_type,
             "hapi_fhir_base_url": self.hapi_fhir_base_url,
+            "fhir_version": self.fhir_version,
+            "structured_pipeline_enabled": self.structured_pipeline_enabled,
+            "structured_output_mode": self.structured_output_mode,
+            "structured_model_name": self.structured_model_name,
+            "classifier_model_name": self.classifier_model_name,
             "request_timeout_sec": self.request_timeout_sec,
             "max_background_tasks": self.max_background_tasks,
             "queue_max_size": self.queue_max_size,

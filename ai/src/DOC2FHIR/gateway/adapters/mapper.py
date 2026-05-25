@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import re
 from typing import Any, Optional
 
 import httpx
@@ -150,7 +151,7 @@ class MapperAdapter:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a healthcare data mapping expert. Convert the provided medical document text into a valid FHIR R4 JSON bundle. Return only valid JSON, no markdown. DO NOT output any reasoning, thinking process or explanations. Start immediately with {. The Bundle MUST be of type 'transaction' and each entry MUST have a 'request' block with method 'POST' and url matching the resource type. Do not use non-standard resource types like ClinicalNote. Use valid FHIR R4 resources like DocumentReference, DiagnosticReport, Patient, Observation, Condition, or Medication. For DocumentReference, use status 'current', NOT 'final'. For DiagnosticReport, use status 'final'. If generating a 'text.div' narrative, it MUST be wrapped in exactly ONE root <div xmlns=\"http://www.w3.org/1999/xhtml\"> element, with no multiple xml roots.",
+                        "content": "You are a healthcare data mapping expert. Convert the provided medical document text into a valid FHIR R5 JSON bundle. Return only valid JSON, no markdown. DO NOT output any reasoning, thinking process or explanations. Start immediately with {. The Bundle MUST be of type 'collection'. Do not use non-standard resource types like ClinicalNote. Use valid FHIR R5 resources like DocumentReference, DiagnosticReport, Patient, Observation, Condition, Medication, Encounter, Procedure, AllergyIntolerance, or CarePlan.\n\nCRITICAL R5 STRUCTURAL RULES:\n1. DiagnosticReport and Observation MUST include a code CodeableConcept with at least one coding.\n2. Every DomainResource MUST include text.div narrative with exactly one root <div xmlns=\"http://www.w3.org/1999/xhtml\"> element.\n3. DocumentReference.status MUST be 'current'.\n4. Patient.telecom entries MUST NOT have null values. Omit telecom entries where value is unknown.\n5. Patient.telecom.use must be one of: home, work, temp, old, mobile.\n6. Observation MUST have at least one of: valueQuantity, valueCodeableConcept, valueString, valueBoolean, valueInteger, valueRange, or valueRatio. Do NOT create Observations with only a code and no value.\n7. Observation.valueQuantity.unit must use valid UCUM codes (e.g., 'mg/dL', 'mm[Hg]', 'kg', 'cm', 'Cel', '%').\n8. Any dateTime field with a time component (like effectiveDateTime, issued, birthDate) MUST include a timezone offset (e.g., '2024-01-15T10:30:00+02:00').\n9. DocumentReference MUST have a 'content' array with at least one entry containing an 'attachment' object.\n10. Encounter.class MUST be an array of CodeableConcept objects, NOT a single object.\n11. Encounter.status must use R5 values: 'planned', 'arrived', 'triaged', 'in-progress', 'onleave', 'on-hold', or 'completed'. Do NOT use 'finished'.\n12. Do NOT place 'reference', 'display', 'system', 'code', or 'period' properties directly on a resource. They must be nested inside their proper parent objects (e.g., subject.reference).\n13. DiagnosticReport.effectiveDateTime and issued must include timezone.\n14. For Condition, include 'clinicalStatus' and 'verificationStatus'.\n15. DocumentReference.type should use doc-typecodes (e.g., LOINC 11502-2 for laboratory reports).\n\nIf generating a 'text.div' narrative, it MUST be wrapped in exactly ONE root <div xmlns=\"http://www.w3.org/1999/xhtml\"> element, with no multiple xml roots.",
                     },
                     {
                         "role": "user",
@@ -229,9 +230,16 @@ class MapperAdapter:
             Formatted prompt string
         """
         lines = [
-            "Convert the following medical document text into a FHIR R4 JSON bundle.",
-            "Include appropriate resources (Patient, Observation, Condition, Medication, DocumentReference, DiagnosticReport, etc.).",
+            "Convert the following medical document text into a FHIR R5 JSON bundle.",
+            "Output a Bundle of type 'collection'.",
+            "Include appropriate resources (Patient, Observation, Condition, Medication, DocumentReference, DiagnosticReport, Encounter, Procedure, AllergyIntolerance, etc.).",
             "Ensure all resources have valid identifiers and required fields.",
+            "DiagnosticReport and Observation must include code.coding with at least one coding.",
+            "Include text.div narratives for every DomainResource.",
+            "DocumentReference.status must be 'current'.",
+            "Patient.telecom.use must be one of: home, work, temp, old, mobile.",
+            "Observation.valueQuantity.unit must use UCUM codes (e.g., mg/dL, mmol/L, Cel).",
+            "For Condition, include 'clinicalStatus' and 'verificationStatus' as required by R5.",
             "Never use hallucinated resource types like 'ClinicalNote'.",
             "Return ONLY valid JSON.",
             "",
@@ -274,6 +282,11 @@ class MapperAdapter:
             elif list_start_idx != -1 and list_end_idx != -1:
                 text = text[list_start_idx:list_end_idx+1]
 
+        # Sanitize non-standard JSON tokens the LLM may produce
+        text = re.sub(r'\bNULL\b', 'null', text)
+        text = re.sub(r'\bTRUE\b', 'true', text)
+        text = re.sub(r'\bFALSE\b', 'false', text)
+
         try:
             bundle = json.loads(text)
         except json.JSONDecodeError as exc:
@@ -289,6 +302,9 @@ class MapperAdapter:
             bundle["type"] = "transaction"
             entries = bundle.get("entry", [])
             if isinstance(entries, list):
+                # Pre-processing: fix common LLM structural errors before URN assignment
+                entries = self._fix_r5_common_errors(entries)
+
                 ref_map = {}
                 valid_entries = []
                 
@@ -365,4 +381,460 @@ class MapperAdapter:
 
                 sanitize_xhtml(bundle)
 
+                # 4. Sanitize attachments (strip whitespace, remove invalid base64)
+                def sanitize_attachments(node):
+                    import base64
+
+                    if isinstance(node, dict):
+                        attachment = node.get("attachment")
+                        if isinstance(attachment, dict):
+                            data = attachment.get("data")
+                            if isinstance(data, str):
+                                data = "".join(data.split())
+                                attachment["data"] = data
+                                try:
+                                    base64.b64decode(data, validate=True)
+                                except Exception:
+                                    attachment.pop("data", None)
+                        for v in node.values():
+                            sanitize_attachments(v)
+                    elif isinstance(node, list):
+                        for item in node:
+                            sanitize_attachments(item)
+
+                sanitize_attachments(bundle)
+
         return bundle
+
+    @staticmethod
+    def _fix_r5_common_errors(entries: list[dict]) -> list[dict]:
+        """Fix common R5 structural errors the LLM produces.
+
+        Fixes:
+        - Patient.telecom entries with null values
+        - Patient.telecom.use normalization to allowed values
+        - Encounter.class as Object → Array
+        - Encounter.status 'finished' → 'completed'
+        - Observations without values (obs-3 constraint)
+        - Observation and DiagnosticReport missing code
+        - Observation units normalized to UCUM
+        - DocumentReference.status enforced to current
+        - Ensure text.div narratives for DomainResource
+        - effectiveDateTime without timezone
+        - DocumentReference without content
+        - Orphan properties on resource root (reference, display, system, code, period)
+        """
+        def ensure_codeable_concept(resource: dict[str, Any], default_text: str) -> None:
+            code = resource.get("code")
+            if not isinstance(code, dict):
+                code = {"text": default_text}
+                resource["code"] = code
+
+            has_coding = isinstance(code.get("coding"), list) and len(code.get("coding")) > 0
+            has_inline_coding = any(key in code for key in ("system", "code", "display"))
+            if not has_coding and has_inline_coding:
+                inline = {k: code.get(k) for k in ("system", "code", "display") if code.get(k) is not None}
+                code["coding"] = [inline]
+                for k in ("system", "code", "display"):
+                    code.pop(k, None)
+
+            coding = code.get("coding")
+            if not isinstance(coding, list) or not coding:
+                code["coding"] = [
+                    {
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-NullFlavor",
+                        "code": "UNK",
+                        "display": "Unknown",
+                    }
+                ]
+
+            if not code.get("text"):
+                code["text"] = default_text
+
+        def ensure_codeable_concept_field(resource: dict[str, Any], field: str) -> None:
+            value = resource.get(field)
+            if not isinstance(value, dict):
+                return
+            if "coding" in value:
+                return
+            if any(k in value for k in ("system", "code", "display")):
+                text = value.get("text")
+                coding = {k: value.get(k) for k in ("system", "code", "display") if value.get(k) is not None}
+                resource[field] = {"coding": [coding]}
+                if text:
+                    resource[field]["text"] = text
+
+        def normalize_codeable_concept_list(resource: dict[str, Any], field: str) -> None:
+            value = resource.get(field)
+            if not isinstance(value, list):
+                return
+            normalized = []
+            for item in value:
+                if isinstance(item, dict):
+                    if "coding" not in item and any(k in item for k in ("system", "code", "display")):
+                        text = item.get("text")
+                        coding = {k: item.get(k) for k in ("system", "code", "display") if item.get(k) is not None}
+                        wrapper = {"coding": [coding]}
+                        if text:
+                            wrapper["text"] = text
+                        normalized.append(wrapper)
+                        continue
+                    if "coding" not in item and "text" not in item and any(k in item for k in ("reference", "display")):
+                        display = item.get("display") or item.get("reference")
+                        normalized.append({"text": display})
+                        continue
+                    if "coding" not in item and "text" not in item and "display" in item:
+                        normalized.append({"text": item.get("display")})
+                        continue
+                normalized.append(item)
+            resource[field] = normalized
+
+        def ensure_narrative(resource: dict[str, Any], res_type: str) -> None:
+            text = resource.get("text")
+            if not isinstance(text, dict) or not isinstance(text.get("div"), str):
+                resource["text"] = {
+                    "status": "generated",
+                    "div": f"<div xmlns=\"http://www.w3.org/1999/xhtml\">{res_type}</div>",
+                }
+
+        def normalize_telecom_use(raw_use: str | None) -> str:
+            if not raw_use:
+                return "home"
+            val = str(raw_use).strip().lower()
+            if val in {"home", "work", "temp", "old", "mobile"}:
+                return val
+            if val in {"cell", "cellular", "phone", "tel", "telephone"}:
+                return "mobile"
+            if val in {"office", "workplace"}:
+                return "work"
+            if val in {"temporary", "temp"}:
+                return "temp"
+            if val in {"former", "previous", "old"}:
+                return "old"
+            return "home"
+
+        def normalize_ucum_unit(raw_unit: str | None) -> tuple[str | None, str | None]:
+            if not raw_unit:
+                return None, None
+
+            unit = str(raw_unit).strip()
+            unit_norm = unit.lower().replace(" ", "")
+
+            unit_map = {
+                "mg/dl": "mg/dL",
+                "g/dl": "g/dL",
+                "mmol/l": "mmol/L",
+                "umol/l": "umol/L",
+                "mmhg": "mm[Hg]",
+                "kg": "kg",
+                "g": "g",
+                "cm": "cm",
+                "mm": "mm",
+                "%": "%",
+                "fl": "fL",
+                "pg": "pg",
+                "u/l": "U/L",
+                "iu/l": "IU/L",
+                "cel": "Cel",
+                "c": "Cel",
+                "°c": "Cel",
+                "10^3/ul": "10*3/uL",
+                "x10^3/ul": "10*3/uL",
+                "10^6/ul": "10*6/uL",
+                "10^9/l": "10*9/L",
+                "cells/ul": "10*6/uL",
+                "cells/µl": "10*6/uL",
+                "cells/mcl": "10*6/uL",
+                "cells/ul": "10*6/uL",
+            }
+
+            mapped = unit_map.get(unit_norm)
+            if mapped:
+                return mapped, mapped
+
+            return None, None
+
+        def normalize_value_quantity(value_quantity: dict[str, Any]) -> None:
+            if not isinstance(value_quantity, dict):
+                return
+
+            raw_unit = value_quantity.get("unit") or value_quantity.get("code")
+            unit, code = normalize_ucum_unit(raw_unit)
+            if unit and code:
+                value_quantity["unit"] = unit
+                value_quantity["system"] = "http://unitsofmeasure.org"
+                value_quantity["code"] = code
+
+        def normalize_datetime_field(resource: dict[str, Any], field: str) -> None:
+            value = resource.get(field)
+            if not isinstance(value, str):
+                return
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", value):
+                resource[field] = value + "T00:00:00+00:00"
+            elif "T" in value and "+" not in value and "Z" not in value:
+                resource[field] = value + "+00:00"
+
+        orphan_keys = {"reference", "display", "system", "code", "period"}
+        cleaned = []
+
+        patient_ref: str | None = None
+        for entry in entries:
+            res = entry.get("resource") if isinstance(entry, dict) else None
+            if not isinstance(res, dict):
+                continue
+            if res.get("resourceType") == "Patient":
+                full_url = entry.get("fullUrl")
+                if isinstance(full_url, str) and full_url:
+                    patient_ref = full_url
+                else:
+                    patient_id = res.get("id")
+                    if isinstance(patient_id, str) and patient_id:
+                        patient_ref = f"Patient/{patient_id}"
+                if patient_ref:
+                    break
+
+        for entry in entries:
+            res = entry.get("resource") if isinstance(entry, dict) else None
+            if not isinstance(res, dict):
+                cleaned.append(entry)
+                continue
+
+            res_type = res.get("resourceType", "")
+
+            # Remove orphan properties from resource root
+            for key in orphan_keys:
+                if key in res:
+                    del res[key]
+
+            if res_type == "Patient":
+                # Remove telecom entries with null/empty values
+                telecom = res.get("telecom", [])
+                if isinstance(telecom, list):
+                    cleaned_telecom = []
+                    for t in telecom:
+                        if not isinstance(t, dict):
+                            continue
+                        if t.get("value") is None or t.get("value") == "":
+                            continue
+                        t["use"] = normalize_telecom_use(t.get("use"))
+                        cleaned_telecom.append(t)
+                    res["telecom"] = cleaned_telecom
+
+            elif res_type == "Encounter":
+                # Fix class: Object → Array
+                cls = res.get("class")
+                if isinstance(cls, dict):
+                    res["class"] = [cls]
+                elif isinstance(cls, list):
+                    res["class"] = [c if isinstance(c, dict) else {"coding": [{"code": str(c)}]} for c in cls]
+
+                normalize_codeable_concept_list(res, "class")
+                normalize_codeable_concept_list(res, "type")
+                ensure_codeable_concept_field(res, "serviceType")
+                normalize_codeable_concept_list(res, "reasonCode")
+
+                allowed_class_codes = {
+                    "AMB", "EMER", "FLD", "HH", "IMP", "OBSENC", "PRENC", "SS",
+                }
+                classes = res.get("class")
+                if isinstance(classes, list):
+                    for cc in classes:
+                        if not isinstance(cc, dict):
+                            continue
+                        coding = cc.get("coding")
+                        if not isinstance(coding, list):
+                            continue
+                        for cod in coding:
+                            if not isinstance(cod, dict):
+                                continue
+                            if cod.get("system") == "http://terminology.hl7.org/CodeSystem/v3-ActCode":
+                                if cod.get("code") not in allowed_class_codes:
+                                    cod["code"] = "AMB"
+                                    cod["display"] = "Ambulatory"
+
+                # Fix status: 'finished' → 'completed'
+                if res.get("status") == "finished":
+                    res["status"] = "completed"
+
+                # Fix effectiveDateTime without timezone
+                for dt_field in ("period",):
+                    period = res.get(dt_field)
+                    if isinstance(period, dict):
+                        for k in ("start", "end"):
+                            val = period.get(k)
+                            if isinstance(val, str):
+                                if re.match(r"^\d{4}-\d{2}-\d{2}$", val):
+                                    period[k] = val + "T00:00:00+00:00"
+                                elif "T" in val and "+" not in val and "Z" not in val:
+                                    period[k] = val + "+00:00"
+
+            elif res_type == "Observation":
+                # Remove Observations without any value field (obs-3 constraint)
+                value_fields = [
+                    "valueQuantity", "valueCodeableConcept", "valueString",
+                    "valueBoolean", "valueInteger", "valueRange", "valueRatio",
+                    "valueSampledData", "valueTime", "valueDateTime", "valuePeriod",
+                    "valueAttachment", "valueReference",
+                ]
+                has_value = any(res.get(f) is not None for f in value_fields)
+                if not has_value:
+                    continue
+
+                ensure_codeable_concept(res, "Unknown observation")
+                normalize_codeable_concept_list(res, "category")
+                ensure_codeable_concept_field(res, "method")
+                ensure_codeable_concept_field(res, "bodySite")
+                normalize_codeable_concept_list(res, "interpretation")
+
+                if not res.get("status"):
+                    res["status"] = "final"
+                # Normalize invalid referenceRange items
+                ref_ranges = res.get("referenceRange")
+                if isinstance(ref_ranges, list):
+                    cleaned_ranges = []
+                    for rr in ref_ranges:
+                        if not isinstance(rr, dict):
+                            continue
+                        if "reference" in rr or "display" in rr:
+                            text = rr.get("display") or rr.get("reference") or "Reference range"
+                            rr = {"text": text}
+                        if any(rr.get(k) for k in ("low", "high", "text")):
+                            cleaned_ranges.append(rr)
+                    if cleaned_ranges:
+                        res["referenceRange"] = cleaned_ranges
+                    else:
+                        res.pop("referenceRange", None)
+
+                if isinstance(res.get("valueQuantity"), dict):
+                    normalize_value_quantity(res["valueQuantity"])
+                components = res.get("component")
+                if isinstance(components, list):
+                    for component in components:
+                        if isinstance(component, dict) and isinstance(component.get("valueQuantity"), dict):
+                            normalize_value_quantity(component["valueQuantity"])
+
+                # Fix effectiveDateTime without timezone
+                for dt_field in ("effectiveDateTime", "issued"):
+                    normalize_datetime_field(res, dt_field)
+                period = res.get("effectivePeriod")
+                if isinstance(period, dict):
+                    for k in ("start", "end"):
+                        inner = period.get(k)
+                        if isinstance(inner, str):
+                            if re.match(r"^\d{4}-\d{2}-\d{2}$", inner):
+                                period[k] = inner + "T00:00:00+00:00"
+                            elif "T" in inner and "+" not in inner and "Z" not in inner:
+                                period[k] = inner + "+00:00"
+
+            elif res_type == "DiagnosticReport":
+                ensure_codeable_concept(res, "Unknown report")
+                if not res.get("status"):
+                    res["status"] = "final"
+                res.pop("diagnosis", None)
+                res.pop("clinicalStatus", None)
+                res.pop("interpretation", None)
+                res.pop("valueCodeableConcept", None)
+                res.pop("content", None)
+                normalize_codeable_concept_list(res, "category")
+                # Fix effectiveDateTime without timezone
+                for dt_field in ("effectiveDateTime", "issued"):
+                    normalize_datetime_field(res, dt_field)
+
+            elif res_type == "DocumentReference":
+                if res.get("status") != "current":
+                    res["status"] = "current"
+
+                ensure_codeable_concept_field(res, "type")
+                ensure_codeable_concept_field(res, "category")
+                normalize_codeable_concept_list(res, "category")
+
+                # Normalize DocumentReference.type to doc-typecodes (LOINC)
+                type_cc = res.get("type")
+                if isinstance(type_cc, dict):
+                    coding = type_cc.get("coding")
+                    if not isinstance(coding, list) or not coding:
+                        type_cc["coding"] = [
+                            {
+                                "system": "http://loinc.org",
+                                "code": "11502-2",
+                                "display": "Laboratory report",
+                            }
+                        ]
+                    else:
+                        for idx, cod in enumerate(coding):
+                            if not isinstance(cod, dict):
+                                continue
+                            if cod.get("system") == "http://terminology.hl7.org/CodeSystem/v3-ActCode":
+                                coding[idx] = {
+                                    "system": "http://loinc.org",
+                                    "code": "11502-2",
+                                    "display": "Laboratory report",
+                                }
+
+                # Map effectiveDateTime/issued -> date and remove invalid fields
+                date_val = res.get("issued") or res.get("effectiveDateTime")
+                if date_val and not res.get("date"):
+                    res["date"] = date_val
+                normalize_datetime_field(res, "date")
+                res.pop("effectiveDateTime", None)
+                res.pop("issued", None)
+
+                # Remove DocumentReferences without content (will be populated by _attach_pdf_to_bundle)
+                content = res.get("content")
+                if not isinstance(content, list) or len(content) == 0:
+                    # Keep it — _attach_pdf_to_bundle will add content
+                    pass
+                else:
+                    cleaned_content = []
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        item.pop("format", None)
+                        attachment = item.get("attachment")
+                        if isinstance(attachment, dict):
+                            data = attachment.get("data")
+                            if isinstance(data, str):
+                                data = "".join(data.split())
+                                attachment["data"] = data
+                                try:
+                                    import base64
+
+                                    base64.b64decode(data, validate=True)
+                                except Exception:
+                                    attachment.pop("data", None)
+                        cleaned_content.append(item)
+                    res["content"] = cleaned_content
+
+            elif res_type == "Condition":
+                ensure_codeable_concept_field(res, "clinicalStatus")
+                ensure_codeable_concept_field(res, "verificationStatus")
+                ensure_codeable_concept_field(res, "severity")
+                normalize_codeable_concept_list(res, "category")
+                normalize_codeable_concept_list(res, "bodySite")
+
+                if not isinstance(res.get("subject"), dict) and patient_ref:
+                    res["subject"] = {"reference": patient_ref}
+
+                verification = res.get("verificationStatus")
+                if isinstance(verification, dict):
+                    coding = verification.get("coding")
+                    if isinstance(coding, list) and coding:
+                        allowed = {"unconfirmed", "provisional", "differential", "confirmed", "refuted", "entered-in-error"}
+                        for item in coding:
+                            if not isinstance(item, dict):
+                                continue
+                            if item.get("system") == "http://terminology.hl7.org/CodeSystem/condition-ver-status":
+                                if item.get("code") not in allowed:
+                                    item["code"] = "unconfirmed"
+                                    item["display"] = "Unconfirmed"
+
+                # Fix effectiveDateTime without timezone
+                for dt_field in ("onsetDateTime", "abatementDateTime", "recordedDate"):
+                    normalize_datetime_field(res, dt_field)
+
+            if res_type and res_type != "Bundle":
+                ensure_narrative(res, res_type)
+
+            cleaned.append(entry)
+
+        return cleaned

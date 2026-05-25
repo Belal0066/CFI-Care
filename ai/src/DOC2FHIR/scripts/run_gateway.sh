@@ -31,7 +31,18 @@ else
   PYTHON_BIN="python3"
 fi
 
-exec "$PYTHON_BIN" -m uvicorn gateway.main:app \
-  --host "${DOC2FHIR_GATEWAY_HOST:-0.0.0.0}" \
-  --port "${DOC2FHIR_GATEWAY_PORT:-8001}" \
-  --reload
+UVICORN_ARGS=(
+  -m uvicorn gateway.main:app
+  --host "${DOC2FHIR_GATEWAY_HOST:-0.0.0.0}"
+  --port "${DOC2FHIR_GATEWAY_PORT:-8001}"
+)
+
+if [[ "${DOC2FHIR_GATEWAY_RELOAD:-false}" == "true" ]]; then
+  UVICORN_ARGS+=(
+    --reload
+    --reload-exclude "${DOC2FHIR_GATEWAY_RUNTIME_DIR:-$ROOT_DIR/.gateway_runtime}/*"
+    --reload-exclude "$ROOT_DIR/.service_state/*"
+  )
+fi
+
+exec "$PYTHON_BIN" "${UVICORN_ARGS[@]}"
