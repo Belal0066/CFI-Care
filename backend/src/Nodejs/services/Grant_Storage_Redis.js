@@ -1,19 +1,17 @@
 const crypto = require("crypto");
 const redis = require("../utils/redisOTPCli");
 
+// store Consent in redis (Capability Token)
 async function saveGrant(grant) {
-    // store Consent in redis (Capability Token)
+    // check reundancy in case multiple requests have been made 
+    
+    const existing = await getGrant(grant.requesterType, grant.requesterId, grant.patientId);
+    if (existing) {
+        await deleteGrant(grant.requesterType, grant.requesterId, grant.patientId);
+    }
     const key = `grant:${grant.requesterType}:${grant.requesterId}:${grant.patientId}`;
     await redis.set(key, JSON.stringify(grant), "EX", grant.ttlSeconds);
     return key;
-
-
-    // await redis.set(
-    //   `grant:${practitionerId}:${patientId}`,
-    //   JSON.stringify(grant),
-    //   'EX',
-    //   ttlSeconds,
-    // );
 
 }
 
@@ -25,15 +23,21 @@ async function getGrant(requesterType, requesterId, patientId) {
 
 async function deleteGrant(requesterType, requesterId, patientId) {
     const key = `grant:${requesterType}:${requesterId}:${patientId}`;
-    const raw = await redis.get(key);
-    const grant = raw ? JSON.parse(raw) : null;
+    // const raw = await redis.get(key);
+    // const grant = raw ? JSON.parse(raw) : null;
     await redis.del(key);
-    return grant;
+    // return grant;
 }
 
 async function getPractitionerGrants(practitionerId) {
-    const keys = await redis.keys(`grant:${practitionerId}:*`);
-    return keys;
+  const keys = await redis.keys(`grant:practitioner:${practitionerId}:*`);
+  return keys;
+}
+
+async function getCaregiverGrants(caregiverId) {
+    const patientIds= await redis.sMembers(`caregiver_patients:${caregiverId}`);
+    return patientIds;
+    
 }
 
 async function getPatIentGrants(patientId) {
@@ -55,7 +59,9 @@ async function countCaregiverMappings(caregiverId) {
     const remaining = await redis.sCard(`caregiver_patients:${caregiverId}`);
     return remaining;
 }
-// overloads for grant input :p
+
+
+// overloads for grant input because js is silly and doesn't do overloads :p
 
 async function getGrantbyKey(key) {
     const grantRaw = await redis.get(key);
@@ -64,6 +70,15 @@ async function getGrantbyKey(key) {
 
 async function deleteGrantbyKey(key) {
     await redis.del(key);
+}
+
+
+async function getGrantByRequesterAndPatient(requesterId, patientId) {
+  const keys = await redis.keys(`grant:*:${requesterId}:${patientId}`);
+  if (!keys || keys.length === 0) return null;
+
+  const raw = await redis.get(keys[0]);
+  return raw ? JSON.parse(raw) : null;
 }
 
 module.exports = {
@@ -76,5 +91,7 @@ module.exports = {
     delCaregiverMappings,
     countCaregiverMappings,
     getGrantbyKey,
-    deleteGrantbyKey
+    deleteGrantbyKey,
+    getGrantByRequesterAndPatient,
+    getCaregiverGrants
 };

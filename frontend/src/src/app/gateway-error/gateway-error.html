@@ -1,0 +1,15 @@
+<main class="error-shell">
+  <section class="error-card">
+    <p class="eyebrow">{{ statusLabel }}</p>
+    <h1>{{ title }}</h1>
+    <p class="message">{{ message }}</p>
+
+    <div class="actions">
+      <button type="button" class="primary" (click)="retry()">Retry</button>
+      <button type="button" class="secondary" (click)="logout()">Sign out</button>
+    </div>
+
+    <p class="meta">{{ hint }}</p>
+    <p class="meta" *ngIf="sourceUrl">Last failed request: {{ sourceUrl }}</p>
+  </section>
+</main>

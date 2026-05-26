@@ -44,7 +44,7 @@ export class GrantActiveComponent implements OnInit {
   revoke(item: GrantItem) {
     if (item.revoking) return;
     item.revoking = true;
-    this.handshake.revokeGrant(item.practitionerId).subscribe({
+    this.handshake.revokeGrant(item.requesterId).subscribe({
       next: () => {
         item.revoked = true;
         item.revoking = false;

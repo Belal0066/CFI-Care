@@ -51,9 +51,9 @@ class AccessGrantRepository {
     throw Exception('Failed to respond to grant: ${response.body}');
   }
 
-  Future<void> revokeGrant(String practitionerId) async {
+  Future<void> revokeGrant(String requesterId) async {
     final response = await apiService.deleteData(
-      endpoint: '/api/patient-grants/grants/$practitionerId',
+      endpoint: '/patient-grants/grants/$requesterId',
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to revoke grant: ${response.body}');
@@ -61,7 +61,7 @@ class AccessGrantRepository {
   }
 
   Future<List<Grant>> getActiveGrants() async {
-    final response = await apiService.getData(endpoint: '/api/patient-grants/grants');
+    final response = await apiService.getData(endpoint: '/patient-grants/grants');
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
       final list = body['grants'] as List<dynamic>? ?? [];

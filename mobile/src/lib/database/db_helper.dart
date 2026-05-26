@@ -11,8 +11,7 @@ import '../utils/enums/speciality_event.dart';
 // }
 
 class Session {
-  static String? currentUserId;     // local DB user id 
-  static String? currentApiUserId;  // added sub for accurate calls :D
+  static String? currentUserId;
 }
 
 class DBHelper {

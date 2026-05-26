@@ -15,13 +15,17 @@ class OtpResponse {
 class PendingGrant {
   final String handshakeId;
   final String patientId;
-  final String practitionerId;
+  final String requesterId;
+  final String requesterType;
+  final String caregiverRoleAssignment;
   final String createdAt;
 
   PendingGrant({
     required this.handshakeId,
     required this.patientId,
-    required this.practitionerId,
+    required this.requesterType,
+    required this.caregiverRoleAssignment,
+    required this.requesterId,
     required this.createdAt,
   });
 
@@ -29,7 +33,9 @@ class PendingGrant {
     return PendingGrant(
       handshakeId: json['handshakeId']?.toString() ?? '',
       patientId: json['patientId']?.toString() ?? '',
-      practitionerId: json['practitionerId']?.toString() ?? '',
+      requesterId: json['requesterId']?.toString() ?? '',
+      requesterType: json['requesterType']?.toString() ?? '',
+      caregiverRoleAssignment: json['caregiverRoleAssignment']?.toString() ?? '',
       createdAt: json['createdAt']?.toString() ?? '',
     );
   }
@@ -38,7 +44,8 @@ class PendingGrant {
 class Grant {
   final String grantId;
   final String patientId;
-  final String practitionerId;
+  final String requesterId;
+  final String requesterType;
   final String status;
   final List<String> scopes;
   final String createdAt;
@@ -47,7 +54,8 @@ class Grant {
   Grant({
     required this.grantId,
     required this.patientId,
-    required this.practitionerId,
+    required this.requesterId,
+    required this.requesterType,
     required this.status,
     required this.scopes,
     required this.createdAt,
@@ -62,7 +70,8 @@ class Grant {
     return Grant(
       grantId: json['grantId']?.toString() ?? '',
       patientId: json['patientId']?.toString() ?? '',
-      practitionerId: json['practitionerId']?.toString() ?? '',
+      requesterId: json['requesterId']?.toString() ?? '',
+      requesterType: json['requesterType']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
       scopes: scopes,
       createdAt: json['createdAt']?.toString() ?? '',

@@ -23,7 +23,9 @@ class ApiService {
     return text.contains('invalid_grant') ||
         text.contains('offline user session not found') ||
         text.contains('token_failed') ||
-        text.contains('session expired');
+        text.contains('session expired') ||
+        text.contains('no refresh token found') ||
+        text.contains('no access token available');
   }
 
   Future<String?>? _refreshOngoing;
@@ -41,6 +43,7 @@ class ApiService {
 
     return _refreshOngoing!;
   }
+
   Future<Map<String, String>> _authHeaders({bool json = true}) async {
     final token = await getAccessToken?.call();
     // print('[AUTH HDR] token null=${token == null} empty=${(token ?? '').isEmpty} len=${token?.length ?? 0}');
@@ -71,7 +74,7 @@ class ApiService {
     //   }
     // }
 
-     if (!headers.containsKey('Authorization')) {
+    if (!headers.containsKey('Authorization')) {
       if (refreshToken != null) {
         try {
           final refreshed = await _refreshTokenSemaphore();
@@ -621,9 +624,9 @@ class ApiService {
     String eocId,
   ) async {
     try {
-      final uri = Uri.parse('$baseUrl/historyGraph/$patientId').replace(
-        queryParameters: {'eocId': eocId},
-      );
+      final uri = Uri.parse(
+        '$baseUrl/historyGraph/$patientId',
+      ).replace(queryParameters: {'eocId': eocId});
 
       final response = await _authorizedRequest(
         (headers) => http.get(uri, headers: headers),

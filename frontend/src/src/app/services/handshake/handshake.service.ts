@@ -13,12 +13,12 @@ import { PatientSummaryDTO } from '../../models/patient.model';
   providedIn: 'root',
 })
 export class HandshakeService {
-  private readonly handshakesEndpoint = '/handshakes';
-  private readonly grantsEndpoint='/api/practitioner-grants';
+  private readonly handshakesEndpoint = 'api/handshakes';
+  private readonly grantsEndpoint = '/api/practitioner-grants';
   // ma3rfsh law m7tgnha begad
-  private readonly patientEndpoint='/api/patient-grants';
+  private readonly patientEndpoint = '/api/patient-grants';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Practitioner: submit OTP received from patient
   verifyOtp(otp: string): Observable<VerifyOtpResponse> {
@@ -54,9 +54,9 @@ export class HandshakeService {
   }
 
   // Patient: revoke an active grant for a specific practitioner
-  revokeGrant(practitionerId: string): Observable<{ message: string }> {
+  revokeGrant(requesterId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(
-      `${this.patientEndpoint}/grants/${practitionerId}`,
+      `${this.patientEndpoint}/grants/${requesterId}`,
       { withCredentials: true }
     );
   }

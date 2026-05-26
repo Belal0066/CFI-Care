@@ -45,15 +45,9 @@ class AuthProvider with ChangeNotifier {
       _session = restored;
 
       final email = restored.email ?? '';
-      final existingLocalId = email.isNotEmpty
-          ? await DBHelper.findUserIdByEmail(email)
-          : null;
-
-      // old data for old users , sub for new users.
-      final resolvedLocalUserId = existingLocalId ?? restored.subject;
 
       await DBHelper.ensureUserAndProfile(
-        userId: resolvedLocalUserId,
+        userId: restored.subject,
         email: email,
         firstName: restored.name?.split(' ').first,
         lastName: (restored.name != null && restored.name!.contains(' '))
@@ -61,7 +55,7 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(localUserId: resolvedLocalUserId, apiUserId: restored.subject);
+      await _syncUserId(userId: restored.subject);
 
 
       _setState(AuthStatus.authenticated);
@@ -97,15 +91,9 @@ class AuthProvider with ChangeNotifier {
       _session = session;
 
       final email = session.email ?? '';
-      final existingLocalId = email.isNotEmpty
-          ? await DBHelper.findUserIdByEmail(email)
-          : null;
-
-      // old data for old users , sub for new users.
-      final resolvedLocalUserId = existingLocalId ?? session.subject;
-
+     
       await DBHelper.ensureUserAndProfile(
-        userId: resolvedLocalUserId,
+        userId: session.subject,
         email: email,
         firstName: session.name?.split(' ').first,
         lastName: (session.name != null && session.name!.contains(' '))
@@ -113,7 +101,7 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(localUserId: resolvedLocalUserId, apiUserId: session.subject);
+      await _syncUserId(userId: session.subject);
 
 
       _setState(AuthStatus.authenticated);
@@ -153,8 +141,7 @@ class AuthProvider with ChangeNotifier {
         final refreshed = await _authUsecases.refreshSession();
         _session = refreshed;
         await _syncUserId(
-          localUserId: Session.currentUserId ?? refreshed.subject,
-          apiUserId: refreshed.subject,
+          userId: refreshed.subject
         );
         _setState(AuthStatus.authenticated);
       }
@@ -192,22 +179,17 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _syncUserId({
-    required String localUserId,
-    required String apiUserId,
+    required String userId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('currentUserId', localUserId);
-    await prefs.setString('currentApiUserId', apiUserId);
-    Session.currentUserId = localUserId;
-    Session.currentApiUserId = apiUserId;
+    await prefs.setString('currentUserId', userId);
+    Session.currentUserId = userId;
   }
 
   Future<void> _clearLocalSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('currentUserId');
-    await prefs.remove('currentApiUserId');
     Session.currentUserId = null;
-    Session.currentApiUserId = null;
   }
 
   Future<void> configureTotp() async {

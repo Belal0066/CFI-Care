@@ -5,7 +5,7 @@ const { requireApiAuth } = require('../middleware/requireApiAuth');
 
 const { logSecurityEvent } = require('../utils/logSecurityEvent');
 const {deleteGrant,delCaregiverMappings,getGrant,getPatIentGrants,countCaregiverMappings,getGrantbyKey,deleteGrantbyKey}=require("../services/Grant_Storage_Redis");
-const { removeUserFromGroup } = require("../auth/Role_assignment");
+const { removeUserFromGroup, revokeCaregiverGroupIfNoActivePatients } = require("../auth/Role_assignment");
 const router = express.Router();
 
 const fhirApi = axios.create({
@@ -19,11 +19,11 @@ router.delete("/grants/:practitionerId", requireApiAuth, async (req, res) => {
     if (!patientId) return res.status(401).json({ error: "Unauthorized" });
 
     const practitionerId = req.params.practitionerId;
-    const key = `grant:${practitionerId}:${patientId}`;
+    const key = `grant:practitioner:${requesterId}:${patientId}`;
     const grantRaw = await getGrantbyKey(key);
     const grant = grantRaw ? JSON.parse(grantRaw) : null;
 
-    deleteGrantbyKey(key);
+    await deleteGrantbyKey(key);
 
     if (grant) {
       await logSecurityEvent('access', 'GRANT_REVOKED', req, {
@@ -50,24 +50,41 @@ router.get('/grants', requireApiAuth, async (req, res) => {
     if (!patientId) return res.status(401).json({ error: "Unauthorized" });
 
     const keys = await getPatIentGrants(patientId);
-    if (!keys || keys.length === 0) {
-      return res.status(200).json({ grants: [] });
-    }
 
-    const grants = [];
+    const grants = {
+      practitioners: [],
+      caregivers: [],
+    };
+
+    if (!keys || keys.length === 0) {
+      return res.status(200).json(grants);
+    }
+    const now = new Date();
+
     for (const key of keys) {
       const raw = await getGrantbyKey(key);
-      if (raw) {
-        const grant = JSON.parse(raw);
-        if (new Date(grant.expiresAt) > new Date()) {
-          grants.push(grant);
-        } else {
-          await deleteGrantbyKey(key);
-        }
+      if (!raw) continue;
+
+      let grant;
+      
+      grant = JSON.parse(raw);
+
+      if (!grant?.expiresAt || new Date(grant.expiresAt) <= now) {
+        await deleteGrantbyKey(key);
+        continue;
       }
+
+      const type = String(grant.requesterType || '').toLowerCase();
+
+      if (type === 'practitioner') {
+        grants.practitioners.push(grant);
+      } else if (type === 'caregiver') {
+        grants.caregivers.push(grant);
+      }
+
     }
 
-    return res.status(200).json({ grants });
+    return res.status(200).json( grants );
   } catch (e) {
     return res.status(500).json({ error: "Failed to fetch grants", detail: e.message });
   }
@@ -91,10 +108,7 @@ router.delete("/caregivers/:caregiverId", requireApiAuth, async (req, res) => {
     await deleteGrantbyKey(grantKey);
     await delCaregiverMappings(caregiverId, patientId);
 
-    const remaining = countCaregiverMappings(caregiverId);
-    if (remaining === 0) {
-      await removeUserFromGroup(caregiverId, "Caregiver");
-    }
+    const remaining= revokeCaregiverGroupIfNoActivePatients(caregiverId);
 
     if (grant) {
       await logSecurityEvent("access", "CAREGIVER_GRANT_REVOKED", req, {
