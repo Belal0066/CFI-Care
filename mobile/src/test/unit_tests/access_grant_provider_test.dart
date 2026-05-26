@@ -16,14 +16,17 @@ PendingGrant dummyPending({String id = 'hs-1', String docId = 'doc-1'}) =>
     PendingGrant(
       handshakeId: id,
       patientId: 'patient-1',
-      practitionerId: docId,
+      requesterId: docId,
+      requesterType: "practitioner",
+      caregiverRoleAssignment: '',
       createdAt: '2026-01-01T00:00:00.000Z',
     );
 
 Grant dummyGrant({String docId = 'doc-1'}) => Grant(
       grantId: 'grant-1',
       patientId: 'patient-1',
-      practitionerId: docId,
+      requesterId: docId,
+      requesterType: "practitioner",
       status: 'active',
       scopes: ['read'],
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -123,7 +126,7 @@ void main() {
 
       await provider.fetchPendingGrants();
 
-      expect(provider.practitionerName('doc-42'), 'Dr. Smith');
+      expect(provider.requesterName('doc-42'), 'Dr. Smith');
     });
 
     test('does not re-fetch name already in cache', () async {
@@ -256,7 +259,7 @@ void main() {
   // -----------------------------------------------------------------------
   group('practitionerName', () {
     test('returns raw id when name is not cached', () {
-      expect(provider.practitionerName('unknown-id'), 'unknown-id');
+      expect(provider.requesterName('unknown-id'), 'unknown-id');
     });
 
     test('returns cached name after a successful fetch', () async {
@@ -267,7 +270,7 @@ void main() {
 
       await provider.fetchPendingGrants();
 
-      expect(provider.practitionerName('doc-99'), 'Dr. House');
+      expect(provider.requesterName('doc-99'), 'Dr. House');
     });
   });
 }

@@ -7,9 +7,9 @@
   "defaultSignatureAlgorithm" : "RS256",
   "revokeRefreshToken" : false,
   "refreshTokenMaxReuse" : 0,
-  "accessTokenLifespan" : 300,
+  "accessTokenLifespan" : 600,
   "accessTokenLifespanForImplicitFlow" : 900,
-  "ssoSessionIdleTimeout" : 600,
+  "ssoSessionIdleTimeout" : 1200,
   "ssoSessionMaxLifespan" : 36000,
   "ssoSessionIdleTimeoutRememberMe" : 0,
   "ssoSessionMaxLifespanRememberMe" : 0,
@@ -40,13 +40,13 @@
   "bruteForceProtected" : true,
   "permanentLockout" : false,
   "maxTemporaryLockouts" : 0,
-  "bruteForceStrategy" : "MULTIPLE",
+  "bruteForceStrategy" : "LINEAR",
   "maxFailureWaitSeconds" : 900,
   "minimumQuickLoginWaitSeconds" : 60,
   "waitIncrementSeconds" : 60,
   "quickLoginCheckMilliSeconds" : 1000,
   "maxDeltaTimeSeconds" : 43200,
-  "failureFactor" : 15,
+  "failureFactor" : 5,
   "roles" : {
     "realm" : [ {
       "id" : "94b3a8d4-eeaf-468a-b177-c723063ca84a",
@@ -139,7 +139,7 @@
         "containerId" : "80930c02-ef4a-4dda-a897-3394691895c2",
         "attributes" : { }
       }, {
-        "id" : "4a2e21f9-903e-4d4f-b824-e5ea87c3ae90",
+        "id" : "42645d4b-c7d8-4b34-908d-5e281c5c2806",
         "name" : "Caregiver",
         "description" : "Caregiver Role dynamically assigned to caregivers",
         "composite" : false,
@@ -316,7 +316,6 @@
         "attributes" : { }
       } ],
       "security-admin-console" : [ ],
-      "admin-cli" : [ ],
       "hapi-fhir" : [ {
         "id" : "68ee8061-7b6f-41ae-b1d7-c665f18b8412",
         "name" : "uma_protection",
@@ -345,6 +344,9 @@
         "attributes" : { }
       } ],
       "fhir-provisioner" : [ ],
+      "admin-group" : [ ],
+      "admin-permissions" : [ ],
+      "admin-cli" : [ ],
       "account" : [ {
         "id" : "591450ff-6ff1-4f35-9b1e-8087f7557b1c",
         "name" : "view-groups",
@@ -429,9 +431,7 @@
     "subGroups" : [ ],
     "attributes" : { },
     "realmRoles" : [ "Caregiver" ],
-    "clientRoles" : {
-      "flutter-app" : [ "Caregiver" ]
-    }
+    "clientRoles" : { }
   }, {
     "id" : "e260c307-36eb-44dc-afe7-633f01a211f6",
     "name" : "Patient",
@@ -439,9 +439,7 @@
     "subGroups" : [ ],
     "attributes" : { },
     "realmRoles" : [ "patient" ],
-    "clientRoles" : {
-      "flutter-app" : [ "patient" ]
-    }
+    "clientRoles" : { }
   }, {
     "id" : "574640d4-0207-4daa-8d49-fc6bb0cdc0fd",
     "name" : "Practitioner",
@@ -449,9 +447,7 @@
     "subGroups" : [ ],
     "attributes" : { },
     "realmRoles" : [ "practitioner" ],
-    "clientRoles" : {
-      "oauth2-proxy" : [ "practitioner" ]
-    }
+    "clientRoles" : { }
   } ],
   "defaultRole" : {
     "id" : "94b3a8d4-eeaf-468a-b177-c723063ca84a",
@@ -461,8 +457,12 @@
     "clientRole" : false,
     "containerId" : "5861e082-86c3-4c1f-b730-97719d09f4da"
   },
+  "adminPermissionsClient" : {
+    "id" : "51bd3bb1-e427-47c5-84d5-9daf497a185a",
+    "clientId" : "admin-permissions"
+  },
   "requiredCredentials" : [ "password" ],
-  "passwordPolicy" : "specialChars(1) and digits(1) and upperCase(1) and lowerCase(1) and length(8) and notContainsUsername(undefined)",
+  "passwordPolicy" : "specialChars(1) and digits(1) and upperCase(1) and lowerCase(1) and length(8) and notContainsUsername(undefined) and notEmail(undefined)",
   "otpPolicyType" : "totp",
   "otpPolicyAlgorithm" : "HmacSHA1",
   "otpPolicyInitialCounter" : 0,
@@ -649,8 +649,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779698881615,
-      "lastUpdatedDate" : 1779698881623
+      "createdDate" : 1779741779679,
+      "lastUpdatedDate" : 1779741779686
     } ],
     "notBefore" : 1773486196,
     "groups" : [ ]
@@ -675,8 +675,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779698881636,
-      "lastUpdatedDate" : 1779698881641
+      "createdDate" : 1779741779699,
+      "lastUpdatedDate" : 1779741779707
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -701,8 +701,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779698881650,
-      "lastUpdatedDate" : 1779698881655
+      "createdDate" : 1779741779716,
+      "lastUpdatedDate" : 1779741779722
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -974,8 +974,40 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "clientRoles" : {
-      "realm-management" : [ "manage-users" ]
+      "realm-management" : [ "view-clients", "query-clients", "manage-users" ]
     },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "c9e6e9d3-77cc-4225-b872-7c0d16547e17",
+    "username" : "service-account-admin-group",
+    "emailVerified" : false,
+    "enabled" : true,
+    "createdTimestamp" : 1779732758158,
+    "totp" : false,
+    "serviceAccountClientId" : "admin-group",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ "VERIFY_EMAIL" ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientRoles" : {
+      "realm-management" : [ "view-users", "manage-users", "query-groups" ],
+      "account" : [ "view-groups", "view-profile", "manage-account-links", "manage-account" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "210fff2a-38a0-42cd-a689-496f4c411676",
+    "username" : "service-account-admin-permissions",
+    "emailVerified" : false,
+    "enabled" : true,
+    "createdTimestamp" : 1779731642577,
+    "totp" : false,
+    "serviceAccountClientId" : "admin-permissions",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ "VERIFY_EMAIL" ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "notBefore" : 0,
     "groups" : [ ]
   }, {
@@ -1022,7 +1054,8 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "clientRoles" : {
-      "realm-management" : [ "manage-users" ]
+      "realm-management" : [ "manage-users", "query-groups" ],
+      "account" : [ "view-groups" ]
     },
     "notBefore" : 0,
     "groups" : [ ]
@@ -1084,8 +1117,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779698881795,
-      "lastUpdatedDate" : 1779698881805
+      "createdDate" : 1779741779884,
+      "lastUpdatedDate" : 1779741779894
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -2344,6 +2377,28 @@
     "notBefore" : 0,
     "groups" : [ "/Patient" ]
   }, {
+    "id" : "6ed2c9dc-8c60-4cf7-92ca-55ae449f7c78",
+    "username" : "testconsent",
+    "firstName" : "test",
+    "lastName" : "consent",
+    "email" : "testconsent@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1779712027446,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "848b198c-f051-4e0e-8b0d-76096e1121c2",
+      "type" : "password",
+      "createdDate" : 1779712027736,
+      "secretData" : "{\"value\":\"6lvDKqOTSbgzYcDWBTmoOKy9tl1H1j7PeI4sKVEAe24=\",\"salt\":\"DFeuStMjlK8T5RGwKZnEqQ==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "notBefore" : 0,
+    "groups" : [ "/Practitioner" ]
+  }, {
     "id" : "2847bccb-b5fd-4799-bf38-6278da702f77",
     "username" : "testemail@mail.com",
     "email" : "testemail@mail.com",
@@ -3549,8 +3604,9 @@
     "credentials" : [ {
       "id" : "c631ebfb-74c9-4ae1-93af-147fe24c3ea7",
       "type" : "password",
-      "createdDate" : 1779699471965,
-      "secretData" : "{\"value\":\"Y/q10OJdJtkZ5GmrU11SYLrB/HVXaMpnXirRHZJWI3U=\",\"salt\":\"gLOxSS26pSNhu8//cUSSlA==\",\"additionalParameters\":{}}",
+      "userLabel" : "My password",
+      "createdDate" : 1779717618252,
+      "secretData" : "{\"value\":\"yPnPX3+jHaZ2TGqklh9ZyNKCsZmYJjenxXFF+f7y+1E=\",\"salt\":\"2EYQRdHFIPifow//8ZYUBQ==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -4285,7 +4341,7 @@
     "consentRequired" : false,
     "standardFlowEnabled" : false,
     "implicitFlowEnabled" : false,
-    "directAccessGrantsEnabled" : true,
+    "directAccessGrantsEnabled" : false,
     "serviceAccountsEnabled" : true,
     "publicClient" : false,
     "frontchannelLogout" : false,
@@ -4322,6 +4378,200 @@
     "nodeReRegistrationTimeout" : 0,
     "defaultClientScopes" : [ "web-origins", "service_account", "acr", "profile", "roles", "basic", "email" ],
     "optionalClientScopes" : [ "address", "phone", "organization", "offline_access", "microprofile-jwt" ]
+  }, {
+    "id" : "365960bf-3dbd-4689-9031-a2617b28e11d",
+    "clientId" : "admin-group",
+    "name" : "Groups Admin",
+    "description" : "test client to set caregiver group from backend",
+    "rootUrl" : "",
+    "adminUrl" : "",
+    "baseUrl" : "",
+    "surrogateAuthRequired" : false,
+    "enabled" : true,
+    "alwaysDisplayInConsole" : false,
+    "clientAuthenticatorType" : "client-secret",
+    "secret" : "4FBzkGV38KCGI5fOL1KeqlmVhCCLOjn1",
+    "redirectUris" : [ "/*" ],
+    "webOrigins" : [ "/*" ],
+    "notBefore" : 0,
+    "bearerOnly" : false,
+    "consentRequired" : false,
+    "standardFlowEnabled" : false,
+    "implicitFlowEnabled" : false,
+    "directAccessGrantsEnabled" : false,
+    "serviceAccountsEnabled" : true,
+    "publicClient" : false,
+    "frontchannelLogout" : false,
+    "protocol" : "openid-connect",
+    "attributes" : {
+      "request.object.signature.alg" : "any",
+      "frontchannel.logout.session.required" : "true",
+      "post.logout.redirect.uris" : "+",
+      "oauth2.device.authorization.grant.enabled" : "false",
+      "use.jwks.url" : "false",
+      "backchannel.logout.revoke.offline.tokens" : "false",
+      "use.refresh.tokens" : "true",
+      "realm_client" : "false",
+      "oidc.ciba.grant.enabled" : "false",
+      "backchannel.logout.session.required" : "true",
+      "client_credentials.use_refresh_token" : "false",
+      "require.pushed.authorization.requests" : "false",
+      "request.object.encryption.enc" : "any",
+      "dpop.bound.access.tokens" : "false",
+      "id.token.as.detached.signature" : "false",
+      "client.secret.creation.time" : "1779734139",
+      "request.object.encryption.alg" : "any",
+      "client.introspection.response.allow.jwt.claim.enabled" : "false",
+      "standard.token.exchange.enabled" : "false",
+      "client.use.lightweight.access.token.enabled" : "false",
+      "request.object.required" : "not required",
+      "access.token.header.type.rfc9068" : "false",
+      "tls.client.certificate.bound.access.tokens" : "false",
+      "acr.loa.map" : "{}",
+      "display.on.consent.screen" : "false",
+      "token.response.type.bearer.lower-case" : "false"
+    },
+    "authenticationFlowBindingOverrides" : { },
+    "fullScopeAllowed" : true,
+    "nodeReRegistrationTimeout" : -1,
+    "defaultClientScopes" : [ "web-origins", "service_account", "acr", "profile", "roles", "add-fhir-aud", "basic", "email" ],
+    "optionalClientScopes" : [ "address", "phone", "patient/*.rs", "organization", "offline_access", "patient/AllergyIntolerance.r", "microprofile-jwt" ]
+  }, {
+    "id" : "51bd3bb1-e427-47c5-84d5-9daf497a185a",
+    "clientId" : "admin-permissions",
+    "surrogateAuthRequired" : false,
+    "enabled" : true,
+    "alwaysDisplayInConsole" : false,
+    "clientAuthenticatorType" : "client-secret",
+    "secret" : "dgGflx1EfEOvKioI37xO8iKicBD2FVo5",
+    "redirectUris" : [ ],
+    "webOrigins" : [ ],
+    "notBefore" : 0,
+    "bearerOnly" : false,
+    "consentRequired" : false,
+    "standardFlowEnabled" : true,
+    "implicitFlowEnabled" : false,
+    "directAccessGrantsEnabled" : false,
+    "serviceAccountsEnabled" : true,
+    "authorizationServicesEnabled" : true,
+    "publicClient" : false,
+    "frontchannelLogout" : false,
+    "protocol" : "openid-connect",
+    "attributes" : {
+      "realm_client" : "false",
+      "client.secret.creation.time" : "1779741777"
+    },
+    "authenticationFlowBindingOverrides" : { },
+    "fullScopeAllowed" : true,
+    "nodeReRegistrationTimeout" : -1,
+    "defaultClientScopes" : [ ],
+    "optionalClientScopes" : [ ],
+    "authorizationSettings" : {
+      "allowRemoteResourceManagement" : true,
+      "policyEnforcementMode" : "ENFORCING",
+      "resources" : [ {
+        "name" : "Clients",
+        "type" : "Clients",
+        "ownerManagedAccess" : false,
+        "attributes" : { },
+        "uris" : [ ],
+        "scopes" : [ {
+          "name" : "view"
+        }, {
+          "name" : "map-roles-client-scope"
+        }, {
+          "name" : "map-roles"
+        }, {
+          "name" : "manage"
+        }, {
+          "name" : "map-roles-composite"
+        } ]
+      }, {
+        "name" : "Roles",
+        "type" : "Roles",
+        "ownerManagedAccess" : false,
+        "attributes" : { },
+        "uris" : [ ],
+        "scopes" : [ {
+          "name" : "map-role-composite"
+        }, {
+          "name" : "map-role-client-scope"
+        }, {
+          "name" : "map-role"
+        } ]
+      }, {
+        "name" : "Groups",
+        "type" : "Groups",
+        "ownerManagedAccess" : false,
+        "attributes" : { },
+        "uris" : [ ],
+        "scopes" : [ {
+          "name" : "manage-members"
+        }, {
+          "name" : "view"
+        }, {
+          "name" : "manage-membership"
+        }, {
+          "name" : "view-members"
+        }, {
+          "name" : "manage"
+        }, {
+          "name" : "impersonate-members"
+        } ]
+      }, {
+        "name" : "Users",
+        "type" : "Users",
+        "ownerManagedAccess" : false,
+        "attributes" : { },
+        "uris" : [ ],
+        "scopes" : [ {
+          "name" : "manage-group-membership"
+        }, {
+          "name" : "view"
+        }, {
+          "name" : "impersonate"
+        }, {
+          "name" : "map-roles"
+        }, {
+          "name" : "reset-password"
+        }, {
+          "name" : "manage"
+        } ]
+      } ],
+      "policies" : [ ],
+      "scopes" : [ {
+        "name" : "manage-group-membership"
+      }, {
+        "name" : "map-roles-client-scope"
+      }, {
+        "name" : "map-role"
+      }, {
+        "name" : "view-members"
+      }, {
+        "name" : "reset-password"
+      }, {
+        "name" : "manage"
+      }, {
+        "name" : "impersonate-members"
+      }, {
+        "name" : "manage-members"
+      }, {
+        "name" : "view"
+      }, {
+        "name" : "manage-membership"
+      }, {
+        "name" : "impersonate"
+      }, {
+        "name" : "map-role-composite"
+      }, {
+        "name" : "map-roles"
+      }, {
+        "name" : "map-role-client-scope"
+      }, {
+        "name" : "map-roles-composite"
+      } ],
+      "decisionStrategy" : "UNANIMOUS"
+    }
   }, {
     "id" : "09b4795d-07e7-4fd4-ad89-9391ba8a212e",
     "clientId" : "broker",
@@ -5499,7 +5749,7 @@
       "subType" : "authenticated",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "oidc-full-name-mapper", "saml-role-list-mapper", "oidc-usermodel-attribute-mapper", "saml-user-property-mapper", "oidc-address-mapper", "saml-user-attribute-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "saml-role-list-mapper", "oidc-full-name-mapper", "saml-user-property-mapper", "oidc-address-mapper", "saml-user-attribute-mapper", "oidc-usermodel-attribute-mapper" ]
       }
     }, {
       "id" : "c00eca02-8ce1-424f-9bd8-12dca08eec5a",
@@ -5533,7 +5783,7 @@
       "subType" : "anonymous",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "saml-role-list-mapper", "oidc-full-name-mapper", "saml-user-attribute-mapper", "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "saml-user-property-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-full-name-mapper", "saml-user-property-mapper", "saml-role-list-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper", "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper" ]
       }
     } ],
     "org.keycloak.userprofile.UserProfileProvider" : [ {
@@ -6578,7 +6828,7 @@
     "name" : "Recovery Authentication Codes",
     "providerId" : "CONFIGURE_RECOVERY_AUTHN_CODES",
     "enabled" : true,
-    "defaultAction" : false,
+    "defaultAction" : true,
     "priority" : 122,
     "config" : { }
   } ],

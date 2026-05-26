@@ -1,6 +1,6 @@
-const redis = require("../utils/redisOTPCli");
 
 const { logSecurityEvent } = require("../utils/logSecurityEvent");
+const { getGrantByRequesterAndPatient } = require("../services/Grant_Storage_Redis");
 
 function getClaims(req) {
   if (req.jwt && typeof req.jwt === "object") return req.jwt;
@@ -62,6 +62,7 @@ function isActionAllowed(permissions, action) {
 
 // if req is the patient -> allow :D
 // if req is admin -> allow :)
+// if req is cargeiver -> allow =D
 // if req is dr with active grant -> allow, attach grant to req
 // else denied
 
@@ -123,24 +124,52 @@ function requirePatientContext(options = {}) {
 
       const isCaregiver = hasAnyRole(roles, caregiverRoles);
       if (isCaregiver) {
-        // TODO: replace null with FHIR RelatedPerson DB query for (reqId, patientId)
-        const relationRaw = null;
+        const grant = await getGrantByRequesterAndPatient(reqId, patientId);
 
-        if (!relationRaw) {
+
+        if (!grant) {
           await logSecurityEvent("access", "ACCESS_DENIED", req, {
             actorType: "caregiver",
             patientId,
             requesterId: reqId,
-            reason: "No active caregiver relationship",
+            reason: "No active caregiver grant found",
             action,
             resourceType,
           });
           return res.status(403).json({
-            error: "Forbidden: no active caregiver relationship",
+            error: "Forbidden: no active caregiver grant",
           });
         }
 
-        const relation = JSON.parse(relationRaw);
+        if (!isGrantActive(grant)) {
+          await logSecurityEvent("access", "CONSENT_GRANT_INVALID", req, {
+            actorType: "caregiver",
+            patientId,
+            requesterId: reqId,
+            reason: "Grant expired",
+            action,
+            resourceType,
+          });
+          return res.status(403).json({
+            error: "Forbidden: caregiver grant is inactive",
+          });
+        }
+
+        // if (!relationRaw) {
+        //   await logSecurityEvent("access", "ACCESS_DENIED", req, {
+        //     actorType: "caregiver",
+        //     patientId,
+        //     requesterId: reqId,
+        //     reason: "No active caregiver relationship",
+        //     action,
+        //     resourceType,
+        //   });
+        //   return res.status(403).json({
+        //     error: "Forbidden: no active caregiver relationship",
+        //   });
+        // }
+
+        // const relation = JSON.parse(relationRaw);
         // const action = methodToAction(req.method);
 
         if (!isActionAllowed(relation.permissions, action)) {
@@ -194,9 +223,9 @@ function requirePatientContext(options = {}) {
         });
       }
 
-      const grantKey = `grant:${reqId}:${patientId}`;
-      const grantRaw = await redis.get(grantKey);
-      if (!grantRaw) {
+      const grant = await getGrantByRequesterAndPatient(reqId, patientId);
+
+      if (!grant) {
         await logSecurityEvent("access", "CONSENT_GRANT_NOT_FOUND", req, {
           actorType: "practitioner",
           patientId,
@@ -210,7 +239,6 @@ function requirePatientContext(options = {}) {
         });
       }
 
-      const grant = JSON.parse(grantRaw);
       if (!isGrantActive(grant)) {
         await logSecurityEvent("access", "CONSENT_GRANT_INVALID", req, {
           actorType: "practitioner",

@@ -11,11 +11,11 @@ const redis = require('../utils/redisOTPCli');
 
 const { sendNotif } = require('../services/FCM_Send_Notification');
 const { resolveRequesterType } = require('../services/Caller_Role_resolver');
-const { clearExistingOtp, createUniqueOtp, ClearVerifiedOtp, savePendingGrant, getPendingGrant, listPendingHandshakes, deletePendingGrant} = require('../services/Handshake_storage_redis');
+const { clearExistingOtp, createUniqueOtp, ClearVerifiedOtp, savePendingGrant, getPendingGrant, listPendingHandshakes, deletePendingGrant } = require('../services/Handshake_storage_redis');
 const { saveGrant,
   getGrant,
-  setCaregiverMappings} = require("../services/Grant_Storage_Redis");
-const {addUserToGroup}=require("./Role_assignment");
+  setCaregiverMappings, getGrantByRequesterAndPatient } = require("../services/Grant_Storage_Redis");
+const { addUserToGroup } = require("./Role_assignment");
 
 
 router.post('/request-otp', requireApiAuth, async (req, res) => {
@@ -63,6 +63,7 @@ router.post('/verify-practitioner-otp', requireApiAuth, async (req, res) => {
       handshakeId,
       patientId,
       requesterId,
+      requesterType: requesterType,
       createdAt: new Date().toISOString(),
     };
 
@@ -103,8 +104,8 @@ router.post('/verify-caregiver-otp', requireApiAuth, async (req, res) => {
     //   caregiverRoleAssignment="caregiver_assigned";
     // }
 
-    const caregiverRoleAssignment =requesterType === "caregiver"
-      ? "caregiver_assigned": "caregiver_onboarding";
+    const caregiverRoleAssignment = requesterType === "caregiver"
+      ? "caregiver_assigned" : "caregiver_onboarding";
 
 
     const { otp } = req.body || {};
@@ -119,12 +120,13 @@ router.post('/verify-caregiver-otp', requireApiAuth, async (req, res) => {
       handshakeId,
       patientId,
       requesterId,
+      requesterType: requesterType,
       caregiverRoleAssignment,
       createdAt: new Date().toISOString(),
     };
 
     // hancall func yb3t notif hena -> assigned to the coolest flutter head <3
-    await sendNotif(patientId, handshakeId,requesterType);
+    await sendNotif(patientId, handshakeId, requesterType);
 
 
     // await redis.set(`pending:${patientId}`, practitionerId, 'EX', 120);
@@ -147,7 +149,8 @@ router.post('/verify-caregiver-otp', requireApiAuth, async (req, res) => {
 // after patient reply
 router.post('/create-grant', requireApiAuth, async (req, res) => {
   try {
-    const requesterType = resolveRequesterType(req.jwt || req.kauth?.token?.grant);
+    // const requesterType = resolveRequesterType(req.jwt || req.kauth?.token?.grant);
+
 
     const patientId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
     if (!patientId) return res.status(401).json({ error: "Unauthorized" });
@@ -171,6 +174,11 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
           error: "Forbidden: pending request does not belong to this patient",
         });
     }
+
+    const requesterType =
+      pending.caregiverRoleAssignment === "caregiver_onboarding"
+        ? "caregiver" : pending.requesterType;
+
 
     if (!approved) {
       // await redis.del(`pending:${patientId}`);
@@ -198,8 +206,8 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
 
     const requesterId = pending.requesterId
 
-    if(pending.caregiverRoleAssignment== "caregiver_onboarding")
-      requesterType= "caregiver";
+    // if(pending.caregiverRoleAssignment== "caregiver_onboarding")
+    //   requesterType= "caregiver";
 
     const grant = {
       requesterType,
@@ -213,7 +221,7 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
           : ["read"],
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + ttlSeconds * 1000).toISOString(),
-
+      ttlSeconds,
       // ,scope:
     };
 
@@ -221,13 +229,13 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
 
     await deletePendingGrant(handshakeId, patientId);
 
-    if(pending.caregiverRoleAssignment== "caregiver_onboarding"){
+    if (pending.caregiverRoleAssignment == "caregiver_onboarding") {
       await addUserToGroup(pending.requesterId, "Caregiver");
-      setCaregiverMappings(requesterId, patientId);
+      await setCaregiverMappings(requesterId, patientId);
     }
 
-    if(pending.caregiverRoleAssignment== "caregiver_assigned")
-      setCaregiverMappings(requesterId, patientId);
+    if (pending.caregiverRoleAssignment == "caregiver_assigned")
+      await setCaregiverMappings(requesterId, patientId);
 
     await logSecurityEvent('access', 'GRANT_ISSUED', req, {
       patientId,
@@ -279,7 +287,7 @@ router.get('/pending', requireApiAuth, async (req, res) => {
   }
 });
 
-// Practitioner: poll whether patient approved a specific handshake
+// Practitioner/Caregiver: poll whether patient approved a specific handshake
 router.get('/status/:handshakeId', requireApiAuth, async (req, res) => {
   try {
     const requesterId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
@@ -299,15 +307,13 @@ router.get('/status/:handshakeId', requireApiAuth, async (req, res) => {
 
     // pending_grant is gone — check if an active grant was issued
     const patientId = req.query.patientId;
-    const requesterType = resolveRequesterType(req.jwt || req.kauth?.token?.grant);
     if (patientId) {
-      // const grantRaw = await redis.get(`grant:${practitionerId}:${patientId}`);
-      const grantRaw = await getGrant(requesterType, requesterId, patientId);
-      if (grantRaw) {
-        const grant = JSON.parse(grantRaw);
-        if (new Date(grant.expiresAt) > new Date()) {
+      const grant = await getGrantByRequesterAndPatient(requesterId, patientId);
+      // if (grant) {
+        // const grant = JSON.parse(grantRaw);
+        if (grant && new Date(grant.expiresAt) > new Date()) {
           return res.status(200).json({ status: "approved", grant });
-        }
+        // }
       }
     }
 

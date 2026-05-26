@@ -24,15 +24,15 @@ class KeycloakRemoteDataSource {
        _vault = vault ?? TokenVault();
 
 
-  // trial run :(
-  Future<void> _trySyncPatientToFhir(AuthModel session) async {
-    try {
-      await _syncPatientToFhir(session);
-    } catch (e) {
-      //  profile sync failed != fail authentication
-      print('[AUTH] patient sync skipped: $e');
-    }
-  }
+  // // trial run :(
+  // Future<void> _trySyncPatientToFhir(AuthModel session) async {
+  //   try {
+  //     await _syncPatientToFhir(session);
+  //   } catch (e) {
+  //     //  profile sync failed != fail authentication
+  //     print('[AUTH] patient sync skipped: $e');
+  //   }
+  // }
 
   Future<AuthModel> login() async {
     try {
@@ -86,7 +86,7 @@ class KeycloakRemoteDataSource {
         expiresAt: response.accessTokenExpirationDateTime,
       );
 
-      await _trySyncPatientToFhir(session);
+      // await _trySyncPatientToFhir(session);
 
       return session;
     } on FlutterAppAuthUserCancelledException {
@@ -94,45 +94,46 @@ class KeycloakRemoteDataSource {
     }
   }
 
-  Future<void> _syncPatientToFhir(AuthModel session) async {
-    final fullName = (session.name ?? '').trim();
-    final parts = fullName.isEmpty
-        ? const <String>[]
-        : fullName.split(RegExp(r'\s+'));
+  // Future<void> _syncPatientToFhir(AuthModel session) async {
+  //   final fullName = (session.name ?? '').trim();
+  //   final parts = fullName.isEmpty
+  //       ? const <String>[]
+  //       : fullName.split(RegExp(r'\s+'));
 
-    final firstName = parts.isNotEmpty ? parts.first : 'User';
-    final lastName = parts.length > 1 ? parts.skip(1).join(' ') : '';
+  //   final firstName = parts.isNotEmpty ? parts.first : 'User';
+  //   final lastName = parts.length > 1 ? parts.skip(1).join(' ') : '';
 
-    final payload = {
-      'id': session.subject,
-      'firstName': firstName,
-      'lastName': lastName,
-      'email': session.email ?? '',
-      'phone': '',
-      'gender': 'unknown',
-      'dob': '',
-    };
+  //   final payload = {
+  //     'id': session.subject,
+  //     'firstName': firstName,
+  //     'lastName': lastName,
+  //     'email': session.email ?? '',
+  //     'phone': '',
+  //     'gender': 'unknown',
+  //     'dob': '',
+  //   };
 
-    final response = await http.post(
-      Uri.parse('${AppConfig.apiBaseUrl}/patients/sync-fhir'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${session.accessToken}',
-      },
-      body: jsonEncode(payload),
-    );
+  //   final response = await http.post(
+  //     Uri.parse('${AppConfig.apiBaseUrl}/patients/sync-fhir'),
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //       'Authorization': 'Bearer ${session.accessToken}',
+  //     },
+  //     body: jsonEncode(payload),
+  //   );
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception(
-        'Failed to sync patient to FHIR: ${response.statusCode} ${response.body}',
-      );
-    }
-  }
+  //   if (response.statusCode != 200 && response.statusCode != 201) {
+  //     throw Exception(
+  //       'Failed to sync patient to FHIR: ${response.statusCode} ${response.body}',
+  //     );
+  //   }
+  // }
 
   Future<AuthModel> refreshSession({String? refreshToken}) async {
     final tokenToUse = refreshToken ?? await _vault.readRefreshToken();
     if (tokenToUse == null || tokenToUse.isEmpty) {
-      throw Exception('no refresh token found');
+      await _vault.clear();
+      throw Exception('session expired, please sign in again');
     }
 
     TokenResponse? response;
@@ -180,7 +181,7 @@ class KeycloakRemoteDataSource {
     );
 
     // await _syncPatientToFhir(session);
-    await _trySyncPatientToFhir(session);
+    // await _trySyncPatientToFhir(session);
 
     return session;
   }
@@ -206,7 +207,7 @@ class KeycloakRemoteDataSource {
 
     if (!session.isAccessTokenExpired) {
       // await _syncPatientToFhir(session);
-      await _trySyncPatientToFhir(session);
+      // await _trySyncPatientToFhir(session);
       return session;
     }
 

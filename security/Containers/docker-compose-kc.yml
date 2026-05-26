@@ -54,6 +54,7 @@ services:
         "--https-key-store-file=conf/server.keystore",
         "--https-key-store-password=password",
         "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
+        "--features=quick-theme"
         # "--log-level=DEBUG"
       ]
 

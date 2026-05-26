@@ -46,7 +46,7 @@ class _MyProfileState extends State<MyProfile> {
   final Map<String, bool> _pendingResponding = {};
   final Map<String, TextEditingController> _durationControllers = {};
 
-  // Revoke state (per practitionerId)
+  // Revoke state (per requesterId)
   final Map<String, bool> _revoking = {};
 
   PatientProvider? _patientProviderRef;
@@ -593,7 +593,7 @@ class _MyProfileState extends State<MyProfile> {
                             ),
                           ),
                           Text(
-                            provider.practitionerName(grant.practitionerId),
+                            provider.requesterName(grant.requesterId),
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -1142,7 +1142,7 @@ class _MyProfileState extends State<MyProfile> {
       itemBuilder: (context, index) {
         final grant = provider.activeGrants[index];
         final minsLeft = grant.minutesRemaining;
-        final isRevoking = _revoking[grant.practitionerId] ?? false;
+        final isRevoking = _revoking[grant.requesterId] ?? false;
         return Card(
           elevation: 2,
           margin: const EdgeInsets.symmetric(vertical: 4),
@@ -1170,7 +1170,7 @@ class _MyProfileState extends State<MyProfile> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            provider.practitionerName(grant.practitionerId),
+                            provider.requesterName(grant.requesterId),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -1220,14 +1220,14 @@ class _MyProfileState extends State<MyProfile> {
                         ? null
                         : () async {
                             setState(
-                              () => _revoking[grant.practitionerId] = true,
+                              () => _revoking[grant.requesterId] = true,
                             );
                             final ok = await provider.revokeGrant(
-                              grant.practitionerId,
+                              grant.requesterId,
                             );
                             if (mounted) {
                               setState(
-                                () => _revoking.remove(grant.practitionerId),
+                                () => _revoking.remove(grant.requesterId),
                               );
                               Fluttertoast.showToast(
                                 msg: ok

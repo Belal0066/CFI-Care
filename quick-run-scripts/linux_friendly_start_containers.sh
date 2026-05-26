@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 
 set -euo pipefail
 
@@ -43,4 +43,5 @@ gnome-terminal -- bash -c "./start_frontend.sh; exec bash"
 echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"
 echo "You can access the browser using https://${PUBLIC_HOSTNAME} •ᴗ•"
+echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"

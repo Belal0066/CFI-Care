@@ -47,6 +47,9 @@ async function createUniqueOtp(patientId) {
 
 async function ClearVerifiedOtp(otp) {
   const patientId = await redis.getDel(`otp:active:${otp}`);
+  if (!patientId) {
+    return null;
+  }
   await redis.del(`user_otp:${patientId}`);
   return patientId;
 }

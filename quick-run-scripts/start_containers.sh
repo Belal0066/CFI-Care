@@ -24,6 +24,12 @@ if command -v envsubst >/dev/null 2>&1; then
   envsubst < "$REPO_ROOT/frontend/src/src/environments/environment.template.ts" > "$REPO_ROOT/frontend/src/src/environments/environment.ts" || true
 fi
 
+echo "------------------------------------------------------------"
+echo "------------------------------------------------------------"
+echo "You can access the browser using https://${PUBLIC_HOSTNAME} •ᴗ•"
+echo "------------------------------------------------------------"
+echo "------------------------------------------------------------"
+
 
 # 1. Convert current directory to Windows format (e.g., C:\Users\...)
 #    This handles spaces correctly (like in "Fall 2025")

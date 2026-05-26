@@ -30,7 +30,7 @@ router.post(
 router.put("/", requireApiAuth,requirePatientContext({ paramName: "patientId" }), patientController.createPatientWithSpecificId);
 
 // Sync patient to FHIR (create FHIR Patient from mobile app user data)
-router.post("/sync-fhir", requireApiAuth, patientController.syncPatientToFHIR);
+// router.post("/sync-fhir", requireApiAuth, patientController.syncPatientToFHIR);
 
 router.get(
   "/toon-everything/:id",

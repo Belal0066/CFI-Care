@@ -25,7 +25,7 @@ class DocumentRepositoryImpl implements DocumentRepository {
 
   @override
   Future<List<DocumentModel>> getDocuments() async {
-    final userId = Session.currentApiUserId ?? Session.currentUserId ?? "guest";
+    final userId = Session.currentUserId ?? "guest";
 
     await syncPendingDocuments();
 
@@ -72,7 +72,7 @@ class DocumentRepositoryImpl implements DocumentRepository {
     if (_isSyncing) return;
 
     _isSyncing = true;
-    final userId = Session.currentApiUserId ?? Session.currentUserId ?? "guest";
+    final userId = Session.currentUserId ?? "guest";
     try {
       final pendingDocs = await DBHelper.getPendingDocumentsForSync(userId);
 
@@ -294,7 +294,7 @@ class DocumentRepositoryImpl implements DocumentRepository {
     );
 
     // 3. Save to Local DB (Fixes Session and DBHelper error)
-    final userId = Session.currentApiUserId ?? Session.currentUserId ?? "guest";
+    final userId = Session.currentUserId ?? "guest";
 
     final localId = await DBHelper.insertDocument(userId, newDoc);
 
