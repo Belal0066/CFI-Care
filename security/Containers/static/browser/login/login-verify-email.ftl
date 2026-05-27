@@ -125,7 +125,7 @@
   <#elseif section = "info">
     <div class="cfi-help">
       <#if url.loginUrl??>
-        <a href="${url.loginUrl}">Back to Login</a>
+        <a href="${url.loginUrl}"> <i class="bi bi-arrow-left-short"></i> Back to Login</a>
       </#if>
     </div>
   </#if>

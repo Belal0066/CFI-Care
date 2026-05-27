@@ -24,9 +24,9 @@
 
       <div class="form-group" style="margin-top:14px;">
         <#if url.loginUrl??>
-          <a class="btn btn-primary" href="${url.loginUrl}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">
-            Back to Login
-          </a>
+           <a href="${url.loginRestartFlowUrl}">
+                  Back to Login
+            </a>
         <#elseif pageRedirectUri??>
           <a class="btn btn-primary" href="${pageRedirectUri}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">
             Continue

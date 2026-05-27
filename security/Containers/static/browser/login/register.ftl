@@ -144,7 +144,7 @@
       })();
     </script>
   <#elseif section="info">
-    <div class="cfi-help">
+    <div class="cfi-help"> <i class="bi bi-arrow-left-short"></i>
       <a href="${url.loginUrl}">${msg("backToLogin")}</a>
     </div>
   </#if>

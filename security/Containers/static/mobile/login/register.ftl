@@ -73,8 +73,8 @@
             <div class="cfi-password-wrap">
               <input type="password" id="password" name="password" class="form-control <#if messagesPerField.existsError('password')>is-invalid</#if>" autocomplete="new-password"/>
               <button type="button" class="cfi-password-toggle" data-target="password" aria-label="Show password" aria-pressed="false">
-                <span class="eye-open">Show</span>
-                <span class="eye-closed">Hide</span>
+                <span class="eye-open"><i class="bi bi-eye" aria-hidden="true"></i></span>
+                <span class="eye-closed"><i class="bi bi-eye-slash" aria-hidden="true"></i></span>
               </button>
             </div>
             <#if messagesPerField.existsError('password')>
@@ -87,8 +87,8 @@
             <div class="cfi-password-wrap">
               <input type="password" id="password-confirm" name="password-confirm" class="form-control <#if messagesPerField.existsError('password-confirm')>is-invalid</#if>" autocomplete="new-password"/>
               <button type="button" class="cfi-password-toggle" data-target="password-confirm" aria-label="Show password" aria-pressed="false">
-                <span class="eye-open">Show</span>
-                <span class="eye-closed">Hide</span>
+                <span class="eye-open"><i class="bi bi-eye" aria-hidden="true"></i></span>
+                <span class="eye-closed"><i class="bi bi-eye-slash" aria-hidden="true"></i></span>
               </button>
             </div>
             <#if messagesPerField.existsError('password-confirm')>
@@ -152,6 +152,7 @@
           var backBtn = document.getElementById('cfi-back-link');
           var otpStepField = document.getElementById('otp_step');
 
+          // Clean, isolated registration toggle registration engine loop
           for (var i = 0; i < toggles.length; i++) {
             toggles[i].addEventListener('click', function () {
               var targetId = this.getAttribute('data-target');
@@ -159,6 +160,9 @@
               if (!input) return;
               var isHidden = input.type === 'password';
               input.type = isHidden ? 'text' : 'password';
+              this.classList.toggle('is-visible', isHidden);
+              this.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+              this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
             });
           }
 

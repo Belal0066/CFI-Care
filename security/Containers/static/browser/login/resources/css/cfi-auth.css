@@ -365,13 +365,14 @@ body {
 .cfi-help {
   margin-top: 2rem;
   text-align: center;
-  font-size: 1.20rem;
+  font-size: 1.1rem;
   color: var(--cfi-muted);
 }
 
 .cfi-help a {
-  color: #ffffff;
-  text-decoration: underline;
+  color: rgba(255,255,255,0.7);
+  /* text-decoration: underline; */
+  text-decoration: none;
   margin-left: 4px;
   font-weight: 500;
 }
@@ -479,6 +480,26 @@ pointer-events: none !important;
 #kc-form-login #username[readonly]::placeholder {
   color: #9ca3af !important;
 }
+
+#cfi-scope-scroll-container::-webkit-scrollbar {
+      width: 6px;
+    }
+#cfi-scope-scroll-container::-webkit-scrollbar-track {
+  background: rgba(111, 98, 98, 0.339);
+  border-radius: 10px;
+}
+#cfi-scope-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+#cfi-scope-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+#kc-select-try-another-way-form,
+            .kc-login-tooltip,
+            #kc-try-another-way {
+                display: none !important;}
 
 
 /* --- Responsiveness System --- */

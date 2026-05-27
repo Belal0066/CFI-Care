@@ -69,8 +69,8 @@
           <div class="cfi-password-wrap">
             <input tabindex="2" id="password" class="form-control" name="password" type="password" autocomplete="current-password"/>
             <button type="button" class="cfi-password-toggle" data-target="password" aria-label="Show password" aria-pressed="false">
-              <span class="eye-open">Show</span>
-              <span class="eye-closed">Hide</span>
+              <span class="eye-open"><i class="bi bi-eye" aria-hidden="true"></i></span>
+              <span class="eye-closed"><i class="bi bi-eye-slash" aria-hidden="true"></i></span>
             </button>
           </div>
           <#if messagesPerField.existsError('password')>
@@ -94,6 +94,7 @@
 
       <script>
         (function () {
+          var toggles = document.querySelectorAll('.cfi-password-toggle');
           var hideRegisterOnKcAction = '${hideRegisterOnKcAction?string("true", "false")}' === 'true';
           var hideTabsOnKcAction = '${hideTabsOnKcAction?string("true", "false")}' === 'true';
           var lockUsernameOnKcAction = '${lockUsernameOnKcAction?string("true", "false")}' === 'true';

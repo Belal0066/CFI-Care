@@ -152,7 +152,7 @@
         <#if canRegister>
           <div class="cfi-help">
             <span>Don't have an account?</span>
-            <a href="${url.registrationUrl}">Sign up</a>
+            <a href="${url.registrationUrl}">Sign up <i class="bi bi-arrow-right-short"></i></a>
           </div>
         </#if>
         </form>

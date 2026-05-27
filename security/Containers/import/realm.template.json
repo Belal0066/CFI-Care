@@ -471,7 +471,11 @@
   "otpPolicyPeriod" : 30,
   "otpPolicyCodeReusable" : false,
   "otpSupportedApplications" : [ "totpAppFreeOTPName", "totpAppGoogleName", "totpAppMicrosoftAuthenticatorName" ],
-  "localizationTexts" : { },
+  "localizationTexts" : {
+    "en" : {
+      "recovery-code-config-warning-message" : "Make sure to print, download, or copy them to a password manager and keep them safe. Canceling this setup will remove these recovery codes from your account."
+    }
+  },
   "webAuthnPolicyRpEntityName" : "keycloak",
   "webAuthnPolicySignatureAlgorithms" : [ "ES256", "RS256" ],
   "webAuthnPolicyRpId" : "",
@@ -892,6 +896,9 @@
     "lastName" : "Wagdy",
     "email" : "salmahisham139@gmail.com",
     "emailVerified" : true,
+    "attributes" : {
+      "locale" : [ "ar" ]
+    },
     "enabled" : true,
     "createdTimestamp" : 1772321782101,
     "totp" : true,
@@ -908,6 +915,20 @@
       "createdDate" : 1779125429759,
       "secretData" : "{\"value\":\"r4NMzVclvMWLp5ChFhmw\"}",
       "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    }, {
+      "id" : "177ce911-8160-4c16-aa92-fef112d06779",
+      "type" : "otp",
+      "userLabel" : "salma#2",
+      "createdDate" : 1779834280863,
+      "secretData" : "{\"value\":\"8gKaBx2Gmzf6rnFNh833\"}",
+      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    }, {
+      "id" : "23f3494b-feae-45db-aa8f-94ebf0b31218",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1779834280889,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"NzJFWBXfU0dswOOu5hQCcTMzrpZRULu84Pf7FaCFjIa3PjPfSbSu9FClMLuK69QvWn8R/8N8PYFdZZXTOO+4xg==\"},{\"number\":2,\"encodedHashedValue\":\"HHQ1XP72XXXi7e25mxjmE05eFpoIp5JD5qHh8bbqVF3PBSfEMJUSAMEAkozRNncmnam14xONIYbVLNBGQTJveA==\"},{\"number\":3,\"encodedHashedValue\":\"omtkw8LDYN4aImFxrmltZmVIeDNy1Rj47g4pN+Na+39usyqhd1JARQFMcORR/zxRCVyBK196ve25QyFPYy1L0g==\"},{\"number\":4,\"encodedHashedValue\":\"X6cbv3DvRFobLx8qonbfAycydT+ahunigym5tnBrpk+HFKhWD97h+mToVdhSuO1zdB2wQBsWjbJxRiCqiEqQ8w==\"},{\"number\":5,\"encodedHashedValue\":\"IWCHXPRXjwtHKP19eGpIdnvYSo62IQ3Q4L/D7E1/PCzsPZPwf7ZdDoDZ9XieXVREkVL395aGD0pkah43+Q/a3Q==\"},{\"number\":6,\"encodedHashedValue\":\"qn4TkQ0/YJ71miuhXFUIS8Nr29XkmwUP2PqGCOqPhUV2alVzdDKKhfCWvJET9HvvDKIqsKbtvnMbYAXKEMFdhA==\"},{\"number\":7,\"encodedHashedValue\":\"Ki9AFgqmObwSJnQs6MXZY3rNUM9u6zu0kVWZEfeytTJXEPL3AuM13BeaZlFd7dphQYJEbjr5zbiCAf2iVB61uA==\"},{\"number\":8,\"encodedHashedValue\":\"49Czd6AbEAKqYi8ee7klChqAS7cUi62c7WFH2tfqrjeQOfR1Yw/M4LmjYDqJ6r4RtLX48p75Poe1a8fi0/WiWw==\"},{\"number\":9,\"encodedHashedValue\":\"IfHReJLQxwe60IYK+3TUHjTYSwECYOMK+m0LssXaN+CfUBQgF9ePu4t6r/YO2H+e8FwkdjCrNP5dhUgJ2m5RXg==\"},{\"number\":10,\"encodedHashedValue\":\"KnST3PKPUQ0jrxuSWlW+RtrWaYWrLsUI3+oUd4RWu0SshlN5f83rBQDZXBN0d76NQEUSbbaggpnjnoZ2NNdaxQ==\"},{\"number\":11,\"encodedHashedValue\":\"jsEQSxzdp1qa+0NuZDZ0waW3+x/bByY6GZ+/42FWNgTjirTrg4PqNnlqhOlawdFTMCnWNFCMOYbotEt9oCxCiw==\"},{\"number\":12,\"encodedHashedValue\":\"2R4nET527DSaS2VCgVUzGesc2dwjV6vx0pXJiswY/RHqRkrf8kZu4J1WE0Hmb1YMiVX1B3IHlCl36UgCHpOXzQ==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
@@ -915,6 +936,12 @@
     "clientRoles" : {
       "account" : [ "view-profile", "manage-account" ]
     },
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1779815430877,
+      "lastUpdatedDate" : 1779815430885
+    } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
   }, {
@@ -2375,7 +2402,7 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "notBefore" : 0,
-    "groups" : [ "/Patient" ]
+    "groups" : [ "/Caregiver", "/Patient" ]
   }, {
     "id" : "6ed2c9dc-8c60-4cf7-92ca-55ae449f7c78",
     "username" : "testconsent",
@@ -2396,6 +2423,57 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1779815083772,
+      "lastUpdatedDate" : 1779815083785
+    } ],
+    "notBefore" : 0,
+    "groups" : [ "/Practitioner" ]
+  }, {
+    "id" : "83ec971a-4f71-4052-8d87-801611aaeb9f",
+    "username" : "testecovery",
+    "firstName" : "testecovery",
+    "lastName" : "testecovery",
+    "email" : "testecovery@mail.com",
+    "emailVerified" : true,
+    "attributes" : {
+      "terms_and_conditions" : [ "1779815523" ]
+    },
+    "enabled" : true,
+    "createdTimestamp" : 1779815508897,
+    "totp" : true,
+    "credentials" : [ {
+      "id" : "a07ca5e0-6419-49bb-a00e-492098d26a8f",
+      "type" : "password",
+      "createdDate" : 1779815508966,
+      "secretData" : "{\"value\":\"qh4Qg9xROMjMfVmc7+z7oEvDtWcBCbZ1VRTzsNRhkMo=\",\"salt\":\"oASazleQbhKeNm7XiRF3vA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "cba2e7ee-2ef3-4e6e-aba7-67439792b427",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1779815523948,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"+Fu3dGK709zskRdqhmyzfwlsLRLNKmqo6jDnF8Oi0pAoVo4Tkr1LBsXrHd/TlmL6ZKxoLMZMJGNDHWlKVVHimA==\"},{\"number\":2,\"encodedHashedValue\":\"knoasVcpiVE3IePzKr7CEo5/jcPTISdzRFvwkGhMtcD/8yQRiGIkq9BdByWa/Imy3Vt4OHmkVaFquzKFzI/WsQ==\"},{\"number\":3,\"encodedHashedValue\":\"PrxJh7tBG0cdZF9LCGU2Wyzfn1S8+3d6CP1inS3guVogC3v3CuDxhcVxrfv7uCMx7+dIwVSbAVnYADshkGXFTQ==\"},{\"number\":4,\"encodedHashedValue\":\"999sRFUWBKrJS1NYCW2t6ZM8YrLIoNkyPjM/21nEHQ9A09BLlwgoV8oqcjwrqAIy8gd8zr73k73olfeOgcKNyQ==\"},{\"number\":5,\"encodedHashedValue\":\"JGdAEXN8aUolaHrxYJIapoFZP/wjnILuEdgVwnAvJ5OhiYyhUhJCEpjH5WYr3v4Eu0mATkQ1cB/oVp/ylHEHCQ==\"},{\"number\":6,\"encodedHashedValue\":\"FNJmvEp8bHmU0lEZzqHBLug2NxEbTnMKOGY0dK0m11YgZvKTNpC1bvzG6riaQ7qCfTQhlq0eHET8UvqXPaanVA==\"},{\"number\":7,\"encodedHashedValue\":\"X+XXzV5/31x2ipf7kV4SY0iOUQ/faAOCwb9oHk5nK7arSKEpumyc2a0Ofe/arvGCXjnuOG9tSHz2XmWWjjY9Lw==\"},{\"number\":8,\"encodedHashedValue\":\"YNoJ99TLk3dBLGhLpbtQGAk18yACq3NnZtJDsi14oSNO1eC4rgEJBGNQWuZJBjMyi4dUT5aHAe1mVaWPY8l3xA==\"},{\"number\":9,\"encodedHashedValue\":\"IxfN8XfiYpOBwms8MIP8y9pGmSVfBt4n8i23JZEdbN5kBH87AvtnsznzqH2+6xuB3c8YPOYtTFthOZL20j2EaA==\"},{\"number\":10,\"encodedHashedValue\":\"mXgZIduHp9eVHN8LuVVRTY45vRxtsBCV+GZipMLxtzsWymkIuU00Y8LY9DSpqADm04CTnVxtqEcZlWKB9s3PYA==\"},{\"number\":11,\"encodedHashedValue\":\"WPGfa6TPeIO93T7mjOn5Jn8TBiP5Bc2v/qaisPJqlUm4keMRWrUAytS5rsNwBBooawXQtWarv1hyWTdjJEF10A==\"},{\"number\":12,\"encodedHashedValue\":\"sopgNCGUqRw0E+oEGmAcv1MaB/C5cU4YPeEmUWoMaZlE5MdAAbsneP04Q7yPE8u2b5mijMBGqqjbDFZ6xniMng==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
+    }, {
+      "id" : "10ffdb6c-d1c8-4e57-abc6-ab069fb19c5c",
+      "type" : "otp",
+      "userLabel" : "testrecovery",
+      "createdDate" : 1779815579720,
+      "secretData" : "{\"value\":\"CSz99HhFJ8KWEA6S6N7h\"}",
+      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1779815548762,
+      "lastUpdatedDate" : 1779815548772
+    } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
   }, {
@@ -2680,6 +2758,12 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1779834982433,
+      "lastUpdatedDate" : 1779834982440
+    } ],
     "notBefore" : 0,
     "groups" : [ ]
   }, {
@@ -3600,7 +3684,7 @@
     "emailVerified" : true,
     "enabled" : true,
     "createdTimestamp" : 1779699471602,
-    "totp" : false,
+    "totp" : true,
     "credentials" : [ {
       "id" : "c631ebfb-74c9-4ae1-93af-147fe24c3ea7",
       "type" : "password",
@@ -3608,12 +3692,70 @@
       "createdDate" : 1779717618252,
       "secretData" : "{\"value\":\"yPnPX3+jHaZ2TGqklh9ZyNKCsZmYJjenxXFF+f7y+1E=\",\"salt\":\"2EYQRdHFIPifow//8ZYUBQ==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "f5bed61e-82d0-4088-a8c3-5454874a07c0",
+      "type" : "otp",
+      "userLabel" : "Testpatient",
+      "createdDate" : 1779835124486,
+      "secretData" : "{\"value\":\"QQrJuKyhCpBHJE3gFAbM\"}",
+      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ "CONFIGURE_RECOVERY_AUTHN_CODES" ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "notBefore" : 0,
+    "groups" : [ "/Patient" ]
+  }, {
+    "id" : "713ee28e-a964-4fd3-b14c-bdb2d1de6bb5",
+    "username" : "testprac",
+    "firstName" : "test",
+    "lastName" : "practitioner",
+    "email" : "testprac@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1779804854921,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "95fb3497-8e3b-4833-85ad-0edab000d9ad",
+      "type" : "password",
+      "createdDate" : 1779804855224,
+      "secretData" : "{\"value\":\"9XayHbuFHUyX3rVEvf4qvRTvjpBKBI7yC4GgB2PSbvg=\",\"salt\":\"FLHCHOl6tNWGxMX5cc3pNA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ "CONFIGURE_RECOVERY_AUTHN_CODES" ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "notBefore" : 0,
+    "groups" : [ "/Practitioner" ]
+  }, {
+    "id" : "d539a194-b648-4eb9-acb8-d5b41c6fd94c",
+    "username" : "testpractitioner",
+    "firstName" : "test",
+    "lastName" : "practitioner",
+    "email" : "testpractitioner@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1779806705034,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "1ce2ae89-c640-4931-bbea-6ae0257b27ab",
+      "type" : "password",
+      "createdDate" : 1779806705151,
+      "secretData" : "{\"value\":\"rsqwRvtsZinKGdsEygnKl+pGPrWIc796rVC71BIWVH4=\",\"salt\":\"Xi9LfLjj97o8hzguw94qEQ==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "64e64adb-e878-4811-9a7f-05af301e5de5",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1779806714839,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"nOFbOys5SFYV2nOiMX8szzi6CFZJNKmtRGCM+cytnFm//AjFx2ai/Fx81J2zR0fJiicVMhfdOs6u0uDLN9vWhw==\"},{\"number\":2,\"encodedHashedValue\":\"sAnCZ+nsen+8+z9CHkLseXBpkmIQUPfXZwRZFMxVEybYIEC+ghvKHlCy5Ta92jgvFwvAoNg4bCJ3QCvVkTiPiA==\"},{\"number\":3,\"encodedHashedValue\":\"yVjBiT89IZniK6F1mvisPZJQEAsooAL6779qwUkMKdikFatk5PTeHk2fP1mDI9ZQTk1m+rZccCWIV50oxjmBVQ==\"},{\"number\":4,\"encodedHashedValue\":\"I+ztjA/VL0dIQuwT6Uide2Fq8HUger9dxULKQiqBTl98aO+FGCYH4d2pmqA90KH7ctzXV1jaeko2a4TW4x8c5A==\"},{\"number\":5,\"encodedHashedValue\":\"E1xkGCe70HaDo3aImWo0Qk3sb4HaLC3jQNg/AmK1JbHYgCwjYpbm2yN2Yol/g194jP1fgrf6oZriZKS40xHhxQ==\"},{\"number\":6,\"encodedHashedValue\":\"HiyFfNpgigd3kkneCa8sn9c6pSgMgwhTNx7B9IgSg3gJR9FI11+qdRTX2FMxa0fwAMBR+S0MKN8kMAKaNZs58g==\"},{\"number\":7,\"encodedHashedValue\":\"IKwvnjn5ErQoyICK0oNnyfNee9dKngsH+pKgXLak5ZuFcuZx9uYt+LK8DwjHeqighQZSjSXRXrgoNkSVS58gPg==\"},{\"number\":8,\"encodedHashedValue\":\"AINNeslXMxXMPxQ5I/jtvFTXQVmWwHcofNlMOBBZ4diGiugV3nLWrj5mRYd6lVYse3zmnT6qfMx+hb/8ripIHA==\"},{\"number\":9,\"encodedHashedValue\":\"wnlNqTBWMjaKbeS0yHqqufja0X0ldvkJ4PuOj2f2rSgxfFVqf5JoNH7xJ8Sw1wfdFUpaoj/tAn4q+tdg2T4xNA==\"},{\"number\":10,\"encodedHashedValue\":\"OHa8Smd3+3SLxF0DPz5KAHkYSrWU/e3IDOmu1gsYMor7Xzfnyz80Z3Ue1lVMQB18VIpIQnUTgiNUu5ocUVlt/A==\"},{\"number\":11,\"encodedHashedValue\":\"ln3mVTZ7Nvf4z5K30+1lMpv94QDYjTaPbj7oiFdhBnj8fZnabHwnL5mhW6gwYx9r+BcgSeW+UfEeDv3/tsHLyg==\"},{\"number\":12,\"encodedHashedValue\":\"lO7Zym3ycPDvanMNUMPya/1oe68rmUg9HtHtKAxCZsoWxbT9JT9uSj8NX/YCwkIqIbCo49UsLJDwJTudr1ebQQ==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "notBefore" : 0,
-    "groups" : [ "/Patient" ]
+    "groups" : [ "/Practitioner" ]
   }, {
     "id" : "164c42c4-3e4c-4b26-a3eb-3e95ea1c82d1",
     "username" : "testprov",
@@ -3922,6 +4064,119 @@
     "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
     "notBefore" : 0,
     "groups" : [ ]
+  }, {
+    "id" : "a4228824-a477-425d-93ca-8c6e5e352320",
+    "username" : "testrecovery",
+    "firstName" : "test",
+    "lastName" : "recovery",
+    "email" : "testrecovery@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1779818463828,
+    "totp" : true,
+    "credentials" : [ {
+      "id" : "728838ef-d635-4e0a-9ad4-dd1cda3a47b5",
+      "type" : "password",
+      "createdDate" : 1779818463899,
+      "secretData" : "{\"value\":\"ysArKO+eDJRlE8VveoHxYPafB5o0/aJelr5Ql9xSwcg=\",\"salt\":\"hExYfiQAikEdvSAEMo2/pw==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "8a773c19-48ec-4cd8-b608-8dff76e1d213",
+      "type" : "otp",
+      "userLabel" : "testrec",
+      "createdDate" : 1779818630640,
+      "secretData" : "{\"value\":\"y3e7UghuxpLEqGL69q89\"}",
+      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    }, {
+      "id" : "8633b90b-33bf-48b9-92c4-2485935141af",
+      "type" : "otp",
+      "userLabel" : "testrec2",
+      "createdDate" : 1779825309594,
+      "secretData" : "{\"value\":\"nKAUpOQuNyEECsl163ho\"}",
+      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    }, {
+      "id" : "80034c3d-68bf-4e47-a5cf-cb3445de1a64",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1779825309610,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"01PRPiQ5aec2tFk4lQ3wNX2fClFMpNvCIUsr//UcNWeiKXb8J5IvXVWaF+dFm2IltPy+Iz7UX6buHANnNojf6w==\"},{\"number\":2,\"encodedHashedValue\":\"sTgjROmK+yReAA7ElXJ/FO9vOYKevJ6Hx5gs8UHBLoHuT9+7kGe4eO5r52AgsokQL13Hg1mXTZ4N9tswXz/ZYA==\"},{\"number\":3,\"encodedHashedValue\":\"cWIEMpLOnX6TK2yZdbvUWboF7EWOCjzUWOpx9Kfubw9oYxXkk6eSvArBbir1/Z/GLbNMUzapPFphbT9DpCDjWg==\"},{\"number\":4,\"encodedHashedValue\":\"UTWetdY4fv41MbglCpmpGtg53LkSfK9p77fCt94op9yh1VqEUAdflQ047fpTT7waoDbT/V6ZkxAWhxW6MAcEtQ==\"},{\"number\":5,\"encodedHashedValue\":\"qK4ekxTXDxSyjPV7mr+4wR5SfEmxLD5XZPWzYEur/gSpXVjnPckNqjw1xhks/A1asCr5iaDCOlYxNHHhd/x/nA==\"},{\"number\":6,\"encodedHashedValue\":\"EdnJIHsg5uQGDJrNnwcHpmVRJj0GZlQW5Df4m2LVyNl9mlE0m4zEySCNKp815l3e5v11Ap7hwIEJoPPw+HFFHw==\"},{\"number\":7,\"encodedHashedValue\":\"jjgePTizOw6yrYQtg00ab1LiCWjB9z0oznhqfZEnjwKE8621iXrxPB61JcnJXnFCQIroToL6CneLBOlrYII/fw==\"},{\"number\":8,\"encodedHashedValue\":\"hiZDRa8lpTkx527rblzfj0Ld32VOlnDXNwa6bLUpQwbieDN9SQ9NQHzOivxoyOXmOsn6DhLZgsk9SG9iwanP2Q==\"},{\"number\":9,\"encodedHashedValue\":\"Ms/Yxh3gfjeh9ZkEKwki3Ox/3tBj0bKag42BtWna1V3dV+sTMMnM5/Ew77gMpn7vJZaXBQWmmWEGQrRgaK+WZA==\"},{\"number\":10,\"encodedHashedValue\":\"betxBZdOwyrk8Dp2pDOMCaUTL3E6FzzBXYzxgYVPwecFlYkWXJuE6Ocm45h+FCdYhia1qsKRTIWSy/lZKXqE/A==\"},{\"number\":11,\"encodedHashedValue\":\"TbVAjQv5xv7AzWnDVSLx4Kj02XxfwMUQTvOobB/evwe6dsL3l9zCFsdtOYjyVekPCbFhbb5e0ju07yu0Wcezzw==\"},{\"number\":12,\"encodedHashedValue\":\"0nCiVCYQ7PME/5OLZmGOPPG/mFt8I+SLjRWO0ppZIAftyHjk6kvsMLYBPuZrEGKfjqNwfU/w+/IXo5G8QevJHQ==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1779818592790,
+      "lastUpdatedDate" : 1779818592797
+    } ],
+    "notBefore" : 0,
+    "groups" : [ "/Practitioner" ]
+  }, {
+    "id" : "c35f1703-6c64-4f03-9868-a6ec1791682e",
+    "username" : "testrecoveryconsent",
+    "firstName" : "test",
+    "lastName" : "recovery",
+    "email" : "testrecovery&consent@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1779808172644,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "341c6bd7-2299-4cc8-96ee-b16fd3cac15e",
+      "type" : "password",
+      "createdDate" : 1779808172747,
+      "secretData" : "{\"value\":\"aTZvbOSNhZIci3m4P2PnM8hN46NZqxYJUmivRSCfbAs=\",\"salt\":\"GNfNN9RWrQH/NVN2qG2OJw==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "7dacef16-be25-41a2-9c08-0b6e894fd1df",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1779808182121,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"YYMYyoNY/gF/LVLhMqrUvToYncWo3g9wau5WDAnHvXrcye+ZSV5mnIcX7+SH7OKtuItKT+mPdowYtwfcXtfsDQ==\"},{\"number\":2,\"encodedHashedValue\":\"yFlN7rSX1ALUldH9WHXfZBLEAPGL180nxE3eCgZoekBBvlKsobAkZxTjE/F02bT6FLDA6f12nzU+Bj/h/03A5w==\"},{\"number\":3,\"encodedHashedValue\":\"OSBIS7y+O3eOmwAtWpbMAopO1HOXp1gXXr/9R2su8MHtVwQQriVnaGsN7xLWZkhVpec+GTrJCQcAaDmsLppwSw==\"},{\"number\":4,\"encodedHashedValue\":\"2BvkFOiUnGbAWgZXmSMpa4/0p2xyw4E2II0NMUwZaX4mGmw9RAuKyw9RDpSfwePVKls6FUW5P3Hj0NDkR7OTdg==\"},{\"number\":5,\"encodedHashedValue\":\"hEc811mvqkmaXb/Ck9rijWELZKjjyqK2ibLwwDmOFlvk8kQUba7nkzXtJR+6fKpDs3a7Zu2a2v36vzR+v7Sk9g==\"},{\"number\":6,\"encodedHashedValue\":\"UveVjAf/g1h/QjO5sNly08Ao3IlgzbCs7yZeLv/bT+k40GKGb/Z8f+OdIg+jg1jDs9dcQIiGaPF1XckdKhPBhQ==\"},{\"number\":7,\"encodedHashedValue\":\"FzY6HyAwq2lSLQbiwPmkEY2WaswBurGc5Aqgt6FAycH3TypBcya6UKH0nuFM7e6eE8W1TdIad1viLvft2prUsQ==\"},{\"number\":8,\"encodedHashedValue\":\"LOyc/VSLFAE1JSB8SpXi2ddOu5ifu7WErZ1joMK1RwnCVoLpaMFiF/iroL4TpuJivKika8002/MuJtqLKk847g==\"},{\"number\":9,\"encodedHashedValue\":\"VMfWxA8i6PMs66Ux1G2SL3s5rw08zvONUPYtSn1WPvzXvtirr13+YYmWqxA8Dn4dXTyTa/vgwyv3irK00AwBNw==\"},{\"number\":10,\"encodedHashedValue\":\"itc3tLbKp7nfaIFeiviBCKlwE2Manq2dWwzyaVpALNfEp8cw+mHge8YGLC8STM/24Vg/ck1zIMb63SvQjdqCvg==\"},{\"number\":11,\"encodedHashedValue\":\"Y2rkdf7jY16sjqJGavCtjgjS1VaFGfbdkHs1theML/4M0/MlSB8mV4HZ84Gd/M8CLv6q7jwpE5QyUMHJKRwZxQ==\"},{\"number\":12,\"encodedHashedValue\":\"ALl/E6dVqaMf8zPGlA+grrptBWaL6zhMiFyrD2M8BFxx8/hRaIN+gxgjD2rrvihtiUBEohqwQSMuaomOa8NKqg==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1779815066965,
+      "lastUpdatedDate" : 1779815066991
+    } ],
+    "notBefore" : 0,
+    "groups" : [ "/Practitioner" ]
+  }, {
+    "id" : "f7d304a0-5598-4daf-8e92-e061da4471dd",
+    "username" : "testrecoverym",
+    "firstName" : "Test",
+    "lastName" : "Recoverym",
+    "email" : "testrecoverym@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1779838836774,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "0a3f3bdb-cf3e-49ff-8405-58eca37c6e8c",
+      "type" : "password",
+      "createdDate" : 1779838836864,
+      "secretData" : "{\"value\":\"e+E0zAHEAWPuCLUCxN9gAl02+r1HVelRjRegme6pTXc=\",\"salt\":\"Pqsmq6ZTb6Y+PIXAk6q44w==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "e24aa0fe-0e1a-4345-b9e9-9d57c2a9b750",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1779839485712,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"FLAqUI46/J30+DpwXCDTg+tDKO7ff9XE7rKdps3SDHu6SWHBFKx3ZRFN85YWcX8GxuIC5ubroFxk8CaP+maR3g==\"},{\"number\":2,\"encodedHashedValue\":\"O7t/gjrHsmzEECYwTrtjH+9RLZWTOb/bis7rAdn+45c9CK8rJu6aSMuOwgjvkEaciKDbFBJ/+Rm5gKnpV5DriQ==\"},{\"number\":3,\"encodedHashedValue\":\"cMZroE40CBQUz6ODrgUg/iFpg736Dv3By3xH1STe/bKLRQT4GZWhRpTFMK6RM1wjZHDXIvFT+iocH+LFYzkJQA==\"},{\"number\":4,\"encodedHashedValue\":\"DlqP51EX3ttLnMK/de1wl7yAW2ZPv6WiKx9+kc8CATSjHykhplKq3jRy1nCe3Z50ILSR63CwWuAxryDz+gvGPA==\"},{\"number\":5,\"encodedHashedValue\":\"6HPV4AN+2y51V5c2r8kXfKaGz6T2IuO0ywTAaqTv7qurUCDKA+406NniycVQ8WwezstKDSNhTtlCuyUBqaBwFQ==\"},{\"number\":6,\"encodedHashedValue\":\"7nJ5jf9Prby+/Xl8BLrUsANxn8JRuc8Y8bMHybijFH3TuxHfWVslsR3dMsQ4xlA15Pw61PR1F0xnvvKXRGNrEA==\"},{\"number\":7,\"encodedHashedValue\":\"D5fWUL1EvtNSqmNm9uBe4dsYNsM3H7wa1iSVoN+5wFLTkNWcVM+KrEAeWs2ep8G9raCu7UKrl8jhON5DdiZ7eQ==\"},{\"number\":8,\"encodedHashedValue\":\"uFCLr11uBGpE1oWwk0qH/zNc9x2KSKnfV6DzgEB/NOAj8PPMO0yScWxTEA3x+OVEjxjqiERqsAzKhxysLWhyGw==\"},{\"number\":9,\"encodedHashedValue\":\"42Wq7CkEnSwhpbq19uNlDlAcE/jCfAZcNnMZdlHMvhZ2r/afsEp//KP3IF/je4lww6hbtC7v0fIYLbaBXCR80A==\"},{\"number\":10,\"encodedHashedValue\":\"BVNIYLbfYtDZ9uViEsCiPZ0Kl1dUZCxg/TfIvg9FogrCYmPPConKiHu4qSRS8XG0rMiHeTmxPSKP8SYRgjSaQw==\"},{\"number\":11,\"encodedHashedValue\":\"fLWd2klO9KVpLzpOb9V5wVlRwzvqI5O/3iGLyC2toHKLiuyXZDplxqHVN21ddCwbjAiSMrbq1+nvq5q5JElNgw==\"},{\"number\":12,\"encodedHashedValue\":\"pEnrfmZZrYuSPoQNsoZiMlYVbrJOARFmHksDFjgl8a1xWAjzqRdVbpTSq6zTofgi0wnh6OCSlSxcZNoFh58otQ==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "notBefore" : 0,
+    "groups" : [ "/Patient" ]
   }, {
     "id" : "9e17d109-8e1e-43a5-ad4a-c5aa8a2b6a9a",
     "username" : "testverify",
@@ -4667,17 +4922,18 @@
     "frontchannelLogout" : true,
     "protocol" : "openid-connect",
     "attributes" : {
-      "realm_client" : "false",
-      "oidc.ciba.grant.enabled" : "false",
-      "backchannel.logout.session.required" : "true",
       "standard.token.exchange.enabled" : "false",
       "login_theme" : "mobile",
       "post.logout.redirect.uris" : "com.example.medflow:/logoutredirect",
       "frontchannel.logout.session.required" : "true",
       "oauth2.device.authorization.grant.enabled" : "false",
-      "display.on.consent.screen" : "false",
-      "pkce.code.challenge.method" : "S256",
       "backchannel.logout.revoke.offline.tokens" : "false",
+      "realm_client" : "false",
+      "oidc.ciba.grant.enabled" : "false",
+      "backchannel.logout.session.required" : "true",
+      "consent.screen.text" : "Welcome to CFI-Care. By registering, you agree to allow us to process your health information in accordance with our Privacy Policy.\n\n• Your Data, Your Control: You are the sole owner of your medical records. No practitioner or caregiver can access your data without your explicit, temporary consent.\n\n  • Transparent Auditing: Every interaction with your health record is logged and visible to you in your audit trail.\n\n •  Revocability: You may revoke access for any delegated practitioner or caregiver at any time through your Profile settings, with immediate effect.",
+      "display.on.consent.screen" : "true",
+      "pkce.code.challenge.method" : "S256",
       "dpop.bound.access.tokens" : "false"
     },
     "authenticationFlowBindingOverrides" : { },
@@ -4801,7 +5057,7 @@
     "webOrigins" : [ "https://${PUBLIC_HOSTNAME}" ],
     "notBefore" : 0,
     "bearerOnly" : false,
-    "consentRequired" : false,
+    "consentRequired" : true,
     "standardFlowEnabled" : true,
     "implicitFlowEnabled" : false,
     "directAccessGrantsEnabled" : false,
@@ -4822,6 +5078,7 @@
       "backchannel.logout.session.required" : "true",
       "backchannel.logout.url" : "http://nodejs:3000/logout/backchannel_logout",
       "client_credentials.use_refresh_token" : "false",
+      "consent.screen.text" : "Welcome to the CFI-Care practitioner network. As a user of this platform, you agree to the following professional data conduct terms:\n\n • Patient-First Access: Access to patient health information (PHI) is strictly granted by your patients for a period set by them.\n\n• Data Integrity: You agree to use clinical data solely for the purpose of the patient's care and to maintain the confidentiality of any information accessed.\n\n• Accountability: All data accesses are subject to automated auditing. Misuse of access privileges or unauthorized data export will result in immediate account suspension and potential disciplinary action.",
       "require.pushed.authorization.requests" : "false",
       "request.object.encryption.enc" : "any",
       "pkce.code.challenge.method" : "S256",
@@ -4838,7 +5095,7 @@
       "access.token.header.type.rfc9068" : "false",
       "tls.client.certificate.bound.access.tokens" : "false",
       "acr.loa.map" : "{}",
-      "display.on.consent.screen" : "false",
+      "display.on.consent.screen" : "true",
       "token.response.type.bearer.lower-case" : "false"
     },
     "authenticationFlowBindingOverrides" : { },
@@ -5703,7 +5960,7 @@
     "envelopeFrom" : "",
     "ssl" : "false"
   },
-  "loginTheme" : "realm",
+  "loginTheme" : "",
   "accountTheme" : "",
   "adminTheme" : "",
   "emailTheme" : "mobile",
@@ -5841,6 +6098,8 @@
     } ]
   },
   "internationalizationEnabled" : false,
+  "supportedLocales" : [ "ar", "en" ],
+  "defaultLocale" : "en",
   "authenticationFlows" : [ {
     "id" : "37149269-f3ad-4fce-b0ba-559615805c3b",
     "alias" : " browser-with-mail-verification-check",
@@ -6025,7 +6284,7 @@
     }, {
       "authenticator" : "auth-otp-form",
       "authenticatorFlow" : false,
-      "requirement" : "REQUIRED",
+      "requirement" : "ALTERNATIVE",
       "priority" : 20,
       "autheticatorFlow" : false,
       "userSetupAllowed" : false
@@ -6434,6 +6693,158 @@
       "userSetupAllowed" : false
     } ]
   }, {
+    "id" : "75d6b4d8-f7a2-4592-a0a5-f0d9d9cc7304",
+    "alias" : "browser-with-mail-verification-check-and-recovery-codes",
+    "description" : "Browser based authentication",
+    "providerId" : "basic-flow",
+    "topLevel" : true,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticator" : "auth-cookie",
+      "authenticatorFlow" : false,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 10,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticator" : "auth-spnego",
+      "authenticatorFlow" : false,
+      "requirement" : "DISABLED",
+      "priority" : 20,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticator" : "identity-provider-redirector",
+      "authenticatorFlow" : false,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 25,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticatorFlow" : true,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 26,
+      "autheticatorFlow" : true,
+      "flowAlias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Organization",
+      "userSetupAllowed" : false
+    }, {
+      "authenticatorFlow" : true,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 30,
+      "autheticatorFlow" : true,
+      "flowAlias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check forms",
+      "userSetupAllowed" : false
+    } ]
+  }, {
+    "id" : "9e622fe4-90ee-49d1-b0e9-32ace1b5e34a",
+    "alias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Browser - Conditional OTP",
+    "description" : "Flow to determine if the OTP is required for the authentication",
+    "providerId" : "basic-flow",
+    "topLevel" : false,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticator" : "conditional-user-configured",
+      "authenticatorFlow" : false,
+      "requirement" : "REQUIRED",
+      "priority" : 10,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticator" : "auth-otp-form",
+      "authenticatorFlow" : false,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 22,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticator" : "auth-recovery-authn-code-form",
+      "authenticatorFlow" : false,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 23,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    } ]
+  }, {
+    "id" : "a0553667-39ad-4fef-b3e5-eb5c2f444750",
+    "alias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Browser - Conditional Organization",
+    "description" : "Flow to determine if the organization identity-first login is to be used",
+    "providerId" : "basic-flow",
+    "topLevel" : false,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticator" : "conditional-user-configured",
+      "authenticatorFlow" : false,
+      "requirement" : "REQUIRED",
+      "priority" : 10,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticatorFlow" : true,
+      "requirement" : "REQUIRED",
+      "priority" : 20,
+      "autheticatorFlow" : true,
+      "flowAlias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Browser - Conditional Organization - Alternatives - 0",
+      "userSetupAllowed" : false
+    } ]
+  }, {
+    "id" : "f0349860-7d93-49dd-a1c8-33571bed67f9",
+    "alias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Browser - Conditional Organization - Alternatives - 0",
+    "description" : "Subflow of Browser - Conditional Organization with alternative executions",
+    "providerId" : "basic-flow",
+    "topLevel" : false,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticator" : "organization",
+      "authenticatorFlow" : false,
+      "requirement" : "ALTERNATIVE",
+      "priority" : 10,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    } ]
+  }, {
+    "id" : "bc1a9830-59c2-4018-8d29-d27549dd8815",
+    "alias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Organization",
+    "providerId" : "basic-flow",
+    "topLevel" : false,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticatorFlow" : true,
+      "requirement" : "CONDITIONAL",
+      "priority" : 10,
+      "autheticatorFlow" : true,
+      "flowAlias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Browser - Conditional Organization",
+      "userSetupAllowed" : false
+    } ]
+  }, {
+    "id" : "1e9dab26-80e8-428b-9432-4d3b92b1da86",
+    "alias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check forms",
+    "description" : "Username, password, otp and other auth forms.",
+    "providerId" : "basic-flow",
+    "topLevel" : false,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticator" : "auth-username-password-form",
+      "authenticatorFlow" : false,
+      "requirement" : "REQUIRED",
+      "priority" : 10,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticatorFlow" : true,
+      "requirement" : "CONDITIONAL",
+      "priority" : 20,
+      "autheticatorFlow" : true,
+      "flowAlias" : "browser-with-mail-verification-check-and-recovery-codes  browser-with-mail-verification-check Browser - Conditional OTP",
+      "userSetupAllowed" : false
+    }, {
+      "authenticator" : "email-code-authenticator",
+      "authenticatorFlow" : false,
+      "requirement" : "REQUIRED",
+      "priority" : 21,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    } ]
+  }, {
     "id" : "25e3740a-808a-47d2-a28f-f5e30efa5390",
     "alias" : "clients",
     "description" : "Base authentication for clients",
@@ -6720,34 +7131,37 @@
     }
   } ],
   "requiredActions" : [ {
+    "alias" : "TERMS_AND_CONDITIONS",
+    "name" : "Terms and Conditions",
+    "providerId" : "TERMS_AND_CONDITIONS",
+    "enabled" : true,
+    "defaultAction" : false,
+    "priority" : 10,
+    "config" : { }
+  }, {
     "alias" : "CONFIGURE_TOTP",
     "name" : "Configure OTP",
     "providerId" : "CONFIGURE_TOTP",
     "enabled" : true,
     "defaultAction" : false,
-    "priority" : 10,
-    "config" : { }
+    "priority" : 20,
+    "config" : {
+      "add-recovery-codes" : "true",
+      "max_auth_age" : "300"
+    }
   }, {
     "alias" : "delete_account",
     "name" : "Delete Account",
     "providerId" : "delete_account",
     "enabled" : false,
     "defaultAction" : false,
-    "priority" : 20,
+    "priority" : 30,
     "config" : { }
   }, {
     "alias" : "delete_credential",
     "name" : "Delete Credential",
     "providerId" : "delete_credential",
     "enabled" : true,
-    "defaultAction" : false,
-    "priority" : 30,
-    "config" : { }
-  }, {
-    "alias" : "TERMS_AND_CONDITIONS",
-    "name" : "Terms and Conditions",
-    "providerId" : "TERMS_AND_CONDITIONS",
-    "enabled" : false,
     "defaultAction" : false,
     "priority" : 40,
     "config" : { }
@@ -6832,7 +7246,7 @@
     "priority" : 122,
     "config" : { }
   } ],
-  "browserFlow" : " browser-with-mail-verification-check",
+  "browserFlow" : "browser-with-mail-verification-check-and-recovery-codes",
   "registrationFlow" : "Registration-Custom",
   "directGrantFlow" : "direct grant",
   "resetCredentialsFlow" : "Copy of reset credentials",

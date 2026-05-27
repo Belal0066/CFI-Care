@@ -1,5 +1,6 @@
 <#import "template.ftl" as layout>
-<@layout.registrationLayout displayMessage=false displayInfo=false; section>
+<#-- Changed displayInfo to true so Keycloak populates the native identity/reset links -->
+<@layout.registrationLayout displayMessage=false displayInfo=true; section>
   <#if section = "header">
   <#elseif section = "form">
     <div class="cfi-shell">
@@ -80,19 +81,31 @@
                      aria-invalid="<#if messagesPerField.existsError('totp')>true</#if>"
                      dir="ltr" />
               <label for="otp" class="cfi-floating-label">${msg("loginOtpOneTime")}</label>
-              <#if messagesPerField.existsError('totp')>
-                <span id="input-error-otp-code" class="kc-feedback-text" aria-live="polite">
-                  ${kcSanitize(messagesPerField.get('totp'))?no_esc}
-                </span>
-              </#if>
             </div>
 
             <button class="cfi-submit" name="login" id="kc-login" type="submit">${msg("doLogIn")}</button>
           </form>
 
-          <div class="cfi-help" style="margin-top: 2rem;">
-            <div id="cfi-otp-identity-helper"></div>
-          </div>
+          <div class="cfi-help"
+                style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <#assign hostUrl=url.resourcesCommonPath?keep_before("/keycloak")>
+
+                    <a href="${hostUrl}/login"> <i class="bi bi-arrow-left-short"></i> Back to Login</a>
+
+
+                    <form action="${url.loginAction}" method="post" id="kc-select-back-form"
+                        style="display: inline; margin: 0; padding: 0;">
+                        <#-- Satisfies the recovery authenticator's backend check to prevent
+                            NullPointerException -->
+                            <input type="hidden" name="recoveryCodeInput" value="" />
+
+                            <button type="submit" name="tryAnotherWay" value="on"
+                                class="cfi-link-button"
+                                style="background: none; border: none; padding: 0; margin: 0; font-weight: 600; color:rgba(255,255,255,0.7); font-size: 1rem; cursor: pointer;">
+                                Try Another Way <i class="bi bi-arrow-right-short"></i>
+                            </button>
+                    </form>
+            </div>
         </div>
       </div>
     </div>
@@ -102,21 +115,14 @@
         var mount = document.getElementById('cfi-otp-identity-helper');
         if (!mount) return;
 
+        // Extracting elements if provided by base theme context structures
         var attemptedUsername = document.getElementById('kc-attempted-username') || document.getElementById('kc-username');
-        var restartLogin = document.getElementById('reset-login');
-
-        // Style the injected Keycloak elements inline to preserve clean formatting
+        
         if (attemptedUsername) {
           attemptedUsername.style.display = 'block';
-          attemptedUsername.style.marginBottom = '8px';
-          attemptedUsername.style.color = 'rgba(255, 255, 255, 0.7)';
+          attemptedUsername.style.marginBottom = '4px';
+          attemptedUsername.style.color = 'rgba(255, 255, 255, 0.5)';
           mount.appendChild(attemptedUsername);
-        }
-        if (restartLogin) {
-          restartLogin.style.color = '#ffffff';
-          restartLogin.style.textDecoration = 'underline';
-          restartLogin.style.fontWeight = '500';
-          mount.appendChild(restartLogin);
         }
       })();
     </script>
