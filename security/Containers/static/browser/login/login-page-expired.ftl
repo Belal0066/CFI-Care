@@ -67,7 +67,7 @@
 
           <div class="cfi-help">
             <#if url.loginUrl??>
-              <a href="${url.loginUrl}" style="text-decoration: underline; font-weight: 500; color: #fff;">Back to Login</a>
+              <a href="${url.loginUrl}" > <i class="bi bi-arrow-left-short"></i> Back to Login</a>
             </#if>
           </div>
         </div>

@@ -95,9 +95,9 @@
 
   <#elseif section = "info">
     <div class="cfi-help">
-      <#if url.loginUrl??>
-        <a href="${url.loginUrl}">Back to Login</a>
-      </#if>
+       <a href="${url.loginRestartFlowUrl}">
+              Back to Login
+        </a>
     </div>
   </#if>
 </@layout.registrationLayout>

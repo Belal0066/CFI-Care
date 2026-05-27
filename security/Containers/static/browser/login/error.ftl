@@ -43,7 +43,9 @@
           </div>
 
           <div class="cfi-help">
-            <a href="${url.loginUrl}" style="text-decoration: underline; font-weight: 500; color: #fff;">Back to Login</a>
+            <#assign hostUrl = url.resourcesCommonPath?keep_before("/keycloak")>
+            
+            <a href="${hostUrl}/login" style="text-decoration: underline; font-weight: 500; color: #fff;">Back to Login</a>
           </div>
         </div>
       </div>
