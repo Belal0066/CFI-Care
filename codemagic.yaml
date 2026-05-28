@@ -22,18 +22,20 @@ workflows:
         includes:
           - 'mobile/src/**'
             
+    # FIXED: Indented 'scripts' to align with 'when', 'triggering', etc.
     scripts:
-      # 2. Add this step BEFORE the Flutter commands
       - name: Unlock git-crypt
         script: |
+          set -e
+          
           # Install git-crypt on the macOS build machine
           brew install git-crypt
           
           # Decode the base64 environment variable back into a binary key file
           echo $GIT_CRYPT_KEY | base64 --decode > /tmp/git-crypt-key.key
           
-          # Navigate to the root of the repository ($CM_CLONE_DIR) to unlock it
-          cd $CM_CLONE_DIR
+          # Navigate to the correct root of the repository to unlock it
+          cd $CM_BUILD_DIR
           git-crypt unlock /tmp/git-crypt-key.key
           
       - name: Get Flutter packages
@@ -42,6 +44,10 @@ workflows:
       - name: Build Android App Bundle
         script: flutter build appbundle --release
         
+      - name: Build iOS IPA
+        script: flutter build ipa --release        
+        
+    # FIXED: Indented 'artifacts' properly and removed the .apk path
     artifacts:
       - build/**/outputs/**/*.aab
-      - build/**/outputs/**/*.apk
+      - build/ios/ipa/*.ipa
