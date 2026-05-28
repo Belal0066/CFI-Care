@@ -4,7 +4,6 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m1
     
-    # 1. Point Codemagic directly to your Flutter project
     working_directory: mobile/src
     
     triggering:
@@ -12,11 +11,12 @@ workflows:
         - push
         - pull_request
       cancel_previous_builds: true
-      # 2. Only trigger builds when files inside mobile/src change
-      when:
-        changeset:
-          includes:
-            - 'mobile/src/**'
+      
+    # CORRECT PLACEMENT: 'when' is a sibling to 'triggering', not a child of it!
+    when:
+      changeset:
+        includes:
+          - 'mobile/src/**'
             
     scripts:
       - name: Get Flutter packages
@@ -25,6 +25,5 @@ workflows:
         script: flutter build appbundle --release
         
     artifacts:
-      # These paths are automatically relative to your working_directory (mobile/src)
       - build/**/outputs/**/*.aab
       - build/**/outputs/**/*.apk
