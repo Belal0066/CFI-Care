@@ -12,7 +12,6 @@ workflows:
         - pull_request
       cancel_previous_builds: true
       
-    # CORRECT PLACEMENT: 'when' is a sibling to 'triggering', not a child of it!
     when:
       changeset:
         includes:
@@ -23,7 +22,12 @@ workflows:
         script: flutter pub get
       - name: Build Android App Bundle
         script: flutter build appbundle --release
+      # ADDED: Command to build the iOS IPA
+      - name: Build iOS IPA
+        script: flutter build ipa --release
         
     artifacts:
       - build/**/outputs/**/*.aab
       - build/**/outputs/**/*.apk
+      # ADDED: Path to save the generated iOS artifact
+      - build/ios/ipa/*.ipa
