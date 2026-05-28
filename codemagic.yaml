@@ -6,7 +6,6 @@ workflows:
     
     working_directory: mobile/src
     
-    # 1. Import the environment variable group you created
     environment:
       groups:
         - gitcrypt_vars
@@ -22,7 +21,6 @@ workflows:
         includes:
           - 'mobile/src/**'
             
-    # FIXED: Indented 'scripts' to align with 'when', 'triggering', etc.
     scripts:
       - name: Unlock git-crypt
         script: |
@@ -41,13 +39,8 @@ workflows:
       - name: Get Flutter packages
         script: flutter pub get
         
-      - name: Build Android App Bundle
-        script: flutter build appbundle --release
-        
       - name: Build iOS IPA
         script: flutter build ipa --release        
         
-    # FIXED: Indented 'artifacts' properly and removed the .apk path
     artifacts:
-      - build/**/outputs/**/*.aab
       - build/ios/ipa/*.ipa
