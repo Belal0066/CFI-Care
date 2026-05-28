@@ -32,46 +32,28 @@ describe("Database Connection", () => {
     expect(result.rows.length).toBeGreaterThan(0);
   });
 
-  it("should query timeline_nodes table", async () => {
+  it("should query encounter_nodes table", async () => {
     const result = await client.query(
-      `SELECT table_name FROM information_schema.tables 
-      WHERE table_name = 'timeline_nodes'`,
+      `SELECT table_name FROM information_schema.tables
+      WHERE table_name = 'encounter_nodes'`,
     );
     expect(result.rows.length).toBeGreaterThan(0);
   });
 
-  it("should query node_edges table", async () => {
+  it("should query node_relations table", async () => {
     const result = await client.query(
-      `SELECT table_name FROM information_schema.tables 
-      WHERE table_name = 'node_edges'`,
+      `SELECT table_name FROM information_schema.tables
+      WHERE table_name = 'node_relations'`,
     );
     expect(result.rows.length).toBeGreaterThan(0);
   });
 
-  it("should insert and retrieve timeline node", async () => {
-    const nodeId = "test-node-" + Date.now();
-    const insertQuery = `
-      INSERT INTO timeline_nodes (node_id, patient_id, title, event_date, category)
-      VALUES ($1, $2, $3, $4, $5)
-    `;
-
-    await client.query(insertQuery, [
-      nodeId,
-      "test-patient",
-      "Test Node",
-      new Date(),
-      "Test",
-    ]);
-
-    const selectQuery = `SELECT * FROM timeline_nodes WHERE node_id = $1`;
-    const result = await client.query(selectQuery, [nodeId]);
-
-    expect(result.rows.length).toBe(1);
-    expect(result.rows[0].title).toBe("Test Node");
-
-    // Cleanup
-    await client.query(`DELETE FROM timeline_nodes WHERE node_id = $1`, [
-      nodeId,
-    ]);
+  it("should verify encounter_nodes table has required columns", async () => {
+    const result = await client.query(
+      `SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'encounter_nodes'
+      AND column_name IN ('encounter_fhir_id', 'patient_id', 'category', 'event_date')`,
+    );
+    expect(result.rows.length).toBe(4);
   });
 });

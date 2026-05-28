@@ -3,6 +3,12 @@ const express = require("express");
 const encounterRoutes = require("../../encounter/encounterRoutes");
 const encounterController = require("../../encounter/encounterController");
 
+jest.mock("../../middleware/requireApiAuth", () => ({
+  requireApiAuth: (req, res, next) => next(),
+}));
+jest.mock("../../middleware/requirePatientContext", () => ({
+  requirePatientContext: () => (req, res, next) => next(),
+}));
 jest.mock("../../encounter/encounterController");
 
 const app = express();

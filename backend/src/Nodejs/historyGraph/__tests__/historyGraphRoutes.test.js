@@ -3,6 +3,12 @@ const express = require("express");
 const historyGraphRoutes = require("../historyGraphRoutes");
 const historyGraphController = require("../historyGraphController");
 
+jest.mock("../../middleware/requireApiAuth", () => ({
+  requireApiAuth: (req, res, next) => next(),
+}));
+jest.mock("../../middleware/requirePatientContext", () => ({
+  requirePatientContext: () => (req, res, next) => next(),
+}));
 jest.mock("../historyGraphController");
 
 const app = express();

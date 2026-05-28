@@ -39,7 +39,7 @@ router.get(
   patientController.toonPatientEverything,
 );
 router.get(
-  "/",
+  "/me",
   requireApiAuth,requirePatientContext({ paramName: "patientId" }),
   attachForwardedToken,
   patientController.getCurrentPatient,

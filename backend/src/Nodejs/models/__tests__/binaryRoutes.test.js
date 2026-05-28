@@ -3,6 +3,9 @@ const express = require("express");
 const binaryRoutes = require("../../binary/binaryRoutes");
 const binaryController = require("../../binary/binaryController");
 
+jest.mock("../../middleware/requireApiAuth", () => ({
+  requireApiAuth: (req, res, next) => next(),
+}));
 jest.mock("../../binary/binaryController");
 
 const app = express();
@@ -81,6 +84,52 @@ describe("Binary API Routes", () => {
       const response = await request(app)
         .put("/api/binary")
         .send(invalidBinary);
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe("POST /api/binary/:id", () => {
+    it("should update binary resource", async () => {
+      const updatedBinary = {
+        id: "bin-001",
+        resourceType: "Binary",
+        contentType: "application/pdf",
+      };
+
+      binaryController.updateBinary.mockImplementation((req, res) => {
+        res.status(200).json(updatedBinary);
+      });
+
+      const response = await request(app)
+        .post("/api/binary/bin-001")
+        .send({ file: "updatedbase64data...", contentType: "application/pdf" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.resourceType).toBe("Binary");
+    });
+
+    it("should return 404 when binary not found", async () => {
+      binaryController.updateBinary.mockImplementation((req, res) => {
+        res.status(404).json({ error: "Binary resource not found" });
+      });
+
+      const response = await request(app)
+        .post("/api/binary/nonexistent")
+        .send({ file: "data..." });
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should return 400 when no file data is provided", async () => {
+      binaryController.updateBinary.mockImplementation((req, res) => {
+        res.status(400).json({
+          error:
+            "ID and one of file path, base64 data, or multipart pdf are required",
+        });
+      });
+
+      const response = await request(app).post("/api/binary/bin-001").send({});
 
       expect(response.status).toBe(400);
     });

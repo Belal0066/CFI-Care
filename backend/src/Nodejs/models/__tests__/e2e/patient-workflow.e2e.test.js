@@ -6,6 +6,14 @@ const conditionRoutes = require("../../../condition/conditionRoutes");
 const patientService = require("../../../patient/patientService");
 
 jest.mock("@toon-format/toon", () => ({}));
+jest.mock("../../../middleware/requireApiAuth", () => ({
+  requireApiAuth: (req, res, next) => next(),
+}));
+jest.mock("../../../middleware/requirePatientContext", () => ({
+  requirePatientContext: () => (req, res, next) => next(),
+}));
+jest.mock("../../../middleware/validateScopes", () => () => (req, res, next) => next());
+jest.mock("../../../middleware/attachForwardedToken", () => (req, res, next) => next());
 jest.mock("../../../patient/patientService");
 jest.mock("axios");
 
@@ -56,7 +64,7 @@ describe("Patient Workflow E2E Tests", () => {
       };
 
       const createConditionResponse = await request(app)
-        .post("/api/conditions")
+        .put("/api/conditions")
         .send(conditionData);
 
       // Step 4: Verify patient has condition

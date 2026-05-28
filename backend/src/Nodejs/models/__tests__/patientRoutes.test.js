@@ -4,6 +4,14 @@ const patientRoutes = require("../../patient/patientRoutes");
 const patientController = require("../../patient/patientController");
 
 jest.mock("@toon-format/toon", () => ({}));
+jest.mock("../../middleware/requireApiAuth", () => ({
+  requireApiAuth: (req, res, next) => next(),
+}));
+jest.mock("../../middleware/requirePatientContext", () => ({
+  requirePatientContext: () => (req, res, next) => next(),
+}));
+jest.mock("../../middleware/validateScopes", () => () => (req, res, next) => next());
+jest.mock("../../middleware/attachForwardedToken", () => (req, res, next) => next());
 jest.mock("../../patient/patientController");
 
 const app = express();
@@ -167,6 +175,25 @@ describe("Patient API Routes", () => {
         .set("Content-Type", "application/json");
 
       expect(response.status).toBe(201);
+    });
+  });
+
+  describe("GET /api/patients/me", () => {
+    it("should return the current authenticated patient", async () => {
+      const mockPatient = {
+        resourceType: "Patient",
+        id: "patient-me",
+        name: [{ given: ["John"], family: "Doe" }],
+      };
+
+      patientController.getCurrentPatient.mockImplementation((req, res) => {
+        res.status(200).json(mockPatient);
+      });
+
+      const response = await request(app).get("/api/patients/me");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockPatient);
     });
   });
 });
