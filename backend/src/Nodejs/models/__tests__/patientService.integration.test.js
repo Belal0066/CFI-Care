@@ -7,7 +7,7 @@ jest.mock("../../middleware/cacheHelper", () => ({
   setInCache: jest.fn(),
   deleteFromCache: jest.fn(),
   invalidatePatientCache: jest.fn(),
-  CACHE_EXPIRATION: { PATIENT: 86400 },
+  CACHE_EXPIRATION: { PATIENT: 60 },
 }));
 
 const axios = require("axios");
@@ -61,11 +61,12 @@ describe("Patient Service - Integration Tests", () => {
       expect(result).toEqual(mockPatientData);
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         `/Patient/${patientId}`,
+        expect.any(Object),
       );
       expect(setInCache).toHaveBeenCalledWith(
         `patient:${patientId}`,
         mockPatientData,
-        86400,
+        60,
       );
     });
 

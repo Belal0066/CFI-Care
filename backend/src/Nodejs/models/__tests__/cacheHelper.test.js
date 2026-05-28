@@ -52,7 +52,7 @@ describe("Cache Helper", () => {
       expect(redisClient.set).toHaveBeenCalledWith(
         "patient:patient-001",
         JSON.stringify(testData),
-        { EX: 86400 },
+        { EX: 60 },
       );
     });
 
@@ -85,7 +85,7 @@ describe("Cache Helper", () => {
       const result = await deleteFromCache("patient:patient-001");
 
       expect(result).toBe(1);
-      expect(redisClient.del).toHaveBeenCalledWith(["patient:patient-001"]);
+      expect(redisClient.del).toHaveBeenCalledWith("patient:patient-001");
     });
 
     it("should return 0 if key does not exist", async () => {
@@ -99,15 +99,20 @@ describe("Cache Helper", () => {
 
   describe("invalidatePatientCache", () => {
     it("should invalidate patient-related cache patterns", async () => {
-      // Simulate patterns: first returns one key, rest none
-      redisClient.keys
-        .mockResolvedValueOnce(["patient:patient-001"]) // first pattern
-        .mockResolvedValue([]); // remaining patterns
+      // invalidatePatientCache calls deleteByPattern which uses scanIterator
+      let callCount = 0;
+      redisClient.scanIterator.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return (async function* () { yield ["patient:patient-001"]; })();
+        }
+        return (async function* () {})();
+      });
       redisClient.del.mockResolvedValue(1);
 
       const total = await invalidatePatientCache("patient-001");
 
-      expect(redisClient.keys).toHaveBeenCalled();
+      expect(redisClient.scanIterator).toHaveBeenCalled();
       expect(redisClient.del).toHaveBeenCalledWith(["patient:patient-001"]);
       expect(total).toBeGreaterThanOrEqual(1);
     });
