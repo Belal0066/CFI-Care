@@ -6,6 +6,11 @@ workflows:
     
     working_directory: mobile/src
     
+    # 1. Import the environment variable group you created
+    environment:
+      groups:
+        - gitcrypt_vars
+    
     triggering:
       events:
         - push
@@ -18,16 +23,25 @@ workflows:
           - 'mobile/src/**'
             
     scripts:
+      # 2. Add this step BEFORE the Flutter commands
+      - name: Unlock git-crypt
+        script: |
+          # Install git-crypt on the macOS build machine
+          brew install git-crypt
+          
+          # Decode the base64 environment variable back into a binary key file
+          echo $GIT_CRYPT_KEY | base64 --decode > /tmp/git-crypt-key.key
+          
+          # Navigate to the root of the repository ($CM_CLONE_DIR) to unlock it
+          cd $CM_CLONE_DIR
+          git-crypt unlock /tmp/git-crypt-key.key
+          
       - name: Get Flutter packages
         script: flutter pub get
+        
       - name: Build Android App Bundle
         script: flutter build appbundle --release
-      # ADDED: Command to build the iOS IPA
-      - name: Build iOS IPA
-        script: flutter build ipa --release
         
     artifacts:
       - build/**/outputs/**/*.aab
       - build/**/outputs/**/*.apk
-      # ADDED: Path to save the generated iOS artifact
-      - build/ios/ipa/*.ipa
