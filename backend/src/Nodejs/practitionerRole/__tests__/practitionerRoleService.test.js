@@ -12,6 +12,7 @@ jest.mock("../../middleware/cacheHelper", () => ({
   getFromCache: jest.fn().mockResolvedValue(null),
   setInCache: jest.fn().mockResolvedValue(undefined),
   deleteFromCache: jest.fn().mockResolvedValue(undefined),
+  invalidatePractitionerCache: jest.fn().mockResolvedValue(undefined),
   CACHE_EXPIRATION: { DEFAULT: 60 },
 }));
 
