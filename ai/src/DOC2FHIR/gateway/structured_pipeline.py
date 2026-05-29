@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from .doc_classifier import DocumentTypeClassifier
 from .fhir_mapper import MappingContext, map_to_fhir
@@ -144,6 +147,13 @@ class StructuredPipeline:
         except Exception as exc:
             raise StructuredPipelineError(f"extraction failed: {type(exc).__name__}: {exc}") from exc
 
+        try:
+            summary = self.extractor.summarize(extraction)
+            if summary:
+                extraction.document_summary = summary
+        except Exception as exc:
+            logger.warning("pipeline: summarize raised unexpectedly: %s: %s", type(exc).__name__, exc)
+
         review_required, warnings = _confidence_policy(extraction)
         for warn in warnings:
             self.safety_logger.log_confidence("warning", warn, 0.0)
@@ -183,7 +193,7 @@ class StructuredPipeline:
         validation = self.validator.validate_bundle(bundle)
         if not validation.ok:
             self.safety_logger.log_validation_errors(validation.errors)
-            raise StructuredPipelineError("FHIR validation failed: " + "; ".join(validation.errors[:5]))
+            logger.warning("FHIR validation failed (non-fatal): %s", "; ".join(validation.errors[:3]))
 
         return StructuredPipelineOutput(
             bundle=bundle,

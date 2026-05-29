@@ -128,18 +128,18 @@ class DocumentTypeClassifier:
             "max_tokens": 300,
         }
 
-        with httpx.Client(timeout=self.timeout_sec) as client:
-            response = client.post(url, json=payload)
-            response.raise_for_status()
-
-        result = response.json()
-        choice = result.get("choices", [{}])[0]
-        message = choice.get("message", {}) if isinstance(choice, dict) else {}
-        content = message.get("content", "") or message.get("reasoning_content", "") or choice.get("text", "") or ""
-        raw_json = _extract_json_block(content)
-        if not raw_json:
-            raise ValueError(f"Classifier returned empty content: {result!r}")
         try:
+            with httpx.Client(timeout=self.timeout_sec) as client:
+                response = client.post(url, json=payload)
+                response.raise_for_status()
+
+            result = response.json()
+            choice = result.get("choices", [{}])[0]
+            message = choice.get("message", {}) if isinstance(choice, dict) else {}
+            content = message.get("content", "") or message.get("reasoning_content", "") or choice.get("text", "") or ""
+            raw_json = _extract_json_block(content)
+            if not raw_json:
+                raise ValueError(f"Classifier returned empty content: {result!r}")
             data = _parse_json_document(raw_json)
             doc_type = DocumentType(data.get("doc_type", DocumentType.CLINICAL_NOTE))
             confidence = float(data.get("confidence", 0.0))

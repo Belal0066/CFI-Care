@@ -29,12 +29,14 @@ class ReferenceResolver:
                 "DiagnosticReport",
                 "DocumentReference",
                 "Encounter",
+                "Composition",
             }:
                 if rtype == "AllergyIntolerance":
                     if not isinstance(res.get("patient"), dict):
                         res["patient"] = {"reference": _ref(self.patient_id)}
                 else:
-                    if not isinstance(res.get("subject"), dict):
+                    subject = res.get("subject")
+                    if subject is None or (isinstance(subject, list) and not subject):
                         res["subject"] = {"reference": _ref(self.patient_id)}
 
             if self.encounter_id and rtype in {"Observation", "Condition", "Procedure"}:
