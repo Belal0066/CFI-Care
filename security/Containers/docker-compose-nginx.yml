@@ -58,7 +58,7 @@ services:
     restart: unless-stopped
     ports:
       - 6380:6379
-    command: redis-server --appendonly yes --appendfsync everysec
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--notify-keyspace-events", "KEgz"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

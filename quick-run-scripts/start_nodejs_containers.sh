@@ -12,11 +12,11 @@ while ! docker network inspect containers_nginx-network >/dev/null 2>&1; do
     sleep 5
 done
 
-while true; do
-  status="$(docker inspect -f '{{.State.Health.Status}}' redisStore 2>/dev/null || echo "missing Redis Store Session cache")"
-  if [ "$status" = "healthy" ]; then break; fi
-  sleep 2
-done
+# while true; do
+#   status="$(docker inspect -f '{{.State.Health.Status}}' redisStore 2>/dev/null || echo "missing Redis Store Session cache")"
+#   if [ "$status" = "healthy" ]; then break; fi
+#   sleep 2
+# done
 
 PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
 export PUBLIC_HOSTNAME

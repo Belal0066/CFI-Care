@@ -33,10 +33,10 @@ function requireBearerJwt(req, res, next) {
   }
 
   // debugging stuff :/
-  const decoded = jwt.decode(token, { complete: true });
-  console.log("[JWT-DEBUG] Token:", token);
+  // const decoded = jwt.decode(token, { complete: true });
+  // console.log("[JWT-DEBUG] Token:", token);
   // console.log("[JWT-DEBUG] Token header:", decoded?.header);
-  console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
+  // console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
 
 
   const verifyOptions = {issuer: allowedIssuers, algorithms: ["RS256"], clockTolerance: allowedClockSkew,  audience: allowedAudiences };
@@ -54,7 +54,7 @@ function requireBearerJwt(req, res, next) {
     // },
     (err, payload) => {
       if (err) {
-        // console.error("[JWT-VERIFY] FAILED:", err.name, err.message);
+        console.error("[JWT-VERIFY] FAILED:", err.name, err.message);
         return res.status(401).json({ error: "Invalid token", detail: err.message });
       }
       console.log("[JWT-VERIFY] SUCCESS, azp:", payload.azp);

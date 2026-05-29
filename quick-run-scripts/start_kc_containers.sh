@@ -12,4 +12,4 @@ export PUBLIC_HOSTNAME
 
 
  cd "$REPO_ROOT/security/Containers/"
- docker compose -f docker-compose-kc.yml up --build
+ docker compose -f docker-compose-kc.yml up #--build

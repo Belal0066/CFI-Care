@@ -149,7 +149,7 @@ router.post('/verify-caregiver-otp', requireApiAuth, async (req, res) => {
 // after patient reply
 router.post('/create-grant', requireApiAuth, async (req, res) => {
   try {
-    // const requesterType = resolveRequesterType(req.jwt || req.kauth?.token?.grant);
+    var requesterType = resolveRequesterType(req.jwt || req.kauth?.token?.grant);
 
 
     const patientId = req.jwt?.sub || req.kauth?.token?.grant?.sub;
@@ -168,6 +168,13 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
 
     const pending = JSON.parse(pendingRaw);
     if (pending.patientId !== patientId) {
+      await logSecurityEvent('access', 'GRANT_ACCESS_DENIED', req, {
+        actorType:requesterType,
+        patientId,
+        requesterId: pending.requesterId,
+        resource: handshakeId,
+        reason: 'Forbidden: pending request does not belong to this patient'
+      });
       return res
         .status(403)
         .json({
@@ -175,7 +182,7 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
         });
     }
 
-    const requesterType =
+     requesterType =
       pending.caregiverRoleAssignment === "caregiver_onboarding"
         ? "caregiver" : pending.requesterType;
 
@@ -186,9 +193,10 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
 
       await deletePendingGrant(handshakeId, patientId);
       await logSecurityEvent('access', 'GRANT_ACCESS_DENIED', req, {
+        actorType:requesterType,
         patientId,
         requesterId: pending.requesterId,
-        handshakeId,
+        resource: handshakeId,
         reason: 'Patient denied access request'
       });
 
@@ -238,6 +246,7 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
       await setCaregiverMappings(requesterId, patientId);
 
     await logSecurityEvent('access', 'GRANT_ISSUED', req, {
+      requesterType,
       patientId,
       requesterId: pending.requesterId,
       grantId,

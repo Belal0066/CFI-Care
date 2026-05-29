@@ -11,7 +11,7 @@ PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
 export PUBLIC_HOSTNAME
 
 cd "$REPO_ROOT/frontend/"
-    docker compose -f docker-compose.yaml up --build
+    docker compose -f docker-compose.yaml up #--build
 
 
 # cd frontend/src/
