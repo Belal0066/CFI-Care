@@ -128,7 +128,7 @@ class JobRepository:
                     job_id,
                     filename,
                     content_type,
-                    JobStatus.QUEUED.value,
+                    JobStatus.PENDING.value,
                     detail,
                     0.0,
                     json.dumps(metadata),
@@ -138,7 +138,7 @@ class JobRepository:
                     upload_path,
                 ),
             )
-            self._insert_event(connection, job_id, JobStatus.QUEUED, detail, {"filename": filename})
+            self._insert_event(connection, job_id, JobStatus.PENDING, detail, {"filename": filename})
         return self.get_job_by_id(job_id)
 
     def update_job_stage(
