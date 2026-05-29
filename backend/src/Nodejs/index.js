@@ -49,6 +49,10 @@ const authRoutes = require("./auth/authRoutes");
 const handshakeRoutes = require("./auth/handshakes");
 const { requireApiAuth } = require("./middleware/requireApiAuth");
 
+
+// prometheus endpoint
+const  metricsRouter = require('./utils/metrics_endpoint');
+
 const session = require("express-session");
 
 const redisClient = require("./utils/redisCli");
@@ -217,6 +221,10 @@ app.use("/api/caregiver-grants", caregiverGrantsRoutes);
 app.use("/api/patient-grants", patientGrantsRoutes);
 
 app.use("/FCM",IssueFCMToken);
+
+
+// prmetheeuuuus 
+app.use('/metrics', metricsRouter);
 
 // //log all requests that reach here
 // app.use((req, res, next) => {

@@ -10,6 +10,10 @@ upstream keycloak_server {
   server kc.localhost:8443;
 }
 
+upstream grafana_server {
+  server grafana:3000;
+}
+
 server {
 
   server_name localhost;
@@ -230,6 +234,29 @@ server {
     proxy_buffering off;
   }
 
+  location /graf/ {
+    proxy_pass http://grafana_server;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+
+  location = /oauth2/callback {
+    if ($arg_error = temporarily_unavailable) {
+      return 302 /oauth2/start?rd=/dashboard;
+    }
+
+    proxy_pass $oauth2_proxy_upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Cookie $http_cookie;
+  }
+
 
   location / {
     auth_request /oauth2/auth;
@@ -246,22 +273,9 @@ server {
     proxy_set_header Connection "upgrade";
   }
 
-  location = /oauth2/callback {
-    if ($arg_error = temporarily_unavailable) {
-      return 302 /oauth2/start?rd=/dashboard;
-    }
-
-    proxy_pass $oauth2_proxy_upstream;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Cookie $http_cookie;
-  }
 
   #   # for registration in FHIR
   #   location /provisioning/ {
-
   #   proxy_pass http://backend_node;
   #   proxy_set_header Host $host;
   #   proxy_set_header X-Real-IP $remote_addr;

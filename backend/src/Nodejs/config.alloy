@@ -1,0 +1,21 @@
+loki.source.redis "redis_auto_stream" {
+  redis_address = "redisAudit:6379"
+  channels      = ["audit:live_stream"] 
+  forward_to    = [loki.process.add_labels.receiver]
+}
+
+loki.process "add_labels" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.static_labels {
+    values = {
+      source = "redis-audit-db",
+    }
+  }
+}
+
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

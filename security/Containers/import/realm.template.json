@@ -653,8 +653,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779741779679,
-      "lastUpdatedDate" : 1779741779686
+      "createdDate" : 1780065559123,
+      "lastUpdatedDate" : 1780065559129
     } ],
     "notBefore" : 1773486196,
     "groups" : [ ]
@@ -679,8 +679,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779741779699,
-      "lastUpdatedDate" : 1779741779707
+      "createdDate" : 1780065559136,
+      "lastUpdatedDate" : 1780065559140
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -705,8 +705,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779741779716,
-      "lastUpdatedDate" : 1779741779722
+      "createdDate" : 1780065559146,
+      "lastUpdatedDate" : 1780065559151
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -939,8 +939,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
-      "createdDate" : 1779815430877,
-      "lastUpdatedDate" : 1779815430885
+      "createdDate" : 1780065559199,
+      "lastUpdatedDate" : 1780065559203
     } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
@@ -1144,8 +1144,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "email", "roles" ],
-      "createdDate" : 1779741779884,
-      "lastUpdatedDate" : 1779741779894
+      "createdDate" : 1780065559264,
+      "lastUpdatedDate" : 1780065559268
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -2360,6 +2360,41 @@
     "notBefore" : 0,
     "groups" : [ ]
   }, {
+    "id" : "18758c96-c695-460f-9a7e-9082ae23ebca",
+    "username" : "testaudit",
+    "firstName" : "test",
+    "lastName" : "audit",
+    "email" : "testaudit@mail.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1780066742501,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "45e28e7e-fc89-4038-9132-539203d4548e",
+      "type" : "password",
+      "createdDate" : 1780066742987,
+      "secretData" : "{\"value\":\"++nrUDnVWzhXp4Yp+rZ/jm9DdtiVeh+dIlk/9ecarTA=\",\"salt\":\"9Y9TofiAzZ0Cp6t3Z2BFnQ==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    }, {
+      "id" : "e02f89c7-1b08-40de-b18f-f9cb5599f819",
+      "type" : "recovery-authn-codes",
+      "userLabel" : "Recovery codes",
+      "createdDate" : 1780066757930,
+      "secretData" : "{\"codes\":[{\"number\":1,\"encodedHashedValue\":\"Cl8Iyg7s0XO0vjTWdX7MdVpofEDlReOzU+XOZDBGXSBgCJvrlbahcxjV8ZTDhBbe1HV989NTBnXNJ9EXRigfzg==\"},{\"number\":2,\"encodedHashedValue\":\"88Iw6fRmaYrHdpzw8el5ANQ+rSyrMeUM5AipCCkQ28QawtNWvUaHwy/jUwbgzybMQ+cu/BkJSNFnGqj28Sdgzg==\"},{\"number\":3,\"encodedHashedValue\":\"uq9iz6g8/ZP0qCshTw06BiOP9C+Xm8AXvGQ8lqwJ6isUmsK+4JB/FyDOqjGU9exleXq7fP49fJOteNpnDJNzEw==\"},{\"number\":4,\"encodedHashedValue\":\"H95tt7pnIoWDLxorcD1GgdEXV7FnvJQH5n430BURz7B+03RBk3tnC8/wnFvNuFD/rEBecn0ArxYf8bq/OvjMUg==\"},{\"number\":5,\"encodedHashedValue\":\"Aa6bRwr2ZpM3njd2BUk5txGH1X4DMaC8gZ3Qf/MPu95StaBydpxEZJ1DP4E8+Y+3hj1HCMYh70ZB0IjYD5b8fQ==\"},{\"number\":6,\"encodedHashedValue\":\"1fxZ0IssvK4DUVn13+kyDhrAQWv+FZG41KwffJRoBcgvylkP5eCv7rZbM9DDYEgkktG+zVoG1KKwIpdnbRcOTQ==\"},{\"number\":7,\"encodedHashedValue\":\"KltWHUT4pYj8C9GkHDai80bMgH0vDrL1qo337k5EvfZMDHVeos0Ffr4scOwwmm4nZwZ6/WmYjWHa1J3WPiu8Tw==\"},{\"number\":8,\"encodedHashedValue\":\"lGPEDtOobUnrfza7otKY9xnDtwTgM0U4qlWbq4+r2lCOlaKQo4drMFDWkwG1DhZqq3qFX3jar9Y5cxt59S3VYA==\"},{\"number\":9,\"encodedHashedValue\":\"yZZFHCQIXoQKYZ3wQPn+YKypIeSmR7Kzir1uu7lrns7OTkIFpjFmWud5ytaQQJmU77AEZAdS3jrLltUc+Haw4w==\"},{\"number\":10,\"encodedHashedValue\":\"lR1h9QyTKD4MbdXG2bj4SSuBLVXqhOogK3QiyyYRn50NJac/Q0c+kTLfRkmu9VmvXFKkTix+OuzTv/yaqGwJDQ==\"},{\"number\":11,\"encodedHashedValue\":\"H6WwYyVL74uUie61aaRicIY8M452uQr0f5Wa2vP3X5KITrGjJRwhcneXU0EWFS38os1BjgKOQogwk3lF2Ji4Jg==\"},{\"number\":12,\"encodedHashedValue\":\"0amCXJSTcQIjLiGCw/gseM2a19g6reICXL2trzmty4lylwsy4bNpd5yGtEfeJuH4aH16N3MyVVr4Gx/aV/ZQnw==\"}]}",
+      "credentialData" : "{\"algorithm\":\"SHA-512\",\"totalCodes\":12,\"remainingCodes\":12}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-hapi-fhir-dev" ],
+    "clientConsents" : [ {
+      "clientId" : "oauth2-proxy",
+      "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
+      "createdDate" : 1780066770442,
+      "lastUpdatedDate" : 1780066770454
+    } ],
+    "notBefore" : 0,
+    "groups" : [ "/Practitioner" ]
+  }, {
     "id" : "7489bee8-71df-433d-b73a-beb2a92f7564",
     "username" : "testback",
     "firstName" : "testback",
@@ -2426,8 +2461,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
-      "createdDate" : 1779815083772,
-      "lastUpdatedDate" : 1779815083785
+      "createdDate" : 1780065559484,
+      "lastUpdatedDate" : 1780065559487
     } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
@@ -2471,8 +2506,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
-      "createdDate" : 1779815548762,
-      "lastUpdatedDate" : 1779815548772
+      "createdDate" : 1780065559497,
+      "lastUpdatedDate" : 1780065559500
     } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
@@ -2761,8 +2796,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
-      "createdDate" : 1779834982433,
-      "lastUpdatedDate" : 1779834982440
+      "createdDate" : 1780065559540,
+      "lastUpdatedDate" : 1780065559544
     } ],
     "notBefore" : 0,
     "groups" : [ ]
@@ -4108,8 +4143,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
-      "createdDate" : 1779818592790,
-      "lastUpdatedDate" : 1779818592797
+      "createdDate" : 1780065559700,
+      "lastUpdatedDate" : 1780065559704
     } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
@@ -4143,8 +4178,8 @@
     "clientConsents" : [ {
       "clientId" : "oauth2-proxy",
       "grantedClientScopes" : [ "add-fhir-aud", "profile", "patient/*.rs", "oauth2-proxy", "email", "roles" ],
-      "createdDate" : 1779815066965,
-      "lastUpdatedDate" : 1779815066991
+      "createdDate" : 1780065559713,
+      "lastUpdatedDate" : 1780065559716
     } ],
     "notBefore" : 0,
     "groups" : [ "/Practitioner" ]
@@ -4364,6 +4399,13 @@
     "createdTimestamp" : 1772285993288,
     "totp" : true,
     "credentials" : [ {
+      "id" : "06926219-4741-4d4d-87e1-19716787ebc1",
+      "type" : "otp",
+      "userLabel" : "yarab2.0",
+      "createdDate" : 1772483658965,
+      "secretData" : "{\"value\":\"jy8wGeq9Recy42OP193D\"}",
+      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+    }, {
       "id" : "73dc3cd1-5fad-4696-ab5f-05e73b5ef949",
       "type" : "password",
       "createdDate" : 1773617241265,
@@ -4375,13 +4417,6 @@
       "userLabel" : "Yarab2",
       "createdDate" : 1772320977096,
       "secretData" : "{\"value\":\"kjdcTgxQ39g7HtSAAEDI\"}",
-      "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
-    }, {
-      "id" : "06926219-4741-4d4d-87e1-19716787ebc1",
-      "type" : "otp",
-      "userLabel" : "yarab2.0",
-      "createdDate" : 1772483658965,
-      "secretData" : "{\"value\":\"jy8wGeq9Recy42OP193D\"}",
       "credentialData" : "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -4539,7 +4574,7 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "redirectUris" : [ "/realms/CFI-Care/account/*", "https://*/keycloak/realms/CFI-Care/account/*", "https://${PUBLIC_HOSTNAME}/keycloak/realms/CFI-Care/account/*" ],
+    "redirectUris" : [ "/realms/CFI-Care/account/*", "https://${PUBLIC_HOSTNAME}/keycloak/realms/CFI-Care/account/*", "https://*/keycloak/realms/CFI-Care/account/*" ],
     "webOrigins" : [ ],
     "notBefore" : 0,
     "bearerOnly" : false,
@@ -4698,7 +4733,7 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "secret" : "dgGflx1EfEOvKioI37xO8iKicBD2FVo5",
+    "secret" : "qsABmbA0TfWKKKuS8ExLro6MHsVeINZR",
     "redirectUris" : [ ],
     "webOrigins" : [ ],
     "notBefore" : 0,
@@ -4714,7 +4749,7 @@
     "protocol" : "openid-connect",
     "attributes" : {
       "realm_client" : "false",
-      "client.secret.creation.time" : "1779741777"
+      "client.secret.creation.time" : "1780065557"
     },
     "authenticationFlowBindingOverrides" : { },
     "fullScopeAllowed" : true,
@@ -4780,9 +4815,9 @@
         "attributes" : { },
         "uris" : [ ],
         "scopes" : [ {
-          "name" : "manage-group-membership"
-        }, {
           "name" : "view"
+        }, {
+          "name" : "manage-group-membership"
         }, {
           "name" : "impersonate"
         }, {
@@ -5007,7 +5042,7 @@
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
     "secret" : "IQpyRNiMulufu2eZ7x30RYIJrylSHWxa",
-    "redirectUris" : [ "http://localhost:8080/fhir/*", "https://${PUBLIC_HOSTNAME}/", "http://localhost:3000/auth/callback", "https://localhost:8443/oauth2/callback", "http://localhost:3000/auth/logout", "https://${PUBLIC_HOSTNAME}/oauth2/sign_out" ],
+    "redirectUris" : [ "http://localhost:8080/fhir/*", "https://${PUBLIC_HOSTNAME}/oauth2/sign_out", "http://localhost:3000/auth/callback", "https://${PUBLIC_HOSTNAME}/", "https://localhost:8443/oauth2/callback", "http://localhost:3000/auth/logout" ],
     "webOrigins" : [ "/*" ],
     "notBefore" : 0,
     "bearerOnly" : false,
@@ -5053,7 +5088,7 @@
     "alwaysDisplayInConsole" : true,
     "clientAuthenticatorType" : "client-secret",
     "secret" : "aHkRec1BYkfaKgMg164JmvKu8u9iWNHM",
-    "redirectUris" : [ "http://localhost:3000/auth/callback", "https://${PUBLIC_HOSTNAME}/oauth2/sign_in", "https://${PUBLIC_HOSTNAME}", "https://localhost:8443/oauth2/callback", "https://kc.localhost:8443/realms/CFI-Care/protocol/openid-connect/logout/", "https://${PUBLIC_HOSTNAME}/oauth2/callback", "https://${PUBLIC_HOSTNAME}/oauth2/callback*", "https://${PUBLIC_HOSTNAME}/dashboard*", "http://localhost:4180/oauth2/callback" ],
+    "redirectUris" : [ "https://${PUBLIC_HOSTNAME}/oauth2/callback", "http://localhost:3000/auth/callback", "https://${PUBLIC_HOSTNAME}", "https://${PUBLIC_HOSTNAME}/dashboard*", "https://localhost:8443/oauth2/callback", "https://kc.localhost:8443/realms/CFI-Care/protocol/openid-connect/logout/", "https://${PUBLIC_HOSTNAME}/oauth2/callback*", "https://${PUBLIC_HOSTNAME}/oauth2/sign_in", "http://localhost:4180/oauth2/callback" ],
     "webOrigins" : [ "https://${PUBLIC_HOSTNAME}" ],
     "notBefore" : 0,
     "bearerOnly" : false,
@@ -6006,7 +6041,7 @@
       "subType" : "authenticated",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "saml-role-list-mapper", "oidc-full-name-mapper", "saml-user-property-mapper", "oidc-address-mapper", "saml-user-attribute-mapper", "oidc-usermodel-attribute-mapper" ]
+        "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-attribute-mapper", "oidc-address-mapper", "oidc-full-name-mapper", "saml-role-list-mapper", "oidc-usermodel-property-mapper" ]
       }
     }, {
       "id" : "c00eca02-8ce1-424f-9bd8-12dca08eec5a",
@@ -6040,7 +6075,7 @@
       "subType" : "anonymous",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-full-name-mapper", "saml-user-property-mapper", "saml-role-list-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper", "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-sha256-pairwise-sub-mapper", "saml-user-attribute-mapper", "oidc-full-name-mapper", "saml-role-list-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper", "saml-user-property-mapper", "oidc-usermodel-attribute-mapper" ]
       }
     } ],
     "org.keycloak.userprofile.UserProfileProvider" : [ {
@@ -7242,7 +7277,7 @@
     "name" : "Recovery Authentication Codes",
     "providerId" : "CONFIGURE_RECOVERY_AUTHN_CODES",
     "enabled" : true,
-    "defaultAction" : true,
+    "defaultAction" : false,
     "priority" : 122,
     "config" : { }
   } ],

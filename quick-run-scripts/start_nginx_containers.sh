@@ -23,5 +23,5 @@ PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
 export PUBLIC_HOSTNAME
 
 cd "$REPO_ROOT/security/Containers/"
-docker compose -f docker-compose-nginx.yml up --build
+docker compose -f docker-compose-nginx.yml up #--build
 # log_message "Containers started successfully"

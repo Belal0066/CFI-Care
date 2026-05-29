@@ -26,7 +26,8 @@ router.delete("/grants/:practitionerId", requireApiAuth, async (req, res) => {
     await deleteGrantbyKey(key);
 
     if (grant) {
-      await logSecurityEvent('access', 'GRANT_REVOKED', req, {
+      await logSecurityEvent('access', 'PRACTITIONER_GRANT_REVOKED', req, {
+        requesterType: "patient",
         patientId,
         practitionerId,
         grantId: grant.grantId,
@@ -112,6 +113,7 @@ router.delete("/caregivers/:caregiverId", requireApiAuth, async (req, res) => {
 
     if (grant) {
       await logSecurityEvent("access", "CAREGIVER_GRANT_REVOKED", req, {
+        requesterType: "patient",
         patientId,
         caregiverId,
         grantId: grant.grantId,

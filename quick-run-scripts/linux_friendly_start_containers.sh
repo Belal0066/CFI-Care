@@ -32,10 +32,12 @@ envsubst < "$REPO_ROOT/mobile/src/lib/config/app_config.template.dart" > "$REPO_
 envsubst < "$REPO_ROOT/frontend/src/src/environments/environment.template.ts" > "$REPO_ROOT/frontend/src/src/environments/environment.ts"
 # envsubst < "$REPO_ROOT/mobile/src/env/dev_env.template.json" > "$REPO_ROOT/mobile/src/env/dev_env.json"
 
+gnome-terminal -- bash -c "../generate_certs.sh; exec bash"
 
+gnome-terminal -- bash -c "./start_prome_and_grafana.sh; exec bash"
 gnome-terminal -- bash -c "./start_nginx_containers.sh; exec bash"
 gnome-terminal -- bash -c "./start_kc_containers.sh; exec bash"
-gnome-terminal -- bash -c "./start_vault_container.sh; exec bash"
+# gnome-terminal -- bash -c "./start_vault_container.sh; exec bash"
 gnome-terminal -- bash -c "./start_nodejs_containers.sh; exec bash"
 gnome-terminal -- bash -c "./start_fhir_container.sh; exec bash"
 gnome-terminal -- bash -c "./start_frontend.sh; exec bash"

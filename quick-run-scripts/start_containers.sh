@@ -41,6 +41,10 @@ DIR_WIN=$(wslpath -w "$(pwd)")
 #    -d "$DIR_WIN": Set starting directory to current project folder
 #    wsl.exe     : The command to run (enters Linux)
 
+wt.exe -w 0 nt --title "certs" -d "$DIR_WIN" wsl.exe bash -c "../generate_certs.sh; exec bash" &
+
+
+wt.exe -w 0 nt --title "grafana" -d "$DIR_WIN" wsl.exe bash -c "./start_prome_and_grafana.sh; exec bash" &
 wt.exe -w 0 nt --title "Keycloak" -d "$DIR_WIN" wsl.exe bash -c "./start_kc_containers.sh; exec bash" &
 wt.exe -w 0 nt --title "Nginx"    -d "$DIR_WIN" wsl.exe bash -c "./start_nginx_containers.sh; exec bash" &
 wt.exe -w 0 nt --title "FHIR"     -d "$DIR_WIN" wsl.exe bash -c "./start_fhir_container.sh; exec bash" &
