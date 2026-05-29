@@ -4,11 +4,13 @@ import hashlib
 import re
 import uuid
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Optional
 
 from .intermediate_schema import (
     AllergyItem,
     ConditionItem,
+    DocumentType,
     IntermediateExtraction,
     MedicationItem,
     ObservationItem,
@@ -426,8 +428,59 @@ def _map_diagnostic_report(
         "extension": _confidence_extension(1.0),
     }
     if effective_date:
-        report["effectiveDateTime"] = effective_date
+        report["effectiveDateTime"] = _normalize_date(effective_date) or effective_date
     return report
+
+
+DOC_TYPE_LOINC: dict[DocumentType, tuple[str, str]] = {
+    DocumentType.LAB_REPORT: ("11502-2", "Laboratory Report"),
+    DocumentType.PRESCRIPTION: ("57833-6", "Prescription"),
+    DocumentType.DISCHARGE_SUMMARY: ("18842-5", "Discharge Summary"),
+    DocumentType.RADIOLOGY_REPORT: ("18748-4", "Radiology Report"),
+    DocumentType.CLINICAL_NOTE: ("34117-4", "Progress Note"),
+    DocumentType.VACCINATION_RECORD: ("11369-6", "Immunization Record"),
+}
+
+
+def _map_composition(
+    document_summary: str | None,
+    doc_type: DocumentType,
+    patient_id: str,
+    encounter_date: str | None = None,
+) -> dict[str, Any] | None:
+    if not document_summary:
+        return None
+    summary = document_summary[:100]
+
+    code_info = DOC_TYPE_LOINC.get(doc_type, ("11502-2", "Laboratory Report"))
+
+    content_key = f"Composition:{summary}:{patient_id}"
+    res_id = _stable_id("Composition", content_key)
+
+    return {
+        "resourceType": "Composition",
+        "id": res_id,
+        "text": _narrative("Composition", code_info[1]),
+        "status": "final",
+        "type": {
+            "coding": [{"system": "http://loinc.org", "code": code_info[0], "display": code_info[1]}],
+            "text": code_info[1],
+        },
+        "title": f"{code_info[1]} — Clinical Summary",
+        "date": _normalize_date(encounter_date) or str(date.today()),
+        "subject": [{"reference": f"urn:uuid:{patient_id}"}],
+        "author": [{"reference": f"urn:uuid:{patient_id}"}],
+        "section": [
+            {
+                "title": "Summary",
+                "text": {
+                    "status": "generated",
+                    "div": f"<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>{summary}</p></div>",
+                },
+            }
+        ],
+        "extension": _confidence_extension(1.0),
+    }
 
 
 def map_to_fhir(intermediate: IntermediateExtraction, ctx: MappingContext) -> list[dict[str, Any]]:
@@ -482,5 +535,14 @@ def map_to_fhir(intermediate: IntermediateExtraction, ctx: MappingContext) -> li
 
     for proc in intermediate.procedures:
         resources.append(_map_procedure(proc, ctx))
+
+    composition = _map_composition(
+        intermediate.document_summary,
+        intermediate.document_type,
+        patient_id,
+        intermediate.encounter.date if intermediate.encounter else None,
+    )
+    if composition:
+        resources.append(composition)
 
     return resources

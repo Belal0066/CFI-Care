@@ -671,11 +671,13 @@ class JobOrchestrator:
             )
             if not result.success:
                 log.warning(
-                    "Callback delivery failed for job %s: HTTP %s — %s",
-                    job_id, result.status_code, result.error,
+                    "Callback delivery failed",
+                    job_id=job_id,
+                    status_code=result.status_code,
+                    error=result.error,
                 )
         except Exception as exc:
-            log.error("Callback adapter threw for job %s: %s", job_id, exc)
+            log.error("Callback adapter threw", exception=exc, job_id=job_id)
 
     @staticmethod
     def _attach_pdf_to_bundle(

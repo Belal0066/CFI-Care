@@ -122,6 +122,7 @@ class IntermediateExtraction(BaseModel):
     allergies: list[AllergyItem] = Field(default_factory=list)
     procedures: list[ProcedureItem] = Field(default_factory=list)
     unmapped_sections: list[str] = Field(default_factory=list)
+    document_summary: Optional[str] = None
 
     @model_validator(mode="after")
     def _ensure_version(self) -> "IntermediateExtraction":

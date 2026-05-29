@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from .intermediate_schema import DocumentType, IntermediateExtraction, intermediate_schema_json
 
@@ -126,3 +129,52 @@ class StructuredExtractor:
             if retry:
                 raise
             return self.extract(clean_text, doc_type, retry=True)
+
+    def summarize(self, extraction: IntermediateExtraction) -> str | None:
+        extraction_json = extraction.model_dump_json(indent=2)
+        prompt = (
+            "Given the following structured clinical data extracted from a medical report, "
+            "write a single-line clinical insight summarizing the key findings.\n\n"
+            f"{extraction_json}\n\n"
+            "Respond with a JSON object: {\"summary\": \"<your insight here>\"}"
+        )
+        summary_schema = {
+            "type": "object",
+            "properties": {"summary": {"type": "string"}},
+            "required": ["summary"],
+        }
+        url = f"{self.base_url}/v1/chat/completions"
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "system", "content": "You are a clinical summarizer. Output JSON only."},
+                {"role": "user", "content": prompt},
+            ],
+            "response_format": {"type": "json_schema", "json_schema": {"name": "summary", "schema": summary_schema}},
+            "temperature": 0.1,
+            "max_tokens": 500,
+        }
+        try:
+            with httpx.Client(timeout=self.timeout_sec) as client:
+                resp = client.post(url, json=payload)
+                resp.raise_for_status()
+            result = resp.json()
+            choice = result.get("choices", [{}])[0]
+            message = choice.get("message", {}) if isinstance(choice, dict) else {}
+            content = (message.get("content") or "").strip()
+            if content:
+                data = json.loads(content)
+                summary = data.get("summary", "").strip()
+                if summary:
+                    return summary[:100]
+                logger.warning("summarize: LLM returned no summary key in %s", content)
+                return None
+            reasoning = (message.get("reasoning_content") or "").strip()
+            if reasoning:
+                logger.warning("summarize: content empty, reasoning present (%d chars)", len(reasoning))
+            else:
+                logger.warning("summarize: both content and reasoning_content empty")
+            return None
+        except Exception as exc:
+            logger.warning("summarize failed: %s: %s", type(exc).__name__, exc)
+            return None
