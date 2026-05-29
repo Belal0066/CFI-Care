@@ -6,6 +6,7 @@ const {
   getFromCache,
   setInCache,
   deleteFromCache,
+  invalidatePractitionerCache,
   CACHE_EXPIRATION,
 } = require("../middleware/cacheHelper");
 
@@ -309,12 +310,13 @@ async function invalidatePractitionerRoleCache(
   // Invalidate all practitioner roles cache
   await deleteFromCache("practitionerRoles:all");
 
-  // Invalidate practitioner-specific cache if practitioner reference exists
+  // Invalidate practitioner-specific caches if practitioner reference exists
   if (practitionerRoleData.practitioner?.reference) {
     const practRef = practitionerRoleData.practitioner.reference;
     if (practRef.startsWith("Practitioner/")) {
       const practitionerId = practRef.split("/")[1];
       await deleteFromCache(`practitionerRoles:practitioner:${practitionerId}`);
+      await invalidatePractitionerCache(practitionerId);
     }
   }
 

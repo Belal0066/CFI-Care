@@ -16,7 +16,7 @@ router.get(
 // Get practitioner roles by practitioner ID
 router.get(
   "/practitioner/:practitionerId",
-  requireApiAuth, requireResourceOwnership({ paramName: "id" }),
+  requireApiAuth, requireResourceOwnership({ paramName: "practitionerId" }),
   practitionerRoleController.getPractitionerRolesByPractitioner,
 );
 
@@ -48,10 +48,10 @@ router.get(
   practitionerRoleController.getPractitionerRoleById,
 );
 
-// Update practitioner role
+// Update practitioner role (ownership verified in controller via practitioner.reference)
 router.post(
   "/:id",
-  requireApiAuth, requireResourceOwnership({ paramName: "id" }),
+  requireApiAuth,
   practitionerRoleController.updatePractitionerRole,
 );
 
