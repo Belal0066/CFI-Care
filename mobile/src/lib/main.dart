@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:medflow/utils/themes/theme.dart';
 import 'presentation/screens/splash_screen.dart';
@@ -18,8 +19,10 @@ import 'presentation/viewmodels/major_event_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MediaStore.ensureInitialized();
-  MediaStore.appFolder = 'CFICareDocs';
+  if (Platform.isAndroid) {
+    await MediaStore.ensureInitialized();
+    MediaStore.appFolder = 'CFICareDocs';
+  }
   // 1. Create the API Service (Data Source)
   final apiService = ApiService();
   final pdfService = PdfStorageService();
