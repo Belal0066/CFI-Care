@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:medflow/utils/themes/theme.dart';
 import 'presentation/screens/splash_screen.dart';
@@ -40,8 +41,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await MediaStore.ensureInitialized();
-  MediaStore.appFolder = 'CFICareDocs';
+  if (Platform.isAndroid) {
+    await MediaStore.ensureInitialized();
+    MediaStore.appFolder = 'CFICareDocs';
+  }
 
   // Initialize Firebase and Messaging (From Mobile-New-Branch-Merge)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
