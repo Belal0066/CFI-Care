@@ -34,7 +34,7 @@ workflows:
         script: flutter pub get
         
       - name: Build Unsigned iOS App
-        script: flutter build ios --release --no-codesign 
+        script: flutter build ios --release --no-codesign --dart-define-from-file=env/dev_env.json
         
       # ADDED: Manually package the .app into an .ipa file
       - name: Package into IPA
