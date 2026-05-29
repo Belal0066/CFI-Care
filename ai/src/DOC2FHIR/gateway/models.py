@@ -12,7 +12,7 @@ def utc_now() -> datetime:
 
 
 class JobStatus(str, Enum):
-    QUEUED = "QUEUED"
+    PENDING = "PENDING"
     SERVER_BUSY = "SERVER_BUSY"
     OCR_PROCESSING = "OCR_PROCESSING"
     MAPPING = "MAPPING"
@@ -40,7 +40,7 @@ class UploadDocumentResponse(BaseModel):
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "job_id": "job_01HZX9J7YJ4X3KQ9VY5J0K2H8P",
-            "state": "QUEUED",
+            "state": "PENDING",
             "detail": "Document accepted and queued for processing.",
             "created_at": "2026-04-25T10:15:30.123456+00:00",
         }
@@ -56,7 +56,7 @@ class JobStatusResponse(BaseModel):
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "job_id": "job_01HZX9J7YJ4X3KQ9VY5J0K2H8P",
-            "state": "QUEUED",
+            "state": "PENDING",
             "detail": "Document accepted and queued for processing.",
             "filename": "example.pdf",
             "progress": 0.0,
@@ -121,3 +121,15 @@ class JobRecord(BaseModel):
     upload_path: Optional[str] = None
     ocr_output_path: Optional[str] = None
     fhir_output_path: Optional[str] = None
+
+
+class CallbackErrorPayload(BaseModel):
+    code: str
+    message: str
+
+
+class CallbackPayload(BaseModel):
+    job_id: str
+    status: str  # "COMPLETED" | "FAILED"
+    completed_at: str
+    error: Optional[CallbackErrorPayload] = None

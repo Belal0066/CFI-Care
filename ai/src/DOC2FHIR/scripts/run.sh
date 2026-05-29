@@ -23,12 +23,13 @@
 #   help      Show this help
 #
 # Options (for 'all' and individual services):
-#   --with-ui       Also start the pipeline Streamlit UI
-#   --with-mapper-ui Also start the Mapper Streamlit UI
-#   --foreground    Run in foreground (blocks, Ctrl+C stops all)
-#   --no-color      Disable colored output
-#   --log-dir DIR   Override log directory (default: .service_state/logs)
-#   --tail N        Show last N log lines on startup (default: 0)
+#   --with-ui            Also start the pipeline Streamlit UI
+#   --with-mapper-ui     Also start the Mapper Streamlit UI
+#   --with-enhanced-ui   Also start the enhanced Command Center UI (port 8503)
+#   --foreground         Run in foreground (blocks, Ctrl+C stops all)
+#   --no-color           Disable colored output
+#   --log-dir DIR        Override log directory (default: .service_state/logs)
+#   --tail N             Show last N log lines on startup (default: 0)
 ###############################################################################
 set -uo pipefail
 
@@ -42,6 +43,7 @@ TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 # Default options
 WITH_UI=false
 WITH_MAPPER_UI=false
+WITH_UI_V2=false
 FOREGROUND=false
 NO_COLOR=false
 TAIL_LINES=0
@@ -64,6 +66,8 @@ MAPPER_URL="${MAPPER_HEALTH_URL:-http://127.0.0.1:8070/v1/models}"
 GATEWAY_URL="http://127.0.0.1:8001/v1/health"
 UI_URL="http://127.0.0.1:8502"
 MAPPER_UI_URL="http://127.0.0.1:8501"
+UI_V2_URL="http://127.0.0.1:8503"
+ENHANCED_UI_URL="http://127.0.0.1:8503"
 HEALTH_TIMEOUT=45
 
 # PID files
@@ -73,6 +77,8 @@ MAPPER_PID="$PID_DIR/mapper_llama.pid"
 GATEWAY_PID="$PID_DIR/gateway.pid"
 UI_PID="$PID_DIR/gateway_ui.pid"
 MAPPER_UI_PID="$PID_DIR/mapper_ui.pid"
+UI_V2_PID="$PID_DIR/gateway_ui_v2.pid"
+ENHANCED_UI_PID="$PID_DIR/enhanced_ui.pid"
 
 # Log files
 OCR_VLLM_LOG=""
@@ -81,6 +87,8 @@ MAPPER_LOG=""
 GATEWAY_LOG=""
 UI_LOG=""
 MAPPER_UI_LOG=""
+UI_V2_LOG=""
+ENHANCED_UI_LOG=""
 
 # Track started services for foreground cleanup
 STARTED_PIDS=()
@@ -132,8 +140,9 @@ parse_args() {
   ARGS=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --with-ui)       WITH_UI=true; shift ;;
-      --with-mapper-ui) WITH_MAPPER_UI=true; shift ;;
+      --with-ui)            WITH_UI=true; shift ;;
+      --with-mapper-ui)     WITH_MAPPER_UI=true; shift ;;
+      --with-enhanced-ui)   WITH_ENHANCED_UI=true; shift ;;
       --foreground)    FOREGROUND=true; shift ;;
       --no-color)      NO_COLOR=true; shift ;;
       --tail)          TAIL_LINES="$2"; shift 2 ;;
@@ -153,6 +162,7 @@ parse_args() {
   GATEWAY_LOG="$LOG_DIR/gateway.log"
   UI_LOG="$LOG_DIR/gateway_ui.log"
   MAPPER_UI_LOG="$LOG_DIR/mapper_ui.log"
+  ENHANCED_UI_LOG="$LOG_DIR/enhanced_ui.log"
 }
 
 ###############################################################################
@@ -490,12 +500,46 @@ start_mapper_ui() {
   fi
 }
 
+start_enhanced_ui() {
+  banner "Enhanced Command Center UI"
+
+  kill_port_listener 8503 "Enhanced UI"
+
+  local ui_file="$ROOT_DIR/gateway/ui_v2.py"
+  if [[ ! -f "$ui_file" ]]; then
+    log FAIL "Enhanced UI script not found: $ui_file"
+    return 1
+  fi
+
+  log STEP "Starting Enhanced UI on port 8503 (FastAPI) ..."
+  setsid bash -c "cd '$ROOT_DIR/gateway' && exec python3 ui_v2.py" > "$ENHANCED_UI_LOG" 2>&1 &
+  sleep 2
+  local ui_pid
+  ui_pid="$(pgrep -f "python3 ui_v2.py" | head -1)"
+  if [[ -n "$ui_pid" ]]; then
+    echo "$ui_pid" > "$ENHANCED_UI_PID"
+    STARTED_PIDS+=("$ui_pid")
+    log OK "Enhanced UI started (pid=$ui_pid, log=$ENHANCED_UI_LOG)"
+  else
+    log FAIL "Enhanced UI failed to start. Check logs: $ENHANCED_UI_LOG"
+    return 1
+  fi
+  sleep 2
+
+  if curl -fsS "http://127.0.0.1:8503/" >/dev/null 2>&1; then
+    log DONE "Enhanced UI is ready on http://0.0.0.0:8503"
+  else
+    log WARN "Enhanced UI did not respond yet. Check logs: $ENHANCED_UI_LOG"
+  fi
+}
+
 ###############################################################################
 # Commands
 ###############################################################################
 cmd_stop() {
   banner "Stopping All Services"
 
+  stop_service "Enhanced UI" "$ENHANCED_UI_PID"
   stop_service "Pipeline UI" "$UI_PID"
   stop_service "Mapper UI" "$MAPPER_UI_PID"
   stop_service "Gateway" "$GATEWAY_PID"
@@ -515,6 +559,7 @@ cmd_status() {
   print_status "Gateway FastAPI"    "$GATEWAY_PID"   "$GATEWAY_URL"
   print_status "Pipeline UI"        "$UI_PID"        "$UI_URL"
   print_status "Mapper UI"          "$MAPPER_UI_PID" "$MAPPER_UI_URL"
+  print_status "Enhanced UI"        "$ENHANCED_UI_PID" "$ENHANCED_UI_URL"
 
   echo ""
   log INFO "Log directory: $LOG_DIR"
@@ -556,10 +601,15 @@ cmd_logs() {
       touch "$UI_LOG"
       tail -n 80 -f "$UI_LOG"
       ;;
+    enhanced-ui)
+      log INFO "Tailing Enhanced UI logs (Ctrl+C to exit)"
+      touch "$ENHANCED_UI_LOG"
+      tail -n 80 -f "$ENHANCED_UI_LOG"
+      ;;
     all|*)
       log INFO "Tailing all logs (Ctrl+C to exit)"
-      touch "$OCR_VLLM_LOG" "$OCR_API_LOG" "$MAPPER_LOG" "$GATEWAY_LOG" "$UI_LOG" "$MAPPER_UI_LOG"
-      tail -n 80 -f "$OCR_VLLM_LOG" "$OCR_API_LOG" "$MAPPER_LOG" "$GATEWAY_LOG" "$UI_LOG" "$MAPPER_UI_LOG"
+      touch "$OCR_VLLM_LOG" "$OCR_API_LOG" "$MAPPER_LOG" "$GATEWAY_LOG" "$UI_LOG" "$MAPPER_UI_LOG" "$ENHANCED_UI_LOG"
+      tail -n 80 -f "$OCR_VLLM_LOG" "$OCR_API_LOG" "$MAPPER_LOG" "$GATEWAY_LOG" "$UI_LOG" "$MAPPER_UI_LOG" "$ENHANCED_UI_LOG"
       ;;
   esac
 }
@@ -632,6 +682,13 @@ for dep, state in deps.items():
     log OK "Mapper UI: OK"
   else
     log INFO "Mapper UI: NOT RUNNING"
+  fi
+
+  log STEP "Checking Enhanced UI ($ENHANCED_UI_URL)..."
+  if curl -fsS "$ENHANCED_UI_URL" >/dev/null 2>&1; then
+    log OK "Enhanced UI: OK"
+  else
+    log INFO "Enhanced UI: NOT RUNNING"
   fi
 
   echo ""
@@ -726,6 +783,11 @@ cmd_all() {
     start_mapper_ui || failures=$((failures + 1))
   fi
 
+  # Optional: Enhanced UI
+  if [[ "$WITH_ENHANCED_UI" == true ]]; then
+    start_enhanced_ui || failures=$((failures + 1))
+  fi
+
   echo ""
   if [[ $failures -eq 0 ]]; then
     log DONE "Full pipeline started successfully"
@@ -735,8 +797,9 @@ cmd_all() {
     log INFO "  Mapper:        http://127.0.0.1:8070"
     log INFO "  Gateway API:   http://127.0.0.1:8001"
     log INFO "  Gateway Docs:  http://127.0.0.1:8001/docs"
-    [[ "$WITH_UI" == true ]] && log INFO "  Pipeline UI:   http://127.0.0.1:8502"
-    [[ "$WITH_MAPPER_UI" == true ]] && log INFO "  Mapper UI:     http://127.0.0.1:8501"
+    [[ "$WITH_UI" == true ]] && log INFO "  Pipeline UI:       http://127.0.0.1:8502"
+    [[ "$WITH_MAPPER_UI" == true ]] && log INFO "  Mapper UI:         http://127.0.0.1:8501"
+    [[ "$WITH_ENHANCED_UI" == true ]] && log INFO "  Enhanced UI:       http://127.0.0.1:8503"
     echo ""
     log INFO "Commands:"
     log INFO "  ./run.sh status   - Check service status"
@@ -790,6 +853,7 @@ Commands:
   gateway         Start Gateway API (FastAPI)
   ui              Start Pipeline UI (Streamlit)
   mapper-ui       Start Mapper testing UI (Streamlit)
+  enhanced-ui     Start Enhanced Command Center UI (FastAPI, port 8503)
   all             Start full pipeline: OCR + Mapper + Gateway
   stop            Stop all managed services
   restart         Stop then start all services
@@ -803,15 +867,17 @@ Commands:
 
 Options:
   --with-ui         Also start the pipeline Streamlit UI (for 'all')
-  --with-mapper-ui  Also start the Mapper Streamlit UI (for 'all')
-  --foreground      Run in foreground, Ctrl+C stops all (for 'all')
+  --with-mapper-ui     Also start the Mapper Streamlit UI (for 'all')
+  --with-enhanced-ui   Also start the Enhanced Command Center UI (for 'all')
+  --foreground         Run in foreground, Ctrl+C stops all (for 'all')
   --no-color        Disable colored output
   --log-dir DIR     Override log directory
   --tail N          Show last N log lines on startup
 
 Examples:
-  ./run.sh all --with-ui --foreground     # Start everything, block terminal
-  ./run.sh ocr                             # Start only OCR
+  ./run.sh all --with-ui --foreground           # Start everything, block terminal
+  ./run.sh all --with-enhanced-ui --foreground  # Start everything + enhanced UI
+  ./run.sh ocr                                   # Start only OCR
   ./run.sh status                          # Check what's running
   ./run.sh health                          # Verify all services respond
   ./run.sh logs gateway                    # Watch gateway logs only
@@ -843,6 +909,9 @@ case "$COMMAND" in
     ;;
   mapper-ui)
     start_mapper_ui
+    ;;
+  enhanced-ui)
+    start_enhanced_ui
     ;;
   all)
     cmd_all

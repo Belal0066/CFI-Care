@@ -54,6 +54,10 @@ class GatewaySettings:
     mapper_stage_timeout_sec: int = 600
     downstream_stage_timeout_sec: int = 60
     default_correlation_prefix: str = "job"
+    nodejs_callback_url: str = "http://127.0.0.1:3000/v1/internal/jobs/callback"
+    internal_secret: str = "high_performance_cluster_secure_token_abc123"
+    callback_retry_max: int = 3
+    callback_retry_backoff: float = 1.0
 
     @classmethod
     def from_env(cls) -> "GatewaySettings":
@@ -100,6 +104,12 @@ class GatewaySettings:
                 os.getenv("DOC2FHIR_GATEWAY_DOWNSTREAM_STAGE_TIMEOUT_SEC", str(cls.downstream_stage_timeout_sec))
             ),
             default_correlation_prefix=os.getenv("DOC2FHIR_GATEWAY_CORRELATION_PREFIX", cls.default_correlation_prefix),
+            nodejs_callback_url=os.getenv("DOC2FHIR_NODEJS_CALLBACK_URL", cls.nodejs_callback_url),
+            internal_secret=os.getenv("DOC2FHIR_INTERNAL_SECRET", cls.internal_secret),
+            callback_retry_max=int(os.getenv("DOC2FHIR_CALLBACK_RETRY_MAX", str(cls.callback_retry_max))),
+            callback_retry_backoff=float(
+                os.getenv("DOC2FHIR_CALLBACK_RETRY_BACKOFF", str(cls.callback_retry_backoff))
+            ),
         )
 
     def ensure_directories(self) -> None:

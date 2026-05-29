@@ -256,18 +256,30 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
         return payload
 
     @app.post(
-        "/v1/document/upload",
+        "/v1/documents/upload",
         tags=["Documents"],
         response_model=UploadDocumentResponse,
         responses={400: {"model": ErrorResponse}, 413: {"model": ErrorResponse}, 415: {"model": ErrorResponse}},
     )
     async def upload_document(
         file: UploadFile = File(...),
+        patient_id: str | None = Form(default=None),
+        pdf_id: str | None = Form(default=None),
+        upload_time: str | None = Form(default=None),
         metadata: str | None = Form(default=None),
         correlation_id: str | None = Form(default=None),
         repo: JobRepository = Depends(get_repository),
     ):
         payload = _sanitize_metadata(metadata)
+        doc_meta = {}
+        if patient_id:
+            doc_meta["patient_id"] = patient_id
+        if pdf_id:
+            doc_meta["pdf_id"] = pdf_id
+        if upload_time:
+            doc_meta["upload_time"] = upload_time
+        payload = {**doc_meta, **payload}
+
         if file.filename is None:
             raise HTTPException(status_code=400, detail="Upload is missing a filename.")
 
@@ -314,14 +326,46 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
             created_at=job.created_at,
         )
 
+    @app.post(
+        "/v1/document/upload",
+        tags=["Documents"],
+        include_in_schema=False,
+        response_model=UploadDocumentResponse,
+        responses={400: {"model": ErrorResponse}, 413: {"model": ErrorResponse}, 415: {"model": ErrorResponse}},
+    )
+    async def upload_document_legacy(
+        file: UploadFile = File(...),
+        metadata: str | None = Form(default=None),
+        correlation_id: str | None = Form(default=None),
+        repo: JobRepository = Depends(get_repository),
+    ):
+        return await upload_document(
+            file=file,
+            patient_id=None,
+            pdf_id=None,
+            upload_time=None,
+            metadata=metadata,
+            correlation_id=correlation_id,
+            repo=repo,
+        )
+
     @app.get(
-        "/v1/document/status/{job_id}",
+        "/v1/documents/{job_id}/status",
         tags=["Documents"],
         response_model=JobStatusResponse,
         responses={404: {"model": ErrorResponse}},
     )
-    async def get_document_status(job_id: str, repo: JobRepository = Depends(get_repository)):
+    async def get_document_status(
+        job_id: str,
+        request: Request,
+        repo: JobRepository = Depends(get_repository),
+    ):
         job = repo.get_job_by_id(job_id)
+
+        internal_secret = request.headers.get("X-Internal-Secret")
+        if internal_secret and internal_secret != settings.internal_secret:
+            raise HTTPException(status_code=403, detail="Invalid X-Internal-Secret")
+
         return JobStatusResponse(
             job_id=job.job_id,
             state=job.state,
@@ -337,6 +381,20 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
             correlation_id=job.correlation_id,
             metadata=job.metadata,
         )
+
+    @app.get(
+        "/v1/document/status/{job_id}",
+        tags=["Documents"],
+        include_in_schema=False,
+        response_model=JobStatusResponse,
+        responses={404: {"model": ErrorResponse}},
+    )
+    async def get_document_status_legacy(
+        job_id: str,
+        request: Request,
+        repo: JobRepository = Depends(get_repository),
+    ):
+        return await get_document_status(job_id=job_id, request=request, repo=repo)
 
     @app.post(
         "/v1/document/sqs/ingest",
@@ -422,7 +480,7 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
         )
 
     @app.get(
-        "/v1/document/result/{job_id}",
+        "/v1/documents/{job_id}/result",
         tags=["Documents"],
         responses={404: {"model": ErrorResponse}},
     )
@@ -473,6 +531,15 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
             "fhir_validation": validation,
             "stage_metrics": stage_metrics,
         }
+
+    @app.get(
+        "/v1/document/result/{job_id}",
+        tags=["Documents"],
+        include_in_schema=False,
+        responses={404: {"model": ErrorResponse}},
+    )
+    async def get_document_result_legacy(job_id: str, repo: JobRepository = Depends(get_repository)):
+        return await get_document_result(job_id=job_id, repo=repo)
 
     @app.post(
         "/v1/document/{job_id}/push-to-hapi",

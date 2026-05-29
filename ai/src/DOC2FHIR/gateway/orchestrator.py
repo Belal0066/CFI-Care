@@ -15,6 +15,7 @@ from .adapters.downstream import DownstreamAdapter, DownstreamError
 from .adapters.mapper import MapperAdapter, MapperError
 from .adapters.ocr import OCRAdapter, OCRError
 from .adapters.hapi_fhir import HapiFhirDownstreamAdapter, HapiFhirDownstreamError
+from .adapters.callback import NodeJsCallbackAdapter
 from .config import GatewaySettings
 from .doc_classifier import DocumentTypeClassifier
 from .fhir_validator import FhirValidator
@@ -22,7 +23,7 @@ from .structured_extractor import StructuredExtractor
 from .structured_pipeline import StructuredPipeline, StructuredPipelineError
 from .terminology_client import TerminologyClient
 from .safety_logger import SafetyLogger
-from .models import JobStatus
+from .models import CallbackErrorPayload, JobStatus
 from .observability import StructuredLogger, record_job_error, record_job_metric
 from .repository import JobRepository, JobNotFoundError
 
@@ -52,6 +53,7 @@ class JobOrchestrator:
         ocr_adapter: Optional[OCRAdapter] = None,
         mapper_adapter: Optional[MapperAdapter] = None,
         downstream_adapter: Optional[DownstreamAdapter | HapiFhirDownstreamAdapter] = None,
+        callback_adapter: Optional[NodeJsCallbackAdapter] = None,
     ):
         """Initialize orchestrator.
 
@@ -61,6 +63,7 @@ class JobOrchestrator:
             ocr_adapter: Optional custom OCR adapter
             mapper_adapter: Optional custom Mapper adapter
             downstream_adapter: Optional custom Downstream adapter (Node.js or HAPI FHIR)
+            callback_adapter: Optional Node.js callback adapter
         """
         self.repository = repository
         self.settings = settings
@@ -75,6 +78,13 @@ class JobOrchestrator:
         dead_letter_dir = settings.runtime_dir / "dead_letters"
         self.downstream_adapter = downstream_adapter or self._build_downstream_adapter(
             settings, str(dead_letter_dir),
+        )
+        self.callback_adapter = callback_adapter or NodeJsCallbackAdapter(
+            callback_url=settings.nodejs_callback_url,
+            internal_secret=settings.internal_secret,
+            max_retries=settings.callback_retry_max,
+            backoff_base=settings.callback_retry_backoff,
+            dead_letter_dir=str(dead_letter_dir),
         )
         self._gpu_semaphore = asyncio.Semaphore(max(1, settings.gpu_max_concurrency))
 
@@ -230,6 +240,12 @@ class JobOrchestrator:
             record_job_metric(job_id, "end_to_end", elapsed_sec)
             log.info("Job processing completed", elapsed_sec=elapsed_sec)
 
+            asyncio.create_task(self._fire_callback(
+                job_id=job_id,
+                status="COMPLETED",
+                log=log,
+            ))
+
         except ServerBusyError as exc:
             log.warning("Job delayed due to GPU contention", detail=str(exc))
             record_job_error(job_id, "server_busy")
@@ -251,6 +267,13 @@ class JobOrchestrator:
                 error_message=str(exc),
                 finished_at=datetime.now(timezone.utc).isoformat(),
             )
+            asyncio.create_task(self._fire_callback(
+                job_id=job_id,
+                status="FAILED",
+                error_code="stage_timeout",
+                error_message=str(exc),
+                log=log,
+            ))
         except asyncio.TimeoutError:
             timeout = self.settings.downstream_stage_timeout_sec
             log.error("Downstream stage timeout", timeout_sec=timeout)
@@ -263,6 +286,13 @@ class JobOrchestrator:
                 error_message=f"downstream exceeded timeout of {timeout}s",
                 finished_at=datetime.now(timezone.utc).isoformat(),
             )
+            asyncio.create_task(self._fire_callback(
+                job_id=job_id,
+                status="FAILED",
+                error_code="stage_timeout",
+                error_message=f"downstream exceeded timeout of {timeout}s",
+                log=log,
+            ))
         except JobNotFoundError:
             log.error(f"Job not found during processing")
             raise
@@ -273,6 +303,14 @@ class JobOrchestrator:
             current_job = self.repository.get_job_by_id(job_id)
             if current_job.state not in {JobStatus.FAILED, JobStatus.SERVER_BUSY, JobStatus.COMPLETED}:
                 self._handle_job_error(job_id, exc, log)
+
+            asyncio.create_task(self._fire_callback(
+                job_id=job_id,
+                status="FAILED",
+                error_code=current_job.error_code or type(exc).__name__,
+                error_message=current_job.error_message or str(exc)[:500],
+                log=log,
+            ))
 
     async def _run_gpu_bound_stage(
         self,
@@ -603,6 +641,41 @@ class JobOrchestrator:
             )
         except Exception as db_error:
             log.error("Failed to update job with error", exception=db_error)
+
+    async def _fire_callback(
+        self,
+        job_id: str,
+        status: str,
+        error_code: str | None = None,
+        error_message: str | None = None,
+        log: StructuredLogger | None = None,
+    ) -> None:
+        """Fire a job status callback to the Node.js backend (fire-and-forget).
+
+        This is non-blocking from the orchestrator's perspective.
+        If the callback adapter is disabled (empty URL), this is a no-op.
+        """
+        if log is None:
+            log = StructuredLogger(logger, correlation_id=job_id)
+        if not self.settings.nodejs_callback_url:
+            return
+        try:
+            error_payload = None
+            if error_code:
+                error_payload = CallbackErrorPayload(code=error_code, message=error_message or "")
+            result = await self.callback_adapter.send(
+                job_id=job_id,
+                status=status,
+                completed_at=datetime.now(timezone.utc).isoformat(),
+                error=error_payload,
+            )
+            if not result.success:
+                log.warning(
+                    "Callback delivery failed for job %s: HTTP %s — %s",
+                    job_id, result.status_code, result.error,
+                )
+        except Exception as exc:
+            log.error("Callback adapter threw for job %s: %s", job_id, exc)
 
     @staticmethod
     def _attach_pdf_to_bundle(
