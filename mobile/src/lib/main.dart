@@ -13,6 +13,7 @@ import 'presentation/viewmodels/document_provider.dart';
 import 'presentation/viewmodels/vitals_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 import 'domain/repository/major_event_repo.dart';
 import 'presentation/viewmodels/major_event_provider.dart';
 import 'domain/repository/vitals_repository_impl.dart';
@@ -32,7 +33,7 @@ import 'presentation/viewmodels/patient_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print("Handling a background message: ${message.messageId}");
 }
 
@@ -43,7 +44,7 @@ void main() async {
   MediaStore.appFolder = 'CFICareDocs';
 
   // Initialize Firebase and Messaging (From Mobile-New-Branch-Merge)
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize Authentication (From HEAD)

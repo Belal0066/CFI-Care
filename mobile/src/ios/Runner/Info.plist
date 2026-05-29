@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>CFI-Care requires camera access to scan medical documents.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CFI-Care requires photo library access to upload existing medical documents.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>CFI-Care needs to read health data to display your vitals.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>CFI-Care needs to write health data to update your vitals.</string>
 </dict>
 </plist>
