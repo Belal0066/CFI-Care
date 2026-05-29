@@ -1,0 +1,8 @@
+{
+  "code": "job_not_found",
+  "message": "Job not found: job_4fa6b2111da2496ab284cc81da310ff2",
+  "details": {
+    "job_id": "job_4fa6b2111da2496ab284cc81da310ff2"
+  },
+  "request_id": null
+}
