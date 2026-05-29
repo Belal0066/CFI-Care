@@ -100,7 +100,17 @@ const getPractitionerRoleById = async (req, res) => {
 const updatePractitionerRole = async (req, res) => {
   try {
     const { id } = req.params;
+    const requesterId = req.jwt?.sub;
     const practitionerRoleData = req.body;
+
+    // Verify the role belongs to the requesting practitioner (only when reference is present)
+    const existingRole = await practitionerRoleService.getPractitionerRoleById(id);
+    const practitionerRef = existingRole.practitioner?.reference || "";
+    const roleOwnerId = practitionerRef.split("/").pop();
+    if (requesterId && roleOwnerId && roleOwnerId !== requesterId) {
+      return res.status(403).json({ error: "Forbidden: resource does not belong to this subject" });
+    }
+
     const updatedPractitionerRole =
       await practitionerRoleService.updatePractitionerRole(
         id,
