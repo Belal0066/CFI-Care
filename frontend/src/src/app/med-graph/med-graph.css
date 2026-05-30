@@ -18,6 +18,65 @@ header {
 }
 
 
+.ai-toggle-btn {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transition: right 0.25s ease, width 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transform: translateY(-50%);
+  z-index: 200;
+  width: 36px;
+  height: 72px;
+  border: none;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(160deg, #1A6FC4 0%, #2B8EF0 100%);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: -3px 0 12px rgba(27, 111, 196, 0.3);
+  transition: width 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+}
+
+.graph-page.chat-open .ai-toggle-btn {
+  right: calc(40% - 1px);
+}
+
+.graph-page:not(.chat-open) .ai-toggle-btn {
+  right: 0;
+}
+
+.ai-toggle-btn:hover {
+  width: 44px;
+  box-shadow: -4px 0 16px rgba(27, 111, 196, 0.45);
+}
+
+.ai-toggle-btn.active {
+  background: linear-gradient(160deg, #0F4C8A 0%, #1A6FC4 100%);
+}
+
+.ai-toggle-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-toggle-inner i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.ai-toggle-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+
 .logo-section {
     display: flex;
     align-items: center;
