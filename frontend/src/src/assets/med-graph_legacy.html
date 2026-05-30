@@ -844,6 +844,13 @@
     </div>
 
     <div class="controls-section">
+
+      <button class="btn btn-secondary" id="dashboardBtn" onclick="window.parent.postMessage({type:'NAVIGATE', path:'/dashboard'}, '*')">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+      </button>
+
+      <div class="divider" style="height: 16px;"></div>
+
       <button class="btn btn-secondary" id="filterToggleBtn">
         <i class="fa-solid fa-filter"></i> Filters
       </button>
@@ -857,18 +864,10 @@
         <i class="fa-solid fa-trash"></i> Delete Node
       </button>
 
+
       <div class="divider" style="height: 16px;"></div>
 
-      <button class="btn btn-secondary" id="exportJsonBtn">
-        <i class="fa-solid fa-file-arrow-down"></i> Export JSON
-      </button>
-      <button class="btn btn-secondary" id="exportPdfBtn">
-        <i class="fa-solid fa-file-pdf"></i> Export PDF
-      </button>
-      <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
-        <i class="fa-solid fa-file-arrow-up"></i> Import
-        <input type="file" id="importFileInput" accept=".json" style="display:none;">
-      </label>
+      
 
       <div class="toggle-group">
         <button class="toggle-btn active">Categorical</button>
@@ -1068,11 +1067,38 @@
     let endDate = null;
     let selectedCategories = Object.keys(CATEGORY_COLORS);
 
-    let data = []; //global data variable to work with iframe integration
-    let graphInitialized = false;
+    // let data = []; //global data variable to work with iframe integration
+
+    //mock
+
+    let data = [
+  { id: "1", text_1: "Initial Consultation", father: null, category: "Consultation", priority: "Medium", normality: "Normal", dateIssued: "2024-01-10", details: "Patient presents with chest pain and shortness of breath." },
+  { id: "2", text_1: "CBC Blood Test", father: "1", category: "Lab", priority: "High", normality: "Abnormal", dateIssued: "2024-01-11", details: "WBC elevated at 14.2. Hemoglobin low at 9.8 g/dL." },
+  { id: "3", text_1: "Chest X-Ray", father: "1", category: "Imaging", priority: "High", normality: "Abnormal", dateIssued: "2024-01-11", details: "Mild cardiomegaly noted. No pneumothorax." },
+  { id: "4", text_1: "Cardiology Referral", father: "1", category: "Consultation", priority: "High", normality: "Normal", dateIssued: "2024-01-12", details: "Referred to Dr. Hassan for cardiac evaluation." },
+  { id: "5", text_1: "Cardiac Diagnosis", father: "4", category: "Consultation", priority: "High", normality: "Abnormal", dateIssued: "2024-01-14", details: "Dilated cardiomyopathy confirmed.", isDiagnosis: true, isManualBranch: true, branchState: "in_progress" },
+  { id: "6", text_1: "Echo Cardiogram", father: "5", category: "Imaging", priority: "High", normality: "Abnormal", dateIssued: "2024-01-15", details: "EF 35%. Significant left ventricular dilation." },
+  { id: "7", text_1: "Beta Blockers", father: "5", category: "Prescription", priority: "Medium", normality: "Normal", dateIssued: "2024-01-16", details: "Metoprolol 50mg twice daily prescribed." },
+  { id: "8", text_1: "Penicillin Allergy", father: "1", category: "Allergy", priority: "High", normality: "Abnormal", dateIssued: "2024-01-10", details: "Documented severe allergy to penicillin-class antibiotics." },
+  { id: "9", text_1: "Lipid Panel", father: "2", category: "Lab", priority: "Medium", normality: "Abnormal", dateIssued: "2024-01-13", details: "LDL 180 mg/dL. Total cholesterol 240 mg/dL." },
+  { id: "10", text_1: "Statin Prescription", father: "9", category: "Prescription", priority: "Medium", normality: "Normal", dateIssued: "2024-01-14", details: "Atorvastatin 40mg nightly." },
+  { id: "11", text_1: "2-Week Follow Up", father: "5", category: "FollowUp", priority: "Medium", normality: "Normal", dateIssued: "2024-01-28", details: "Patient reports mild improvement. Fatigue reduced." },
+  { id: "12", text_1: "AI Risk Assessment", father: "1", category: "AISuggestion", priority: "Medium", normality: "Pending", dateIssued: "2024-01-12", details: "AI suggests 68% probability of cardiac event within 6 months based on current labs." }
+];
+
+    //mock
+
+    // let graphInitialized = false;
+
+    //mock
+    let graphInitialized = true;
+    //mock
     let refreshGraph = null;
     let patientId = null;
     let eocId = null;
+
+    let startTutorial = null;
+    let endTutorial = null;
 
     // Store pending operations for rollback
     let pendingEdits = new Map();
@@ -1090,6 +1116,14 @@
       }
       window.parent.postMessage(message, "*");
     }
+
+    //mock
+    initializeGraph();
+    //mock
+
+    document.getElementById("tutorialHelpBtn").onclick = function() {
+      if (typeof startTutorial === 'function') startTutorial();
+    };
 
     //Handlers for communication with angular components 
     window.addEventListener("message", (event) => {
@@ -2418,7 +2452,7 @@
           if (positions.length === 0) return;
 
           const minX = Math.min(...positions.map(p => p.x));
-          const maxX = Math.max(...positions.map(p => p.x));
+          const maxX = Math.max(...positions.map(p => p.x), minX + 60);
           const branchY = positions[0].y;
 
           const starterNode = data.find(d => d.id === branchStartId);
@@ -2767,15 +2801,63 @@
           .filter(l => l !== null);
 
         container.selectAll(".timeline-link")
-          .data(links)
-          .enter().append("path")
-          .attr("class", "timeline-link divergence-link")
-          .attr("d", d => generateLinkPath(d))
-          .style("fill", "none")
-          .style("stroke", d => d.color)
-          .style("stroke-width", d => d.width)
-          .style("opacity", 0.9);
-      }
+  .data(links)
+  .enter().append("path")
+  .attr("class", "timeline-link divergence-link")
+  .attr("d", d => generateLinkPath(d))
+  .style("fill", "none")
+  .style("stroke", d => d.color)
+  .style("stroke-width", d => d.width)
+  .style("opacity", 0.9);
+
+// Invisible fat hit-area paths for branch divergence links
+// For each branch link, draw both a fat path AND a bounding rect as hit areas
+const branchLinks = links.filter(l => l.isBranch);
+
+// Attach branchStarterId to each link datum before drawing
+branchLinks.forEach(l => {
+  const chronologicalData = getChronologicalData(data);
+  const branchStarter = chronologicalData.find(n => {
+    const pos = nodePositions.get(n.id);
+    return pos && pos.x === l.target.x && pos.y === l.target.y && n.laneId > 0;
+  });
+  l._branchStarterId = branchStarter ? branchStarter.id : null;
+});
+
+function handleBranchLinkClick(event, d) {
+  event.stopPropagation();
+  if (!d._branchStarterId) return;
+  const starterNode = data.find(nd => nd.id === d._branchStarterId);
+  if (!starterNode) return;
+  openBranchStateMenu(starterNode.id, event.pageX, event.pageY, starterNode.branchState || "in_progress");
+}
+
+// Fat transparent path hit area
+container.selectAll(".timeline-link-hitarea")
+  .data(branchLinks)
+  .enter().append("path")
+  .attr("class", "timeline-link-hitarea")
+  .attr("d", d => generateLinkPath(d))
+  .style("fill", "none")
+  .style("stroke", "transparent")
+  .style("stroke-width", "20px")
+  .style("stroke-linecap", "round")
+  .style("cursor", "pointer")
+  .on("click", handleBranchLinkClick);
+
+// Invisible rect covering the bounding box of each branch link as additional hit zone
+container.selectAll(".timeline-link-hitbox")
+  .data(branchLinks)
+  .enter().append("rect")
+  .attr("class", "timeline-link-hitbox")
+  //   .attr("x", d => Math.min(d.source.x, d.target.x) - 10)
+  // .attr("y", d => Math.min(d.source.y, d.target.y) - 10)
+  // .attr("width", d => Math.max(Math.abs(d.target.x - d.source.x) + 20, 60))
+  // .attr("height", d => Math.abs(d.target.y - d.source.y) + 20)
+  .style("fill", "transparent")
+  .style("cursor", "pointer")
+  .on("click", handleBranchLinkClick);      
+}
 
       function generateLinkPath(link) {
         const { source, target } = link;
@@ -2785,9 +2867,11 @@
         const targetLane = target.laneId;
 
         if (sourceLane !== targetLane) {
-          const midX = (source.x + target.x) / 2;
+          const horizontalSpan = Math.abs(target.x - source.x);
+          const controlOffset = Math.max(horizontalSpan / 2, 80);
+          const midX = source.x + controlOffset;
           return `M${source.x} ${sourceY} 
-                    C${midX} ${sourceY}, ${midX} ${targetY}, ${target.x} ${targetY}`;
+                            C${midX} ${sourceY}, ${midX} ${targetY}, ${target.x} ${targetY}`;
         }
 
         const midX = (source.x + target.x) / 2;
@@ -3438,7 +3522,7 @@
         document.getElementById('moonIcon').style.display = 'block';
       }
 
-      darkModeToggle.addEventListener('click', () => {
+      darkModeToggle.onclick = () => {
         body.classList.toggle('dark-mode');
 
         const sunIcon = document.getElementById('sunIcon');
@@ -3457,445 +3541,697 @@
         if (currentMode === 'chronological') {
           renderChronologicalGraph();
         }
-      });
+      };
 
       // === EXPORT / IMPORT ===
 
-      document.getElementById("exportJsonBtn").addEventListener("click", () => {
-        const exportData = data.map(n => ({
-          id: n.id,
-          text_1: n.text_1,
-          father: n.father,
-          category: n.category,
-          priority: n.priority,
-          normality: n.normality,
-          dateIssued: n.dateIssued,
-          details: n.details,
-          isDiagnosis: n.isDiagnosis || false,
-          isManualBranch: n.isManualBranch || false
-        }));
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `medflow-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      });
+    //   document.getElementById("exportJsonBtn").addEventListener("click", () => {
+    //     const exportData = data.map(n => ({
+    //       id: n.id,
+    //       text_1: n.text_1,
+    //       father: n.father,
+    //       category: n.category,
+    //       priority: n.priority,
+    //       normality: n.normality,
+    //       dateIssued: n.dateIssued,
+    //       details: n.details,
+    //       isDiagnosis: n.isDiagnosis || false,
+    //       isManualBranch: n.isManualBranch || false
+    //     }));
+    //     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    //     const url = URL.createObjectURL(blob);
+    //     const a = document.createElement("a");
+    //     a.href = url;
+    //     a.download = `medflow-${new Date().toISOString().slice(0, 10)}.json`;
+    //     a.click();
+    //     URL.revokeObjectURL(url);
+    //   });
 
-      document.getElementById("exportPdfBtn").addEventListener("click", async () => {
-        if (currentMode !== 'chronological') {
-          alert("PDF export is only available in Chronological view. Please switch to Chronological first.");
-          return;
-        }
+    //   document.getElementById("exportPdfBtn").addEventListener("click", async () => {
+    //     if (currentMode !== 'chronological') {
+    //       alert("PDF export is only available in Chronological view. Please switch to Chronological first.");
+    //       return;
+    //     }
 
-        const svgEl = document.querySelector("#tree svg");
-        if (!svgEl) { alert("Nothing to export."); return; }
+    //     const svgEl = document.querySelector("#tree svg");
+    //     if (!svgEl) { alert("Nothing to export."); return; }
 
-        const loadScript = (src) => new Promise((res, rej) => {
-          if (document.querySelector(`script[src="${src}"]`)) return res();
-          const s = document.createElement("script");
-          s.src = src; s.onload = res; s.onerror = rej;
-          document.head.appendChild(s);
-        });
-        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    //     const loadScript = (src) => new Promise((res, rej) => {
+    //       if (document.querySelector(`script[src="${src}"]`)) return res();
+    //       const s = document.createElement("script");
+    //       s.src = src; s.onload = res; s.onerror = rej;
+    //       document.head.appendChild(s);
+    //     });
+    //     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
 
-        const svgW = parseFloat(svgEl.getAttribute("width")) || 1200;
-        const svgH = parseFloat(svgEl.getAttribute("height")) || 600;
+    //     const svgW = parseFloat(svgEl.getAttribute("width")) || 1200;
+    //     const svgH = parseFloat(svgEl.getAttribute("height")) || 600;
 
-        const clone = svgEl.cloneNode(true);
-        const contentGroup = clone.querySelector(".timeline-content");
-        if (contentGroup) contentGroup.setAttribute("transform", "translate(100, 100)");
+    //     const clone = svgEl.cloneNode(true);
+    //     const contentGroup = clone.querySelector(".timeline-content");
+    //     if (contentGroup) contentGroup.setAttribute("transform", "translate(100, 100)");
 
-        clone.style.background = "#f8fafc";
-        const pdfExtraWidth = mainBranchState === "finish_case" ? 400 : 0;
-        clone.setAttribute("width", svgW + pdfExtraWidth);
-        clone.setAttribute("height", svgH);
-        clone.setAttribute("viewBox", `0 0 ${svgW + pdfExtraWidth} ${svgH}`);
+    //     clone.style.background = "#f8fafc";
+    //     const pdfExtraWidth = mainBranchState === "finish_case" ? 400 : 0;
+    //     clone.setAttribute("width", svgW + pdfExtraWidth);
+    //     clone.setAttribute("height", svgH);
+    //     clone.setAttribute("viewBox", `0 0 ${svgW + pdfExtraWidth} ${svgH}`);
 
-        clone.querySelectorAll("text").forEach(t => {
-          t.setAttribute("fill", "#1e293b");
-          t.style.fill = "#1e293b";
-        });
+    //     clone.querySelectorAll("text").forEach(t => {
+    //       t.setAttribute("fill", "#1e293b");
+    //       t.style.fill = "#1e293b";
+    //     });
 
-        clone.querySelectorAll("line").forEach(el => {
-          const s = el.style.stroke;
-          if (!s || s === "#475569" || s === "rgb(71,85,105)") {
-            el.style.stroke = "#94A3B8";
-          }
-        });
+    //     clone.querySelectorAll("line").forEach(el => {
+    //       const s = el.style.stroke;
+    //       if (!s || s === "#475569" || s === "rgb(71,85,105)") {
+    //         el.style.stroke = "#94A3B8";
+    //       }
+    //     });
 
-        const inlineStyle = document.createElementNS("http://www.w3.org/2000/svg", "style");
-        inlineStyle.textContent = `
-        .chrono-node-title { font-family: Inter, Arial, sans-serif; font-size: 12px; font-weight: 600; color: #1e293b !important; }
-        .chrono-node-date  { font-family: Inter, Arial, sans-serif; font-size: 10px; color: #64748b !important; }
-        .chrono-priority-banner { background: #FEE2E2; color: #991B1B; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
-    `;
-        clone.insertBefore(inlineStyle, clone.firstChild);
+    //     const inlineStyle = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    //     inlineStyle.textContent = `
+    //     .chrono-node-title { font-family: Inter, Arial, sans-serif; font-size: 12px; font-weight: 600; color: #1e293b !important; }
+    //     .chrono-node-date  { font-family: Inter, Arial, sans-serif; font-size: 10px; color: #64748b !important; }
+    //     .chrono-priority-banner { background: #FEE2E2; color: #991B1B; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+    // `;
+    //     clone.insertBefore(inlineStyle, clone.firstChild);
 
-        const pixelRatio = 2;
-        const canvasW = (svgW + pdfExtraWidth) * pixelRatio;
-        const canvasH = svgH * pixelRatio;
+    //     const pixelRatio = 2;
+    //     const canvasW = (svgW + pdfExtraWidth) * pixelRatio;
+    //     const canvasH = svgH * pixelRatio;
 
-        const serializer = new XMLSerializer();
-        const svgStr = serializer.serializeToString(clone);
-        const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-        const svgUrl = URL.createObjectURL(svgBlob);
+    //     const serializer = new XMLSerializer();
+    //     const svgStr = serializer.serializeToString(clone);
+    //     const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+    //     const svgUrl = URL.createObjectURL(svgBlob);
 
-        const img = new Image();
-        img.onload = () => {
-          const srcCanvas = document.createElement("canvas");
-          srcCanvas.width = canvasW;
-          srcCanvas.height = canvasH;
-          const ctx = srcCanvas.getContext("2d");
-          ctx.fillStyle = "#f8fafc";
-          ctx.fillRect(0, 0, canvasW, canvasH);
-          ctx.drawImage(img, 0, 0, canvasW, canvasH);
-          URL.revokeObjectURL(svgUrl);
+    //     const img = new Image();
+    //     img.onload = () => {
+    //       const srcCanvas = document.createElement("canvas");
+    //       srcCanvas.width = canvasW;
+    //       srcCanvas.height = canvasH;
+    //       const ctx = srcCanvas.getContext("2d");
+    //       ctx.fillStyle = "#f8fafc";
+    //       ctx.fillRect(0, 0, canvasW, canvasH);
+    //       ctx.drawImage(img, 0, 0, canvasW, canvasH);
+    //       URL.revokeObjectURL(svgUrl);
 
-          const rotCanvas = document.createElement("canvas");
-          rotCanvas.width = canvasH;
-          rotCanvas.height = canvasW;
-          const rCtx = rotCanvas.getContext("2d");
-          rCtx.fillStyle = "#f8fafc";
-          rCtx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
+    //       const rotCanvas = document.createElement("canvas");
+    //       rotCanvas.width = canvasH;
+    //       rotCanvas.height = canvasW;
+    //       const rCtx = rotCanvas.getContext("2d");
+    //       rCtx.fillStyle = "#f8fafc";
+    //       rCtx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
 
-          rCtx.translate(canvasH, 0);
-          rCtx.rotate(Math.PI / 2);
-          rCtx.drawImage(srcCanvas, 0, 0);
+    //       rCtx.translate(canvasH, 0);
+    //       rCtx.rotate(Math.PI / 2);
+    //       rCtx.drawImage(srcCanvas, 0, 0);
 
-          const { jsPDF } = window.jspdf;
-          const pdfW = rotCanvas.width / pixelRatio;
-          const pdfH = rotCanvas.height / pixelRatio;
+    //       const { jsPDF } = window.jspdf;
+    //       const pdfW = rotCanvas.width / pixelRatio;
+    //       const pdfH = rotCanvas.height / pixelRatio;
 
-          const pdf = new jsPDF({
-            orientation: pdfW > pdfH ? "landscape" : "portrait",
-            unit: "pt",
-            format: [pdfW, pdfH]
-          });
+    //       const pdf = new jsPDF({
+    //         orientation: pdfW > pdfH ? "landscape" : "portrait",
+    //         unit: "pt",
+    //         format: [pdfW, pdfH]
+    //       });
 
-          pdf.addImage(rotCanvas.toDataURL("image/png", 1.0), "PNG", 0, 0, pdfW, pdfH);
-          pdf.save(`medflow-chrono-${new Date().toISOString().slice(0, 10)}.pdf`);
-        };
+    //       pdf.addImage(rotCanvas.toDataURL("image/png", 1.0), "PNG", 0, 0, pdfW, pdfH);
+    //       pdf.save(`medflow-chrono-${new Date().toISOString().slice(0, 10)}.pdf`);
+    //     };
 
-        img.onerror = () => {
-          alert("Could not render the graph. Please try switching to light mode first.");
-        };
+    //     img.onerror = () => {
+    //       alert("Could not render the graph. Please try switching to light mode first.");
+    //     };
 
-        img.src = svgUrl;
-      });
+    //     img.src = svgUrl;
+    //   });
 
-      document.getElementById("importFileInput").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          try {
-            const imported = JSON.parse(ev.target.result);
-            if (!Array.isArray(imported) || imported.length === 0) throw new Error();
+    //   document.getElementById("importFileInput").addEventListener("change", (e) => {
+    //     const file = e.target.files[0];
+    //     if (!file) return;
+    //     const reader = new FileReader();
+    //     reader.onload = (ev) => {
+    //       try {
+    //         const imported = JSON.parse(ev.target.result);
+    //         if (!Array.isArray(imported) || imported.length === 0) throw new Error();
 
-            data.length = 0;
-            imported.forEach(n => data.push(n));
-            expandedNodes.clear();
-            expansionOrder.length = 0;
-            const newRoot = data.find(d => d.father === null);
-            if (newRoot) expandedNodes.add(newRoot.id);
+    //         data.length = 0;
+    //         imported.forEach(n => data.push(n));
+    //         expandedNodes.clear();
+    //         expansionOrder.length = 0;
+    //         const newRoot = data.find(d => d.father === null);
+    //         if (newRoot) expandedNodes.add(newRoot.id);
 
-            document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
-            document.querySelector(".toggle-btn").classList.add("active");
-            currentMode = 'categorical';
-            renderCategoricalGraph();
+    //         document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+    //         document.querySelector(".toggle-btn").classList.add("active");
+    //         currentMode = 'categorical';
+    //         renderCategoricalGraph();
 
-            window.parent.postMessage({ type: "IMPORT_GRAPH", nodes: imported }, "*");
-          } catch {
-            alert("Invalid file. Please import a MedFlow JSON export.");
-          }
-        };
-        reader.readAsText(file);
-        e.target.value = "";
-      });
+    //         window.parent.postMessage({ type: "IMPORT_GRAPH", nodes: imported }, "*");
+    //       } catch {
+    //         alert("Invalid file. Please import a MedFlow JSON export.");
+    //       }
+    //     };
+    //     reader.readAsText(file);
+    //     e.target.value = "";
+    //   });
 
 
       // ============================================================
       // TUTORIAL SYSTEM
       // ============================================================
-      const TUTORIAL_STEPS = [
-        {
-          title: "Welcome to MedFlow Graph",
-          body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
-          target: null,
-          cardPos: "center"
-        },
-        {
-          title: "The Patient Journey Tree",
-          body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.", target: "#tree",
-          cardPos: "right",
-          onEnter: () => {
-            const firstLevelChildren = data.filter(d => d.father === rootNode?.id);
-            firstLevelChildren.forEach(child => {
-              expandedNodes.add(child.id);
-              addAllDescendants(child.id);
-            });
-            refreshGraph();
-          }
-        },
-        {
-          title: "Node Colors and Categories",
-          body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
-          target: "#legend",
-          cardPos: "top"
-        },
-        {
-          title: "High Priority Events",
-          body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
-          target: "#tree",
-          cardPos: "right"
-        },
-        {
-          title: "Expand & Collapse Branches",
-          body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
-          target: null,
-          cardPos: "center",
-          onEnter: () => {
-            setTimeout(() => {
-              const btn = document.querySelector(".expand-trigger");
-              if (!btn) return;
-              let arrow = document.getElementById("tutorial-node-arrow");
-              if (!arrow) {
-                arrow = document.createElement("div");
-                arrow.id = "tutorial-node-arrow";
-                arrow.style.cssText = `
-                    position: fixed;
-                    z-index: 2003;
-                    pointer-events: none;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 4px;
-                    transition: all 0.3s ease;
-                `;
-                arrow.innerHTML = `
-                    <span style="font-size:12px; font-weight:600; color:#3B82F6; background:white; padding:3px 8px; border-radius:4px; border:1px solid #BFDBFE; white-space:nowrap;">
-                        <i class="fa-solid fa-plus" style="font-size:10px;"></i> / <i class="fa-solid fa-minus" style="font-size:10px;"></i> button
-                    </span>
-                    <i class="fa-solid fa-arrow-down" style="color:#3B82F6; font-size:16px; animation: tutBounce 0.8s ease-in-out infinite;"></i>
-                `;
-                document.body.appendChild(arrow);
-                if (!document.getElementById("tutBounceStyle")) {
-                  const s = document.createElement("style");
-                  s.id = "tutBounceStyle";
-                  s.textContent = `@keyframes tutBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }`;
-                  document.head.appendChild(s);
-                }
-              }
-              const r = btn.getBoundingClientRect();
-              arrow.style.top = (r.top - 48) + "px";
-              arrow.style.left = (r.left + r.width / 2 - 37) + "px";
-              arrow.style.display = "flex";
-            }, 200);
-          }
-        },
-        {
-          title: "Adding a Node",
-          body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
-          target: "#addNodeBtn",
-          cardPos: "bottom"
-        },
-        {
-          title: "Deleting a Node",
-          body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
-          target: "#deleteNodeBtn",
-          cardPos: "bottom"
-        },
-        {
-          title: "Chronological View",
-          body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
-          target: ".toggle-group",
-          cardPos: "bottom",
-          onEnter: () => {
-            document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
-            const chronoBtn = Array.from(document.querySelectorAll(".toggle-btn"))
-              .find(b => b.innerText.includes("Chronological"));
-            if (chronoBtn) chronoBtn.classList.add("active");
-            renderChronologicalGraph();
-          }
-        },
-        {
-          title: "Diagnosis Nodes",
-          body: "A diagnosis node: white circle with a red border — starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
-          target: null,
-          cardPos: "diagnosis",
-          onEnter: () => {
-            setTimeout(() => {
-              const diagNode = Array.from(document.querySelectorAll(".node-circle"))
-                .find(el => {
-                  const d3datum = el.__data__;
-                  return d3datum && d3datum.isDiagnosis;
-                });
-              if (!diagNode) return;
+  //     const TUTORIAL_STEPS = [
+  //       {
+  //         title: "Welcome to MedFlow Graph",
+  //         body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
+  //         target: null,
+  //         cardPos: "center"
+  //       },
+  //       {
+  //         title: "The Patient Journey Tree",
+  //         body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.", target: "#tree",
+  //         cardPos: "right",
+  //         onEnter: () => {
+  //           const root = data.find(d => d.father === null);
+  //           if (!root) return;
+  //           const firstLevelChildren = data.filter(d => d.father === root.id);
+  //           firstLevelChildren.forEach(child => {
+  //             expandedNodes.add(child.id);
+  //             addAllDescendants(child.id);
+  //           });
+  //           refreshGraph();
+  //         }
+  //       },
+  //       {
+  //         title: "Node Colors and Categories",
+  //         body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
+  //         target: "#legend",
+  //         cardPos: "top"
+  //       },
+  //       {
+  //         title: "High Priority Events",
+  //         body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
+  //         target: "#tree",
+  //         cardPos: "right"
+  //       },
+  //       {
+  //         title: "Expand & Collapse Branches",
+  //         body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
+  //         target: null,
+  //         cardPos: "center",
+  //         onEnter: () => {
+  //           setTimeout(() => {
+  //             const btn = document.querySelector(".expand-trigger");
+  //             if (!btn) return;
+  //             let arrow = document.getElementById("tutorial-node-arrow");
+  //             if (!arrow) {
+  //               arrow = document.createElement("div");
+  //               arrow.id = "tutorial-node-arrow";
+  //               arrow.style.cssText = `
+  //                   position: fixed;
+  //                   z-index: 2003;
+  //                   pointer-events: none;
+  //                   display: flex;
+  //                   flex-direction: column;
+  //                   align-items: center;
+  //                   gap: 4px;
+  //                   transition: all 0.3s ease;
+  //               `;
+  //               arrow.innerHTML = `
+  //                   <span style="font-size:12px; font-weight:600; color:#3B82F6; background:white; padding:3px 8px; border-radius:4px; border:1px solid #BFDBFE; white-space:nowrap;">
+  //                       <i class="fa-solid fa-plus" style="font-size:10px;"></i> / <i class="fa-solid fa-minus" style="font-size:10px;"></i> button
+  //                   </span>
+  //                   <i class="fa-solid fa-arrow-down" style="color:#3B82F6; font-size:16px; animation: tutBounce 0.8s ease-in-out infinite;"></i>
+  //               `;
+  //               document.body.appendChild(arrow);
+  //               if (!document.getElementById("tutBounceStyle")) {
+  //                 const s = document.createElement("style");
+  //                 s.id = "tutBounceStyle";
+  //                 s.textContent = `@keyframes tutBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }`;
+  //                 document.head.appendChild(s);
+  //               }
+  //             }
+  //             const r = btn.getBoundingClientRect();
+  //             arrow.style.top = (r.top - 48) + "px";
+  //             arrow.style.left = (r.left + r.width / 2 - 37) + "px";
+  //             arrow.style.display = "flex";
+  //           }, 200);
+  //         }
+  //       },
+  //       {
+  //         title: "Adding a Node",
+  //         body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
+  //         target: "#addNodeBtn",
+  //         cardPos: "bottom"
+  //       },
+  //       {
+  //         title: "Deleting a Node",
+  //         body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
+  //         target: "#deleteNodeBtn",
+  //         cardPos: "bottom"
+  //       },
+  //       {
+  //         title: "Chronological View",
+  //         body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
+  //         target: ".toggle-group",
+  //         cardPos: "bottom",
+  //         onEnter: () => {
+  //           if (currentMode !== 'chronological') {
+  //             document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
+  //             const chronoBtn = Array.from(document.querySelectorAll(".toggle-btn"))
+  //               .find(b => b.innerText.includes("Chronological"));
+  //             if (chronoBtn) chronoBtn.classList.add("active");
+  //             renderChronologicalGraph();
+  //           }
+  //         }
+  //       },
+  //       {
+  //         title: "Diagnosis Nodes",
+  //         body: "A diagnosis node: white circle with a red border — starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
+  //         target: null,
+  //         cardPos: "diagnosis",
+  //         onEnter: () => {
+  //           setTimeout(() => {
+  //             const diagNode = Array.from(document.querySelectorAll(".node-circle"))
+  //               .find(el => {
+  //                 const d3datum = el.__data__;
+  //                 return d3datum && (d3datum.isDiagnosis || d3datum.isManualBranch);
+  //               });
+  //             if (!diagNode) return;
+  //             if (!diagNode) return;
 
-              let arrow = document.getElementById("tutorial-node-arrow");
-              if (!arrow) {
-                arrow = document.createElement("div");
-                arrow.id = "tutorial-node-arrow";
-                arrow.style.cssText = `position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.3s ease;`;
-                document.body.appendChild(arrow);
-              }
-              arrow.innerHTML = `
-                <i class="fa-solid fa-arrow-up" style="color:#EF4444;font-size:16px;animation:tutBounce 0.8s ease-in-out infinite;"></i>
-            `;
-              const r = diagNode.getBoundingClientRect();
-              arrow.style.top = (r.bottom + 34) + "px";
-              arrow.style.left = (r.left + r.width / 2 - 7) + "px";
-              arrow.style.display = "flex";
-            }, 600);
-          }
-        },
-        {
-          title: "Filters",
-          body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
-          target: "#filterToggleBtn",
-          cardPos: "bottom"
-        },
-        {
-          title: "All done",
-          body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time. Good luck!",
-          target: null,
-          cardPos: "center"
-        }
-      ];
+  //             let arrow = document.getElementById("tutorial-node-arrow");
+  //             if (!arrow) {
+  //               arrow = document.createElement("div");
+  //               arrow.id = "tutorial-node-arrow";
+  //               arrow.style.cssText = `position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.3s ease;`;
+  //               document.body.appendChild(arrow);
+  //             }
+  //             arrow.innerHTML = `
+  //               <i class="fa-solid fa-arrow-up" style="color:#EF4444;font-size:16px;animation:tutBounce 0.8s ease-in-out infinite;"></i>
+  //           `;
+  //             const r = diagNode.getBoundingClientRect();
+  //             arrow.style.top = (r.bottom + 34) + "px";
+  //             arrow.style.left = (r.left + r.width / 2 - 7) + "px";
+  //             arrow.style.display = "flex";
+  //           }, 600);
+  //         }
+  //       },
+  //       {
+  //         title: "Filters",
+  //         body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
+  //         target: "#filterToggleBtn",
+  //         cardPos: "bottom"
+  //       },
+  //       {
+  //         title: "All done",
+  //         body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time. Good luck!",
+  //         target: null,
+  //         cardPos: "center"
+  //       },
+  //       {
+  //         title: "Creating a diagnosis branch",
+  //         body: "In Chronological view, click the blue branch button (bottom-right) then click any main-timeline node to start a new diagnosis branch. Branches appear as separate horizontal tracks below the main line.",
+  //         target: null,
+  //         cardPos: "center"
+  //       },
+  //       {
+  //         title: "Branch states",
+  //         body: "Click any branch line or the main timeline line to change its state: In Progress, Discontinued (blocks the branch), or Completed (merges it back). The case can also be marked Finished from the main timeline.",
+  //         target: null,
+  //         cardPos: "center"
+  //       },
+  //     ];
 
-      let tutStep = 0;
-      let tutActive = false;
+  //     let tutStep = 0;
+  //     let tutActive = false;
 
-      function startTutorial() {
-        tutStep = 0;
-        tutActive = true;
-        renderTutorialStep();
-      }
+  //     startTutorial = function() {
+  //       tutStep = 0;
+  //       tutActive = true;
+  //       renderTutorialStep();
+  //     };
 
-      function endTutorial() {
-        tutActive = false;
-        document.getElementById("tutorialSpotlight").style.display = "none";
-        document.getElementById("tutorialCard").style.display = "none";
-        const arrow = document.getElementById("tutorial-node-arrow");
-        if (arrow) arrow.remove();
-        localStorage.setItem("medflow_tutorial_done", "1");
-      }
+  //     endTutorial = function() {
+  //       tutActive = false;
+  //       document.getElementById("tutorialSpotlight").style.display = "none";
+  //       document.getElementById("tutorialCard").style.display = "none";
+  //       const arrow = document.getElementById("tutorial-node-arrow");
+  //       if (arrow) arrow.remove();
+  //       localStorage.setItem("medflow_tutorial_done", "1");
+  //     }
 
-      function renderTutorialStep() {
-        const step = TUTORIAL_STEPS[tutStep];
-        const existingArrow = document.getElementById("tutorial-node-arrow");
-        if (existingArrow) existingArrow.style.display = "none";
-        if (step.onEnter) step.onEnter();
-        const spotlight = document.getElementById("tutorialSpotlight");
-        const card = document.getElementById("tutorialCard");
+  //     function renderTutorialStep() {
+  //       const step = TUTORIAL_STEPS[tutStep];
+  //       const existingArrow = document.getElementById("tutorial-node-arrow");
+  //       if (existingArrow) existingArrow.style.display = "none";
+  //       if (step.onEnter) step.onEnter();
+  //       const spotlight = document.getElementById("tutorialSpotlight");
+  //       const card = document.getElementById("tutorialCard");
 
-        if (step.target) {
-          const el = document.querySelector(step.target);
-          if (el) {
-            const r = el.getBoundingClientRect();
-            const pad = 8;
-            spotlight.style.display = "block";
-            spotlight.style.left = (r.left - pad) + "px";
-            spotlight.style.top = (r.top - pad) + "px";
-            spotlight.style.width = (r.width + pad * 2) + "px";
-            spotlight.style.height = (r.height + pad * 2) + "px";
-          } else {
-            spotlight.style.display = "none";
-          }
-        } else {
-          spotlight.style.display = "none";
-        }
+  //       if (step.target) {
+  //         const el = document.querySelector(step.target);
+  //         if (el) {
+  //           const r = el.getBoundingClientRect();
+  //           const pad = 8;
+  //           spotlight.style.display = "block";
+  //           spotlight.style.left = (r.left - pad) + "px";
+  //           spotlight.style.top = (r.top - pad) + "px";
+  //           spotlight.style.width = (r.width + pad * 2) + "px";
+  //           spotlight.style.height = (r.height + pad * 2) + "px";
+  //         } else {
+  //           spotlight.style.display = "none";
+  //         }
+  //       } else {
+  //         spotlight.style.display = "none";
+  //       }
 
-        const isLast = tutStep === TUTORIAL_STEPS.length - 1;
-        const isFirst = tutStep === 0;
+  //       const isLast = tutStep === TUTORIAL_STEPS.length - 1;
+  //       const isFirst = tutStep === 0;
 
-        const dots = TUTORIAL_STEPS.map((_, i) =>
-          `<div class="tutorial-dot${i === tutStep ? " active" : ""}"></div>`
-        ).join("");
+  //       const dots = TUTORIAL_STEPS.map((_, i) =>
+  //         `<div class="tutorial-dot${i === tutStep ? " active" : ""}"></div>`
+  //       ).join("");
 
-        card.innerHTML = `
-    <div class="tutorial-step-badge">Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}</div>
-    <h4>${step.title}</h4>
-    <p>${step.body}</p>
-    <div class="tutorial-nav">
-      <div class="tutorial-dots">${dots}</div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        ${!isLast ? `<button class="tutorial-btn tutorial-btn-skip" id="tutSkipBtn">Skip tour</button>` : ""}
-        ${!isFirst ? `<button class="tutorial-btn" id="tutPrevBtn" style="background:#F1F5F9;color:#334155;">← Back</button>` : ""}
-        <button class="tutorial-btn tutorial-btn-primary" id="tutNextBtn">
-          ${isLast ? "Done" : "Next →"}
-        </button>
-      </div>
-    </div>
-  `;
+  //       card.innerHTML = `
+  //   <div class="tutorial-step-badge">Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}</div>
+  //   <h4>${step.title}</h4>
+  //   <p>${step.body}</p>
+  //   <div class="tutorial-nav">
+  //     <div class="tutorial-dots">${dots}</div>
+  //     <div style="display:flex; gap:8px; align-items:center;">
+  //       ${!isLast ? `<button class="tutorial-btn tutorial-btn-skip" id="tutSkipBtn">Skip tour</button>` : ""}
+  //       ${!isFirst ? `<button class="tutorial-btn" id="tutPrevBtn" style="background:#F1F5F9;color:#334155;">← Back</button>` : ""}
+  //       <button class="tutorial-btn tutorial-btn-primary" id="tutNextBtn">
+  //         ${isLast ? "Done" : "Next →"}
+  //       </button>
+  //     </div>
+  //   </div>
+  // `;
 
-        card.style.display = "block";
-        positionTutorialCard(card, step);
+  //       card.style.display = "block";
+  //       positionTutorialCard(card, step);
 
-        document.getElementById("tutNextBtn").onclick = () => {
-          if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderTutorialStep(); }
-          else endTutorial();
-        };
-        const prevBtn = document.getElementById("tutPrevBtn");
-        if (prevBtn) prevBtn.onclick = () => { tutStep--; renderTutorialStep(); };
-        const skipBtn = document.getElementById("tutSkipBtn");
-        if (skipBtn) skipBtn.onclick = endTutorial;
-      }
+  //       document.getElementById("tutNextBtn").onclick = () => {
+  //         if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderTutorialStep(); }
+  //         else endTutorial();
+  //       };
+  //       const prevBtn = document.getElementById("tutPrevBtn");
+  //       if (prevBtn) prevBtn.onclick = () => { tutStep--; renderTutorialStep(); };
+  //       const skipBtn = document.getElementById("tutSkipBtn");
+  //       if (skipBtn) skipBtn.onclick = endTutorial;
+  //     }
 
-      function positionTutorialCard(card, step) {
-        card.style.top = "";
-        card.style.left = "";
-        card.style.right = "";
-        card.style.bottom = "";
-        card.style.transform = "";
+  //     function positionTutorialCard(card, step) {
+  //       card.style.top = "";
+  //       card.style.left = "";
+  //       card.style.right = "";
+  //       card.style.bottom = "";
+  //       card.style.transform = "";
 
-        if (step.cardPos === "diagnosis") {
-          card.style.top = "25%";
-          card.style.left = "50%";
-          card.style.transform = "translate(-50%, 0)";
-          return;
-        }
+  //       if (step.cardPos === "diagnosis") {
+  //         card.style.top = "25%";
+  //         card.style.left = "50%";
+  //         card.style.transform = "translate(-50%, 0)";
+  //         return;
+  //       }
 
-        if (step.cardPos === "center" || !step.target) {
-          card.style.top = "50%";
-          card.style.left = "50%";
-          card.style.transform = "translate(-50%, -50%)";
-          return;
-        }
+  //       if (step.cardPos === "center" || !step.target) {
+  //         card.style.top = "50%";
+  //         card.style.left = "50%";
+  //         card.style.transform = "translate(-50%, -50%)";
+  //         return;
+  //       }
 
-        const el = document.querySelector(step.target);
-        if (!el) {
-          card.style.top = "50%";
-          card.style.left = "50%";
-          card.style.transform = "translate(-50%, -50%)";
-          return;
-        }
+  //       const el = document.querySelector(step.target);
+  //       if (!el) {
+  //         card.style.top = "50%";
+  //         card.style.left = "50%";
+  //         card.style.transform = "translate(-50%, -50%)";
+  //         return;
+  //       }
 
-        const r = el.getBoundingClientRect();
-        const cw = 340, gap = 16;
+  //       const r = el.getBoundingClientRect();
+  //       const cw = 340, gap = 16;
 
-        if (step.cardPos === "bottom") {
-          card.style.top = (r.bottom + gap) + "px";
-          card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
-        } else if (step.cardPos === "top") {
-          card.style.top = Math.max(8, r.top - 260 - gap) + "px";
-          card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
-        } else if (step.cardPos === "right") {
-          card.style.top = Math.min(r.top, window.innerHeight - 280) + "px";
-          card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
-        }
-      }
+  //       if (step.cardPos === "bottom") {
+  //         card.style.top = (r.bottom + gap) + "px";
+  //         card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+  //       } else if (step.cardPos === "top") {
+  //         card.style.top = Math.max(8, r.top - 260 - gap) + "px";
+  //         card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+  //       } else if (step.cardPos === "right") {
+  //         card.style.top = Math.min(r.top, window.innerHeight - 280) + "px";
+  //         card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
+  //       }
+  //     }
 
-      // Help button
-      document.getElementById("tutorialHelpBtn").addEventListener("click", startTutorial);
+  //     // Help button
+  //     // document.getElementById("tutorialHelpBtn").addEventListener("click", startTutorial);
 
-      // Auto-launch for first-time visitors
-      if (!localStorage.getItem("medflow_tutorial_done")) {
-        setTimeout(startTutorial, 800);
-      }
+  //     // Auto-launch for first-time visitors
+  //     if (!localStorage.getItem("medflow_tutorial_done") && !window._tutorialLaunched) {
+  //       window._tutorialLaunched = true;
+  //       setTimeout(startTutorial, 800);
+  //     }
     } // End of initializeGraph function
+
+
+    // ============================================================
+// TUTORIAL SYSTEM — lives outside initializeGraph
+// ============================================================
+(function() {
+  const TUTORIAL_STEPS = [
+    {
+      title: "Welcome to MedFlow Graph",
+      body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
+      target: null, cardPos: "center"
+    },
+    {
+      title: "The Patient Journey Tree",
+      body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.",
+      target: "#tree", cardPos: "right",
+      onEnter: () => {
+        if (typeof refreshGraph === 'function') refreshGraph();
+      }
+    },
+    {
+      title: "Node Colors and Categories",
+      body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
+      target: "#legend", cardPos: "top"
+    },
+    {
+      title: "High Priority Events",
+      body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
+      target: "#tree", cardPos: "right"
+    },
+    {
+      title: "Expand & Collapse Branches",
+      body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
+      target: null, cardPos: "center",
+      onEnter: () => {
+        setTimeout(() => {
+          const btn = document.querySelector(".expand-trigger");
+          if (!btn) return;
+          let arrow = document.getElementById("tutorial-node-arrow");
+          if (!arrow) {
+            arrow = document.createElement("div");
+            arrow.id = "tutorial-node-arrow";
+            arrow.style.cssText = "position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;";
+            arrow.innerHTML = `<span style="font-size:12px;font-weight:600;color:#3B82F6;background:white;padding:3px 8px;border-radius:4px;border:1px solid #BFDBFE;white-space:nowrap;"><i class="fa-solid fa-plus" style="font-size:10px;"></i> / <i class="fa-solid fa-minus" style="font-size:10px;"></i> button</span><i class="fa-solid fa-arrow-down" style="color:#3B82F6;font-size:16px;"></i>`;
+            document.body.appendChild(arrow);
+          }
+          const r = btn.getBoundingClientRect();
+          arrow.style.top = (r.top - 48) + "px";
+          arrow.style.left = (r.left + r.width / 2 - 37) + "px";
+          arrow.style.display = "flex";
+        }, 200);
+      }
+    },
+    {
+      title: "Adding a Node",
+      body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
+      target: "#addNodeBtn", cardPos: "bottom"
+    },
+    {
+      title: "Deleting a Node",
+      body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
+      target: "#deleteNodeBtn", cardPos: "bottom"
+    },
+    {
+      title: "Chronological View",
+      body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
+      target: ".toggle-group", cardPos: "bottom"
+    },
+    {
+      title: "Diagnosis Nodes",
+      body: "A diagnosis node (white circle, red border) starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
+      target: null, cardPos: "center",
+      onEnter: () => {
+        setTimeout(() => {
+          const diagNode = Array.from(document.querySelectorAll(".node-circle"))
+            .find(el => el.__data__ && (el.__data__.isDiagnosis || el.__data__.isManualBranch));
+          if (!diagNode) return;
+          let arrow = document.getElementById("tutorial-node-arrow");
+          if (!arrow) {
+            arrow = document.createElement("div");
+            arrow.id = "tutorial-node-arrow";
+            arrow.style.cssText = "position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;";
+            document.body.appendChild(arrow);
+          }
+          arrow.innerHTML = `<i class="fa-solid fa-arrow-up" style="color:#EF4444;font-size:16px;"></i>`;
+          const r = diagNode.getBoundingClientRect();
+          arrow.style.top = (r.bottom + 8) + "px";
+          arrow.style.left = (r.left + r.width / 2 - 7) + "px";
+          arrow.style.display = "flex";
+        }, 600);
+      }
+    },
+    {
+      title: "Filters",
+      body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
+      target: "#filterToggleBtn", cardPos: "bottom"
+    },
+    {
+      title: "Creating a Branch",
+      body: "In Chronological view, click the blue branch button (bottom-right) then click any main-timeline node to start a new diagnosis branch.",
+      target: null, cardPos: "center"
+    },
+    {
+      title: "Branch States",
+      body: "Click any branch line or the main timeline to change its state: In Progress, Discontinued (blocks it), or Completed (merges it back to main).",
+      target: null, cardPos: "center"
+    },
+    {
+      title: "All done!",
+      body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time.",
+      target: null, cardPos: "center"
+    }
+  ];
+
+  let tutStep = 0;
+
+  function doEndTutorial() {
+    document.getElementById("tutorialSpotlight").style.display = "none";
+    document.getElementById("tutorialCard").style.display = "none";
+    const arrow = document.getElementById("tutorial-node-arrow");
+    if (arrow) arrow.remove();
+    localStorage.setItem("medflow_tutorial_done", "1");
+  }
+
+  function renderStep() {
+    const step = TUTORIAL_STEPS[tutStep];
+    const arrow = document.getElementById("tutorial-node-arrow");
+    if (arrow) arrow.style.display = "none";
+
+    if (step.onEnter) step.onEnter();
+
+    const spotlight = document.getElementById("tutorialSpotlight");
+    const card = document.getElementById("tutorialCard");
+
+    if (step.target) {
+      const el = document.querySelector(step.target);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const pad = 8;
+        spotlight.style.display = "block";
+        spotlight.style.left = (r.left - pad) + "px";
+        spotlight.style.top = (r.top - pad) + "px";
+        spotlight.style.width = (r.width + pad * 2) + "px";
+        spotlight.style.height = (r.height + pad * 2) + "px";
+      } else {
+        spotlight.style.display = "none";
+      }
+    } else {
+      spotlight.style.display = "none";
+    }
+
+    const isLast = tutStep === TUTORIAL_STEPS.length - 1;
+    const isFirst = tutStep === 0;
+    const dots = TUTORIAL_STEPS.map((_, i) =>
+      `<div class="tutorial-dot${i === tutStep ? ' active' : ''}"></div>`
+    ).join("");
+
+    card.innerHTML = `
+      <div class="tutorial-step-badge">Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}</div>
+      <h4>${step.title}</h4>
+      <p>${step.body}</p>
+      <div class="tutorial-nav">
+        <div class="tutorial-dots">${dots}</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${!isLast ? `<button class="tutorial-btn tutorial-btn-skip" id="tutSkipBtn">Skip tour</button>` : ""}
+          ${!isFirst ? `<button class="tutorial-btn" id="tutPrevBtn" style="background:#F1F5F9;color:#334155;">← Back</button>` : ""}
+          <button class="tutorial-btn tutorial-btn-primary" id="tutNextBtn">${isLast ? "Done" : "Next →"}</button>
+        </div>
+      </div>`;
+
+    card.style.display = "block";
+    positionCard(card, step);
+
+    document.getElementById("tutNextBtn").onclick = () => {
+      if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderStep(); }
+      else doEndTutorial();
+    };
+    const prev = document.getElementById("tutPrevBtn");
+    if (prev) prev.onclick = () => { tutStep--; renderStep(); };
+    const skip = document.getElementById("tutSkipBtn");
+    if (skip) skip.onclick = doEndTutorial;
+  }
+
+  function positionCard(card, step) {
+    card.style.top = "";
+    card.style.left = "";
+    card.style.right = "";
+    card.style.bottom = "";
+    card.style.transform = "";
+    if (!step.target || step.cardPos === "center" || step.cardPos === "diagnosis") {
+      card.style.top = "50%";
+      card.style.left = "50%";
+      card.style.transform = "translate(-50%, -50%)";
+      return;
+    }
+    const el = document.querySelector(step.target);
+    if (!el) { card.style.top = "50%"; card.style.left = "50%"; card.style.transform = "translate(-50%,-50%)"; return; }
+    const r = el.getBoundingClientRect();
+    const cw = 340, gap = 16;
+    if (step.cardPos === "bottom") {
+      card.style.top = (r.bottom + gap) + "px";
+      card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+      card.style.transform = "";
+    } else if (step.cardPos === "top") {
+      card.style.top = Math.max(8, r.top - 260 - gap) + "px";
+      card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
+      card.style.transform = "";
+    } else if (step.cardPos === "right") {
+      card.style.top = Math.min(r.top, window.innerHeight - 280) + "px";
+      card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
+      card.style.transform = "";
+    }
+  }
+
+  function doStartTutorial() {
+    tutStep = 0;
+    renderStep();
+  }
+
+  // Expose to outer scope
+  startTutorial = doStartTutorial;
+  endTutorial = doEndTutorial;
+
+  // Button binding — runs once, no stacking
+  document.getElementById("tutorialHelpBtn").onclick = function() {
+    localStorage.removeItem("medflow_tutorial_done");
+    doStartTutorial();
+  };
+
+  // Auto-launch first time only
+  if (!localStorage.getItem("medflow_tutorial_done")) {
+    setTimeout(doStartTutorial, 800);
+  }
+})();
   </script>
 
 
