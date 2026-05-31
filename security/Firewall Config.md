@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Table of contents](#table-of-contents)
 - [Environment](#environment)
 - [Network design (as implemented)](#network-design-as-implemented)
 - [Install OPNsense KVM instance](#install-opnsense-kvm-instance)

@@ -85,7 +85,7 @@ services:
         -Dkeycloak.migration.action=import
         -Dkeycloak.migration.provider=singleFile
         -Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}
-        -Dkeycloak.migration.strategy=IGNORE_EXISTING
+        -Dkeycloak.migration.strategy=OVERWRITE_EXISTING
         -Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json
         --https-key-store-file=conf/server.keystore
         --https-key-store-password=password
@@ -166,6 +166,7 @@ services:
       - "./static/realm:/opt/keycloak/themes/realm:ro"
       - "./static/browser:/opt/keycloak/themes/browser:ro"
       - "./services/keycloak/verify-email/target/keycloak-emailveri-extensions.jar:/opt/keycloak/providers/email-code-spi.jar"
+      - "./services/keycloak/altcha/target/keycloak-altcha-jar-with-dependencies.jar:/opt/keycloak/providers/keycloak-altcha.jar"
 
     depends_on:
       postgres:

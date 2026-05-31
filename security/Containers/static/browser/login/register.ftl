@@ -105,6 +105,10 @@
               </#if>
             </div>
 
+            <#if altchaRequired??>
+              <altcha-widget challengejson='${altchaPayload}' <#if altchaFloating?? && altchaFloating=="true">floating</#if> hidefooter delay="2000" auto="onload" expire="3600000"></altcha-widget>
+            </#if>
+
             <button tabindex="7" type="submit" class="cfi-submit" id="kc-register" style="margin-top: 1rem;">
               Continue to Verification
             </button>
