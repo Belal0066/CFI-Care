@@ -49,5 +49,8 @@ Supervised by **Dr. Haytham Azmi**.
 
 ---
 
+## Development
+- **Security infrastructure setup**: see [security/README.md](./security/README.md) for Security notes, Local dev adjustments, and Vault bootstrap steps
+
 
 

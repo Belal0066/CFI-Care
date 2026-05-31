@@ -17,7 +17,7 @@ route.html
 decode_jwt.py
 
 *.json
-
+!vault-config.template.json
 !realm.*
 
 /test_mobile/*
@@ -29,9 +29,7 @@ decode_jwt.py
 **/*.class
 
 test-summary*
-<<<<<<< Updated upstream
-.env.test
-=======
+
 .env.test
 
 **/role_id
@@ -40,4 +38,3 @@ test-summary*
 **/hashicorp
 
 **/secrets
->>>>>>> Stashed changes
