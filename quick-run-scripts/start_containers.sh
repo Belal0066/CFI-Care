@@ -11,7 +11,10 @@ fhir_files=("$REPO_ROOT/security/Containers/services/keycloak/fhir-listener/targ
 FHIR_LISTENER_JAR="${fhir_files[0]:-}"
 shopt -u nullglob
 
-if [ -z "$VERIFY_EMAIL_JAR" ] || [ -z "$FHIR_LISTENER_JAR" ] || [ ! -f "$VERIFY_EMAIL_JAR" ] || [ ! -f "$FHIR_LISTENER_JAR" ]; then
+ALTCHA_OUTPUT="${ALTCHA_OUTPUT:-$REPO_ROOT/security/Containers/services/keycloak/altcha/target/keycloak-altcha-jar-with-dependencies.jar}"
+
+
+if [ -z "$VERIFY_EMAIL_JAR" ] || [ -z "$FHIR_LISTENER_JAR" ] || [ ! -f "$VERIFY_EMAIL_JAR" ] || [ ! -f "$FHIR_LISTENER_JAR" ] || [! -f "$ALTCHA_OUTPUT"]; then
   "$SCRIPT_DIR/Init-system.sh"
 fi
 

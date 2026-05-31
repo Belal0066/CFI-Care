@@ -1,28 +1,30 @@
 # Security
 
 ## Table of Contents
-1. [System Design Diagrams](#system-design-diagrams)
-2. [Container Security & Consistency](#container-security--consistency)
-   - [Privilege Escalation Controls](#container-security--consistency)
-   - [Read-Only File System Policies](#container-security--consistency)
-   - [Image Digest Verification](#image-digest-verification)
-   - [Vulnerability Management (CVE Scanning)](#scan-the-image-for-cves)
-3. [Core Services & Infrastructure](#services)
-   - [Vault & Secrets Management](#vault--secrets-management)
-     - [Bootstrap order](#bootstrap-order)
-     - [Policies and roles](#policies-and-roles)
-     - [Secret ID handling](#secret-id-handling)
-     - [Runtime file locations](#runtime-file-locations)
-     - [Example bootstrap commands](#example-bootstrap-commands)
-   - [Audit Dashboard (Grafana, Loki, Prometheus)](#audit-dashboard-grafana-loki-prometheus)
-     - [Dashboards Visualization](#dashboards-display)
-     - [Data Routing & Component Flow](#components--routing-flow)
-     - [Grafana LogQL Panel Configuration](#grafana-logql-panel-configuration)
-   - [Identity & Access Management (Keycloak)](#keycloak)
-     - [FHIR Provisioner SPI Extension](#spis)
-     - [Custom Email Verification SPI Extension](#spis)
-     - [Automated Realm Configuration (Import/Export)](#realm-configuration-import--export) 
-4. [Local CA Generation & Trust Stores](#cert-generation-for-dev-only)
+- [Security](#security)
+  - [Table of Contents](#table-of-contents)
+  - [System Design Diagrams](#system-design-diagrams)
+  - [Container security \& Consistency](#container-security--consistency)
+    - [Image Digest Verification](#image-digest-verification)
+    - [Scan the Image for CVEs](#scan-the-image-for-cves)
+  - [Services](#services)
+    - [Vault \& Secrets Management](#vault--secrets-management)
+      - [For a Shared Vault over Tailscale](#for-a-shared-vault-over-tailscale)
+      - [What Vault is used for here](#what-vault-is-used-for-here)
+      - [Bootstrap order](#bootstrap-order)
+      - [Policies and roles](#policies-and-roles)
+      - [Secret ID handling](#secret-id-handling)
+      - [Runtime file locations](#runtime-file-locations)
+      - [Example bootstrap commands](#example-bootstrap-commands)
+    - [Audit Dashboard (Grafana, Loki, Prometheus)](#audit-dashboard-grafana-loki-prometheus)
+      - [Dashboards Visualization](#dashboards-visualization)
+      - [Components \& Routing Flow](#components--routing-flow)
+      - [Grafana LogQL Panel Configuration](#grafana-logql-panel-configuration)
+    - [Firewall setup](#firewall-setup)
+    - [Keycloak](#keycloak)
+      - [SPIs](#spis)
+      - [Realm Configuration (Import / Export)](#realm-configuration-import--export)
+  - [Cert generation (for dev only)](#cert-generation-for-dev-only)
 
 ## System Design Diagrams
 
@@ -228,6 +230,9 @@ To make the raw JSON strings easily scannable on the security dashboard, the log
 
 
 #### SPIs
+
+- Altcha CAPTCHA provider is based on https://github.com/lacontrevoie/keycloak-altcha and is licensed under MIT. Keep the upstream license and note the pinned ref used for builds.
+
 
 Custom Java Service Provider Interfaces (SPI) extend Keycloak to support automatic health record resource creation and advanced registration steps (email verification through otp instead of the keycloak default verification link)
 
