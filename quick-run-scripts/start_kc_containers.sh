@@ -7,8 +7,8 @@ while ! docker info >/dev/null 2>&1; do
     sleep 5
 done
 
-PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
-export PUBLIC_HOSTNAME
+LOCAL_HOSTNAME=${LOCAL_HOSTNAME:-$(hostname -I | awk '{print $1}')}
+export LOCAL_HOSTNAME
 
 
  cd "$REPO_ROOT/security/Containers/"

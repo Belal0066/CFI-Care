@@ -27,14 +27,52 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  redisstore:
+    container_name: redisStore
+    build:
+      context: ../../../security/Containers/services/redis
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # ports:
+    #   - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_data:/data
+    networks:
+      - nginx-network
+
+  redisaudit:
+    container_name: redisAudit
+    build:
+      context: ../../../security/Containers/services/redis
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # ports:
+    #   - 6380:6379
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--notify-keyspace-events", "KEgz"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_audit_data:/data
+    networks:
+      - nginx-network
+
+
   redisotp:
       container_name: redisotp
       build:
         context: ../../../security/Containers/services/redis
         dockerfile: Dockerfile
       restart: unless-stopped
-      ports:
-        - 6381:6379
+      # ports:
+      #   - 6381:6379
       command: redis-server --appendonly yes --appendfsync everysec
       healthcheck:
         test: ["CMD", "redis-cli", "ping"]
@@ -46,8 +84,14 @@ services:
       networks:
         - nginx-network
 
+
 volumes:
   redis_otp_data:
+    driver: local
+  redis_audit_data:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
   nginx-network:
