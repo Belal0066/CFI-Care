@@ -1,6 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
 
-# */.env
+# Allure
+allure-results/
+
+# IDE
+.vscode/
+
+# Logs
 *.log
-*.asc
+texput.log
 
+# OS
+.DS_Store
+
+# Environment
+.env
+*.asc
 *.pem
