@@ -1,0 +1,2 @@
+OAUTH2_PROXY_CLIENT_SECRET={{ with secret "secret/data/dev/oauth/cookie" }}{{ .Data.data.OAUTH2_PROXY_CLIENT_SECRET }}{{ end }}
+OAUTH2_PROXY_COOKIE_SECRET={{ with secret "secret/data/dev/oauth/cookie" }}{{ .Data.data.OAUTH2_PROXY_COOKIE_SECRET }}{{ end }}

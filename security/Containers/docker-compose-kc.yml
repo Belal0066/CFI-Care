@@ -23,6 +23,21 @@ services:
     networks:
       - nginx-network
 
+  keycloak-vault-agent:
+    image: hashicorp/vault:1.21.2
+    env_file:
+      - ./.env.vault
+    command: vault agent -config=/etc/vault/agent/keycloak-agent.hcl
+    networks:
+      - nginx-network
+    volumes:
+      - ./services/keycloak/vault/agent:/etc/vault/agent:ro
+      - ./services/keycloak/vault/role:/etc/vault/role
+      - ./services/keycloak/vault/templates:/etc/vault/templates:ro
+      - ./secrets/kc:/etc/keycloak-vault
+
+
+
   kc.localhost:
     container_name: kc.localhost
     build:
@@ -41,21 +56,41 @@ services:
     # '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
     # '-Dkeycloak.migration.file=/import/development-realm.json',
 
-    command: [
-        # 'start',
-        "start-dev",
-        '--import-realm',
-        '-Dkeycloak.migration.action=import',
-        '-Dkeycloak.migration.provider=singleFile',
-        '-Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}',
-        # '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
-        '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
-        '-Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json',
-        "--https-key-store-file=conf/server.keystore",
-        "--https-key-store-password=password",
-        "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
-        "--features=quick-theme"
-        # "--log-level=DEBUG"
+    # command: [
+    #     # 'start',
+    #     "start-dev",
+    #     '--import-realm',
+    #     '-Dkeycloak.migration.action=import',
+    #     '-Dkeycloak.migration.provider=singleFile',
+    #     '-Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}',
+    #     '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
+    #     # '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
+    #     '-Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json',
+    #     "--https-key-store-file=conf/server.keystore",
+    #     "--https-key-store-password=password",
+    #     "--log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
+    #     # "--log-level=DEBUG"
+    #   ]
+
+    # -Dkeycloak.migration.strategy=OVERWRITE_EXISTING
+    entrypoint: ["/bin/sh", "-lc"]
+    command:
+      [
+        "while [ ! -f /etc/keycloak-vault/.env.kc ]; do sleep 1; done &&
+        set -a &&
+        . /etc/keycloak-vault/.env.kc &&
+        set +a &&
+        exec /opt/keycloak/bin/kc.sh start-dev
+        --import-realm
+        -Dkeycloak.migration.action=import
+        -Dkeycloak.migration.provider=singleFile
+        -Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}
+        -Dkeycloak.migration.strategy=IGNORE_EXISTING
+        -Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json
+        --https-key-store-file=conf/server.keystore
+        --https-key-store-password=password
+        --features=quick-theme
+        --log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
       ]
 
     restart: on-failure:3
@@ -91,7 +126,6 @@ services:
       KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_ENDPOINT_URL: ${PROV_LISTENER_ENDPOINT}
       KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_TOKEN_URL: ${PROV_TOKEN_ENDPOINT}
       KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_CLIENT_ID: ${KC_PROVISIONER_CLIENT_ID}
-      KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_CLIENT_SECRET: "${KC_PROVISIONER_CLIENT_SECRET}"
       KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_CONNECT_TIMEOUT_MS: "3000"
 
       # KC_HEALTH_ENABLED: true
@@ -107,6 +141,7 @@ services:
 
     env_file:
       - ./.env
+      # - ./secrets/kc/.env.kc
 
     # Make sure the certificate and the key (the *.pem files) have the correct permissions -> e.g., sudo chmod 655 *.pem
     # volumes:
@@ -126,6 +161,7 @@ services:
       # - './import:/import:ro'
       - "./import:/opt/keycloak/data/import:ro"
       - "./export:/export:rw"
+      - "./secrets/kc:/etc/keycloak-vault:ro"
       - "./static/mobile:/opt/keycloak/themes/mobile:ro"
       - "./static/realm:/opt/keycloak/themes/realm:ro"
       - "./static/browser:/opt/keycloak/themes/browser:ro"
@@ -134,9 +170,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # keycloak-vault-agent:
+      #   condition: service_healthy
+      
     networks:
       - nginx-network
 
+  
 
   mailhog:
     image: mailhog/mailhog
