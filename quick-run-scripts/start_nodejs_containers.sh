@@ -18,8 +18,8 @@ done
 #   sleep 2
 # done
 
-PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
-export PUBLIC_HOSTNAME
+LOCAL_HOSTNAME=${LOCAL_HOSTNAME:-$(hostname -I | awk '{print $1}')}
+export LOCAL_HOSTNAME
 
 cd "$REPO_ROOT/backend/src/Nodejs/"
  docker compose -f docker-compose.yml up  --build

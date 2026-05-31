@@ -21,9 +21,12 @@ if [ -z "$VERIFY_EMAIL_JAR" ] || [ -z "$FHIR_LISTENER_JAR" ] || [ ! -f "$VERIFY_
 fi
 
 
-PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
-export PUBLIC_HOSTNAME
+LOCAL_HOSTNAME=${LOCAL_HOSTNAME:-$(hostname -I | awk '{print $1}')}
 
+
+export LOCAL_HOSTNAME
+
+"$REPO_ROOT/generate_certs.sh"
 
 
 # inject hostname into environment
@@ -32,7 +35,7 @@ envsubst < "$REPO_ROOT/mobile/src/lib/config/app_config.template.dart" > "$REPO_
 envsubst < "$REPO_ROOT/frontend/src/src/environments/environment.template.ts" > "$REPO_ROOT/frontend/src/src/environments/environment.ts"
 # envsubst < "$REPO_ROOT/mobile/src/env/dev_env.template.json" > "$REPO_ROOT/mobile/src/env/dev_env.json"
 
-gnome-terminal -- bash -c "../generate_certs.sh; exec bash"
+# gnome-terminal -- bash -c "../generate_certs.sh; exec bash"
 
 gnome-terminal -- bash -c "./start_prome_and_grafana.sh; exec bash"
 gnome-terminal -- bash -c "./start_nginx_containers.sh; exec bash"
@@ -42,8 +45,9 @@ gnome-terminal -- bash -c "./start_nodejs_containers.sh; exec bash"
 gnome-terminal -- bash -c "./start_fhir_container.sh; exec bash"
 gnome-terminal -- bash -c "./start_frontend.sh; exec bash"
 
+
 echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"
-echo "You can access the browser using https://${PUBLIC_HOSTNAME} •ᴗ•"
+echo "You can access the browser using https://${LOCAL_HOSTNAME} •ᴗ•"
 echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"

@@ -20,7 +20,11 @@ based on the host system you're using , pick the appropriate option:
 
 - linux desktop starter script
 
-- sets `PUBLIC_HOSTNAME` - the hostname used by system to make hostname dynamic and allow external users to connect to a locally running system, runs envsubst to inject hostname into system files using existent templates, detects Keycloak SPI's jars and invokes [`Init-system.sh`](./Init-system.sh) if jars missing, then opens terminal tabs to run each component's start script
+- sets `LOCAL_HOSTNAME` - used by external devices on the same LAN to make hostname dynamic and allow external users to connect to a locally running system
+- runs `envsubst` to inject hostname into system files using existent templates
+- detects Keycloak SPI's jars and invokes [`Init-system.sh`](./Init-system.sh) if jars are missing
+- runs `generate_certs.sh` to automatically generate certs for dynamically changing local certs
+- then opens terminal tabs to run each component's start script
 
 - to run:
 
@@ -41,7 +45,7 @@ based on the host system you're using , pick the appropriate option:
 ### Windows (Powershell)
 
 - launches powershell terminal starter script
-- sets `PUBLIC_HOSTNAME`  - the hostname used by system to make hostname dynamic and allow external users to connect to a locally running system (first non-loopback IPv4), performs simple template substitution for ${PUBLIC_HOSTNAME}, detects Keycloak jars, calls [`Init-system.ps1`](./Init_system.ps1) if jars missing (or falls back to [`Init-system.sh`](./Init-system.sh)), then launches Windows Terminal tabs that run docker compose in each component folder
+- sets `LOCAL_HOSTNAME`  - the hostname used by system to make hostname dynamic and allow external users to connect to a locally running system (first non-loopback IPv4), performs simple template substitution for ${LOCAL_HOSTNAME}, detects Keycloak jars, calls [`Init-system.ps1`](./Init_system.ps1) if jars missing (or falls back to [`Init-system.sh`](./Init-system.sh)), then launches Windows Terminal tabs that run docker compose in each component folder
 
 - to run, from powershell:
 

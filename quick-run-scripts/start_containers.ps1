@@ -4,8 +4,8 @@ $RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 
 Write-Host "Starting container launcher (PowerShell-native)..."
 
-# PUBLIC_HOSTNAME fallback (first non-loopback IPv4)
-if (-not $env:PUBLIC_HOSTNAME) {
+# LOCAL_HOSTNAME fallback (first non-loopback IPv4)
+if (-not $env:LOCAL_HOSTNAME) {
   try {
     $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
            Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -ne '127.0.0.1' } |
@@ -13,14 +13,14 @@ if (-not $env:PUBLIC_HOSTNAME) {
   } catch {
     $ip = '127.0.0.1'
   }
-  $env:PUBLIC_HOSTNAME = $ip
+  $env:LOCAL_HOSTNAME = $ip
 }
-Write-Host "PUBLIC_HOSTNAME=$env:PUBLIC_HOSTNAME"
+Write-Host "LOCAL_HOSTNAME=$env:LOCAL_HOSTNAME"
 
-# Simple template substitution for ${PUBLIC_HOSTNAME}
+# Simple template substitution for ${LOCAL_HOSTNAME}
 function Replace-Template($inFile, $outFile) {
   if (Test-Path $inFile) {
-    (Get-Content $inFile -Raw) -replace '\$\{PUBLIC_HOSTNAME\}',$env:PUBLIC_HOSTNAME | Set-Content $outFile
+    (Get-Content $inFile -Raw) -replace '\$\{LOCAL_HOSTNAME\}',$env:LOCAL_HOSTNAME | Set-Content $outFile
     Write-Host "Generated $outFile"
   }
 }

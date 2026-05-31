@@ -15,8 +15,8 @@ if [ -z "$VERIFY_EMAIL_JAR" ] || [ -z "$FHIR_LISTENER_JAR" ] || [ ! -f "$VERIFY_
   "$SCRIPT_DIR/Init-system.sh"
 fi
 
-PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-$(hostname -I | awk '{print $1}')}
-export PUBLIC_HOSTNAME
+LOCAL_HOSTNAME=${LOCAL_HOSTNAME:-$(hostname -I | awk '{print $1}')}
+export LOCAL_HOSTNAME
 
 if command -v envsubst >/dev/null 2>&1; then
   envsubst < "$REPO_ROOT/security/Containers/import/realm.template.json" > "$REPO_ROOT/security/Containers/import/realm.json" || true
@@ -26,7 +26,7 @@ fi
 
 echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"
-echo "You can access the browser using https://${PUBLIC_HOSTNAME} •ᴗ•"
+echo "You can access the browser using https://${LOCAL_HOSTNAME} •ᴗ•"
 echo "------------------------------------------------------------"
 echo "------------------------------------------------------------"
 

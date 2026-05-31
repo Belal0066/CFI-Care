@@ -4,43 +4,36 @@ services:
     build: .
     container_name: hapi-fhir-jpaserver-start
     restart: on-failure
-    environment:
-      # SPRING_DATASOURCE_URL: "jdbc:postgresql://hapi-fhir-postgres:5432/hapi"
-      # SPRING_DATASOURCE_USERNAME: "admin"
-      # SPRING_DATASOURCE_PASSWORD: "admin"
-      # SPRING_DATASOURCE_URL: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require
-      # SPRING_DATASOURCE_USERNAME: neondb_owner
-      # SPRING_DATASOURCE_PASSWORD: npg_WlFfbh7akAz0
-      # SPRING_DATASOURCE_DRIVERCLASSNAME: "org.postgresql.Driver"
-      # SPRING_DATASOURCE_URL: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb_2?sslmode=require&channel_binding=require&currentSchema=public
-      # SPRING_DATASOURCE_USERNAME: neondb_owner
-      # SPRING_DATASOURCE_PASSWORD: npg_WlFfbh7akAz0
-      # SPRING_DATASOURCE_URL: "jdbc:postgresql://host.docker.internal:5432/fhir_db"
-      # SPRING_DATASOURCE_USERNAME: "adminuser"
-      # SPRING_DATASOURCE_PASSWORD: "1174"
-      
-      SPRING_DATASOURCE_URL: jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/fhir_db?sslmode=require&channel_binding=require&currentSchema=public
-      SPRING_DATASOURCE_USERNAME: neondb_owner
-      SPRING_DATASOURCE_PASSWORD: npg_WlFfbh7akAz0
-      SPRING_DATASOURCE_DRIVERCLASSNAME: "org.postgresql.Driver"
-      HAPI_FHIR_BINARYSTORAGE_FILE_PATH: "/data/binstore"
-    ports:
-      - "8080:8080"
+    # environment:
+    env_file:
+      - ./.env
+    networks:
+      - nginx-network
+
+    # ports:
+      # - "8080:8080"
     volumes:
       - hapi-fhir-data:/data
+
+
   hapi-fhir-postgres:
     image: postgres:15-alpine
     container_name: hapi-fhir-postgres
     restart: always
-    environment:
-      POSTGRES_DB: "jdbc:postgresql://host.docker.internal:5432/fhir_db"
-      POSTGRES_USER: "adminuser"
-      POSTGRES_PASSWORD: "1174"
-      # POSTGRES_DB: "jdbc:postgresql://ep-withered-hat-aghja0ft-pooler.c-2.eu-central-1.aws.neon.tech/neondb_2?sslmode=require&channel_binding=require&currentSchema=public"
-      # POSTGRES_USER: "neondb_owner"
-      # POSTGRES_PASSWORD: "npg_WlFfbh7akAz0"
+    networks:
+      - nginx-network
+
     volumes:
       - hapi-fhir-postgres:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+      
 volumes:
   hapi-fhir-postgres:
   hapi-fhir-data:
+
+networks:
+  nginx-network:
+      
+    name: containers_nginx-network
+    external: true

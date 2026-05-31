@@ -5,7 +5,7 @@
 // const Redis = require('ioredis');
 
 // const router = express.Router();
-// const redis = new Redis(process.env.REDIS_URL );
+// const redis = new Redis(process.env.REDIS_STORE_URL );
 
 // redis.on('error', (err) => {
 //   console.error('[ioredis] error connecting to redis:', err && err.message);

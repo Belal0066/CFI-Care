@@ -1,12 +1,13 @@
 # Security
 
 ## Table of Contents
-1. [Container Security & Consistency](#container-security--consistency)
+1.
+2. [Container Security & Consistency](#container-security--consistency)
    - [Privilege Escalation Controls](#container-security--consistency)
    - [Read-Only File System Policies](#container-security--consistency)
    - [Image Digest Verification](#image-digest-verification)
    - [Vulnerability Management (CVE Scanning)](#scan-the-image-for-cves)
-2. [Core Services & Infrastructure](#services)
+3. [Core Services & Infrastructure](#services)
    - [Audit Dashboard (Grafana, Loki, Prometheus)](#audit-dashboard-grafana-loki-prometheus)
      - [Dashboards Visualization](#dashboards-display)
      - [Data Routing & Component Flow](#components--routing-flow)
@@ -15,10 +16,12 @@
      - [FHIR Provisioner SPI Extension](#spis)
      - [Custom Email Verification SPI Extension](#spis)
      - [Automated Realm Configuration (Import/Export)](#realm-configuration-import--export) 
-3. [Development & Cryptographic Provisioning](#for-dev-only)
+4. [Development & Cryptographic Provisioning](#for-dev-only)
    - [Local CA Generation & Trust Stores](#for-dev-only)
 
+## System Design Diagrams
 
+for planning related documents, check the `./Docs` directory's [readme](./Docs/readme.md) for an overview of each diagram
 
 ## Container security & Consistency
 
@@ -95,6 +98,11 @@ To make the raw JSON strings easily scannable on the security dashboard, the log
 | line_format "[{{if .namespace}}{{.namespace}}{{else}}auth{{end}}] {{.eventType}} — User: {{if .userId}}{{.userId}}{{else if .email}}{{.email}}{{else}}system{{end}} | Details: {{if .patientId}}Patient ({{.patientId}}) -> {{.resourceType}} : {{.action}}{{else}}{{.reason}}{{end}} | [IP: {{.ip}} | ID: {{.requestId}}]"
 ```
 
+### Firewall setup
+
+- For firewall setup, i used a OPNsense virtualized environment in KVM, for exact steps check this [readme](./Firewall%20Config.md) out
+
+![firewall dashboard](./Docs/screenshots/firewall/firewall-dashboard.png)
 ### Keycloak
 
 > for manual steps in case you don't want to run scripts
