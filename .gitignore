@@ -22,3 +22,6 @@ texput.log
 .env
 *.asc
 *.pem
+
+
+node_modules/*
