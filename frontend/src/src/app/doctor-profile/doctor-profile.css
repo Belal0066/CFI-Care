@@ -15,6 +15,45 @@ html, body {
   --bdr:#E2E8F0;--surf:#F8FAFC;
 }
 
+.back-to-dash {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+  border-radius: 7px;
+
+  background: var(--b50);
+  color: var(--b800);
+
+  border: 1px solid var(--b100);
+
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+
+  transition: all 0.15s ease;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: 0;
+}
+
+.back-to-dash:hover {
+  background: var(--b100);
+  border-color: var(--b200);
+  transform: translateY(-1px);
+}
+
+.back-to-dash:active {
+  transform: translateY(0px);
+}
+
+.back-to-dash svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
 :host{display:block;height:100vh;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
 
 .shell{display:grid;grid-template-columns:240px 1fr 220px;height:100vh;overflow:hidden}
