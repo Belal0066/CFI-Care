@@ -17,13 +17,13 @@ router.get(
 router.get(
   "/:id/encounters",
   requireApiAuth,
-  requirePatientContext({ paramName: "id" }),
+  requirePatientContext({ paramName: "patientId" }),
   EOCController.getEncountersByEpisodeOfCareId,
 );
 router.put(
   "/",
   requireApiAuth,
-  requirePatientContext({ paramName: "id" }),
+  requirePatientContext({ paramName: "patientId" }),
   EOCController.createEpisodeOfCareWithSpecificId,
 );
 router.get(

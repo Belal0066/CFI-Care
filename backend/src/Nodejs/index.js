@@ -1,6 +1,6 @@
 require("dotenv").config();
-const admin = require('firebase-admin');
-const serviceAccount = require('./firebase-service-account.json');
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-service-account.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -40,19 +40,19 @@ const healthcareServiceRoutes = require("./healthcareService/healthcareServiceRo
 const deviceRoutes = require("./device/deviceRoutes");
 const relatedPersonRoutes = require("./relatedPerson/relatedPersonRoutes");
 
-const practitionerGrantsRoutes=require("./grants/Practitioner_grants");
-const caregiverGrantsRoutes=require("./grants/Caregiver_grants");
-const patientGrantsRoutes=require("./grants/Patient_grants");
+const practitionerGrantsRoutes = require("./grants/Practitioner_grants");
+const caregiverGrantsRoutes = require("./grants/Caregiver_grants");
+const patientGrantsRoutes = require("./grants/Patient_grants");
 
-const IssueFCMToken=require("./services/FCM_Token_Issuance");
+const IssueFCMToken = require("./services/FCM_Token_Issuance");
 
 const authRoutes = require("./auth/authRoutes");
 const handshakeRoutes = require("./auth/handshakes");
 const { requireApiAuth } = require("./middleware/requireApiAuth");
-
+const redis = require("./utils/redisCli");
 
 // prometheus endpoint
-const  metricsRouter = require('./utils/metrics_endpoint');
+const metricsRouter = require("./utils/metrics_endpoint");
 
 const session = require("express-session");
 
@@ -184,7 +184,6 @@ app.post("/timing", (req, res) => {
 // Apply general rate limiting to all routes
 app.use(generalLimiter);
 
-
 // app.use("/auth/provisioning", provisioningRoutes);
 app.use("/auth", authRoutes);
 // app.use("/handshakes", handshakeRoutes);
@@ -222,11 +221,10 @@ app.use("/api/practitioner-grants", practitionerGrantsRoutes);
 app.use("/api/caregiver-grants", caregiverGrantsRoutes);
 app.use("/api/patient-grants", patientGrantsRoutes);
 
-app.use("/FCM",IssueFCMToken);
+app.use("/api/FCM", IssueFCMToken);
 
-
-// prmetheeuuuus 
-app.use('/metrics', metricsRouter);
+// prmetheeuuuus
+app.use("/metrics", metricsRouter);
 
 // //log all requests that reach here
 // app.use((req, res, next) => {

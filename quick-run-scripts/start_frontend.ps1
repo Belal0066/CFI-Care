@@ -28,7 +28,7 @@ if (Test-Path $FrontendPath) {
     Set-Location $FrontendPath
     
     # Run Docker Compose
-    docker compose -f "docker-compose.yaml" up --build
+    docker compose -f "docker-compose.yaml" up
 }
 else {
     Write-Error "Could not find 'frontend' folder at $FrontendPath"

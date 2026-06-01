@@ -23,18 +23,18 @@ services:
     networks:
       - nginx-network
 
-  keycloak-vault-agent:
-    image: hashicorp/vault:1.21.2
-    env_file:
-      - ./.env.vault
-    command: vault agent -config=/etc/vault/agent/keycloak-agent.hcl
-    networks:
-      - nginx-network
-    volumes:
-      - ./services/keycloak/vault/agent:/etc/vault/agent:ro
-      - ./services/keycloak/vault/role:/etc/vault/role
-      - ./services/keycloak/vault/templates:/etc/vault/templates:ro
-      - ./secrets/kc:/etc/keycloak-vault
+  # keycloak-vault-agent:
+  #   image: hashicorp/vault:1.21.2
+  #   env_file:
+  #     - ./.env.vault
+  #   command: vault agent -config=/etc/vault/agent/keycloak-agent.hcl
+  #   networks:
+  #     - nginx-network
+  #   volumes:
+  #     - ./services/keycloak/vault/agent:/etc/vault/agent:ro
+  #     - ./services/keycloak/vault/role:/etc/vault/role
+  #     - ./services/keycloak/vault/templates:/etc/vault/templates:ro
+  #     - ./secrets/kc:/etc/keycloak-vault
 
 
 
@@ -76,11 +76,7 @@ services:
     entrypoint: ["/bin/sh", "-lc"]
     command:
       [
-        "while [ ! -f /etc/keycloak-vault/.env.kc ]; do sleep 1; done &&
-        set -a &&
-        . /etc/keycloak-vault/.env.kc &&
-        set +a &&
-        exec /opt/keycloak/bin/kc.sh start-dev
+        "exec /opt/keycloak/bin/kc.sh start-dev
         --import-realm
         -Dkeycloak.migration.action=import
         -Dkeycloak.migration.provider=singleFile
@@ -92,6 +88,25 @@ services:
         --features=quick-theme
         --log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
       ]
+    # entrypoint: ["/bin/sh", "-lc"]
+    # command:
+    #   [
+    #     "while [ ! -f /etc/keycloak-vault/.env.kc ]; do sleep 1; done &&
+    #     set -a &&
+    #     . /etc/keycloak-vault/.env.kc &&
+    #     set +a &&
+    #     exec /opt/keycloak/bin/kc.sh start-dev
+    #     --import-realm
+    #     -Dkeycloak.migration.action=import
+    #     -Dkeycloak.migration.provider=singleFile
+    #     -Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}
+    #     -Dkeycloak.migration.strategy=OVERWRITE_EXISTING
+    #     -Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json
+    #     --https-key-store-file=conf/server.keystore
+    #     --https-key-store-password=password
+    #     --features=quick-theme
+    #     --log-level=INFO,io.vertx.ext.web.impl.RouterImpl:TRACE",
+    #   ]
 
     restart: on-failure:3
 
