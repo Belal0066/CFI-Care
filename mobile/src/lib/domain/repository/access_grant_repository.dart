@@ -23,7 +23,9 @@ class AccessGrantRepository {
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
       final list = body['pending'] as List<dynamic>? ?? [];
-      return list.map((e) => PendingGrant.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => PendingGrant.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     throw Exception('Failed to fetch pending grants: ${response.body}');
   }
@@ -45,7 +47,8 @@ class AccessGrantRepository {
     );
     if (response.statusCode == 201 || response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
-      if (body['grant'] != null) return Grant.fromJson(body['grant'] as Map<String, dynamic>);
+      if (body['grant'] != null)
+        return Grant.fromJson(body['grant'] as Map<String, dynamic>);
       return null;
     }
     throw Exception('Failed to respond to grant: ${response.body}');
@@ -61,17 +64,23 @@ class AccessGrantRepository {
   }
 
   Future<List<Grant>> getActiveGrants() async {
-    final response = await apiService.getData(endpoint: '/patient-grants/grants');
+    final response = await apiService.getData(
+      endpoint: '/patient-grants/grants',
+    );
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
-      final list = body['grants'] as List<dynamic>? ?? [];
-      return list.map((e) => Grant.fromJson(e as Map<String, dynamic>)).toList();
+      final list = body['practitioners'] as List<dynamic>? ?? [];
+      return list
+          .map((e) => Grant.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     throw Exception('Failed to fetch active grants: ${response.body}');
   }
 
   Future<String?> fetchPractitionerName(String practitionerId) async {
-    final response = await apiService.getData(endpoint: '/practitioners/$practitionerId');
+    final response = await apiService.getData(
+      endpoint: '/practitioners/$practitionerId',
+    );
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
       final name = body['name'] as String?;

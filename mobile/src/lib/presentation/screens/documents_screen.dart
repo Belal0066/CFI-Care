@@ -20,7 +20,7 @@ class MedicalDocsPage extends StatefulWidget {
 
 class _MedicalDocsPageState extends State<MedicalDocsPage> {
   // Set to true to preview all card states without a server connection.
-  static const bool _mockMode = true;
+  static const bool _mockMode = false;
 
   String _searchQuery = '';
   int _lastKnownFailureCount = 0;

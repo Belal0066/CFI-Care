@@ -1,8 +1,9 @@
 // environment.template.ts
 export const environment = {
   production: false,
-  apiUrl: '/api',  
+  apiUrl: '/api',
   authUrl : '/auth',
-  keycloakHost: 'https://192.168.1.2/keycloak',
-  appDashboardUrl: 'https://192.168.1.2/dashboard'
+  keycloakHost: 'https://172.22.16.1/keycloak',
+  appDashboardUrl: 'https://172.22.16.1/dashboard'
 };
+
