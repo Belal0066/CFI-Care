@@ -6,6 +6,10 @@ import '../domain/models/document.dart';
 import '../utils/enums/type_of_event.dart';
 import '../utils/enums/speciality_event.dart';
 
+// class Session {
+//   static String? currentUserId;
+// }
+
 class Session {
   static String? currentUserId;
   // Always the Keycloak JWT sub — used for backend API calls where the server

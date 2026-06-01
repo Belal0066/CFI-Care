@@ -1,7 +1,7 @@
 <#import "template.ftl" as layout>
-<@layout.registrationLayout displayMessage=!messagesPerField.existsError('firstName','lastName','email','username','password','password-confirm') displayInfo=false ; section>
+<#assign canLogin=realm.password>
+<@layout.registrationLayout displayMessage=false displayInfo=false; section>
   <#if section = "header">
-    
   <#elseif section = "form">
     <div class="cfi-form cfi-form-register">
       <div class="cfi-brand">
@@ -17,110 +17,146 @@
         <span class="cfi-tab active">Register</span>
       </div>
 
+      <#-- 
+        DETERMINE THE ACTIVE VIEW LAYER CONTEXT BASED ON CURRENT KEYCLOAK ERRORS:
+        If there's an 'email_code' error block, we are on Step 2.
+        If there are details errors (or no errors), we must display Step 1.
+      -->
+      <#assign isOtpActive = messagesPerField.existsError('email_code')>
+      <#assign hasDetailsErrors = messagesPerField.existsError('firstName','lastName','email','username','password','password-confirm')>
+      
+      <#if hasDetailsErrors>
+        <#assign isOtpActive = false>
+      </#if>
+
       <form id="kc-register-form" action="${url.registrationAction}" method="post">
-      <div id="registration-fields-step">
-        <div class="form-group">
-          <label for="firstName">${msg("firstName")}</label>
-          <input type="text" id="firstName" class="form-control" name="firstName" value="${(register.formData.firstName!'')}" autocomplete="given-name"/>
-          <#if messagesPerField.existsError('firstName')>
-            <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('firstName'))?no_esc}</span>
-          </#if>
-        </div>
+        
+        <input type="hidden" id="otp_step" name="otp_step" value="${isOtpActive?c}" />
 
-        <div class="form-group">
-          <label for="lastName">${msg("lastName")}</label>
-          <input type="text" id="lastName" class="form-control" name="lastName" value="${(register.formData.lastName!'')}" autocomplete="family-name"/>
-          <#if messagesPerField.existsError('lastName')>
-            <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('lastName'))?no_esc}</span>
-          </#if>
-        </div>
-
-        <div class="form-group">
-          <label for="email">${msg("email")}</label>
-          <input type="email" id="email" class="form-control" name="email" value="${(register.formData.email!'')}" autocomplete="email"/>
-          <#if messagesPerField.existsError('email')>
-            <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('email'))?no_esc}</span>
-          </#if>
-        </div>
-
-        <#if !realm.registrationEmailAsUsername>
+        <div id="registration-fields-step" style="<#if isOtpActive>display: none;<#else>display: block;</#if>">
           <div class="form-group">
-            <label for="username">${msg("username")}</label>
-            <input type="text" id="username" class="form-control" name="username" value="${(register.formData.username!'')}" autocomplete="username"/>
-            <#if messagesPerField.existsError('username')>
-              <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('username'))?no_esc}</span>
+            <label for="firstName">${msg("firstName")}</label>
+            <input type="text" id="firstName" name="firstName" class="form-control <#if messagesPerField.existsError('firstName')>is-invalid</#if>" value="${(register.formData.firstName!'')}" autocomplete="given-name"/>
+            <#if messagesPerField.existsError('firstName')>
+              <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('firstName'))?no_esc}</span>
             </#if>
           </div>
-        </#if>
 
-        <div class="form-group">
-          <label for="password">${msg("password")}</label>
-          <div class="cfi-password-wrap">
-            <input type="password" id="password" class="form-control" name="password" autocomplete="new-password"/>
-            <button type="button" class="cfi-password-toggle" data-target="password" aria-label="Show password" aria-pressed="false">
-              <span class="eye-open">Show</span>
-              <span class="eye-closed">Hide</span>
-            </button>
+          <div class="form-group">
+            <label for="lastName">${msg("lastName")}</label>
+            <input type="text" id="lastName" name="lastName" class="form-control <#if messagesPerField.existsError('lastName')>is-invalid</#if>" value="${(register.formData.lastName!'')}" autocomplete="family-name"/>
+            <#if messagesPerField.existsError('lastName')>
+              <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('lastName'))?no_esc}</span>
+            </#if>
           </div>
-          <#if messagesPerField.existsError('password')>
-            <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('password'))?no_esc}</span>
+
+          <div class="form-group">
+            <label for="email">${msg("email")}</label>
+            <input type="email" id="email" name="email" class="form-control <#if messagesPerField.existsError('email')>is-invalid</#if>" value="${(register.formData.email!'')}" autocomplete="email"/>
+            <#if messagesPerField.existsError('email')>
+              <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('email'))?no_esc}</span>
+            </#if>
+          </div>
+
+          <#if !realm.registrationEmailAsUsername>
+            <div class="form-group">
+              <label for="username">${msg("username")}</label>
+              <input type="text" id="username" name="username" class="form-control <#if messagesPerField.existsError('username')>is-invalid</#if>" value="${(register.formData.username!'')}" autocomplete="username"/>
+              <#if messagesPerField.existsError('username')>
+                <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('username'))?no_esc}</span>
+              </#if>
+            </div>
           </#if>
+
+          <div class="form-group">
+            <label for="password">${msg("password")}</label>
+            <div class="cfi-password-wrap">
+              <input type="password" id="password" name="password" class="form-control <#if messagesPerField.existsError('password')>is-invalid</#if>" autocomplete="new-password"/>
+              <button type="button" class="cfi-password-toggle" data-target="password" aria-label="Show password" aria-pressed="false">
+                <span class="eye-open"><i class="bi bi-eye" aria-hidden="true"></i></span>
+                <span class="eye-closed"><i class="bi bi-eye-slash" aria-hidden="true"></i></span>
+              </button>
+            </div>
+            <#if messagesPerField.existsError('password')>
+              <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('password'))?no_esc}</span>
+            </#if>
+          </div>
+
+          <div class="form-group">
+            <label for="password-confirm">${msg("passwordConfirm")}</label>
+            <div class="cfi-password-wrap">
+              <input type="password" id="password-confirm" name="password-confirm" class="form-control <#if messagesPerField.existsError('password-confirm')>is-invalid</#if>" autocomplete="new-password"/>
+              <button type="button" class="cfi-password-toggle" data-target="password-confirm" aria-label="Show password" aria-pressed="false">
+                <span class="eye-open"><i class="bi bi-eye" aria-hidden="true"></i></span>
+                <span class="eye-closed"><i class="bi bi-eye-slash" aria-hidden="true"></i></span>
+              </button>
+            </div>
+            <#if messagesPerField.existsError('password-confirm')>
+              <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('password-confirm'))?no_esc}</span>
+            </#if>
+          </div>
+
+            <#if altchaRequired??>
+              <altcha-widget challengejson='${altchaPayload}' <#if altchaFloating?? && altchaFloating=="true">floating</#if> hidefooter delay="2000" auto="onload" expire="3600000"></altcha-widget>
+            </#if>
+
+          <button type="button" class="btn btn-primary" id="kc-register-continue" style="margin-top: 1rem;">
+            Continue to Verification
+          </button>
         </div>
 
-        <div class="form-group">
-          <label for="password-confirm">${msg("passwordConfirm")}</label>
-          <div class="cfi-password-wrap">
-            <input type="password" id="password-confirm" class="form-control" name="password-confirm" autocomplete="new-password"/>
-            <button type="button" class="cfi-password-toggle" data-target="password-confirm" aria-label="Show password" aria-pressed="false">
-              <span class="eye-open">Show</span>
-              <span class="eye-closed">Hide</span>
-            </button>
-          </div>
-          <#if messagesPerField.existsError('password-confirm')>
-            <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('password-confirm'))?no_esc}</span>
-          </#if>
-        </div>
-
-    <button type="button" class="btn btn-primary" onclick="showOtpStep()">
-        Continue to Verification
-    </button>
-
-    </div>
-
-
-        <div id="otp-fields-step" style="display: none;">
-        <div class="login-header">
+        <div id="otp-fields-step" style="<#if isOtpActive>display: block;<#else>display: none;</#if>">
+          <div class="login-header">
             <h2 class="cfi-title2">Verify Your Email</h2>
-           <p class="cfi-subtitle" style="margin-top: 20px;">We've sent a 6-digit code to your inbox</p>
-        </div>
+            <p class="cfi-subtitle" style="margin-top: 20px;">We've sent a 6-digit code to your inbox</p>
+          </div>
 
-       <div class="form-group" style="margin-top: 100px;">
-        <label for="email_code">Verification Code</label>
-        <input type="text" 
-               id="email_code" 
-               name="email_code" 
-               class="form-control" 
-               placeholder="000000"
-               inputmode="numeric" 
-               pattern="[0-9]*" 
-               maxlength="6"
-               autocomplete="one-time-code">
-    </div>
+          <#if messagesPerField.existsError('email_code')>
+            <#assign emailCodeMessage = messagesPerField.get('email_code')!''>
+            <#if !emailCodeMessage?contains('Verification code sent')>
+              <div class="cfi-inline-message cfi-inline-error" role="alert" style="margin-top: 20px; color: #ef4444; font-weight: 500;">
+                <i class="bi bi-exclamation-triangle-fill"></i> <span>${kcSanitize(emailCodeMessage)?no_esc}</span>
+              </div>
+            </#if>
+          </#if>
 
-        <button type="submit" class="btn btn-primary">
+          <div class="form-group" style="margin-top: 40px;">
+            <label for="email_code">Verification Code</label>
+            <input type="text" 
+                   id="email_code" 
+                   name="email_code" 
+                   class="form-control" 
+                   placeholder="000000"
+                   inputmode="numeric" 
+                   pattern="[0-9]*" 
+                   maxlength="6"
+                   autocomplete="one-time-code">
+          </div>
+
+          <button type="button" class="btn btn-primary" id="kc-register-submit-final">
             Confirm & Create Account
-        </button>
-       <div class="cfi-help" style="margin-top: 40px;">
-        <a href="javascript:void(0)" onclick="showRegistrationStep()" class="cfi-help">
-            <i class="bi bi-arrow-left"></i> Back to Details
-        </a>
-    </div>
-    </div>
-</form>
+          </button>
+          
+          <div class="cfi-help" style="margin-top: 40px;">
+            <a href="javascript:void(0)" id="cfi-back-link" class="cfi-help">
+              <i class="bi bi-arrow-left"></i> Back to Details
+            </a>
+          </div>
+        </div>
+      </form>
 
       <script>
         (function () {
           var toggles = document.querySelectorAll('.cfi-password-toggle');
+          var form = document.getElementById('kc-register-form');
+          var registrationStep = document.getElementById('registration-fields-step');
+          var otpStep = document.getElementById('otp-fields-step');
+          var continueButton = document.getElementById('kc-register-continue');
+          var finalSubmitButton = document.getElementById('kc-register-submit-final');
+          var backBtn = document.getElementById('cfi-back-link');
+          var otpStepField = document.getElementById('otp_step');
+
+          // Clean, isolated registration toggle registration engine loop
           for (var i = 0; i < toggles.length; i++) {
             toggles[i].addEventListener('click', function () {
               var targetId = this.getAttribute('data-target');
@@ -133,63 +169,51 @@
               this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
             });
           }
+
+          // Step 1: Requesting code -> forces step indicator to false
+          if (continueButton) {
+            continueButton.addEventListener('click', function(e) {
+              if (otpStepField) { otpStepField.value = 'false'; } 
+              form.submit();
+            });
+          }
+
+          // Step 2: Submitting code -> explicitly flags step indicator to true right before submission
+          if (finalSubmitButton) {
+            finalSubmitButton.addEventListener('click', function(e) {
+              if (otpStepField) { otpStepField.value = 'true'; }
+              form.submit();
+            });
+          }
+
+          if (backBtn) {
+            backBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              if (otpStepField) { otpStepField.value = 'false'; }
+              if (registrationStep) registrationStep.style.display = 'block';
+              if (otpStep) otpStep.style.display = 'none';
+            });
+          }
+
+          // Dynamic rendering engine preservation bypasses browser anti-phishing data stripping
+          if (form) {
+            form.addEventListener('submit', function() {
+              if (otpStepField && otpStepField.value === 'true') {
+                if (registrationStep) {
+                  registrationStep.style.setProperty('display', 'block', 'important');
+                  registrationStep.style.position = 'absolute';
+                  registrationStep.style.height = '0px';
+                  registrationStep.style.width = '0px';
+                  registrationStep.style.overflow = 'hidden';
+                  registrationStep.style.opacity = '0';
+                }
+              }
+            });
+          }
         })();
-
-function showOtpStep() {
-    const emailField = document.getElementById('email');
-    const email = emailField ? emailField.value : '';
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const clientId = urlParams.get('client_id');
-    const tabId = urlParams.get('tab_id');
-
-    const form = document.getElementById('kc-register-form');
-    const actionUrl = new URL(form.action);
-    const sessionCode = actionUrl.searchParams.get('session_code');
-
-    console.log({ email, clientId, tabId, sessionCode });
-
-    if (!email || !clientId || !tabId || !sessionCode) {
-        alert('Required info missing. Check console for details.');
-        return;
-    }
-
-    const baseUrl = window.location.href.split('/login-actions')[0];
-    const url = baseUrl + '/email-code/send' 
-              + '?email=' + encodeURIComponent(email)
-              + '&session_code=' + encodeURIComponent(sessionCode)
-              + '&tab_id=' + encodeURIComponent(tabId)
-              + '&client_id=' + encodeURIComponent(clientId);
-
-    fetch(url, { 
-        method: 'POST',
-        credentials: 'include' 
-    })
-    .then(async response => {
-        const data = await response.json();
-        if (response.ok) {
-            document.getElementById('registration-fields-step').style.display = 'none';
-            document.getElementById('otp-fields-step').style.display = 'block';
-        } else {
-            alert('Error: ' + (data.error || 'Check logs'));
-        }
-    })
-    .catch(err => alert('Network error: ' + err));
-}
-
-    function showRegistrationStep() {
-        document.getElementById('registration-fields-step').style.display = 'block';
-        document.getElementById('otp-fields-step').style.display = 'none';
-    }
-   <#if messagesPerField.existsError('email_code')>
-        setTimeout(function() {
-            document.getElementById('registration-fields-step').style.display = 'none';
-            document.getElementById('otp-fields-step').style.display = 'block';
-        }, 10);
-    </#if>
       </script>
     </div>
-  <#elseif section = "info" >
+  <#elseif section = "info">
     <div class="cfi-help">
       <a href="${url.loginUrl}">${msg("backToLogin")}</a>
     </div>

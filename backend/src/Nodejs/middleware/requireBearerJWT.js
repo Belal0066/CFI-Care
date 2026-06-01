@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
 
-const kcHost = process.env.KC_HOSTNAME;
+const kcHost = process.env.KC_HOST_FULL;
 const realm = process.env.KEYCLOAK_REALM;
 const issuer = process.env.KC_ISSUER || `${kcHost}/realms/${realm}`;
 const internalIssuer = process.env.KC_INTERNAL_ISSUER
@@ -34,6 +34,7 @@ function requireBearerJwt(req, res, next) {
 
   // debugging stuff :/
   // const decoded = jwt.decode(token, { complete: true });
+  // console.log("[JWT-DEBUG] Token:", token);
   // console.log("[JWT-DEBUG] Token header:", decoded?.header);
   // console.log("[JWT-DEBUG] Token payload:", decoded?.payload);
 
@@ -53,7 +54,7 @@ function requireBearerJwt(req, res, next) {
     // },
     (err, payload) => {
       if (err) {
-        // console.error("[JWT-VERIFY] FAILED:", err.name, err.message);
+        console.error("[JWT-VERIFY] FAILED:", err.name, err.message);
         return res.status(401).json({ error: "Invalid token", detail: err.message });
       }
       console.log("[JWT-VERIFY] SUCCESS, azp:", payload.azp);

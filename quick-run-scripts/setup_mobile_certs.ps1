@@ -38,7 +38,8 @@ if (-not (Test-Path $securityCa)) {
 }
 
 $adbDevices = adb devices
-if ($adbDevices -notmatch "\tdevice") {
+if (-not ($adbDevices -match "\tdevice")) {
+
     throw "No connected Android device/emulator found. Start one, then rerun."
 }
 

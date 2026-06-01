@@ -7,17 +7,13 @@ import 'package:medflow/presentation/screens/search_doctor_speciality.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/access_grant_provider.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import '../../utils/themes/theme.dart';
-// import '../screens/home_screen.dart';
-// import '../screens/search_doctor_speciality.dart';
-// import '../screens/documents_screen.dart';
-// import '../screens/my_profile.dart';
-
-
+import '../viewmodels/family_access_provider.dart';
+import '../viewmodels/proxy_session_provider.dart';
+import '../../data/services/datasources/api_service_booking.dart';
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final ApiService apiService;
+  const MyApp({super.key, required this.apiService});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -31,7 +27,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    
+
     // A. Setup Navigation Controller
     _pageController = PageController(initialPage: selectedIndex);
 
@@ -81,6 +77,30 @@ class _MyAppState extends State<MyApp> {
     //                              data: {'fcmToken': newToken});
     //        });
 
+    // Send token to backend
+    if (token != null) {
+      try {
+        // You need access to apiService here — either inject it or use a static accessor
+        await widget.apiService.postData(
+          endpoint: '/FCM/fcm-token',
+          data: {'fcmToken': token},
+        );
+      } catch (e) {
+        debugPrint('Failed to send FCM token to backend: $e');
+      }
+    }
+
+    // Re-send on token rotation
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      try {
+        await widget.apiService.postData(
+          endpoint: '/FCM/fcm-token',
+          data: {'fcmToken': newToken},
+        );
+      } catch (e) {
+        debugPrint('Failed to refresh FCM token: $e');
+      }
+    });
     // Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (!mounted) return;
@@ -93,6 +113,15 @@ class _MyAppState extends State<MyApp> {
             duration: Duration(seconds: 4),
           ),
         );
+      } else if (message.data['type'] == 'family_request') {
+        context.read<FamilyAccessProvider>().fetchPendingRequests();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('A family member wants to access your medical data'),
+            backgroundColor: Colors.purple,
+            duration: Duration(seconds: 4),
+          ),
+        );
       } else if (message.notification != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -102,7 +131,7 @@ class _MyAppState extends State<MyApp> {
         );
       }
     });
-    
+
     // 4. Handle Notification Taps (Optional Navigation Logic)
     // If the app was terminated and opened by a notification
     RemoteMessage? initialMessage = await messaging.getInitialMessage();
@@ -120,6 +149,8 @@ class _MyAppState extends State<MyApp> {
     }
     if (message.data['type'] == 'grant_request') {
       if (mounted) context.read<AccessGrantProvider>().fetchPendingGrants();
+    } else if (message.data['type'] == 'family_request') {
+      if (mounted) context.read<FamilyAccessProvider>().fetchPendingRequests();
     }
   }
 
@@ -129,64 +160,134 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  // --- BUILD UI (Your existing PageView) ---
+  // --- BUILD UI ---
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: patientTheme, // Ensure this variable exists in your theme file
-      child: Scaffold(
-        body: PageView(
-          controller: _pageController,
-          onPageChanged: (index) {
-            setState(() => selectedIndex = index);
-          },
-          children: const [
-            HomeScreen(),
-            // ScheduleScreen(), // Uncomment when ready
-            SearchDoctorScreen(),
-            MedicalDocsPage(),
-            MyProfile(),
-          ],
-        ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: selectedIndex,
-            onTap: (index) {
-              setState(() => selectedIndex = index);
-              _pageController.animateToPage(
-                index,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            },
-            type: BottomNavigationBarType.fixed,
-            elevation: 0,
-            selectedItemColor: const Color.fromARGB(255, 25, 136, 210),
-            unselectedItemColor: Colors.grey.shade600,
-            items: const [
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.home_outlined),
-                  activeIcon: Icon(Icons.home),
-                  label: "Home"),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  activeIcon: Icon(Icons.calendar_month),
-                  label: 'Activity'),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.description_outlined),
-                  activeIcon: Icon(Icons.description),
-                  label: 'Documents'),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  activeIcon: Icon(Icons.person),
-                  label: 'Profile'),
-            ],
-          ),
-        ),
+      data: patientTheme,
+      child: Consumer<ProxySessionProvider>(
+        builder: (context, proxy, _) {
+          return Scaffold(
+            body: Column(
+              children: [
+                // --- PROXY BANNER: visible across all tabs when x is viewing y ---
+                if (proxy.isProxying)
+                  Material(
+                    color: const Color(0xFF6A1B9A),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.swap_horiz,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Viewing ${proxy.proxyPatientName ?? 'family member'}'s profile",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: proxy.switchBack,
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: 0.2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              child: const Text(
+                                'Switch Back',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // --- MAIN PAGES ---
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() => selectedIndex = index);
+                    },
+                    children: const [
+                      HomeScreen(),
+                      // ScheduleScreen(), // Uncomment when ready
+                      SearchDoctorScreen(),
+                      MedicalDocsPage(),
+                      MyProfile(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.grey.shade300)),
+              ),
+              child: BottomNavigationBar(
+                currentIndex: selectedIndex,
+                onTap: (index) {
+                  setState(() => selectedIndex = index);
+                  _pageController.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                type: BottomNavigationBarType.fixed,
+                elevation: 0,
+                selectedItemColor: const Color.fromARGB(255, 25, 136, 210),
+                unselectedItemColor: Colors.grey.shade600,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home_outlined),
+                    activeIcon: Icon(Icons.home),
+                    label: "Home",
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.calendar_month_outlined),
+                    activeIcon: Icon(Icons.calendar_month),
+                    label: 'Activity',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.description_outlined),
+                    activeIcon: Icon(Icons.description),
+                    label: 'Documents',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline),
+                    activeIcon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

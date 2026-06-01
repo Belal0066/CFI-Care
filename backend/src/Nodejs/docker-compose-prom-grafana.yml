@@ -1,0 +1,45 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks  :
+      - nginx-network
+    env_file:
+      - ./.env
+    
+  grafana:
+    image: grafana/grafana:latest
+    # environment:
+    #   - 
+    env_file:
+      - ./.env
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - nginx-network
+  
+  loki:
+    image: grafana/loki:latest
+    networks:
+      - nginx-network
+
+  # alloy:
+  #   image: grafana/alloy:latest
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro # Directly listens to the Docker daemon
+  #     - ./config.alloy:/etc/alloy/config.alloy
+  #   command: run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+  #   networks:
+  #     - nginx-network
+
+volumes:
+  grafana_data:
+  prometheus_data:
+
+
+networks:
+  nginx-network:
+    name: containers_nginx-network
+    external: true

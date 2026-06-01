@@ -44,7 +44,9 @@
       </form>
 
       <div class="cfi-help" style="margin-top:8px;">
-        <a href="${url.loginUrl}">Back to Login</a>
+         <a href="${url.loginRestartFlowUrl}">
+                Back to Login
+          </a>
       </div>
     </div>
   </#if>

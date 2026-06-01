@@ -17,31 +17,31 @@ router.get(
 router.get(
   "/:id/encounters",
   requireApiAuth,
-  requirePatientContext({ paramName: "patientId" }),
+  requirePatientContext({ paramName: "id" }),
   EOCController.getEncountersByEpisodeOfCareId,
 );
 router.put(
   "/",
   requireApiAuth,
-  requirePatientContext({ paramName: "patientId" }),
+  requirePatientContext({ paramName: "id" }),
   EOCController.createEpisodeOfCareWithSpecificId,
 );
 router.get(
   "/:id",
   requireApiAuth,
-  requirePatientContext({ paramName: "patientId" }),
+  requirePatientContext({ paramName: "id" }),
   EOCController.getEpisodeOfCareById,
 );
 router.post(
   "/:id",
   requireApiAuth,
-  requirePatientContext({ paramName: "patientId" }),
+  requirePatientContext({ paramName: "id" }),
   EOCController.updateEpisodeOfCare,
 );
 router.delete(
   "/:id",
   requireApiAuth,
-  requirePatientContext({ paramName: "patientId" }),
+  requirePatientContext({ paramName: "id" }),
   EOCController.deleteEpisodeOfCare,
 );
 

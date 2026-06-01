@@ -1,9 +1,9 @@
 // const jwt = require('jsonwebtoken');
 // const jwksRsa = require('jwks-rsa');
 
-// const KEYCLOAK_BASE_URL =process.env.KC_HOSTNAME;
+// const KEYCLOAK_BASE_URL =process.env.KC_HOST_FULL;
 const REALM = process.env.KEYCLOAK_REALM;
-const ISSUER = process.env.KC_ISSUER || `${process.env.KC_HOSTNAME}/realms/${REALM}`;
+const ISSUER = process.env.KC_ISSUER || `${process.env.KC_HOST_FULL}/realms/${REALM}`;
 const JWKS_URI = process.env.KC_JWKS_URI; //|| `${ISSUER}/protocol/openid-connect/certs`;
 
 // const client = jwksRsa({

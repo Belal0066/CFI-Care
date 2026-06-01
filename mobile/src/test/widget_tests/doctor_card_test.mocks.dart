@@ -299,9 +299,7 @@ class MockFilePicker extends _i1.Mock implements _i6.FilePicker {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockBookingProvider extends _i1.Mock implements _i9.BookingProvider {
-  MockBookingProvider() {
-    _i1.throwOnMissingStub(this);
-  }
+  MockBookingProvider();
 
   @override
   _i3.BookingRepositoryImpl get repository =>
@@ -365,19 +363,22 @@ class MockBookingProvider extends _i1.Mock implements _i9.BookingProvider {
   );
 
   @override
-  _i5.Future<void> confirmBooking() =>
+  _i5.Future<bool> confirmBooking() =>
       (super.noSuchMethod(
             Invocation.method(#confirmBooking, []),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
+  _i5.Future<void> cancelAppointment(String? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelAppointment, [id]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
-
-  @override
-  void cancelAppointment(String? id) => super.noSuchMethod(
-    Invocation.method(#cancelAppointment, [id]),
-    returnValueForMissingStub: null,
-  );
 
   @override
   void clearBookingData() => super.noSuchMethod(
@@ -402,6 +403,42 @@ class MockBookingProvider extends _i1.Mock implements _i9.BookingProvider {
     Invocation.method(#dispose, []),
     returnValueForMissingStub: null,
   );
+
+  @override
+  bool get isLoadingSchedules =>
+      (super.noSuchMethod(
+            Invocation.getter(#isLoadingSchedules),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  String? get schedulesError =>
+      (super.noSuchMethod(
+            Invocation.getter(#schedulesError),
+            returnValue: null,
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  List<_i3.ScheduleWithSlots> get schedulesWithSlots =>
+      (super.noSuchMethod(
+            Invocation.getter(#schedulesWithSlots),
+            returnValue: <_i3.ScheduleWithSlots>[],
+            returnValueForMissingStub: <_i3.ScheduleWithSlots>[],
+          )
+          as List<_i3.ScheduleWithSlots>);
+
+  @override
+  _i5.Future<void> loadDoctorSchedulesWithSlots(String? doctorId) =>
+      (super.noSuchMethod(
+            Invocation.method(#loadDoctorSchedulesWithSlots, [doctorId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   void notifyListeners() => super.noSuchMethod(

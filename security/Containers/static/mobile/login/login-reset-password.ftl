@@ -39,7 +39,9 @@
 
   <#elseif section = "info" >
     <div class="cfi-help">
-      <a href="${url.loginUrl}">Back to Login</a>
+       <a href="${url.loginRestartFlowUrl}">
+              Back to Login
+        </a>
     </div>
   </#if>
 </@layout.registrationLayout>

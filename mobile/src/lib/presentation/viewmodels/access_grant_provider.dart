@@ -34,17 +34,19 @@ class AccessGrantProvider with ChangeNotifier {
   bool get isLoadingActive => _isLoadingActive;
   String? get activeError => _activeError;
 
-  // Practitioner name cache (id to display name)
-  final Map<String, String> _practitionerNames = {};
+  // Requeter name cache (id to display name)
+  final Map<String, String> _requesterNames = {};
 
-  String practitionerName(String id) => _practitionerNames[id] ?? id;
+
+  String requesterName(String id) => _requesterNames[id] ?? id;
+
 
   Future<void> _cacheNames(List<String> ids) async {
-    final uncached = ids.toSet().where((id) => !_practitionerNames.containsKey(id)).toList();
+    final uncached = ids.toSet().where((id) => !_requesterNames.containsKey(id)).toList();
     if (uncached.isEmpty) return;
     await Future.wait(uncached.map((id) async {
       final name = await repository.fetchPractitionerName(id);
-      if (name != null) _practitionerNames[id] = name;
+      if (name != null) _requesterNames[id] = name;
     }));
     notifyListeners();
   }
@@ -76,7 +78,7 @@ class AccessGrantProvider with ChangeNotifier {
     notifyListeners();
     try {
       _pendingGrants = await repository.getPendingGrants();
-      await _cacheNames(_pendingGrants.map((g) => g.practitionerId).toList());
+      await _cacheNames(_pendingGrants.map((g) => g.requesterId).toList());
     } catch (e) {
       _pendingError = e.toString();
     } finally {
@@ -112,7 +114,7 @@ class AccessGrantProvider with ChangeNotifier {
     notifyListeners();
     try {
       _activeGrants = await repository.getActiveGrants();
-      await _cacheNames(_activeGrants.map((g) => g.practitionerId).toList());
+      await _cacheNames(_activeGrants.map((g) => g.requesterId).toList());
     } catch (e) {
       _activeError = e.toString();
     } finally {
@@ -124,7 +126,7 @@ class AccessGrantProvider with ChangeNotifier {
   Future<bool> revokeGrant(String practitionerId) async {
     try {
       await repository.revokeGrant(practitionerId);
-      _activeGrants.removeWhere((g) => g.practitionerId == practitionerId);
+      _activeGrants.removeWhere((g) => g.requesterId == practitionerId);
       notifyListeners();
       return true;
     } catch (e) {

@@ -308,7 +308,7 @@ class BookingRepositoryImpl {
       // This calls your API service (e.g., http.post)
       // We pass the JSON we just created
       final response = await apiService.postData(
-        //TODO: change the endpoint to the correct one
+        
         endpoint: '/appointments',
         data: appointment.toJson(),
       );

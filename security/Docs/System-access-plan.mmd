@@ -1,0 +1,39 @@
+
+
+flowchart TB
+  Internet((Internet)) --> OPNsense[OPNsense Firewall]
+
+
+  OPNsense -->|Mgmt VLAN only| Admin[Admin Access]
+  OPNsense -->|VPN only| VPN[WireGuard / OpenVPN]
+
+  OPNsense -->|443 only| Nginx[Nginx Reverse Proxy]
+
+  subgraph Host[Docker Host]
+    Nginx --> ApplicationNetwork[Private Docker Network]
+    Nginx --> Frontend[Browser]
+    Nginx -->  KC[Keycloak] --> CredDB[Credentials database]
+    ApplicationNetwork --> Node[Node.js backend]
+    ApplicationNetwork --> FHIR[HAPI FHIR server] --> ResDB[Resource database]
+    %% ApplicationNetwork --> KCad[Keycloak Admin] 
+    ApplicationNetwork --> Vault[Vault]
+    ApplicationNetwork --> OAuth[oauth2-proxy]
+    ApplicationNetwork --> Grafana[Grafana] --> Loki[grafana loki]
+    Node --> GrantsRedis[Grants Cache]
+    Node --> SessRedis[Sessions Cache]
+    Node --> AuditRedis[Audit Cache]
+    Grafana[Grafana] --> Prometheus[Prometheus]
+  end
+
+  Admin --> Host
+  VPN --> Host
+
+  Admin --> GUI[OPNsense GUI]
+
+  subgraph PublicExposure[Public Exposure Policy]
+    Pub1[Public: 443 to nginx]
+    Priv1[Private only: Redis, Keycloak admin, Vault]
+    Future1[Future work: VPN, separate servers subnet]
+  end
+
+  OPNsense -. enforces .-> PublicExposure
