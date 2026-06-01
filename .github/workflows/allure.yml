@@ -6,6 +6,7 @@ on:
       - "tests/**"
       - "backend/tests/**"
       - "ai/**"
+      - "security/**"
       - ".github/workflows/allure.yml"
   pull_request:
     paths:
@@ -50,6 +51,10 @@ jobs:
       - name: Install Node dependencies (backend tests)
         run: npm ci
         working-directory: backend
+
+      - name: Install Node dependencies (security tests)
+        run: npm ci
+        working-directory: security
 
       - name: Download history from previous run
         continue-on-error: true

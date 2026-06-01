@@ -128,7 +128,7 @@ function writeEnvironment(basePath) {
     Duration_Percent: 100,
   };
 
-  const allSuites = ["backend", "ai", "integration"];
+  const allSuites = ["backend", "ai", "security" , "integration"];
   let suiteOverride = null;
   const suiteIndex = process.argv.indexOf("--suite");
   if (suiteIndex > -1 && process.argv[suiteIndex + 1]) {
@@ -157,6 +157,16 @@ function writeEnvironment(basePath) {
           LANGUAGE: "python"
         };
       }
+
+      if (suite === "security") {
+        return {
+          FRAMEWORK: "jest",
+          JEST_VERSION: getJestVersion(),
+          LANGUAGE: "node"
+        };
+      }
+
+      
       return {};
     })();
 

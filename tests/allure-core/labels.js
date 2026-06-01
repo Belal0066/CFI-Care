@@ -22,7 +22,8 @@ const Layer = {
 
 const Component = {
   BACKEND: "backend",
-  AI: "ai"
+  AI: "ai",
+  SECURITY: "security"
 };
 
 const Scope = {

@@ -81,6 +81,11 @@ cd ../tests
 # 3. Install Python deps (AI + integration)
 pip install -r ../ai/requirements.txt
 pip install -r integration/requirements.txt
+
+# 4 Install security dep 
+cd ../security
+npm install
+cd ../tests
 ```
 
 ---

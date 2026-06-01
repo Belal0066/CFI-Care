@@ -4,7 +4,7 @@ const path = require("path");
 const scriptDir = path.dirname(__filename);
 const resultsDir = path.resolve(scriptDir, "..", "allure-results");
 
-const RESULT_DIRS = ["backend", "ai", "integration"];
+const RESULT_DIRS = ["backend", "ai", "security" , "integration"];
 
 function readHistory(base) {
   const historyDir = path.join(base, "history");
