@@ -42,15 +42,18 @@ CFI-Care/
 │   └── src/Nodejs/                  # Express API source (covered by istanbul)
 │
 ├── tests/                           # Centralized test orchestration
-│   ├── allure-core/                 # Shared reporting DSL
-│   │   ├── labels.js                # Label, Layer, Component, Stability, Severity, Owner enums (CJS)
+│   ├── build-config.mjs             # Build-time orchestration config (historyLimit, paths)
+│   ├── categories.json              # SOURCE of truth: failure classification (copied to allure-results)
+│   ├── known-issues.json            # SOURCE of truth: known issues scaffold (copied to allure-results)
+│   ├── allure-core/                 # Layer 2: Reporting DSL
+│   │   ├── labels.js                # Full taxonomy: Label, Layer, Component, Scope, Dependency, Journey, Platform, Environment, Stability
 │   │   ├── environment.js           # Write env.properties (OS, PYTHON, Node, RunID, duration)
-│   │   ├── attachments.js           # attachJson, attachText helpers
-│   │   ├── stability.js             # Precompute + summary mode (no JSON mutation)
+│   │   ├── attachments.js           # attachJson, attachText, attachFile, attachScreenshot, attachVideo
+│   │   ├── stability.js             # Precompute + summary mode (no JSON mutation); extended enums
 │   │   ├── coverage.js              # Unified coverage-summary.json from all suites
 │   │   ├── executor.js              # executor.json for Allure (CI / local)
-│   │   └── categories.js            # categories.json for Allure UI
-│   ├── package.json                 # pretest, test, stability, report, pipeline scripts
+│   │   └── global-logs.js           # Global artifact collector (scaffold)
+│   ├── package.json                 # pretest, test, stability, report, pipeline, postrun scripts
 │   ├── integration/
 │   │   ├── requirements.txt         # pytest + allure-pytest + pytest-cov
 │   │   └── tests/
@@ -59,11 +62,15 @@ CFI-Care/
 │   ├── system/                      # (future)
 │   ├── scripts/
 │   │   └── generate-report.sh       # allure generate + --history-limit 10
-│   ├── allure-results/              # Allure raw results (gitignored)
+│   ├── allure-results/              # Layer 3: Allure consumption
 │   │   ├── backend/                 # ← Jest output (+ coverage-summary.json)
 │   │   ├── ai/                      # ← pytest output (+ coverage.json)
 │   │   ├── integration/             # ← pytest output (+ coverage.json)
-│   │   └── history/                 # Previous run data (for stability / trend)
+│   │   ├── history/                 # Previous run data (for stability / trend)
+│   │   ├── global/                  # Global artifacts (logs, session output)
+│   │   ├── categories.json          # Copied from tests/categories.json
+│   │   ├── known-issues.json        # Copied from tests/known-issues.json
+│   │   └── ... *.json               # executor.json, coverage-summary.json, etc.
 │   └── allure-report/               # generated HTML report (gitignored)
 │
 └── STATE.md                         # this file
@@ -85,8 +92,12 @@ CFI-Care/
 │  node environment.js → write env.properties (PYTHON, Node, RunID)  │
 │  node coverage.js → write unified coverage-summary.json             │
 │  node executor.js → write executor.json (CI/local metadata)         │
-│  node categories.js → write categories.json (test classification)   │
-│  npm run report → bash scripts/generate-report.sh + --history-limit │
+│  npm run postrun → global-logs.js (scaffold) +                │
+│    cp categories.json + known-issues.json → allure-results/   │
+│  npm run report → bash scripts/generate-report.sh             │
+    + copies categories.json + known-issues.json to            │
+      allure-results/ if not already present                   │
+    + allure generate ... --history-limit 10                   │
 └─────────────────────────────────────────────────────────────────────┘
          │                    │                       │
          ▼                    ▼                       ▼
@@ -107,6 +118,7 @@ CFI-Care/
 │  + precomputed-stability.json                               │
 │  + stability-summary.json                                   │
 │  + coverage-summary.json  + executor.json  + categories.json│
+│  + known-issues.json  + global/                             │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         ▼
@@ -181,12 +193,12 @@ Each Allure report now contains structured data mapped to the three report secti
 | Field | Source |
 |---|---|
 | OS | `environment.properties` — `process.platform` |
-| PYTHON | `environment.properties` — from conftest `pytest_configure` |
+| PYTHON | `environment.properties` — detected by `environment.js` via `python3 --version` |
 | NODE_VERSION | `environment.properties` — `process.version` |
 | CI / PROJECT / RUN_TIME | `environment.properties` |
 | RUN_ID | UUID generated in `pretest`, written to `run.properties` |
 | RUN_DURATION_SECONDS | Computed from `.start_time` file |
-| Coverage (line/branch/function) | Read from `coverage-summary.json` (Jest) and `coverage.json` (pytest-cov) |
+| Coverage (unified) | `coverage-summary.json` — aggregated by `coverage.js` |
 
 ### 🟦 Body (Test Cases)
 
@@ -194,7 +206,7 @@ Each Allure report now contains structured data mapped to the three report secti
 |---|---|
 | Suite / TestName / Status | Native Allure fields |
 | Duration | Native Allure `start` / `stop` |
-| Tags (layer, component, run-id, stability) | Injected labels |
+| Tags (layer, component, scope, dependency, journey, stability) | Injected labels |
 | Attachments | `attachJson` / `allure.attach` calls in test code |
 | Errors / Steps | Native Allure `steps` / `statusDetails` |
 
@@ -202,7 +214,7 @@ Each Allure report now contains structured data mapped to the three report secti
 
 | Field | Source |
 |---|---|
-| Stability label | `stability.js` — compares current vs history: `new`, `stable`, `flaky`, `fixed`, `regressed` |
+| Stability label | `stability.js` + conftest hooks: `new`, `stable`, `flaky`, `fixed`, `regressed`, `dependency-flaky`, `workflow-flaky` |
 | History trend | `allure generate --history-limit 10` + preserved `allure-report/data/test-results/` |
 | Retries | Native Allure — deduplicates by `historyId` within a run |
 
@@ -237,6 +249,8 @@ Two-mode script that avoids JSON mutation:
 | Was `passed`, now failed/broken | `regressed` |
 | Was failed/broken, now `passed` | `fixed` |
 | Other status changes | `flaky` |
+| Dependency-related instability (override) | `dependency-flaky` |
+| Workflow-related instability (override) | `workflow-flaky` |
 
 ### Label application (no JSON mutation)
 - **pytest:** `pytest_runtest_makereport` hook in conftest calls `allure.dynamic.label("stability", value)` after test outcome is known
@@ -280,7 +294,7 @@ Coverage is **no longer** written into `environment.properties` — moved to a d
 | Env final | `node environment.js` | Writes `environment.properties` with PYTHON, Node, RunID, duration |
 | Coverage artifact | `node coverage.js` | Aggregates coverage into unified `coverage-summary.json` |
 | Executor metadata | `node executor.js` | Writes `executor.json` (CI or local build info) |
-| Test categories | `node categories.js` | Writes `categories.json` (Assertion Failures, Infrastructure, Product Bug) |
+| Postrun | `npm run postrun` | Collects global logs (scaffold) + copies `categories.json` + `known-issues.json` to `allure-results/` |
 | Generate | `npx allure generate ... --history-limit 10` | Produces `allure-report/` with history trends |
 
 Full pipeline: `cd tests && npm run pipeline`
@@ -304,13 +318,14 @@ Steps:
   7. **npm run stability:precompute** – reads history, writes `precomputed-stability.json`
   8. **npm test** – runs all 3 suites; conftest fixtures apply stability labels dynamically
   9. **npm run stability:summary** – computes actual stability, writes `stability-summary.json`
-  10. **node environment.js** – writes env.properties (PYTHON, Node, RunID, duration)
-  11. **node coverage.js** – writes unified coverage-summary.json
-  12. **node executor.js** – writes executor.json (GitHub Actions build metadata)
-  13. **node categories.js** – writes categories.json (test classification)
-  14. npm run report – generates merged Allure report
-  15. Upload allure-report + allure-results as `allure-report` artifact
-  16. Upload allure-report/data/test-results/ as `allure-history` artifact (for next run)
+ 10. **node environment.js** – writes env.properties (PYTHON, Node, RunID, duration)
+ 11. **node coverage.js** – writes unified coverage-summary.json
+ 12. **node executor.js** – writes executor.json (GitHub Actions build metadata)
+ 13. **node global-logs.js** – collect global artifacts (scaffold)
+ 14. **cp categories.json + known-issues.json → allure-results/** – copy static config
+ 15. **npm run report** – generates merged Allure report (also copies categories/known-issues as fallback)
+ 16. Upload allure-report + allure-results as `allure-report` artifact
+ 17. Upload allure-report/data/test-results/ as `allure-history` artifact (for next run)
 ```
 
 ---
@@ -353,7 +368,21 @@ Steps:
 
 ---
 
-## 11. Quick Reference
+## 11. Architecture: Three-Layer Model
+
+The reporting system is structured in 3 layers:
+
+| Layer | Scope | Files |
+|---|---|---|
+| **Layer 1** — Test Frameworks | Jest, pytest execution | `backend/`, `ai/`, `tests/integration/` |
+| **Layer 2** — Reporting DSL | Build-time orchestration & utilities | `tests/allure-core/*`, `tests/build-config.mjs`, `tests/categories.json`, `tests/known-issues.json` |
+| **Layer 3** — Allure Consumption | What Allure CLI actually reads | `tests/allure-results/*.json`, `tests/allure-results/categories.json`, `tests/allure-results/environment.properties` |
+
+Layer 2 generates/populates Layer 3. Allure never reads Layer 2 directly.
+
+---
+
+## 12. Quick Reference
 
 ```bash
 # Full pipeline (test + stability + env + report)
@@ -375,6 +404,9 @@ cd tests && npm run report
 
 # Generate environment.properties (after tests)
 cd tests && node ../tests/allure-core/environment.js
+
+# Postrun (global logs + copy config to allure-results)
+cd tests && npm run postrun
 
 # Open report (serves via HTTP — file:// won't work)
 cd tests && npm run report:open

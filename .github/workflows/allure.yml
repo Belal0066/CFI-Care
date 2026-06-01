@@ -97,8 +97,11 @@ jobs:
       - name: Write executor metadata
         run: node ../tests/allure-core/executor.js
 
-      - name: Write test categories
-        run: node ../tests/allure-core/categories.js
+      - name: Collect global logs
+        run: node ../tests/allure-core/global-logs.js
+
+      - name: Copy config files for Allure
+        run: cp categories.json allure-results/categories.json && cp known-issues.json allure-results/known-issues.json
 
       - name: Generate Allure report
         run: npm run report

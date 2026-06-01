@@ -52,7 +52,7 @@ function summary(basePath) {
   console.log(`[stability:summary] History entries: ${Object.keys(history).length}`);
 
   let grandTotal = 0;
-  const results = { new: 0, stable: 0, flaky: 0, fixed: 0, regressed: 0 };
+  const results = { new: 0, stable: 0, flaky: 0, fixed: 0, regressed: 0, "dependency-flaky": 0, "workflow-flaky": 0 };
 
   for (const suite of RESULT_DIRS) {
     const suiteDir = path.join(base, suite);
@@ -77,12 +77,14 @@ function summary(basePath) {
   const outPath = path.join(base, "stability-summary.json");
   fs.writeFileSync(outPath, JSON.stringify({ total: grandTotal, ...results }, null, 2));
   console.log(`[stability:summary] Written to ${outPath}`);
-  console.log(`[stability:summary] Total: ${grandTotal}, New: ${results.new}, Stable: ${results.stable}, Flaky: ${results.flaky}, Fixed: ${results.fixed}, Regressed: ${results.regressed}`);
+  console.log(`[stability:summary] Total: ${grandTotal}, New: ${results.new}, Stable: ${results.stable}, Flaky: ${results.flaky}, Dep-Flaky: ${results["dependency-flaky"]}, Wf-Flaky: ${results["workflow-flaky"]}, Fixed: ${results.fixed}, Regressed: ${results.regressed}`);
 }
 
 if (require.main === module) {
-  const base = process.argv[2] || resultsDir;
-  if (process.argv.includes("--precompute")) {
+  const isPrecompute = process.argv.includes("--precompute");
+  const arg = process.argv[2];
+  const base = arg && arg !== "--precompute" ? arg : resultsDir;
+  if (isPrecompute) {
     precompute(base);
   } else {
     summary(base);

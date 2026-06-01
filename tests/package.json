@@ -11,7 +11,8 @@
     "stability": "node ../tests/allure-core/stability.js",
     "report": "bash scripts/generate-report.sh",
     "report:open": "allure open --port 9876 allure-report",
-    "pipeline": "npm run stability:precompute && npm test && npm run stability:summary && node ../tests/allure-core/environment.js && node ../tests/allure-core/coverage.js && node ../tests/allure-core/executor.js && node ../tests/allure-core/categories.js && npm run report"
+    "postrun": "node ../tests/allure-core/global-logs.js && cp categories.json allure-results/categories.json && cp known-issues.json allure-results/known-issues.json",
+    "pipeline": "npm run stability:precompute && npm test && npm run stability:summary && node ../tests/allure-core/environment.js && node ../tests/allure-core/coverage.js && node ../tests/allure-core/executor.js && npm run postrun && npm run report"
   },
   "devDependencies": {
     "allure": "^3.6.2"
