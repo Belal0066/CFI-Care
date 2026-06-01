@@ -14,7 +14,8 @@ export interface VerifyOtpResponse {
 export interface Grant {
   grantId: string;
   patientId: string;
-  practitionerId: string;
+  requesterId: string;
+  requesterType?: string;
   status: 'active';
   scopes: string[];
   createdAt: string;
@@ -24,7 +25,9 @@ export interface Grant {
 export interface PendingGrant {
   handshakeId: string;
   patientId: string;
-  practitionerId: string;
+  requesterId: string;
+  requesterType?: string;
+  caregiverRoleAssignment?: string;
   createdAt: string;
 }
 

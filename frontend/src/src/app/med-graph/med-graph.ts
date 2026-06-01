@@ -7,7 +7,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PatientApiService } from '../services/patientApi/patient-api-service';
 import { ChatSection } from '../chat-section/chat-section';
@@ -34,6 +34,7 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private patientApi: PatientApiService,
+    private router: Router,
   ) {}
 
   ngOnInit() {
@@ -61,6 +62,12 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
           data,
         );
       }
+
+      if (data?.type === 'NAVIGATE') {
+        this.router.navigate([data.path]);
+        return;
+      }
+
       if (data?.type === 'NODE_UPDATE') {
         console.log('Received node update:', data);
         this.handleNodeUpdate(data.action, data.node, data.parentNodeId);
@@ -73,6 +80,10 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
     if (this.messageHandler) {
       window.removeEventListener('message', this.messageHandler);
     }
+  }
+
+  goToDashboard() {
+    this.router.navigate(['/dashboard']);
   }
 
   toggleChat() {
@@ -280,12 +291,23 @@ export class MedGraph implements OnInit, AfterViewInit, OnDestroy {
           this.sendNodeList();
         }
       },
+      // error: (err) => {
+      //   console.error('Failed to load patient graph', err);
+      //   this.error =
+      //     'Failed to load patient graph. Make sure the backend is running.';
+      //   this.loading = false;
+      // },
+
+      //mock 
       error: (err) => {
-        console.error('Failed to load patient graph', err);
-        this.error =
-          'Failed to load patient graph. Make sure the backend is running.';
-        this.loading = false;
-      },
+          console.error('Failed to load patient graph', err);
+          this.data = [];
+          this.loading = false;
+          if (this.iframeLoaded) {
+            this.sendNodeList();
+          }
+        },
+      //mock
     });
   }
 

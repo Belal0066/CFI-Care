@@ -10,6 +10,10 @@ upstream keycloak_server {
   server kc.localhost:8443;
 }
 
+upstream grafana_server {
+  server grafana:3000;
+}
+
 server {
 
   server_name localhost;
@@ -21,19 +25,23 @@ server {
 #fhir server
 server {
 
-  server_name localhost;
+  # server_name localhost;
+  server_name _;
   listen 443 ssl default_server;
   include /etc/nginx/conf/ssl.conf;
+
+  resolver 127.0.0.11 ipv6=off valid=10s;
+  set $oauth2_proxy_upstream http://oauth2-proxy:4180;
+
 
   add_header X-Frame-Options "SAMEORIGIN" always;
   add_header Content-Security-Policy "frame-ancestors 'self'; object-src 'none'; base-uri 'self';" always;
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-  proxy_cookie_flags ~ secure httponly samesite=lax;
   server_tokens off;
   proxy_hide_header Server;
 
   location /oauth2/ {
-    proxy_pass http://oauth2-proxy:4180;
+    proxy_pass $oauth2_proxy_upstream;
 
     # proxy_pass_request_body off;
 
@@ -54,7 +62,7 @@ server {
 
 
     # Proxy for AuthN server
-    proxy_pass http://oauth2-proxy:4180;
+    proxy_pass $oauth2_proxy_upstream;
     proxy_pass_request_body off;
     proxy_set_header Content-Length "";
 
@@ -75,7 +83,7 @@ server {
     # }
 
     # Proxy for AuthN server
-    proxy_pass http://oauth2-proxy:4180;
+    proxy_pass $oauth2_proxy_upstream;
 
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -198,12 +206,8 @@ server {
   # }
   #keycloak
   location /keycloak/ {
-    # Keycloak's admin console uses a hidden iframe for session checking.
-    # SameSite=Lax (set globally above) blocks cookies in iframes, causing
-    # an infinite auth redirect loop. Override to None here.
-    proxy_cookie_flags ~ secure samesite=none;
-
     proxy_pass https://keycloak_server;
+
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -211,7 +215,48 @@ server {
     proxy_set_header X-Forwarded-Server $host;
     proxy_set_header X-Forwarded-Port $server_port;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Authorization $http_authorization;
+
+    add_header X-Debug-Authorization $http_authorization always;
+
+    # enable SNI for upstream TLS
+    proxy_ssl_server_name on;
+    proxy_ssl_name kc.localhost;
+
+    # fallback generic rewrite (rewrites upstream absolute URIs to proxied)
+    proxy_redirect ~^https?://[^:/]+(?::\d+)?(/.*)$ $1;
+
+    proxy_cookie_domain ~^(.*)$ $host;
+
+    # ensure cookie path is usable by frontend
+    proxy_cookie_path / /;
+
+    proxy_buffering off;
   }
+
+  location /graf/ {
+    proxy_pass http://grafana_server;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+
+  location = /oauth2/callback {
+    if ($arg_error = temporarily_unavailable) {
+      return 302 /oauth2/start?rd=/dashboard;
+    }
+
+    proxy_pass $oauth2_proxy_upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Cookie $http_cookie;
+  }
+
 
   location / {
     auth_request /oauth2/auth;
@@ -228,22 +273,9 @@ server {
     proxy_set_header Connection "upgrade";
   }
 
-  location = /oauth2/callback {
-    if ($arg_error = temporarily_unavailable) {
-      return 302 /oauth2/start?rd=/dashboard;
-    }
-
-    proxy_pass http://oauth2-proxy:4180;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Cookie $http_cookie;
-  }
 
   #   # for registration in FHIR
   #   location /provisioning/ {
-
   #   proxy_pass http://backend_node;
   #   proxy_set_header Host $host;
   #   proxy_set_header X-Real-IP $remote_addr;

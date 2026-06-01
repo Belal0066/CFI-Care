@@ -1,5 +1,4 @@
 const express = require("express");
-// const axios = require("axios");
 
 
 const { requireApiAuth } = require("../middleware/requireApiAuth");
@@ -59,10 +58,6 @@ async function createFhirByType(resourceType, resource) {
   }
   throw new Error(`unsupported resource type: ${resourceType}`);
 }
-// catch (err) {
-//   console.error("[PROV] failed for user ID = ${resource.} ")
-// }
-// }
 
 // called by keycloak event-listener 
 router.post("/keycloak-register", requireApiAuth, requireProvisionerClient, async (req, res) => {

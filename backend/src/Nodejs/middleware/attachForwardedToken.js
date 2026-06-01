@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Redis = require('ioredis');
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis(process.env.REDIS_STORE_URL);
 
 module.exports = async function attachForwardedToken(req, res, next) {
   try {

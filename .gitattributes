@@ -1,3 +1,4 @@
 *.env filter=git-crypt diff=git-crypt
 dev_env.json filter=git-crypt diff=git-crypt
 app_config.dart filter=git-crypt diff=git-crypt
+*.env.vault filter=git-crypt diff=git-crypt

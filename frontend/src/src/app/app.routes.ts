@@ -1,16 +1,16 @@
 import { Routes } from '@angular/router';
-import { Login } from './login/login';
-import { MedGraph } from './med-graph/med-graph';
 import { Dashboard } from './dashboard/dashboard';
-import { authGuard } from './guards/auth.guard';
 import { ChatSection } from './chat-section/chat-section';
 import { DoctorProfileComponent } from './doctor-profile/doctor-profile';
-import { GrantPendingComponent } from './grant-pending/grant-pending';
 import { GrantActiveComponent } from './grant-active/grant-active';
+import { GrantPendingComponent } from './grant-pending/grant-pending';
+import { GatewayErrorComponent } from './gateway-error/gateway-error';
+import { Login } from './login/login';
+import { MedGraph } from './med-graph/med-graph';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-  { path: 'login', component: Login },
   { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
   { path: 'med-graph/:id', component: MedGraph, canActivate: [authGuard] },
   {
@@ -32,5 +32,9 @@ export const routes: Routes = [
     path: 'grants/active',
     component: GrantActiveComponent,
     canActivate: [authGuard],
+  },
+  {
+    path: 'error/:status',
+    component: GatewayErrorComponent,
   },
 ];

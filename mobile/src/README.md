@@ -21,9 +21,8 @@ samples, guidance on mobile development, and a full API reference.
 
 
 ## Dev-only setup
-### running from external device 
+### running using specific environment variables
 - open env file and set ip to host ip (host = running containers)
-- add ip to `CORS_ORIGIN` variable in the backend env file
 - in terminal run :
 ```
     flutter run --dart-define-from-file=env/dev_env.json
@@ -35,26 +34,20 @@ samples, guidance on mobile development, and a full API reference.
 
 #### linux implementation
 
-run these cmds in the terminal at the project rot dir
+run these cmds in the terminal at the project root dir
 
 ```
 cd mobile/src/android/app/src/debug/res/
 
 mkdir raw
 
-cp $(mkcert -CAROOT)/rootCA.pem mobile/src/android/app/src/debug/res/raw/
+adb push "$(mkcert -CAROOT)/rootCA.pem" /sdcard/Download/rootCA.pem 
 
-mv rootCA.pem rootca.pem 
 
-# i left a public port open for dev on keycloak
-adb reverse tcp:8443 tcp:8443
 
 ```
 
-<!-- not needed ig -->
-<!-- adb push "$(mkcert -CAROOT)/rootCA.pem" /sdcard/Download/rootCA.pem -->
-
-<!-- ### add cert to trusted certs on your mobile device
+### add cert to trusted certs on your mobile device
 
 - open settings
 - you could simply search for "install certificate" or continue with the steps if you don't find it
@@ -63,7 +56,20 @@ adb reverse tcp:8443 tcp:8443
 - open security (security and protection)
 - select advanced security
 - encryption
--  -->
+
+
+
+<!-- cp $(mkcert -CAROOT)/rootCA.pem mobile/src/android/app/src/debug/res/raw/
+
+mv rootCA.pem rootca.pem  -->
+
+
+<!-- 
+# i left a public port open for dev on keycloak
+adb reverse tcp:8443 tcp:8443 -->
+
+<!-- not needed ig -->
+
 
 #### Windows implementation (PowerShell)
 

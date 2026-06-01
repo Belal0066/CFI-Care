@@ -20,10 +20,10 @@
   <app-chat-section class="chat-container" [showChatbot]="isChatOpen" (close)="toggleChat()">
   </app-chat-section>
 
-  <button class="fab-toggle" (click)="toggleChat()" [class.active]="isChatOpen" aria-label="Toggle AI Assistant"
-    style="padding: 0px 2px; border-top: none; border-bottom: none;">
-    <span *ngIf="!isChatOpen">AI</span>
-    <span *ngIf="isChatOpen"><i class="bi bi-caret-right"></i></span>
-    <i class="bi bi-caret-left"></i>
-  </button>
+  <button class="ai-toggle-btn" (click)="toggleChat()" [class.active]="isChatOpen" aria-label="Toggle AI Assistant">
+  <div class="ai-toggle-inner">
+    <i class="bi" [ngClass]="isChatOpen ? 'bi-chevron-right' : 'bi-robot'"></i>
+    <span class="ai-toggle-label" *ngIf="!isChatOpen">AI</span>
+  </div>
+</button>
 </div>

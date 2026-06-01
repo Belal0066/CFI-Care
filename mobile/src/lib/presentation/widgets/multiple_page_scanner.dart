@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:pdf/pdf.dart';
+import '../../data/services/image_quality_service.dart';
 
 class MultiPageScanner extends StatefulWidget {
   const MultiPageScanner({super.key});
@@ -22,6 +23,13 @@ class _MultiPageScannerState extends State<MultiPageScanner> {
   double x = 0, y = 0;
   bool isLevel = false;
   bool _isProcessing = false;
+
+  // Blur check state — reset after each capture decision
+  bool _isCheckingBlur = false;
+  bool _lastPageBlurry = false;
+  String? _pendingPagePath;    // cropped path waiting for user decision
+  bool _isEnhancing = false;
+  String? _enhancedPagePath;   // result of magic filter, shown for preview
 
   @override
   void initState() {
@@ -69,16 +77,13 @@ class _MultiPageScannerState extends State<MultiPageScanner> {
   }
 
   Future<void> _capturePage() async {
-    if (_controller == null || _isProcessing) return;
+    if (_controller == null || _isProcessing || _pendingPagePath != null) return;
     setState(() => _isProcessing = true);
 
     try {
-      // Capture at HIGH (1080p), not MAX
       final XFile photo = await _controller!.takePicture();
-
       if (!mounted) return;
 
-      // Crop with compression
       final CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: photo.path,
         compressQuality: 80,
@@ -88,38 +93,109 @@ class _MultiPageScannerState extends State<MultiPageScanner> {
             toolbarColor: Colors.black,
             toolbarWidgetColor: Colors.greenAccent,
             activeControlsWidgetColor: Colors.greenAccent,
-
-            // --- CRITICAL FIXES FOR MOVING EDGES ---
-            lockAspectRatio: false, // Allows free movement of all 4 sides
-            initAspectRatio:
-                CropAspectRatioPreset.original, // Starts at full image
-            hideBottomControls: false, // Shows the ratio/rotate tools
-            showCropGrid: true, // Helps the user see the alignment
+            lockAspectRatio: false,
+            initAspectRatio: CropAspectRatioPreset.original,
+            hideBottomControls: false,
+            showCropGrid: true,
           ),
           IOSUiSettings(
             title: 'Align Document Corners',
             aspectRatioPickerButtonHidden: false,
             resetButtonHidden: false,
-            aspectRatioLockEnabled: false, // Essential for iOS freedom
+            aspectRatioLockEnabled: false,
           ),
         ],
       );
 
-      if (croppedFile != null && mounted) {
+      // Delete original uncropped photo
+      final tempFile = File(photo.path);
+      if (await tempFile.exists()) await tempFile.delete();
+
+      if (croppedFile == null || !mounted) return;
+
+      // --- BLUR CHECK ---
+      setState(() {
+        _isProcessing = false;
+        _isCheckingBlur = true;
+        _pendingPagePath = croppedFile.path;
+      });
+
+      final score = await ImageQualityService.computeBlurScore(croppedFile.path);
+      final blurry = (score ?? 999) < ImageQualityService.blurThreshold;
+
+      if (mounted) {
         setState(() {
-          _scannedPages.add(croppedFile.path);
+          _isCheckingBlur = false;
+          _lastPageBlurry = blurry;
         });
-        // 3. IMPORTANT: Delete the original massive uncropped photo
-        final tempFile = File(photo.path);
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
       }
     } catch (e) {
       debugPrint("DEBUG: Capture Error: $e");
-    } finally {
       if (mounted) setState(() => _isProcessing = false);
+    } finally {
+      if (mounted && _isProcessing) setState(() => _isProcessing = false);
     }
+  }
+
+  /// Patient accepts the original page.
+  void _keepPage() {
+    if (_pendingPagePath == null) return;
+    setState(() {
+      _scannedPages.add(_pendingPagePath!);
+      _pendingPagePath = null;
+      _lastPageBlurry = false;
+    });
+    // Clean up any enhanced copy that was not chosen
+    if (_enhancedPagePath != null) {
+      File(_enhancedPagePath!).delete().ignore();
+      _enhancedPagePath = null;
+    }
+  }
+
+  /// Runs magic filter on the pending page and stores the result for preview.
+  Future<void> _enhancePage() async {
+    if (_pendingPagePath == null || _isEnhancing) return;
+    setState(() => _isEnhancing = true);
+    try {
+      final enhanced =
+          await ImageQualityService.applyMagicFilter(_pendingPagePath!);
+      if (mounted) setState(() => _enhancedPagePath = enhanced);
+    } catch (e) {
+      debugPrint('DEBUG: Enhance error: $e');
+    } finally {
+      if (mounted) setState(() => _isEnhancing = false);
+    }
+  }
+
+  /// Patient keeps the enhanced version.
+  void _keepEnhanced() {
+    if (_enhancedPagePath == null) return;
+    // Delete original blurry scan, keep enhanced
+    if (_pendingPagePath != null) {
+      File(_pendingPagePath!).delete().ignore();
+    }
+    setState(() {
+      _scannedPages.add(_enhancedPagePath!);
+      _enhancedPagePath = null;
+      _pendingPagePath = null;
+      _lastPageBlurry = false;
+    });
+  }
+
+  /// Patient discards everything and retakes.
+  Future<void> _retakePage() async {
+    final original = _pendingPagePath;
+    final enhanced = _enhancedPagePath;
+    setState(() {
+      _pendingPagePath = null;
+      _enhancedPagePath = null;
+      _lastPageBlurry = false;
+    });
+    Future<void> tryDelete(String path) async {
+      try { await File(path).delete(); } catch (_) {}
+    }
+    if (original != null) await tryDelete(original);
+    if (enhanced != null) await tryDelete(enhanced);
   }
 
   Future<void> _generatePdfAndFinish() async {
@@ -269,7 +345,250 @@ class _MultiPageScannerState extends State<MultiPageScanner> {
               ],
             ),
           ),
+
+          // ENHANCED IMAGE FULL-SCREEN PREVIEW
+          if (_enhancedPagePath != null)
+            _buildEnhancedPreview(),
+
+          // BLUR RESULT BANNER — appears right after capture (hidden during enhanced preview)
+          if (_enhancedPagePath == null &&
+              (_isCheckingBlur || _pendingPagePath != null))
+            Positioned(
+              bottom: 140,
+              left: 20,
+              right: 20,
+              child: _buildBlurResultBanner(),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBlurResultBanner() {
+    // Still running the check
+    if (_isCheckingBlur) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'Checking image quality…',
+              style: TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Check complete — sharp page
+    if (!_lastPageBlurry) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.green.shade700,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Page looks sharp!',
+                style: TextStyle(color: Colors.white, fontSize: 14,
+                    fontWeight: FontWeight.w500),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _keepPage,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.green.shade700,
+              ),
+              child: const Text('Next Page'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Check complete — blurry page
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade800,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Page looks blurry.',
+                  style: TextStyle(color: Colors.white, fontSize: 14,
+                      fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              // Retake
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _retakePage,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white70),
+                  ),
+                  child: const Text('Retake'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Auto-Enhance
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isEnhancing ? null : _enhancePage,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.orange.shade800,
+                  ),
+                  icon: _isEnhancing
+                      ? SizedBox(
+                          width: 14, height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.orange.shade800,
+                          ),
+                        )
+                      : const Icon(Icons.auto_fix_high, size: 16),
+                  label: Text(_isEnhancing ? 'Enhancing…' : 'Auto-Enhance'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Keep blurry
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _keepPage,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white70),
+                  ),
+                  child: const Text('Keep'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Full-screen overlay showing the enhanced image so the patient can decide.
+  Widget _buildEnhancedPreview() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black,
+        child: Column(
+          children: [
+            // Header
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.auto_fix_high,
+                        color: Colors.greenAccent, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Enhanced Preview',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      'Does it look better?',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Enhanced image
+            Expanded(
+              child: InteractiveViewer(
+                child: Image.file(
+                  File(_enhancedPagePath!),
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                ),
+              ),
+            ),
+
+            // Action buttons
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Row(
+                  children: [
+                    // Retake — throw away everything
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _retakePage,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white54),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        icon: const Icon(Icons.replay, size: 16),
+                        label: const Text('Retake'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Keep enhanced
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: _keepEnhanced,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.greenAccent,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('Keep Enhanced',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

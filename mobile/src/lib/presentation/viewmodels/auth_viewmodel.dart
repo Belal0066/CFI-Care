@@ -45,15 +45,9 @@ class AuthProvider with ChangeNotifier {
       _session = restored;
 
       final email = restored.email ?? '';
-      final existingLocalId = email.isNotEmpty
-          ? await DBHelper.findUserIdByEmail(email)
-          : null;
-
-      // old data for old users , sub for new users.
-      final resolvedLocalUserId = existingLocalId ?? restored.subject;
 
       await DBHelper.ensureUserAndProfile(
-        userId: resolvedLocalUserId,
+        userId: restored.subject,
         email: email,
         firstName: restored.name?.split(' ').first,
         lastName: (restored.name != null && restored.name!.contains(' '))
@@ -61,7 +55,7 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(resolvedLocalUserId, keycloakSub: restored.subject);
+      await _syncUserId(restored.subject, keycloakSub: restored.subject);
 
       _setState(AuthStatus.authenticated);
     // } catch (e) {
@@ -96,15 +90,9 @@ class AuthProvider with ChangeNotifier {
       _session = session;
 
       final email = session.email ?? '';
-      final existingLocalId = email.isNotEmpty
-          ? await DBHelper.findUserIdByEmail(email)
-          : null;
-
-      // old data for old users , sub for new users.
-      final resolvedLocalUserId = existingLocalId ?? session.subject;
-
+     
       await DBHelper.ensureUserAndProfile(
-        userId: resolvedLocalUserId,
+        userId: session.subject,
         email: email,
         firstName: session.name?.split(' ').first,
         lastName: (session.name != null && session.name!.contains(' '))
@@ -112,7 +100,7 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(resolvedLocalUserId, keycloakSub: session.subject);
+      await _syncUserId(session.subject, keycloakSub: session.subject);
 
       _setState(AuthStatus.authenticated);
     } catch (e) {

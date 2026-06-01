@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth/auth.service';
 import { AppointmentService } from '../services/appointment/appointment.service';
+import { RouterLink } from '@angular/router';
 
 interface Schedule {
   id: string;
@@ -23,7 +24,7 @@ interface Slot {
 @Component({
   selector: 'app-doctor-profile',
   encapsulation: ViewEncapsulation.None,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './doctor-profile.html',
   styleUrls: ['./doctor-profile.css'],
 })
