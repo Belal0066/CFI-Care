@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import '../../../domain/models/document.dart';
+import '../../../domain/models/doc_job_status.dart';
 import '../../../utils/enums/type_of_event.dart';
 import '../../../utils/enums/speciality_event.dart';
 import '../../mappers/document_fhir_mapper.dart';
@@ -622,5 +623,102 @@ class ApiService {
     } catch (e) {
       throw Exception('Network Error: $e');
     }
+  }
+
+  // ── DocOnFHIR FastAPI Methods ─────────────────────────────────────────────
+  // No auth required. Base URL configured via DOC_ON_FHIR_BASE_URL env var.
+
+  final String _docOnFhirBaseUrl = AppConfig.docOnFhirBaseUrl;
+
+  /// Upload a PDF to DocOnFHIR. Returns the async [job_id] to poll with.
+  Future<String> uploadToDocOnFhir({
+    required File file,
+    required String patientId,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_docOnFhirBaseUrl/v1/documents/upload'),
+    );
+    request.fields['patient_id'] = patientId;
+    request.fields['upload_time'] = DateTime.now().toUtc().toIso8601String();
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        filename: file.uri.pathSegments.isNotEmpty
+            ? file.uri.pathSegments.last
+            : 'document.pdf',
+      ),
+    );
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    print('[uploadToDocOnFhir] status=${response.statusCode}');
+
+    if (response.statusCode == 413) {
+      throw Exception('File too large for DocOnFHIR pipeline (max 25 MB)');
+    }
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('DocOnFHIR upload failed (${response.statusCode}): ${response.body}');
+    }
+
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    final jobId = data['job_id'] as String?;
+    if (jobId == null || jobId.isEmpty) {
+      throw Exception('DocOnFHIR upload response missing job_id');
+    }
+    print('[uploadToDocOnFhir] job_id=$jobId');
+    return jobId;
+  }
+
+  /// Poll the status of a DocOnFHIR job.
+  /// Returns the state string: PENDING | OCR_PROCESSING | MAPPING | COMPLETED.
+  /// Throws an [Exception] with the server error_message if state == FAILED.
+  Future<String> getDocOnFhirJobStatus(String jobId) async {
+    final status = await getDocOnFhirJobStatusDetails(jobId);
+    if (status.isFailed) {
+      throw Exception(status.errorMessage ?? 'DocOnFHIR job failed');
+    }
+    return status.state;
+  }
+
+  /// Returns full [DocJobStatus] including progress and error — never throws on FAILED.
+  Future<DocJobStatus> getDocOnFhirJobStatusDetails(String jobId) async {
+    final response = await http.get(
+      Uri.parse('$_docOnFhirBaseUrl/v1/documents/$jobId/status'),
+    );
+
+    print('[getDocOnFhirJobStatusDetails] job=$jobId status=${response.statusCode}');
+
+    if (response.statusCode != 200) {
+      throw Exception('DocOnFHIR status check failed (${response.statusCode}): ${response.body}');
+    }
+
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    return DocJobStatus(
+      state: (data['state'] as String?) ?? 'PENDING',
+      progress: ((data['progress'] as num?) ?? 0.0).toDouble(),
+      errorMessage: data['error_message'] as String?,
+    );
+  }
+
+  /// Fetch the completed result for a DocOnFHIR job.
+  /// Returns the full result map: { job, events, ocr_output, fhir_bundle, fhir_validation, stage_metrics }.
+  Future<Map<String, dynamic>> getDocOnFhirJobResult(String jobId) async {
+    final response = await http.get(
+      Uri.parse('$_docOnFhirBaseUrl/v1/documents/$jobId/result'),
+    );
+
+    print('[getDocOnFhirJobResult] job=$jobId status=${response.statusCode}');
+
+    if (response.statusCode == 404) {
+      throw Exception('DocOnFHIR job not found: $jobId');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('DocOnFHIR result fetch failed (${response.statusCode}): ${response.body}');
+    }
+
+    return json.decode(response.body) as Map<String, dynamic>;
   }
 }

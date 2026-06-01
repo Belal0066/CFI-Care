@@ -147,7 +147,7 @@ class BookingProvider with ChangeNotifier {
   }
 
   Future<void> loadAppointmentsForCurrentUser() async {
-    final patientId = Session.currentUserId;
+    final patientId = Session.fhirPatientId ?? Session.currentUserId;
     if (patientId == null || patientId.isEmpty) {
       return;
     }
@@ -245,7 +245,7 @@ class BookingProvider with ChangeNotifier {
       return false;
     }
 
-    final patientId = Session.currentUserId;
+    final patientId = Session.fhirPatientId ?? Session.currentUserId;
     if (patientId == null) {
       print("Missing patient ID in session");
       return false;
@@ -327,7 +327,7 @@ class BookingProvider with ChangeNotifier {
     if (index == -1) return;
     final doctorId = _appointments[index].doctor.id;
 
-    final patientId = Session.currentUserId;
+    final patientId = Session.fhirPatientId ?? Session.currentUserId;
     try {
       await repository.cancelAppointment(id, patientId: patientId);
     } catch (e) {

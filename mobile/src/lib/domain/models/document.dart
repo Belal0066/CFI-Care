@@ -3,8 +3,9 @@ import '../../utils/enums/type_of_event.dart';
 import '../../utils/enums/speciality_event.dart';
 
 class DocumentModel {
-  final String? id;       // Local DB ID
-  final String? serverId; // Remote Backend ID
+  final String? id;
+  final String? serverId;
+  final String? jobId;
   final String title;
   final String filePath;
   final bool isPDF;
@@ -14,11 +15,19 @@ class DocumentModel {
   final TypeOfEventEnum type;
   final SpecialityEventEnum speciality;
   final TimeOfDay time;
-  final bool isSynced;    // Sync Status
+  final bool isSynced;
+
+  // DocOnFHIR pipeline state
+  final String syncStatus;   // pending | job_submitted | synced | failed | user_retry_needed
+  final double progress;     // 0.0 – 1.0
+  final String? jobState;    // current API state: PENDING | OCR_PROCESSING | MAPPING | COMPLETED | FAILED
+  final String? lastError;
+  final int retryCount;
 
   DocumentModel({
     this.id,
     this.serverId,
+    this.jobId,
     required this.title,
     required this.filePath,
     required this.isPDF,
@@ -29,20 +38,30 @@ class DocumentModel {
     this.speciality = SpecialityEventEnum.other,
     this.time = const TimeOfDay(hour: 0, minute: 0),
     this.isSynced = false,
+    this.syncStatus = 'pending',
+    this.progress = 0.0,
+    this.jobState,
+    this.lastError,
+    this.retryCount = 0,
   });
 
-  // --- ADD THIS METHOD TO FIX THE ERROR ---
   DocumentModel copyWith({
     String? id,
     String? serverId,
+    String? jobId,
     bool? isSynced,
     String? title,
     String? filePath,
-    // Add other fields if you ever need to update them
+    String? syncStatus,
+    double? progress,
+    String? jobState,
+    String? lastError,
+    int? retryCount,
   }) {
     return DocumentModel(
       id: id ?? this.id,
       serverId: serverId ?? this.serverId,
+      jobId: jobId ?? this.jobId,
       isSynced: isSynced ?? this.isSynced,
       title: title ?? this.title,
       filePath: filePath ?? this.filePath,
@@ -53,6 +72,11 @@ class DocumentModel {
       type: type,
       speciality: speciality,
       time: time,
+      syncStatus: syncStatus ?? this.syncStatus,
+      progress: progress ?? this.progress,
+      jobState: jobState ?? this.jobState,
+      lastError: lastError ?? this.lastError,
+      retryCount: retryCount ?? this.retryCount,
     );
   }
 }

@@ -16,6 +16,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-user-info',
@@ -25,6 +26,9 @@ import { forkJoin } from 'rxjs';
   styleUrl: './user-info.css',
 })
 export class UserInfo implements OnInit {
+  // Set to true to preview all card states without a server connection.
+  static readonly _mockMode = true;
+
   patientDetails: PatientDetailsDTO | null = null;
   selectedEpisode: Episode | null = null;
   episodeDropdownOpen = false;
@@ -40,14 +44,25 @@ export class UserInfo implements OnInit {
   private rawProcedures: any[] = [];
   private rawLabResults: string[] = [];
   private rawDocumentReferences: any[] = [];
+  private rawObservations: any[] = [];
+  private rawDiagnosticReports: any[] = [];
+  private rawCompositions: any[] = [];
+
+  // One entry per DocumentReference: linked DiagnosticReport + Observations + Composition
+  enrichedLabData: { report: any; observations: any[]; composition: any | null }[] = [];
 
   constructor(
     private selectedPatientService: SelectedPatientService,
     private patientApi: PatientApiService,
     private router: Router,
+    private sanitizer: DomSanitizer,
   ) {}
 
   ngOnInit() {
+    if (UserInfo._mockMode) {
+      this.loadMockLabData();
+      return;
+    }
     this.selectedPatientService.selectedPatientId$.subscribe((id: string | null) => {
       if (id !== null) {
         this.loadPatientDetails(id);
@@ -71,6 +86,9 @@ export class UserInfo implements OnInit {
       procedures: this.patientApi.getPatientProcedures(id),
       documentReferences: this.patientApi.getPatientDocumentReferences(id),
       episodesOfCare: this.patientApi.getPatientEpisodesOfCare(id),
+      observations: this.patientApi.getPatientObservations(id),
+      diagnosticReports: this.patientApi.getPatientDiagnosticReports(id),
+      compositions: this.patientApi.getPatientCompositions(id),
     }).subscribe({
       next: (data: {
         patient: any;
@@ -80,8 +98,11 @@ export class UserInfo implements OnInit {
         procedures: any;
         documentReferences: any;
         episodesOfCare: any[];
+        observations: any;
+        diagnosticReports: any;
+        compositions: any;
       }) => {
-        const { patient, conditions, medications, procedures, documentReferences, episodesOfCare } = data;
+        const { patient, conditions, medications, procedures, documentReferences, episodesOfCare, observations, diagnosticReports, compositions } = data;
         this.patientDetails = fhirPatientToDetailsDTO(patient);
 
         if (conditions.entry && conditions.entry.length > 0) {
@@ -160,6 +181,14 @@ export class UserInfo implements OnInit {
         this.rawDocumentReferences = filteredDocs;
         this.patientDetails.recentLabResults = filteredDocs.map((resource: any) => this.formatLabResult(resource));
         this.rawLabResults = this.patientDetails.recentLabResults || [];
+
+        // Store Observations, DiagnosticReports, Compositions
+        this.rawObservations = ((observations?.entry ?? []) as any[]).map((e: any) => e.resource).filter(Boolean);
+        this.rawDiagnosticReports = ((diagnosticReports?.entry ?? []) as any[]).map((e: any) => e.resource).filter(Boolean);
+        this.rawCompositions = ((compositions?.entry ?? []) as any[]).map((e: any) => e.resource).filter(Boolean);
+
+        // Build enriched data: link each DocumentReference to its DiagnosticReport, Observations, and Composition
+        this.enrichedLabData = this._buildEnrichedLabData();
 
         this.patientDetails.episodes = (episodesOfCare || []).map(
           (eoc: any) => fhirEOCToEpisode(eoc),
@@ -348,6 +377,14 @@ export class UserInfo implements OnInit {
     }
   }
 
+  viewOriginalPdf(index: number): void {
+    if (UserInfo._mockMode) {
+      alert('Mock mode: no real PDF available.\nIn production this opens the original scanned document.');
+      return;
+    }
+    this.openLabPdf(index);
+  }
+
   private static readonly ENCOUNTER_TYPE_MAP: Record<string, { label: string; color: string; icon: string }> = {
     // SNOMED display strings (from CATEGORY_TYPE_CODING in backend)
     'consultation':                              { label: 'Consultation',  color: '#1E6ED3', icon: 'bi-person-check'          },
@@ -420,5 +457,210 @@ export class UserInfo implements OnInit {
     const date = rawDate ? new Date(rawDate).toLocaleString() : 'Unknown date';
 
     return `${title} (${date})`;
+  }
+
+  // ── Mock data ────────────────────────────────────────────────────────────
+
+  private loadMockLabData(): void {
+    this.patientDetails = {
+      id: 'mock-patient-001',
+      name: 'Saubhik Bhaumik',
+      age: 34,
+      gender: 'male',
+      lastUpdated: new Date().toISOString(),
+      primaryDiagnosis: 'Lymphopenia (mild)',
+      activeConditions: ['Lymphopenia', 'Iron-deficiency anemia'],
+      currentMedications: ['Ferrous Sulfate 200mg daily', 'Vitamin D3 1000 IU daily'],
+      recentProcedures: [],
+      recentLabResults: [
+        'CBC Panel (10/17/2024)',
+        'Lipid Panel (10/17/2024)',
+        'Urinalysis — no linked data (10/17/2024)',
+      ],
+      episodes: [],
+    };
+
+    // Mock DocumentReferences — first two have a sentinel URL so hasLabPdf returns true
+    this.rawDocumentReferences = [
+      { id: 'mock-dr-1', date: '2024-10-17', type: { text: 'Laboratory Report' },
+        content: [{ attachment: { contentType: 'application/pdf', url: 'MOCK_PDF', title: 'CBC Panel.pdf' } }] },
+      { id: 'mock-dr-2', date: '2024-10-17', type: { text: 'Laboratory Report' },
+        content: [{ attachment: { contentType: 'application/pdf', url: 'MOCK_PDF', title: 'Lipid Panel.pdf' } }] },
+      { id: 'mock-dr-3', date: '2024-10-17', type: { text: 'Laboratory Report' } },
+    ];
+
+    // Directly populate enrichedLabData with realistic mock linked resources
+    this.enrichedLabData = [
+
+      // ── Lab 1: CBC — mix of N / L / H results + low-confidence warnings ──
+      {
+        composition: {
+          title: 'Complete Blood Count — Clinical Summary',
+          date: '2024-10-17',
+          section: [{
+            title: 'Summary',
+            text: {
+              status: 'generated',
+              div: '<div xmlns="http://www.w3.org/1999/xhtml"><p>CBC results are largely within normal limits. The key finding is <strong>lymphopenia</strong> (Lymphocyte count 18%, below the reference range of 20–40%). Hemoglobin is normal at 15.0 g/dL. Total Leukocyte Count is mildly elevated at 10.5 K/µL. Recommend clinical correlation and follow-up if symptoms persist.</p></div>',
+            },
+          }],
+        },
+        report: { code: { text: 'Complete Blood Count' }, status: 'final' },
+        observations: [
+          {
+            code: { text: 'HEMOGLOBIN', coding: [{ system: 'http://loinc.org', code: '718-7', display: 'Hemoglobin' }] },
+            valueQuantity: { value: 15.0, unit: 'g/dL' },
+            interpretation: [{ coding: [{ code: 'N' }] }],
+            referenceRange: [{ low: { value: 13.0, unit: 'g/dL' }, high: { value: 17.0, unit: 'g/dL' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 1.0 }],
+          },
+          {
+            code: { text: 'TOTAL LEUKOCYTE COUNT', coding: [{ system: 'http://loinc.org', code: '6690-2', display: 'Leukocytes' }] },
+            valueQuantity: { value: 10.5, unit: 'K/µL' },
+            interpretation: [{ coding: [{ code: 'H' }] }],
+            referenceRange: [{ low: { value: 4.0, unit: 'K/µL' }, high: { value: 10.0, unit: 'K/µL' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 0.0 }],
+          },
+          {
+            code: { text: 'NEUTROPHILS', coding: [{ system: 'http://loinc.org', code: '770-8', display: 'Neutrophils/100 leukocytes' }] },
+            valueQuantity: { value: 62, unit: '%' },
+            interpretation: [{ coding: [{ code: 'N' }] }],
+            referenceRange: [{ low: { value: 50, unit: '%' }, high: { value: 70, unit: '%' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 0.0 }],
+          },
+          {
+            code: { text: 'LYMPHOCYTE', coding: [{ system: 'http://loinc.org', code: '736-9', display: 'Lymphocytes/100 leukocytes' }] },
+            valueQuantity: { value: 18, unit: '%' },
+            interpretation: [{ coding: [{ code: 'L' }] }],
+            referenceRange: [{ low: { value: 20, unit: '%' }, high: { value: 40, unit: '%' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 0.0 }],
+          },
+          {
+            code: { text: 'EOSINOPHILS', coding: [{ system: 'http://loinc.org', code: '713-8', display: 'Eosinophils/100 leukocytes' }] },
+            valueQuantity: { value: 2, unit: '%' },
+            interpretation: [{ coding: [{ code: 'N' }] }],
+            referenceRange: [{ low: { value: 1, unit: '%' }, high: { value: 6, unit: '%' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 1.0 }],
+          },
+        ],
+      },
+
+      // ── Lab 2: Lipid Panel — elevated cholesterol + low HDL ──
+      {
+        composition: {
+          title: 'Lipid Panel — Clinical Summary',
+          date: '2024-10-17',
+          section: [{
+            title: 'Summary',
+            text: {
+              status: 'generated',
+              div: '<div xmlns="http://www.w3.org/1999/xhtml"><p>Lipid panel indicates <strong>dyslipidaemia</strong>. Total cholesterol is elevated at 210 mg/dL (borderline high). LDL cholesterol is elevated at 145 mg/dL. HDL is below the desirable threshold at 42 mg/dL. Triglycerides are within normal limits. Lifestyle modification and dietary review are recommended.</p></div>',
+            },
+          }],
+        },
+        report: { code: { text: 'Lipid Panel' }, status: 'final' },
+        observations: [
+          {
+            code: { text: 'TOTAL CHOLESTEROL', coding: [{ system: 'http://loinc.org', code: '2093-3', display: 'Cholesterol' }] },
+            valueQuantity: { value: 210, unit: 'mg/dL' },
+            interpretation: [{ coding: [{ code: 'H' }] }],
+            referenceRange: [{ low: { value: 0, unit: 'mg/dL' }, high: { value: 200, unit: 'mg/dL' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 1.0 }],
+          },
+          {
+            code: { text: 'HDL CHOLESTEROL', coding: [{ system: 'http://loinc.org', code: '2085-9', display: 'HDL Cholesterol' }] },
+            valueQuantity: { value: 42, unit: 'mg/dL' },
+            interpretation: [{ coding: [{ code: 'L' }] }],
+            referenceRange: [{ low: { value: 40, unit: 'mg/dL' }, high: { value: 60, unit: 'mg/dL' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 1.0 }],
+          },
+          {
+            code: { text: 'LDL CHOLESTEROL', coding: [{ system: 'http://loinc.org', code: '13457-7', display: 'LDL Cholesterol' }] },
+            valueQuantity: { value: 145, unit: 'mg/dL' },
+            interpretation: [{ coding: [{ code: 'H' }] }],
+            referenceRange: [{ low: { value: 0, unit: 'mg/dL' }, high: { value: 130, unit: 'mg/dL' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 1.0 }],
+          },
+          {
+            code: { text: 'TRIGLYCERIDES', coding: [{ system: 'http://loinc.org', code: '2571-8', display: 'Triglycerides' }] },
+            valueQuantity: { value: 148, unit: 'mg/dL' },
+            interpretation: [{ coding: [{ code: 'N' }] }],
+            referenceRange: [{ low: { value: 0, unit: 'mg/dL' }, high: { value: 150, unit: 'mg/dL' } }],
+            extension: [{ url: 'http://cfi-care.ai/fhir/StructureDefinition/extraction-confidence', valueDecimal: 1.0 }],
+          },
+        ],
+      },
+
+      // ── Lab 3: Urinalysis — no FHIR resources linked (shows fallback) ──
+      {
+        composition: null,
+        report: null,
+        observations: [],
+      },
+
+    ];
+  }
+
+  // ── Enrichment helpers ──────────────────────────────────────────────────
+
+  private _buildEnrichedLabData(): { report: any; observations: any[]; composition: any | null }[] {
+    // Index Observations by FHIR server ID for O(1) lookup
+    const obsById = new Map<string, any>(
+      this.rawObservations.map((o: any) => [String(o.id), o])
+    );
+
+    return this.rawDocumentReferences.map((docRef: any) => {
+      const docDate = (docRef.date || docRef.meta?.lastUpdated || '').substring(0, 10);
+
+      // Match DiagnosticReport by same effectiveDateTime date
+      const report = this.rawDiagnosticReports.find((dr: any) =>
+        (dr.effectiveDateTime || dr.date || '').substring(0, 10) === docDate
+      ) ?? null;
+
+      // Resolve Observations referenced by the DiagnosticReport's result[]
+      const observations: any[] = (report?.result ?? [])
+        .map((ref: any) => {
+          // ref.reference can be "Observation/4590/_history/1" or "Observation/4590"
+          const parts = (ref.reference ?? '').split('/');
+          const id = parts[1] ?? '';
+          return id ? obsById.get(id) : null;
+        })
+        .filter(Boolean);
+
+      // Match Composition by same date
+      const composition = this.rawCompositions.find((c: any) =>
+        (c.date || '').substring(0, 10) === docDate
+      ) ?? null;
+
+      return { report, observations, composition };
+    });
+  }
+
+  interpretationClass(obs: any): string {
+    const code = obs?.interpretation?.[0]?.coding?.[0]?.code ?? '';
+    if (code === 'H') return 'badge bg-danger';
+    if (code === 'L') return 'badge bg-warning text-dark';
+    return 'badge bg-success';
+  }
+
+  interpretationLabel(obs: any): string {
+    const code = obs?.interpretation?.[0]?.coding?.[0]?.code ?? '';
+    if (code === 'H') return 'High';
+    if (code === 'L') return 'Low';
+    return 'Normal';
+  }
+
+  isLowConfidence(obs: any): boolean {
+    const ext = (obs?.extension ?? []) as any[];
+    const conf = ext.find((e: any) =>
+      e.url?.includes('extraction-confidence')
+    );
+    return conf ? conf.valueDecimal === 0 : false;
+  }
+
+  getSafeCompositionSummary(index: number): SafeHtml {
+    const comp = this.enrichedLabData[index]?.composition;
+    const div = comp?.section?.[0]?.text?.div ?? '';
+    return this.sanitizer.bypassSecurityTrustHtml(div);
   }
 }

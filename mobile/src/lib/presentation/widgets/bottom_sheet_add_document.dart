@@ -8,7 +8,6 @@ import '../../utils/enums/speciality_event.dart';
 import '../viewmodels/add_document_viewmodel.dart'; // <--- The Form Logic (Renamed from DocumentAddViewModel)
 import '../viewmodels/document_provider.dart'; // <--- The Data Logic
 import 'attach_file.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 
 class DocumentAddSheet extends StatefulWidget {
   // We pass the Form ViewModel so the sheet can access input state
@@ -22,7 +21,6 @@ class DocumentAddSheet extends StatefulWidget {
 
 class _DocumentAddSheetState extends State<DocumentAddSheet> {
   late TextEditingController _titleController;
-  late TextEditingController _summaryController;
   late TextEditingController _detailsController;
 
   @override
@@ -30,7 +28,6 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
     super.initState();
     // Initialize controllers with current values from ViewModel
     _titleController = TextEditingController(text: widget.viewModel.title);
-    _summaryController = TextEditingController(text: widget.viewModel.summary);
     _detailsController = TextEditingController(text: widget.viewModel.details);
 
     // Listen to ViewModel to rebuild UI when file is attached/removed
@@ -44,7 +41,6 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
   @override
   void dispose() {
     _titleController.dispose();
-    _summaryController.dispose();
     _detailsController.dispose();
     widget.viewModel.removeListener(_onViewModelChanged);
     super.dispose();
@@ -94,18 +90,6 @@ class _DocumentAddSheetState extends State<DocumentAddSheet> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (val) => widget.viewModel.setTitle(val),
-            ),
-            const SizedBox(height: 12),
-
-            // --- SUMMARY ---
-            TextField(
-              controller: _summaryController,
-              decoration: const InputDecoration(
-                labelText: "Summary",
-                prefixIcon: Icon(Icons.short_text),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (val) => widget.viewModel.setSummary(val),
             ),
             const SizedBox(height: 12),
 
