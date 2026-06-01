@@ -3,5 +3,9 @@
     "@aws-sdk/client-s3": "^3.1004.0",
     "@aws-sdk/client-sqs": "^3.1004.0",
     "aws-sdk": "^2.1693.0"
+  },
+  "devDependencies": {
+    "allure-jest": "^3.9.0",
+    "jest": "^30.4.2"
   }
 }
