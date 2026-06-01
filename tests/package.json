@@ -5,7 +5,8 @@
     "test:ai": "pytest ../ai/tests --alluredir=allure-results/ai",
     "test:integration": "pytest integration --alluredir=allure-results/integration",
     "test": "npm run test:backend && npm run test:ai && npm run test:integration",
-    "report": "bash scripts/generate-report.sh"
+    "report": "bash scripts/generate-report.sh",
+    "report:open": "allure open --port 9876 allure-report"
   },
   "devDependencies": {
     "allure": "^3.6.2"
