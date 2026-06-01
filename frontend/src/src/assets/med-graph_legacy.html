@@ -724,6 +724,11 @@
       pointer-events: none;
     }
 
+    .tut-pulse {
+      position: relative;
+      z-index: 2010 !important;
+    }
+
     .tutorial-card {
       position: fixed;
       background: white;
@@ -1036,6 +1041,20 @@
     style="position: absolute; display: none; background: rgba(0,0,0,0.8); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; z-index: 1000;">
   </div>
 
+
+<button id="tutorialHelpBtn" title="Open Tutorial" style="
+  position: fixed; bottom: 100px; right: 30px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #3B82F6; color: white; border: none;
+  font-size: 18px; cursor: pointer; z-index: 900;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s;
+">?</button>
+
+  <div id="tutorialSpotlight" class="tutorial-spotlight" style="display:none;"></div>
+  <div id="tutorialCard" class="tutorial-card" style="display:none;"></div>
+
   <script>
     // === 1. Configuration & Data ===
 
@@ -1071,27 +1090,31 @@
 
     //mock
 
-    let data = [
-  { id: "1", text_1: "Initial Consultation", father: null, category: "Consultation", priority: "Medium", normality: "Normal", dateIssued: "2024-01-10", details: "Patient presents with chest pain and shortness of breath." },
-  { id: "2", text_1: "CBC Blood Test", father: "1", category: "Lab", priority: "High", normality: "Abnormal", dateIssued: "2024-01-11", details: "WBC elevated at 14.2. Hemoglobin low at 9.8 g/dL." },
-  { id: "3", text_1: "Chest X-Ray", father: "1", category: "Imaging", priority: "High", normality: "Abnormal", dateIssued: "2024-01-11", details: "Mild cardiomegaly noted. No pneumothorax." },
-  { id: "4", text_1: "Cardiology Referral", father: "1", category: "Consultation", priority: "High", normality: "Normal", dateIssued: "2024-01-12", details: "Referred to Dr. Hassan for cardiac evaluation." },
-  { id: "5", text_1: "Cardiac Diagnosis", father: "4", category: "Consultation", priority: "High", normality: "Abnormal", dateIssued: "2024-01-14", details: "Dilated cardiomyopathy confirmed.", isDiagnosis: true, isManualBranch: true, branchState: "in_progress" },
-  { id: "6", text_1: "Echo Cardiogram", father: "5", category: "Imaging", priority: "High", normality: "Abnormal", dateIssued: "2024-01-15", details: "EF 35%. Significant left ventricular dilation." },
-  { id: "7", text_1: "Beta Blockers", father: "5", category: "Prescription", priority: "Medium", normality: "Normal", dateIssued: "2024-01-16", details: "Metoprolol 50mg twice daily prescribed." },
-  { id: "8", text_1: "Penicillin Allergy", father: "1", category: "Allergy", priority: "High", normality: "Abnormal", dateIssued: "2024-01-10", details: "Documented severe allergy to penicillin-class antibiotics." },
-  { id: "9", text_1: "Lipid Panel", father: "2", category: "Lab", priority: "Medium", normality: "Abnormal", dateIssued: "2024-01-13", details: "LDL 180 mg/dL. Total cholesterol 240 mg/dL." },
-  { id: "10", text_1: "Statin Prescription", father: "9", category: "Prescription", priority: "Medium", normality: "Normal", dateIssued: "2024-01-14", details: "Atorvastatin 40mg nightly." },
-  { id: "11", text_1: "2-Week Follow Up", father: "5", category: "FollowUp", priority: "Medium", normality: "Normal", dateIssued: "2024-01-28", details: "Patient reports mild improvement. Fatigue reduced." },
-  { id: "12", text_1: "AI Risk Assessment", father: "1", category: "AISuggestion", priority: "Medium", normality: "Pending", dateIssued: "2024-01-12", details: "AI suggests 68% probability of cardiac event within 6 months based on current labs." }
-];
+//     let data = [
+//   { id: "1", text_1: "Initial Consultation", father: null, category: "Consultation", priority: "Medium", normality: "Normal", dateIssued: "2024-01-10", details: "Patient presents with chest pain and shortness of breath." },
+//   { id: "2", text_1: "CBC Blood Test", father: "1", category: "Lab", priority: "High", normality: "Abnormal", dateIssued: "2024-01-11", details: "WBC elevated at 14.2. Hemoglobin low at 9.8 g/dL." },
+//   { id: "3", text_1: "Chest X-Ray", father: "1", category: "Imaging", priority: "High", normality: "Abnormal", dateIssued: "2024-01-11", details: "Mild cardiomegaly noted. No pneumothorax." },
+//   { id: "4", text_1: "Cardiology Referral", father: "1", category: "Consultation", priority: "High", normality: "Normal", dateIssued: "2024-01-12", details: "Referred to Dr. Hassan for cardiac evaluation." },
+//   { id: "5", text_1: "Cardiac Diagnosis", father: "4", category: "Consultation", priority: "High", normality: "Abnormal", dateIssued: "2024-01-14", details: "Dilated cardiomyopathy confirmed.", isDiagnosis: true, isManualBranch: true, branchState: "in_progress" },
+//   { id: "6", text_1: "Echo Cardiogram", father: "5", category: "Imaging", priority: "High", normality: "Abnormal", dateIssued: "2024-01-15", details: "EF 35%. Significant left ventricular dilation." },
+//   { id: "7", text_1: "Beta Blockers", father: "5", category: "Prescription", priority: "Medium", normality: "Normal", dateIssued: "2024-01-16", details: "Metoprolol 50mg twice daily prescribed." },
+//   { id: "8", text_1: "Penicillin Allergy", father: "1", category: "Allergy", priority: "High", normality: "Abnormal", dateIssued: "2024-01-10", details: "Documented severe allergy to penicillin-class antibiotics." },
+//   { id: "9", text_1: "Lipid Panel", father: "2", category: "Lab", priority: "Medium", normality: "Abnormal", dateIssued: "2024-01-13", details: "LDL 180 mg/dL. Total cholesterol 240 mg/dL." },
+//   { id: "10", text_1: "Statin Prescription", father: "9", category: "Prescription", priority: "Medium", normality: "Normal", dateIssued: "2024-01-14", details: "Atorvastatin 40mg nightly." },
+//   { id: "11", text_1: "2-Week Follow Up", father: "5", category: "FollowUp", priority: "Medium", normality: "Normal", dateIssued: "2024-01-28", details: "Patient reports mild improvement. Fatigue reduced." },
+//   { id: "12", text_1: "AI Risk Assessment", father: "1", category: "AISuggestion", priority: "Medium", normality: "Pending", dateIssued: "2024-01-12", details: "AI suggests 68% probability of cardiac event within 6 months based on current labs." }
+// ];
 
     //mock
 
-    // let graphInitialized = false;
+
+    //real
+    let graphInitialized = false;
+    //real
+
 
     //mock
-    let graphInitialized = true;
+    // let graphInitialized = true;
     //mock
     let refreshGraph = null;
     let patientId = null;
@@ -1118,12 +1141,12 @@
     }
 
     //mock
-    initializeGraph();
+    // initializeGraph();
     //mock
 
-    document.getElementById("tutorialHelpBtn").onclick = function() {
-      if (typeof startTutorial === 'function') startTutorial();
-    };
+    // document.getElementById("tutorialHelpBtn").onclick = function() {
+    //   if (typeof startTutorial === 'function') startTutorial();
+    // };
 
     //Handlers for communication with angular components 
     window.addEventListener("message", (event) => {
@@ -3221,6 +3244,8 @@ container.selectAll(".timeline-link-hitbox")
         currentMode = 'categorical';
         setTimeout(applyStandardClickBehavior, 50);
       }
+      window._renderCategoricalGraph = renderCategoricalGraph;
+
 
       function applyCategoricalFilters() {
         const matchesFilter = new Set();
@@ -4001,252 +4026,666 @@ container.selectAll(".timeline-link-hitbox")
 
 
     // ============================================================
-// TUTORIAL SYSTEM — lives outside initializeGraph
+// TUTORIAL SYSTEM
 // ============================================================
-(function() {
-  const TUTORIAL_STEPS = [
+(function () {
+
+  // ─── DEMO DATA ────────────────────────────────────────────────────────────────
+  // Rich dataset covering all features: main branch, two sub-branches (one
+  // discontinued, one completed+merged), high-priority nodes, multiple categories.
+  const DEMO_DATA = [
+    // ── Main timeline ──
+    { id: "t1", text_1: "Initial Consultation", father: null, category: "Consultation", priority: "Medium", normality: "Normal", dateIssued: "2024-01-10", details: "Patient presents with chest pain and shortness of breath." },
+    { id: "t2", text_1: "CBC Blood Test",       father: "t1", category: "Lab",          priority: "High",   normality: "Abnormal", dateIssued: "2024-01-11", details: "WBC elevated at 14.2. Hemoglobin low at 9.8 g/dL." },
+    { id: "t3", text_1: "Chest X-Ray",          father: "t1", category: "Imaging",      priority: "High",   normality: "Abnormal", dateIssued: "2024-01-11", details: "Mild cardiomegaly noted." },
+    { id: "t4", text_1: "Penicillin Allergy",   father: "t1", category: "Allergy",      priority: "High",   normality: "Abnormal", dateIssued: "2024-01-10", details: "Documented severe allergy to penicillin." },
+    { id: "t5", text_1: "AI Risk Assessment",   father: "t1", category: "AISuggestion", priority: "Medium", normality: "Pending",  dateIssued: "2024-01-12", details: "AI suggests 68% cardiac event probability in 6 months." },
+    { id: "t6", text_1: "Follow-Up Scheduled",  father: "t1", category: "FollowUp",     priority: "Low",    normality: "Normal",   dateIssued: "2024-01-28", details: "Routine follow-up booked." },
+
+    // ── Branch 1: Cardiac (completed → merged) ──
+    { id: "t7", text_1: "Cardiac Diagnosis",    father: "t2", category: "Consultation", priority: "High",   normality: "Abnormal", dateIssued: "2024-01-14", details: "Dilated cardiomyopathy confirmed.", isDiagnosis: true, isManualBranch: true, branchState: "completed" },
+    { id: "t8", text_1: "Echo Cardiogram",      father: "t7", category: "Imaging",      priority: "High",   normality: "Abnormal", dateIssued: "2024-01-15", details: "EF 35%. Significant left ventricular dilation." },
+    { id: "t9", text_1: "Beta Blockers",        father: "t7", category: "Prescription", priority: "Medium", normality: "Normal",   dateIssued: "2024-01-16", details: "Metoprolol 50mg twice daily prescribed." },
+    { id: "t10", text_1: "Cardiac Follow-Up",   father: "t7", category: "FollowUp",     priority: "Medium", normality: "Normal",   dateIssued: "2024-01-28", details: "Patient reports mild improvement." },
+
+    // ── Branch 2: Infection (discontinued) ──
+    { id: "t11", text_1: "Infection Diagnosis", father: "t3", category: "Consultation", priority: "High",   normality: "Abnormal", dateIssued: "2024-01-13", details: "Suspected hospital-acquired infection.", isDiagnosis: true, isManualBranch: true, branchState: "discontinued" },
+    { id: "t12", text_1: "Culture Sample",      father: "t11", category: "Lab",         priority: "High",   normality: "Abnormal", dateIssued: "2024-01-14", details: "Blood culture sent. Results pending." },
+    { id: "t13", text_1: "Antibiotics",         father: "t11", category: "Prescription",priority: "Medium", normality: "Normal",   dateIssued: "2024-01-15", details: "Broad-spectrum antibiotics started." }
+  ];
+
+  const CATEGORY_COLORS_TUT = {
+    Consultation:"#3B82F6", Lab:"#10B981", Imaging:"#8B5CF6",
+    Prescription:"#F59E0B", AISuggestion:"#EC4899", FollowUp:"#06B6D4",
+    Allergy:"#EF4444", Historical:"#6B7280", Linker:"#A855F7"
+  };
+
+  let savedData = null;
+  let tutStep = 0;
+  let tutActive = false;
+
+  // ─── STEPS ────────────────────────────────────────────────────────────────────
+  // No step asks user to click anything. All interactions are blocked.
+  // Each step has: title, body, cardPos, target (element to highlight), onEnter.
+  // ─── STEPS ────────────────────────────────────────────────────────────────────
+  const STEPS = [
+    // 0 – Welcome
     {
-      title: "Welcome to MedFlow Graph",
-      body: "This graph tracks a patient's complete medical journey: from first consultation through diagnoses, labs, imaging, and prescriptions. Let us take a quick tour.",
-      target: null, cardPos: "center"
+      title: '<i class="bi bi-hospital"></i> Welcome to MedFlow Graph',
+      body: "A quick visual tour of every feature. Hit <strong>Next</strong> to begin.",
+      cardPos: "center", highlight: null, onEnter: null,
+      allowClicks: false, allowModeChange: false
     },
+    // 1 – Nodes + legend
     {
-      title: "The Patient Journey Tree",
-      body: "Each dot is a medical event. The root is the initial consultation. Children branch outward as the case evolves. Click any node to view its details in the sidebar.",
-      target: "#tree", cardPos: "right",
+      title: '<i class="bi bi-circle-fill" style="color:#10B981"></i> Nodes = medical events',
+      body: "Each dot is one event. <strong>Colour = category.</strong> See the legend bottom-left for the full key.",
+      cardPos: "bottom-right", highlight: "#legend", onEnter: null,
+      allowClicks: true, allowModeChange: false
+    },
+    // 2 – High priority ring
+    {
+      title: '<i class="bi bi-record-circle" style="color:#EF4444"></i> High-priority ring',
+      body: "The pulsing red ring = High Priority. It also bubbles up to parent nodes so nothing is missed.",
+      cardPos: "bottom-right", highlight: null,
       onEnter: () => {
-        if (typeof refreshGraph === 'function') refreshGraph();
-      }
+        document.getElementById("nodeDetailsSidebar")?.classList.remove("open");
+        document.getElementById('darkModeToggle').style.display = 'flex';
+        setTimeout(() => {
+          document.querySelectorAll(".tree-node-wrapper").forEach(w => {
+            const nd = data.find(d => d.id === w.dataset.id);
+            if (nd && nd.priority === "High") w.classList.add("tut-pulse");
+          });
+        }, 200);
+      },
+      allowClicks: true, allowModeChange: false
     },
+    // 3 – Expand/collapse (user MUST click the expand trigger)
     {
-      title: "Node Colors and Categories",
-      body: "Each color represents a category: blue for consultations, green for labs, violet for imaging, amber for prescriptions, pink for AI suggestions. The legend at the bottom-left is always available.",
-      target: "#legend", cardPos: "top"
-    },
-    {
-      title: "High Priority Events",
-      body: "A red ring on a node means it is high priority. The ring also appears on parent nodes when a hidden child is high priority, so nothing slips through.",
-      target: "#tree", cardPos: "right"
-    },
-    {
-      title: "Expand & Collapse Branches",
-      body: "First-level branches have a small +/- button in the top-right corner of their dot. Click it to expand or collapse that entire branch. Only 2 branches can be open at once to keep the view clean.",
-      target: null, cardPos: "center",
+      title: '<i class="bi bi-plus-square"></i> Expand a branch',
+      body: "Nodes start collapsed. Click the <strong>highlighted + button</strong> to expand a branch.",
+      cardPos: "bottom-right", highlight: null,
       onEnter: () => {
+        clearPulse();
         setTimeout(() => {
           const btn = document.querySelector(".expand-trigger");
-          if (!btn) return;
-          let arrow = document.getElementById("tutorial-node-arrow");
-          if (!arrow) {
-            arrow = document.createElement("div");
-            arrow.id = "tutorial-node-arrow";
-            arrow.style.cssText = "position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;";
-            arrow.innerHTML = `<span style="font-size:12px;font-weight:600;color:#3B82F6;background:white;padding:3px 8px;border-radius:4px;border:1px solid #BFDBFE;white-space:nowrap;"><i class="fa-solid fa-plus" style="font-size:10px;"></i> / <i class="fa-solid fa-minus" style="font-size:10px;"></i> button</span><i class="fa-solid fa-arrow-down" style="color:#3B82F6;font-size:16px;"></i>`;
-            document.body.appendChild(arrow);
-          }
-          const r = btn.getBoundingClientRect();
-          arrow.style.top = (r.top - 48) + "px";
-          arrow.style.left = (r.left + r.width / 2 - 37) + "px";
-          arrow.style.display = "flex";
+          if (btn) btn.classList.add("tut-pulse");
         }, 200);
-      }
+      },
+      allowClicks: true,   // user must click expand trigger
+      allowModeChange: false,
+      waitForExpand: true  // special flag — advance only after an expand-trigger click
     },
+    // 4 – Node details panel (user clicks a node)
     {
-      title: "Adding a Node",
-      body: "Click Add Node in the header. The cursor changes to a crosshair. Click any existing node to make it the parent. Fill in the title, date, category, and priority in the form that appears.",
-      target: "#addNodeBtn", cardPos: "bottom"
+      title: '<i class="bi bi-card-list"></i> Node details',
+      body: "Click <strong>any node dot</strong> to open its detail panel on the right.",
+      cardPos: "top-left", highlight: null,
+      onEnter: () => { clearPulse(); },
+      allowClicks: true,
+      allowModeChange: false,
+      waitForNodeClick: true  // advance after any node is clicked
     },
+    // 5 – Add Node
     {
-      title: "Deleting a Node",
-      body: "Click Delete Node, then click any node to remove it. Deleting a node also removes all its descendants. The root node is always protected.",
-      target: "#deleteNodeBtn", cardPos: "bottom"
+      title: '<i class="bi bi-plus-circle"></i> Add Node',
+      body: "Click <strong>Add Node</strong>, then click any node to attach a child. Cursor turns crosshair.",
+      cardPos: "below-element", highlight: "#addNodeBtn",
+      onEnter: () => {
+        document.getElementById("nodeDetailsSidebar")?.classList.remove("open");
+        document.getElementById('darkModeToggle').style.display = 'flex';
+      },
+      allowClicks: false, allowModeChange: false
     },
+    // 6 – Delete Node
     {
-      title: "Chronological View",
-      body: "Switch to Chronological using the toggle in the header. All events are laid out on a horizontal timeline by date. Diagnosis branches appear as separate horizontal tracks below the main line.",
-      target: ".toggle-group", cardPos: "bottom"
+      title: '<i class="bi bi-trash3"></i> Delete Node',
+      body: "Click <strong>Delete Node</strong>, then click any non-root node to remove it and all children.",
+      cardPos: "below-element", highlight: "#deleteNodeBtn",
+      onEnter: null, allowClicks: false, allowModeChange: false
     },
+    // 7 – Filters
     {
-      title: "Diagnosis Nodes",
-      body: "A diagnosis node (white circle, red border) starts a new independent branch. Only main-timeline nodes can start a branch. You cannot branch from an existing branch.",
-      target: null, cardPos: "center",
+      title: '<i class="bi bi-funnel"></i> Filters',
+      body: "Narrow by category, priority, normality, or date. Parent nodes always stay visible.",
+      cardPos: "below-element", highlight: "#filterToggleBtn",
+      onEnter: null, allowClicks: false, allowModeChange: false
+    },
+    // 8 – Dashboard
+    {
+      title: '<i class="bi bi-arrow-left-circle"></i> Dashboard',
+      body: "Returns you to the patient list.",
+      cardPos: "below-element", highlight: "#dashboardBtn",
+      onEnter: null, allowClicks: false, allowModeChange: false
+    },
+    // 9 – Dark mode  (card positioned TOP-LEFT so it doesn't cover the button)
+    // {
+    //   title: "🌙 Dark mode",
+    //   body: "The sun/moon button (top-right) toggles dark mode. Preference is saved.",
+    //   cardPos: "top-left", highlight: "#darkModeToggle",
+    //   onEnter: null, allowClicks: false, allowModeChange: false
+    // },
+    // 10 – Switch to Chronological (user MUST click the toggle)
+    {
+      title: '<i class="bi bi-clock-history"></i> Switch to Chronological view',
+      body: "Click <strong>Chronological</strong> in the toggle to continue — events will lay out on a timeline.",
+      cardPos: "below-element", highlight: ".toggle-group",
+      onEnter: () => { clearPulse(); },
+      allowClicks: true,
+      allowModeChange: true,   // ONLY step where mode change is allowed
+      waitForChrono: true      // advance only after chrono mode is active
+    },
+    // 11 – Diagnosis node
+    {
+      title: '<i class="bi bi-circle" style="color:#EF4444"></i> Diagnosis nodes',
+      body: "The <strong>white circle with red border</strong> starts an independent branch below the main line.",
+      cardPos: "bottom-left", highlight: null,
       onEnter: () => {
         setTimeout(() => {
-          const diagNode = Array.from(document.querySelectorAll(".node-circle"))
-            .find(el => el.__data__ && (el.__data__.isDiagnosis || el.__data__.isManualBranch));
-          if (!diagNode) return;
-          let arrow = document.getElementById("tutorial-node-arrow");
-          if (!arrow) {
-            arrow = document.createElement("div");
-            arrow.id = "tutorial-node-arrow";
-            arrow.style.cssText = "position:fixed;z-index:2003;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;";
-            document.body.appendChild(arrow);
-          }
-          arrow.innerHTML = `<i class="fa-solid fa-arrow-up" style="color:#EF4444;font-size:16px;"></i>`;
-          const r = diagNode.getBoundingClientRect();
-          arrow.style.top = (r.bottom + 8) + "px";
-          arrow.style.left = (r.left + r.width / 2 - 7) + "px";
-          arrow.style.display = "flex";
-        }, 600);
-      }
+          const diagCircle = Array.from(document.querySelectorAll(".node-circle"))
+            .find(el => {
+              const nd = data.find(d => d.id === (el.dataset?.nodeId || el.__data__?.id));
+              return nd && (nd.isDiagnosis || nd.isManualBranch);
+            });
+          if (diagCircle) diagCircle.classList.add("tut-pulse");
+        }, 400);
+      },
+      allowClicks: false, allowModeChange: false
     },
+    // 12 – Sub-branches
     {
-      title: "Filters",
-      body: "Click Filters to refine the graph by category, priority, normality, or date range. Filters work in both views. Parent nodes stay visible when any of their children match.",
-      target: "#filterToggleBtn", cardPos: "bottom"
+      title: '<i class="bi bi-diagram-3"></i> Sub-branches',
+      body: "Each branch has its own horizontal track. Green = completed, Red = discontinued.",
+      cardPos: "bottom-left", highlight: null,
+      onEnter: () => {
+        clearPulse();
+        setTimeout(() => {
+          document.querySelectorAll(".branch-horizontal-line").forEach(el => el.classList.add("tut-pulse"));
+        }, 200);
+      },
+      allowClicks: false, allowModeChange: false
     },
+    // 13 – Create branch button
     {
-      title: "Creating a Branch",
-      body: "In Chronological view, click the blue branch button (bottom-right) then click any main-timeline node to start a new diagnosis branch.",
-      target: null, cardPos: "center"
+      title: '<i class="bi bi-git"></i> Create branch button',
+      body: "The <strong>blue ⎇ button</strong> (bottom-right) activates branch-creation mode. Click a main-timeline node to start a new branch.",
+      cardPos: "bottom-left", highlight: "#createBranchBtn",
+      onEnter: () => { clearPulse(); },
+      allowClicks: false, allowModeChange: false
     },
+    // 14 – Merged arc
     {
-      title: "Branch States",
-      body: "Click any branch line or the main timeline to change its state: In Progress, Discontinued (blocks it), or Completed (merges it back to main).",
-      target: null, cardPos: "center"
+      title: '<i class="bi bi-arrow-left-right"></i> Completed & merged branch',
+      body: "The <strong>green arc</strong> = branch marked Completed and merged back into the main timeline.",
+      cardPos: "bottom-left", highlight: null,
+      onEnter: () => {
+        clearPulse();
+        setTimeout(() => {
+          document.querySelectorAll("path.merge-link").forEach(el => el.classList.add("tut-pulse"));
+        }, 200);
+      },
+      allowClicks: false, allowModeChange: false
     },
+    // 15 – Merge button
     {
-      title: "All done!",
-      body: "You now know the essentials of MedFlow Graph. Explore the patient journey, add new events as the case evolves, and use the chronological view to spot patterns over time.",
-      target: null, cardPos: "center"
+      title: '<i class="bi bi-sign-merge-left"></i> Branch state button',
+      body: "The <strong>green button</strong> is a shortcut. Unlike branching (click a node), state changes work by <strong>clicking the branch line itself</strong>.",
+      cardPos: "bottom-left", highlight: "#mergeHintBtn",
+      onEnter: () => { clearPulse(); },
+      allowClicks: false, allowModeChange: false
+    },
+    // 16 – Click main timeline line (user clicks, menu opens, but choices are blocked)
+    {
+      title: '<i class="bi bi-circle-fill" style="color:#3B82F6"></i> Main timeline state',
+      body: "Click the <strong>main horizontal line</strong> to see its state options (In Progress / Finish Case). Menu will open — just look, no need to choose.",
+      cardPos: "bottom-left", highlight: null,
+      onEnter: () => {
+        clearPulse();
+        setTimeout(() => {
+          document.querySelectorAll(".timeline-lane").forEach(el => el.classList.add("tut-pulse"));
+        }, 200);
+      },
+      allowClicks: true,
+      allowModeChange: false,
+      waitForMenuOpen: "main",   // advance after branch state menu opens
+      blockMenuChoices: true
+    },
+    // 17 – Click sub-branch line
+    {
+      title: '<i class="bi bi-circle-fill" style="color:#EF4444"></i><i class="bi bi-circle-fill" style="color:#10B981;margin-left:4px"></i> Sub-branch state',
+      body: "Click <strong>any sub-branch line</strong> to see its options (In Progress / Discontinued / Completed). Just look.",
+      cardPos: "bottom-left", highlight: null,
+      onEnter: () => {
+        clearPulse();
+        document.getElementById("branchStateMenu")?.remove();
+        setTimeout(() => {
+          document.querySelectorAll(".branch-horizontal-line").forEach(el => el.classList.add("tut-pulse"));
+        }, 200);
+      },
+      allowClicks: true,
+      allowModeChange: false,
+      waitForMenuOpen: "branch",
+      blockMenuChoices: true
+    },
+    // 18 – Done
+    {
+      title: '<i class="bi bi-check-circle-fill" style="color:#10B981"></i> Tour complete!',
+      body: "Your real data is restored. Press <strong>?</strong> anytime to replay.",
+      cardPos: "center", highlight: null,
+      onEnter: () => {
+        clearPulse();
+        document.getElementById("branchStateMenu")?.remove();
+      },
+      allowClicks: false, allowModeChange: false
     }
   ];
 
-  let tutStep = 0;
+  // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-  function doEndTutorial() {
-    document.getElementById("tutorialSpotlight").style.display = "none";
-    document.getElementById("tutorialCard").style.display = "none";
-    const arrow = document.getElementById("tutorial-node-arrow");
-    if (arrow) arrow.remove();
-    localStorage.setItem("medflow_tutorial_done", "1");
+  function clearPulse() {
+    document.querySelectorAll(".tut-pulse").forEach(el => el.classList.remove("tut-pulse"));
   }
 
-  function renderStep() {
-    const step = TUTORIAL_STEPS[tutStep];
-    const arrow = document.getElementById("tutorial-node-arrow");
-    if (arrow) arrow.style.display = "none";
+  function pulseElement(selector) {
+    if (!selector) return;
+    clearPulse();
+    const el = document.querySelector(selector);
+    if (el) el.classList.add("tut-pulse");
+  }
 
-    if (step.onEnter) step.onEnter();
+  // Interaction blocker — blocks everything EXCEPT elements the current step allows
+  let _blocker = null;
+  function updateBlocker() {
+    const step = STEPS[tutStep];
 
-    const spotlight = document.getElementById("tutorialSpotlight");
-    const card = document.getElementById("tutorialCard");
+    // Remove existing blocker
+    _blocker?.remove();
+    _blocker = null;
 
-    if (step.target) {
-      const el = document.querySelector(step.target);
-      if (el) {
-        const r = el.getBoundingClientRect();
-        const pad = 8;
-        spotlight.style.display = "block";
-        spotlight.style.left = (r.left - pad) + "px";
-        spotlight.style.top = (r.top - pad) + "px";
-        spotlight.style.width = (r.width + pad * 2) + "px";
-        spotlight.style.height = (r.height + pad * 2) + "px";
-      } else {
-        spotlight.style.display = "none";
-      }
-    } else {
-      spotlight.style.display = "none";
+    if (!tutActive) return;
+
+    // Always block mode toggle unless step explicitly allows it
+    const toggleGroup = document.querySelector(".toggle-group");
+    if (toggleGroup) {
+      toggleGroup.style.pointerEvents = (step.allowModeChange) ? "" : "none";
     }
 
-    const isLast = tutStep === TUTORIAL_STEPS.length - 1;
+    if (step.allowClicks) {
+      // Clicks allowed — no full-page blocker, but we still block node detail opens
+      // (unless waitForNodeClick)
+      return;
+    }
+
+    // Full-page transparent blocker
+    _blocker = document.createElement("div");
+    _blocker.id = "tut-interaction-blocker";
+    _blocker.style.cssText = `
+      position:fixed; inset:0; z-index:1999;
+      background:transparent; cursor:default;
+    `;
+    document.body.appendChild(_blocker);
+  }
+
+  function unblockAll() {
+    _blocker?.remove();
+    _blocker = null;
+    const toggleGroup = document.querySelector(".toggle-group");
+    if (toggleGroup) toggleGroup.style.pointerEvents = "";
+  }
+
+  // Advance-condition listeners — cleaned up on each step transition
+  let _stepListeners = [];
+  function clearStepListeners() {
+    _stepListeners.forEach(fn => fn());
+    _stepListeners = [];
+  }
+
+  function setupStepListeners() {
+    clearStepListeners();
+    const step = STEPS[tutStep];
+
+    // ── Expand trigger click → advance ──
+    if (step.waitForExpand) {
+      const handler = (e) => {
+        if (e.target.closest(".expand-trigger")) {
+          setTimeout(() => advanceStep(), 400); // small delay so tree re-renders first
+        }
+      };
+      document.getElementById("tree").addEventListener("click", handler);
+      _stepListeners.push(() => document.getElementById("tree").removeEventListener("click", handler));
+    }
+
+    // ── Node click → open sidebar, then advance ──
+    if (step.waitForNodeClick) {
+      const treeHandler = (e) => {
+        const wrapper = e.target.closest(".tree-node-wrapper");
+        if (!wrapper) return;
+        const nd = data.find(d => d.id === wrapper.dataset.id);
+        if (!nd || nd.isVirtualRoot) return;
+        // Let the real openNodeDetails run (it's called by the tree's own listener)
+        setTimeout(() => advanceStep(), 600);
+      };
+      document.getElementById("tree").addEventListener("click", treeHandler);
+      _stepListeners.push(() => document.getElementById("tree").removeEventListener("click", treeHandler));
+
+      // Also handle chronological node circles
+      const circleHandler = (event) => {
+        if (event.target.closest(".node-circle")) setTimeout(() => advanceStep(), 600);
+      };
+      document.getElementById("tree").addEventListener("click", circleHandler);
+      _stepListeners.push(() => document.getElementById("tree").removeEventListener("click", circleHandler));
+    }
+
+    // ── Chronological toggle click → advance after render ──
+    if (step.waitForChrono) {
+      const toggleHandler = (e) => {
+        const btn = e.target.closest(".toggle-btn");
+        if (btn && btn.innerText.includes("Chronological")) {
+          setTimeout(() => advanceStep(), 600);
+        }
+      };
+      document.querySelector(".toggle-group").addEventListener("click", toggleHandler);
+      _stepListeners.push(() => document.querySelector(".toggle-group")?.removeEventListener("click", toggleHandler));
+    }
+
+    // ── Branch state menu opens → advance, block choices ──
+    if (step.waitForMenuOpen) {
+      // We intercept openBranchStateMenu via a MutationObserver watching for #branchStateMenu
+      const observer = new MutationObserver(() => {
+        const menu = document.getElementById("branchStateMenu");
+        if (!menu) return;
+
+        if (step.blockMenuChoices) {
+          // Block all clickable items inside the menu (the state option divs)
+          menu.querySelectorAll("div[style*='cursor: pointer'], div[style*='cursor:pointer']").forEach(item => {
+            item.style.pointerEvents = "none";
+            item.style.opacity = "0.5";
+          });
+          // Also intercept future-added items
+          const itemObserver = new MutationObserver(() => {
+            menu.querySelectorAll("div").forEach(item => {
+              if (item.style.cursor === "pointer" || item.onclick) {
+                item.style.pointerEvents = "none";
+                item.style.opacity = "0.5";
+              }
+            });
+          });
+          itemObserver.observe(menu, { childList: true, subtree: true });
+          _stepListeners.push(() => itemObserver.disconnect());
+        }
+
+        observer.disconnect();
+        setTimeout(() => advanceStep(), 400);
+      });
+      observer.observe(document.body, { childList: true });
+      _stepListeners.push(() => observer.disconnect());
+    }
+  }
+
+  function advanceStep() {
+    if (tutStep < STEPS.length - 1) {
+      tutStep++;
+      renderStep();
+    } else {
+      endTutorial();
+    }
+  }
+
+  // ─── DATA SAVE / RESTORE ──────────────────────────────────────────────────────
+
+  function saveAndLoadDemo() {
+    savedData = JSON.parse(JSON.stringify(data));
+
+    const realRoot = data.find(d => d.father === null);
+    const realRootId = realRoot ? realRoot.id : "t1";
+
+    data.length = 0;
+    if (realRoot) data.push(JSON.parse(JSON.stringify(realRoot)));
+
+    DEMO_DATA.forEach(n => {
+      if (n.id === "t1") return;
+      const node = JSON.parse(JSON.stringify(n));
+      if (node.father === "t1") node.father = realRootId;
+      data.push(node);
+    });
+
+    // Switch to categorical, render collapsed (no auto-expand)
+    document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+    document.querySelector(".toggle-btn")?.classList.add("active");
+    if (typeof refreshGraph === 'function') refreshGraph();
+  }
+
+  function restoreRealData() {
+    if (!savedData) return;
+    data.length = 0;
+    savedData.forEach(n => data.push(n));
+    savedData = null;
+    document.getElementById("filtersPanel")?.classList.remove("show");
+    document.getElementById("nodeDetailsSidebar")?.classList.remove("open");
+    document.getElementById('darkModeToggle').style.display = 'flex';
+    document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+    document.querySelector(".toggle-btn")?.classList.add("active");
+    if (typeof refreshGraph === 'function') refreshGraph();
+  }
+
+  // ─── RENDER STEP ──────────────────────────────────────────────────────────────
+
+  function renderStep() {
+    clearStepListeners();
+    const step = STEPS[tutStep];
+    const card = document.getElementById("tutorialCard");
+    const isLast = tutStep === STEPS.length - 1;
     const isFirst = tutStep === 0;
-    const dots = TUTORIAL_STEPS.map((_, i) =>
+
+    clearPulse();
+    if (step.onEnter) step.onEnter();
+    if (step.highlight) setTimeout(() => pulseElement(step.highlight), 250);
+
+    updateBlocker();
+    setupStepListeners();
+
+    // Steps that require a user action show a hint badge instead of Next
+    const needsAction = step.waitForExpand || step.waitForNodeClick ||
+                        step.waitForChrono || step.waitForMenuOpen;
+
+    const dots = STEPS.map((_, i) =>
       `<div class="tutorial-dot${i === tutStep ? ' active' : ''}"></div>`
     ).join("");
 
     card.innerHTML = `
-      <div class="tutorial-step-badge">Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}</div>
+      <div class="tutorial-step-badge">Step ${tutStep + 1} of ${STEPS.length}</div>
       <h4>${step.title}</h4>
       <p>${step.body}</p>
-      <div class="tutorial-nav">
+      ${needsAction ? `<div style="margin:10px 0 0;padding:6px 12px;background:#EFF6FF;color:#1D4ED8;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #BFDBFE;display:inline-block;">👆 Interact to continue</div>` : ""}
+      <div class="tutorial-nav" style="margin-top:14px;">
         <div class="tutorial-dots">${dots}</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          ${!isLast ? `<button class="tutorial-btn tutorial-btn-skip" id="tutSkipBtn">Skip tour</button>` : ""}
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="tutorial-btn tutorial-btn-skip" id="tutEndBtn">End tour</button>
           ${!isFirst ? `<button class="tutorial-btn" id="tutPrevBtn" style="background:#F1F5F9;color:#334155;">← Back</button>` : ""}
-          <button class="tutorial-btn tutorial-btn-primary" id="tutNextBtn">${isLast ? "Done" : "Next →"}</button>
+          ${!needsAction ? `<button class="tutorial-btn tutorial-btn-primary" id="tutNextBtn">${isLast ? "Done ✓" : "Next →"}</button>` : ""}
         </div>
       </div>`;
 
     card.style.display = "block";
+    card.style.zIndex = "2002";
     positionCard(card, step);
 
-    document.getElementById("tutNextBtn").onclick = () => {
-      if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; renderStep(); }
-      else doEndTutorial();
-    };
+    document.getElementById("tutEndBtn").onclick = endTutorial;
     const prev = document.getElementById("tutPrevBtn");
-    if (prev) prev.onclick = () => { tutStep--; renderStep(); };
-    const skip = document.getElementById("tutSkipBtn");
-    if (skip) skip.onclick = doEndTutorial;
+    if (prev) prev.onclick = () => {
+      clearStepListeners();
+      tutStep--;
+      renderStep();
+    };
+    const next = document.getElementById("tutNextBtn");
+    if (next) next.onclick = () => advanceStep();
   }
 
   function positionCard(card, step) {
-    card.style.top = "";
-    card.style.left = "";
-    card.style.right = "";
-    card.style.bottom = "";
-    card.style.transform = "";
-    if (!step.target || step.cardPos === "center" || step.cardPos === "diagnosis") {
-      card.style.top = "50%";
-      card.style.left = "50%";
-      card.style.transform = "translate(-50%, -50%)";
+    // Reset
+    card.style.top = card.style.left = card.style.right = card.style.bottom = card.style.transform = "";
+
+    const pos = step.cardPos;
+    const CW = 330; // card width approx
+
+    if (pos === "center") {
+      card.style.top = "50%"; card.style.left = "50%";
+      card.style.transform = "translate(-50%,-50%)";
       return;
     }
-    const el = document.querySelector(step.target);
-    if (!el) { card.style.top = "50%"; card.style.left = "50%"; card.style.transform = "translate(-50%,-50%)"; return; }
-    const r = el.getBoundingClientRect();
-    const cw = 340, gap = 16;
-    if (step.cardPos === "bottom") {
-      card.style.top = (r.bottom + gap) + "px";
-      card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
-      card.style.transform = "";
-    } else if (step.cardPos === "top") {
-      card.style.top = Math.max(8, r.top - 260 - gap) + "px";
-      card.style.left = Math.min(r.left, window.innerWidth - cw - 16) + "px";
-      card.style.transform = "";
-    } else if (step.cardPos === "right") {
-      card.style.top = Math.min(r.top, window.innerHeight - 280) + "px";
-      card.style.left = Math.min(r.right + gap, window.innerWidth - cw - 16) + "px";
-      card.style.transform = "";
+    if (pos === "top-left") {
+      card.style.top = "80px"; card.style.left = "24px";
+      return;
     }
+    if (pos === "bottom-right") {
+      card.style.bottom = "30px"; card.style.right = "30px";
+      return;
+    }
+    if (pos === "top-right") {
+      card.style.top = "80px"; card.style.right = "30px";
+      return;
+    }
+    if (pos === "bottom-left") {
+      card.style.bottom = "30px"; card.style.left = "24px";
+      return;
+    }
+    if (pos === "left-of-sidebar") {
+      card.style.top = "80px";
+      card.style.right = (340 + 16) + "px"; // 340 = sidebar width
+      return;
+    }
+    if (pos === "below-element") {
+      const el = step.highlight ? document.querySelector(step.highlight) : null;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        card.style.top = (r.bottom + 12) + "px";
+        card.style.left = Math.min(r.left, window.innerWidth - CW - 16) + "px";
+      } else {
+        card.style.top = "80px"; card.style.left = "24px";
+      }
+      return;
+    }
+    if (pos === "left-of-element") {
+      const el = step.highlight ? document.querySelector(step.highlight) : null;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        card.style.top = (r.bottom + 10) + "px";
+        card.style.left = Math.max(8, r.right - CW - 8) + "px";
+      } else {
+        card.style.top = "80px"; card.style.right = "80px";
+      }
+      return;
+    }
+    // fallback
+    card.style.top = "80px"; card.style.left = "24px";
   }
+
+  // ─── START / END ──────────────────────────────────────────────────────────────
 
   function doStartTutorial() {
+    tutActive = true;
     tutStep = 0;
-    renderStep();
+    saveAndLoadDemo();
+    setTimeout(renderStep, 500);
   }
 
-  // Expose to outer scope
-  startTutorial = doStartTutorial;
-  endTutorial = doEndTutorial;
+  function endTutorial() {
+    tutActive = false;
+    clearPulse();
+    clearStepListeners();
+    unblockAll();
+    document.getElementById("tutorialSpotlight").style.display = "none";
+    document.getElementById("tutorialCard").style.display = "none";
+    document.getElementById("tutorial-node-arrow")?.remove();
+    document.getElementById("branchStateMenu")?.remove();
+    localStorage.setItem("medflow_tutorial_done", "1");
+    restoreRealData();
+  }
 
-  // Button binding — runs once, no stacking
-  document.getElementById("tutorialHelpBtn").onclick = function() {
+  // ─── TUTORIAL CSS ─────────────────────────────────────────────────────────────
+
+  const tutStyle = document.createElement("style");
+  tutStyle.textContent = `
+    @keyframes tutPulseRing {
+      0%,100% { outline-color: rgba(59,130,246,1); }
+      50%      { outline-color: rgba(59,130,246,0.2); }
+    }
+    .tut-pulse {
+      outline: 3px solid #3B82F6 !important;
+      outline-offset: 5px;
+      animation: tutPulseRing 1.1s ease-in-out infinite;
+      border-radius: 6px;
+      position: relative;
+      z-index: 2010 !important;
+    }
+    /* SVG elements can't use outline — use filter glow instead */
+    circle.tut-pulse, line.tut-pulse, path.tut-pulse {
+      outline: none !important;
+      animation: none !important;
+      filter: drop-shadow(0 0 8px #3B82F6) drop-shadow(0 0 16px #3B82F6) !important;
+    }
+    #tutorialCard { z-index: 2002 !important; }
+    #tut-interaction-blocker { z-index: 1999 !important; }
+    #tut-interaction-blocker { z-index: 1999 !important; }
+    /* Keep tutorial card always on top of blocker */
+    #tutorialCard { pointer-events: all !important; }
+    #tutorialCard h4 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+    #tutorialCard p  { margin: 0; font-size: 13px; line-height: 1.6; color: #475569; }
+    #tutorialCard p strong { color: #1E293B; }
+    body.dark-mode #tutorialCard p { color: #CBD5E1; }
+    body.dark-mode #tutorialCard p strong { color: #F1F5F9; }
+    body.dark-mode #tutWelcomePrompt { background: #1E293B; }
+    body.dark-mode #tutWelcomePrompt h3 { color: #F9FAFB; }
+    body.dark-mode #tutWelcomePrompt p  { color: #CBD5E1; }
+  `;
+  document.head.appendChild(tutStyle);
+
+  // ─── WELCOME PROMPT ───────────────────────────────────────────────────────────
+
+  function showWelcomePrompt() {
+    if (document.getElementById("tutWelcomePrompt")) return;
+    const prompt = document.createElement("div");
+    prompt.id = "tutWelcomePrompt";
+    prompt.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:white; border-radius:14px; padding:28px 28px 22px;
+      box-shadow:0 24px 80px rgba(0,0,0,0.25); z-index:3000;
+      width:340px; font-family:Inter,sans-serif; text-align:center;
+    `;
+    prompt.innerHTML = `
+      <div style="font-size:36px;margin-bottom:10px;"><i class="bi bi-hospital" style="font-size:36px;color:#3B82F6;"></i></div>
+      <h3 style="margin:0 0 8px;font-size:17px;color:#1E293B;">Welcome to MedFlow Graph</h3>
+      <p style="margin:0 0 20px;font-size:13px;color:#6B7280;line-height:1.6;">
+        Would you like a quick <strong>interactive tour</strong>? It uses demo data — your real patient data is safe.
+      </p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="tutWelcomeSkip"  style="padding:9px 20px;border-radius:8px;border:1px solid #E5E7EB;background:white;color:#374151;font-size:13px;cursor:pointer;font-weight:500;">Skip for now</button>
+        <button id="tutWelcomeStart" style="padding:9px 20px;border-radius:8px;border:none;background:#3B82F6;color:white;font-size:13px;cursor:pointer;font-weight:600;">Start tour →</button>
+      </div>
+    `;
+    document.body.appendChild(prompt);
+    document.getElementById("tutWelcomeStart").onclick = () => { prompt.remove(); doStartTutorial(); };
+    document.getElementById("tutWelcomeSkip").onclick  = () => { prompt.remove(); localStorage.setItem("medflow_tutorial_done","1"); };
+  }
+
+  // ─── WIRE UP ──────────────────────────────────────────────────────────────────
+
+  startTutorial = doStartTutorial;
+
+  document.getElementById("tutorialHelpBtn").onclick = () => {
     localStorage.removeItem("medflow_tutorial_done");
     doStartTutorial();
   };
 
-  // Auto-launch first time only
   if (!localStorage.getItem("medflow_tutorial_done")) {
-    setTimeout(doStartTutorial, 800);
+    setTimeout(showWelcomePrompt, 900);
   }
+
 })();
   </script>
 
 
-  <button id="tutorialHelpBtn" title="Open Tutorial" style="
-  position: fixed; bottom: 100px; right: 30px;
-  width: 44px; height: 44px; border-radius: 50%;
-  background: #3B82F6; color: white; border: none;
-  font-size: 18px; cursor: pointer; z-index: 900;
-  box-shadow: 0 4px 12px rgba(59,130,246,0.4);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform 0.2s;
-">?</button>
-
-  <div id="tutorialSpotlight" class="tutorial-spotlight" style="display:none;"></div>
-  <div id="tutorialCard" class="tutorial-card" style="display:none;"></div>
+  
 
 </body>
 
