@@ -63,6 +63,23 @@ export class UserInfo implements OnInit {
     this.error = null;
     this.selectedEpisode = null;
 
+    //mock
+    // this.patientDetails = {
+    //   id: id,
+    //   name: 'Mock Patient',
+    //   age: 40,
+    //   primaryDiagnosis: 'Hypertension',
+    //   activeConditions: ['High BP'],
+    //   currentMedications: ['Amlodipine'],
+    //   recentProcedures: [],
+    //   recentLabResults: [],
+    //   episodes: []
+    // } as any;
+
+    // this.loading = false;
+    // return;
+    //mock
+
     forkJoin({
       patient: this.patientApi.getPatientById(id),
       conditions: this.patientApi.getPatientConditions(id),

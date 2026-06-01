@@ -1,122 +1,238 @@
 <div class="chat-wrapper" [class.open]="showChatbot">
 
-  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
-  <div class="chat-header">
-    <div class="icon-title-wrapper">
-      <div class="header-icon">
-        <i class="bi bi-activity"></i>
-      </div>
-      <div class="chat-title">
-        <strong>Clinical AI Assistant</strong>
-        <div class="chat-sub">Decision Support &amp; Documentation Aid</div>
+  <!-- ── Conversations sidebar (visible only when maximized) ──────────────── -->
+  <div class="conv-sidebar">
+    <div class="conv-sidebar-top">
+      <input class="conv-search" placeholder="Search sessions…"
+             [(ngModel)]="convSearch" (input)="filterConversations()" />
+      <button class="conv-new-btn" (click)="newConversation()">
+        <i class="bi bi-plus-lg"></i> New Chat
+      </button>
+    </div>
+    <div class="conv-list">
+      <div class="conv-item"
+          *ngFor="let s of filteredSessions"
+          [class.active]="s.id === activeSessionId"
+          (click)="switchSession(s.id)">
+
+        <!-- Editing mode -->
+        <div *ngIf="editingSessionId === s.id" style="display:flex; gap:4px;" (click)="$event.stopPropagation()">
+          <input class="conv-title-input"
+                [(ngModel)]="editingTitle"
+                (keydown.enter)="saveEditTitle(s)"
+                (keydown.escape)="editingSessionId = null"
+                (blur)="saveEditTitle(s)"
+                autofocus />
+        </div>
+
+        <!-- Display mode -->
+        <div *ngIf="editingSessionId !== s.id" style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div class="conv-item-title">{{ s.title.length > 27 ? (s.title | slice:0:27) + '…' : s.title }}</div>
+            <div class="conv-item-date">{{ s.date }}</div>
+          </div>
+          <button class="conv-edit-btn" (click)="startEditTitle(s, $event)" title="Rename">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+
       </div>
     </div>
-    <button class="chat-close" (click)="onClose()" aria-label="Close assistant">
-      <i class="bi bi-caret-right"></i>
-    </button>
   </div>
 
-  <!-- ── Chat window ────────────────────────────────────────────────────────── -->
-  <div #chatWindow class="chat-window">
-    <div *ngFor="let msg of messages"
-         class="chat"
-         [ngClass]="{
-           'incoming-chat': msg.type === 'incoming',
-           'outgoing-chat': msg.type === 'outgoing'
-         }">
+  <!-- ── Main chat column ─────────────────────────────────────────────────── -->
+  <div class="chat-main">
 
-      <!-- Bot avatar -->
-      <div class="avatar" *ngIf="msg.type === 'incoming'">
-        <i class="bi bi-activity"></i>
+  <!-- Branch indicator banner -->
+  <div class="branch-banner" *ngIf="isBranch">
+    <i class="bi bi-diagram-2"></i>
+    Branched from session <strong>{{ branchOriginId }}</strong> at message <strong>{{ branchFromPoint }}</strong>
+    <span class="branch-badge">Alternate Timeline</span>
+  </div>
+
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="icon-title-wrapper">
+        <div class="header-icon"><i class="bi bi-activity"></i></div>
+        <div class="chat-title">
+          <strong>Clinical AI Assistant</strong>
+          <div class="chat-sub">Decision Support &amp; Documentation Aid</div>
+        </div>
       </div>
+      <div class="header-actions">
+        <!-- Maximize / Minimize -->
+        <button class="hdr-btn" (click)="toggleMaximize()"
+                [title]="isMaximized ? 'Minimize' : 'Maximize'">
+          <i class="bi" [ngClass]="isMaximized ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></i>
+        </button>
+      </div>
+    </div>
 
-      <div class="bubble-wrap">
-        <!-- Text content -->
-        <p *ngIf="msg.text" [class.error]="msg.type === 'error'">{{ msg.text }}</p>
+    <!-- Response mode bar -->
+    <div class="response-mode-bar">
+      <span class="mode-label">Mode:</span>
+      <button class="mode-pill"
+              *ngFor="let m of responseModes"
+              [class.active]="activeMode === m"
+              (click)="activeMode = m">{{ m }}</button>
+    </div>
 
-        <!-- Attached files / images -->
-        <div class="bubble-files" *ngIf="msg.files && msg.files.length">
-          <div class="bubble-file-item" *ngFor="let f of msg.files">
-            <img *ngIf="f.type.startsWith('image/')" [src]="f.url" class="chat-image" [alt]="f.name" />
-            <a *ngIf="!f.type.startsWith('image/')" [href]="f.url" target="_blank" class="file-pill">
-              <i class="bi bi-paperclip"></i>{{ f.name }}
-            </a>
+    <!-- Chat window -->
+    <div #chatWindow class="chat-window">
+      <div *ngFor="let msg of messages; let i = index"
+           class="chat"
+           [ngClass]="{
+             'incoming-chat': msg.type === 'incoming',
+             'outgoing-chat': msg.type === 'outgoing'
+           }">
+
+        <div class="avatar" *ngIf="msg.type === 'incoming'">
+          <i class="bi bi-activity"></i>
+        </div>
+
+        <div class="bubble-wrap">
+          <p *ngIf="msg.text" [class.error]="msg.type === 'error'">{{ msg.text }}</p>
+
+          <div class="bubble-files" *ngIf="msg.files && msg.files.length">
+            <div class="bubble-file-item" *ngFor="let f of msg.files">
+              <img *ngIf="f.type.startsWith('image/')" [src]="f.url" class="chat-image" [alt]="f.name" />
+              <a *ngIf="!f.type.startsWith('image/')" [href]="f.url" target="_blank" class="file-pill">
+                <i class="bi bi-paperclip"></i>{{ f.name }}
+              </a>
+            </div>
+          </div>
+
+          <!-- AI message action toolbar -->
+          <div class="msg-actions" *ngIf="msg.type === 'incoming' && msg.text !== 'Analyzing…'">
+
+            <!-- Like / Dislike -->
+            <button class="act-btn" [class.liked]="msg.liked === true"
+                    (click)="toggleLike(msg, true)" title="Helpful">
+              <i class="bi" [ngClass]="msg.liked === true ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'"></i>
+            </button>
+            <button class="act-btn" [class.disliked]="msg.liked === false"
+                    (click)="toggleLike(msg, false)" title="Not helpful">
+              <i class="bi" [ngClass]="msg.liked === false ? 'bi-hand-thumbs-down-fill' : 'bi-hand-thumbs-down'"></i>
+            </button>
+
+            <!-- Copy -->
+            <button class="act-btn" (click)="copyResponse(msg)" title="Copy response">
+              <i class="bi bi-clipboard"></i>
+            </button>
+
+            <!-- Try again -->
+            <button class="act-btn" (click)="retryMessage(i)" title="Try again">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+
+            <!-- Branch / Fork -->
+            <button class="act-btn" (click)="forkFrom(i)" title="Branch from here">
+              <i class="bi bi-diagram-2"></i>
+            </button>
+
+            <!-- Delete -->
+            <button class="act-btn" (click)="deleteMessage(i)" title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+
+            <!-- Confidence score (full-page only) -->
+            <span class="conf-badge"
+                  *ngIf="isMaximized && msg.confidence !== undefined"
+                  [ngClass]="{
+                    'conf-high':   msg.confidence >= 75,
+                    'conf-medium': msg.confidence >= 40 && msg.confidence < 75,
+                    'conf-low':    msg.confidence < 40
+                  }">
+              <i class="bi bi-graph-up"></i>{{ msg.confidence }}%
+            </span>
+
+            <!-- Citations button (full-page only) -->
+            <button class="act-btn citations-btn"
+                    *ngIf="isMaximized && msg.citations && msg.citations.length"
+                    (click)="openCitations(msg)"
+                    title="View citations">
+              <i class="bi bi-journals"></i> Citations
+            </button>
+
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Composer -->
+    <div class="composer">
+      <div class="attachment-strip" *ngIf="attachments.length > 0">
+        <div class="attachment-chip" *ngFor="let att of attachments">
+          <ng-container *ngIf="att.type.startsWith('image/')">
+            <img [src]="att.url" class="chip-thumb" [alt]="att.name" />
+          </ng-container>
+          <ng-container *ngIf="!att.type.startsWith('image/')">
+            <i class="bi bi-file-earmark chip-icon"></i>
+          </ng-container>
+          <span class="chip-name">{{ att.name }}</span>
+          <button class="chip-remove" (click)="removeAttachment(att.id)">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="composer-row">
+        <textarea
+          [(ngModel)]="userMessage"
+          placeholder="Describe the patient's presentation…"
+          rows="1"
+          class="composer-textarea"
+          (keydown.enter)="$event.preventDefault(); sendMessage()"
+          (input)="autoResize($event)"
+        ></textarea>
+      </div>
+
+      <div class="composer-toolbar">
+        <div class="toolbar-left">
+          <label class="tool-btn" title="Attach files">
+            <input #fileInput type="file" (change)="onFileSelected($event)" multiple hidden>
+            <i class="bi bi-paperclip"></i>
+          </label>
+          <button type="button" class="tool-btn mic-btn"
+                  [class.mic-active]="isRecording"
+                  (mousedown)="startRecording()" (mouseup)="stopRecording()"
+                  (mouseleave)="stopRecording()" (touchstart)="startRecording()"
+                  (touchend)="stopRecording()">
+            <i class="bi" [ngClass]="isRecording ? 'bi-stop-circle' : 'bi-mic'"></i>
+            <span class="mic-label">{{ isRecording ? 'Recording…' : 'Dictate' }}</span>
+          </button>
+        </div>
+        <div class="toolbar-right">
+          <span class="hint-text" *ngIf="!isRecording">↵ to send</span>
+          <button type="button" class="send-btn" (click)="sendMessage()"
+                  [disabled]="!userMessage.trim() && attachments.length === 0">
+            <i class="bi bi-send-fill"></i><span>Send</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /chat-main -->
+
+  <!-- ── Citations sidebar ────────────────────────────────────────────────── -->
+  <div class="citations-sidebar" [class.open]="citationsPanelOpen">
+    <div class="cit-header">
+      <span><i class="bi bi-journals"></i> Citations</span>
+      <button class="cit-close" (click)="citationsPanelOpen = false">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="cit-list">
+      <div class="cit-item" *ngFor="let c of activeCitations">
+        <a [href]="c.url" target="_blank">
+          <div class="cit-item-title">{{ c.title }}</div>
+          <div class="cit-item-url">{{ c.url }}</div>
+        </a>
+      </div>
+      <div *ngIf="!activeCitations.length" style="color:#7A8AA0; font-size:12.5px; text-align:center; padding-top:20px;">
+        No citations for this response.
+      </div>
+    </div>
   </div>
 
-  <!-- ── Composer ───────────────────────────────────────────────────────────── -->
-  <div class="composer">
-
-    <!-- Attachment preview strip -->
-    <div class="attachment-strip" *ngIf="attachments.length > 0">
-      <div class="attachment-chip" *ngFor="let att of attachments">
-        <ng-container *ngIf="att.type.startsWith('image/')">
-          <img [src]="att.url" class="chip-thumb" [alt]="att.name" />
-        </ng-container>
-        <ng-container *ngIf="!att.type.startsWith('image/')">
-          <i class="bi bi-file-earmark chip-icon"></i>
-        </ng-container>
-        <span class="chip-name">{{ att.name }}</span>
-        <button class="chip-remove" (click)="removeAttachment(att.id)" aria-label="Remove attachment">
-          <i class="bi bi-x"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- Textarea row -->
-    <div class="composer-row">
-      <textarea
-        [(ngModel)]="userMessage"
-        placeholder="Describe the patient's presentation…"
-        rows="1"
-        class="composer-textarea"
-        (keydown.enter)="$event.preventDefault(); sendMessage()"
-      ></textarea>
-    </div>
-
-    <!-- Toolbar row -->
-    <div class="composer-toolbar">
-      <!-- Left: attachment + mic -->
-      <div class="toolbar-left">
-        <label class="tool-btn" title="Attach files">
-          <input #fileInput type="file" (change)="onFileSelected($event)" multiple hidden>
-          <i class="bi bi-paperclip"></i>
-        </label>
-
-        <button
-          type="button"
-          class="tool-btn mic-btn"
-          [class.mic-active]="isRecording"
-          (mousedown)="startRecording()"
-          (mouseup)="stopRecording()"
-          (mouseleave)="stopRecording()"
-          (touchstart)="startRecording()"
-          (touchend)="stopRecording()"
-          aria-label="Hold to dictate"
-          title="Hold to dictate"
-        >
-          <i class="bi" [ngClass]="isRecording ? 'bi-stop-circle' : 'bi-mic'"></i>
-          <span class="mic-label">{{ isRecording ? 'Recording…' : 'Dictate' }}</span>
-        </button>
-      </div>
-
-      <!-- Right: send -->
-      <div class="toolbar-right">
-        <span class="hint-text" *ngIf="!isRecording">↵ to send</span>
-        <button
-          type="button"
-          class="send-btn"
-          (click)="sendMessage()"
-          [disabled]="!userMessage.trim() && attachments.length === 0"
-          aria-label="Send message"
-        >
-          <i class="bi bi-send-fill"></i>
-          <span>Send</span>
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
