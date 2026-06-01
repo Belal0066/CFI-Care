@@ -136,8 +136,95 @@
                         </button>
                     </h2>
                     <div [id]="'lab' + i" class="accordion-collapse collapse">
-                        <div class="accordion-body" style="font-size:13px">
-                            {{ lab }}
+                        <div class="accordion-body" style="font-size:13px;padding:12px 16px">
+
+                            <!-- AI Clinical Summary (Composition) -->
+                            <div *ngIf="enrichedLabData[i]?.composition"
+                                 style="margin-bottom:14px;padding:10px 12px;background:#f0f6ff;
+                                        border-left:3px solid #1E6ED3;border-radius:6px">
+                                <div style="font-weight:600;color:#1E6ED3;margin-bottom:6px;font-size:12px">
+                                    <i class="bi bi-robot me-1"></i> AI Clinical Summary
+                                </div>
+                                <div style="color:#1a2332;font-size:12px;line-height:1.6"
+                                     [innerHTML]="getSafeCompositionSummary(i)">
+                                </div>
+                            </div>
+
+                            <!-- Observations Table -->
+                            <div *ngIf="enrichedLabData[i]?.observations?.length">
+                                <div style="font-weight:600;color:#374151;margin-bottom:8px;font-size:12px">
+                                    <i class="bi bi-table me-1"></i> Lab Values
+                                </div>
+                                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                                    <thead>
+                                        <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
+                                            <th style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">Test</th>
+                                            <th style="padding:6px 8px;text-align:right;color:#64748b;font-weight:600">Result</th>
+                                            <th style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">Status</th>
+                                            <th style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">Reference Range</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let obs of enrichedLabData[i].observations"
+                                            style="border-bottom:1px solid #f1f5f9">
+                                            <td style="padding:7px 8px;color:#1a2332">
+                                                {{ obs.code?.text || obs.code?.coding?.[0]?.display || '—' }}
+                                                <i *ngIf="isLowConfidence(obs)"
+                                                   class="bi bi-exclamation-triangle-fill ms-1"
+                                                   style="color:#d97706;font-size:10px"
+                                                   title="Low extraction confidence"></i>
+                                            </td>
+                                            <td style="padding:7px 8px;text-align:right;font-weight:600;color:#1a2332">
+                                                {{ obs.valueQuantity?.value ?? '—' }}
+                                                <span style="font-weight:400;color:#64748b">
+                                                    {{ obs.valueQuantity?.unit ?? '' }}
+                                                </span>
+                                            </td>
+                                            <td style="padding:7px 8px;text-align:center">
+                                                <span [ngClass]="interpretationClass(obs)"
+                                                      style="font-size:11px;padding:2px 8px">
+                                                    {{ interpretationLabel(obs) }}
+                                                </span>
+                                            </td>
+                                            <td style="padding:7px 8px;text-align:center;color:#64748b">
+                                                <ng-container *ngIf="obs.referenceRange?.[0]?.low?.value != null || obs.referenceRange?.[0]?.high?.value != null">
+                                                    {{ obs.referenceRange?.[0]?.low?.value ?? '?' }}
+                                                    –
+                                                    {{ obs.referenceRange?.[0]?.high?.value ?? '?' }}
+                                                    {{ obs.referenceRange?.[0]?.low?.unit ?? obs.valueQuantity?.unit ?? '' }}
+                                                </ng-container>
+                                                <ng-container *ngIf="obs.referenceRange?.[0]?.low?.value == null && obs.referenceRange?.[0]?.high?.value == null">
+                                                    —
+                                                </ng-container>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- No linked data fallback -->
+                            <p *ngIf="!enrichedLabData[i]?.observations?.length && !enrichedLabData[i]?.composition"
+                               class="text-muted mb-0" style="font-size:12px">
+                                No structured data linked to this report.
+                            </p>
+
+                            <!-- View Original PDF button -->
+                            <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9">
+                                <button *ngIf="hasLabPdf(i)"
+                                        (click)="viewOriginalPdf(i)"
+                                        style="width:100%;padding:9px 0;border:none;border-radius:8px;
+                                               background:#1E6ED3;color:#fff;font-size:13px;
+                                               font-weight:600;cursor:pointer;
+                                               display:flex;align-items:center;justify-content:center;gap:8px">
+                                    <i class="bi bi-file-earmark-pdf-fill"></i>
+                                    View Original Document
+                                </button>
+                                <p *ngIf="!hasLabPdf(i)"
+                                   style="font-size:11px;color:#94a3b8;text-align:center;margin:0">
+                                    <i class="bi bi-file-earmark-x me-1"></i>No original document available
+                                </p>
+                            </div>
+
                         </div>
                     </div>
                 </div>

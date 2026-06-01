@@ -61,7 +61,7 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(resolvedLocalUserId);
+      await _syncUserId(resolvedLocalUserId, keycloakSub: restored.subject);
 
       _setState(AuthStatus.authenticated);
     // } catch (e) {
@@ -112,7 +112,7 @@ class AuthProvider with ChangeNotifier {
             : null,
       );
 
-      await _syncUserId(resolvedLocalUserId);
+      await _syncUserId(resolvedLocalUserId, keycloakSub: session.subject);
 
       _setState(AuthStatus.authenticated);
     } catch (e) {
@@ -150,7 +150,7 @@ class AuthProvider with ChangeNotifier {
         _setState(AuthStatus.refreshing);
         final refreshed = await _authUsecases.refreshSession();
         _session = refreshed;
-        await _syncUserId(refreshed.subject);
+        await _syncUserId(Session.currentUserId ?? refreshed.subject, keycloakSub: refreshed.subject);
         _setState(AuthStatus.authenticated);
       }
 
@@ -186,16 +186,20 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _syncUserId(String subject) async {
+  Future<void> _syncUserId(String localUserId, {required String keycloakSub}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('currentUserId', subject);
-    Session.currentUserId = subject;
+    await prefs.setString('currentUserId', localUserId);
+    await prefs.setString('fhirPatientId', keycloakSub);
+    Session.currentUserId = localUserId;
+    Session.fhirPatientId = keycloakSub;
   }
 
   Future<void> _clearLocalSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('currentUserId');
+    await prefs.remove('fhirPatientId');
     Session.currentUserId = null;
+    Session.fhirPatientId = null;
   }
 
   Future<void> configureTotp() async {

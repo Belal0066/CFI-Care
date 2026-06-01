@@ -6,6 +6,7 @@ import '../../utils/enums/speciality_event.dart';
 abstract class DocumentRepository {
   Future<List<DocumentModel>> getDocuments();
   Future<void> syncPendingDocuments();
+  Future<void> retryDocument(String documentId);
 
   Future<DocumentModel> saveDocument({
     required String title,

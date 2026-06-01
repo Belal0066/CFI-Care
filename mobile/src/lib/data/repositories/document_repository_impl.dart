@@ -37,7 +37,8 @@ class DocumentRepositoryImpl implements DocumentRepository {
     };
 
     try {
-      final bundle = await apiService.fetchDocumentReferencesByPatient(userId);
+      final fhirId = Session.fhirPatientId ?? userId;
+      final bundle = await apiService.fetchDocumentReferencesByPatient(fhirId);
       final entries = (bundle['entry'] as List?) ?? const [];
 
       final remoteDocs = entries
@@ -75,55 +76,153 @@ class DocumentRepositoryImpl implements DocumentRepository {
     final userId = Session.currentUserId ?? "guest";
     try {
       final pendingDocs = await DBHelper.getPendingDocumentsForSync(userId);
-
       if (pendingDocs.isEmpty) return;
 
       for (final doc in pendingDocs) {
         final docId = doc.id;
-        if (docId == null || docId.isEmpty) {
+        if (docId == null || docId.isEmpty) continue;
+
+        final existingJobId = doc.jobId;
+
+        // Phase 2: job already submitted — poll for completion
+        if (existingJobId != null && existingJobId.isNotEmpty) {
+          await _pollDocOnFhirJob(docId: docId, jobId: existingJobId, retryCount: doc.retryCount);
           continue;
         }
 
+        // Phase 1: upload file to DocOnFHIR and obtain a job_id
         await DBHelper.markDocumentSyncInProgress(docId);
-
         try {
           final localFile = File(doc.filePath);
           if (!await localFile.exists()) {
             throw Exception('Local file not found at ${doc.filePath}');
           }
 
-          final response = await apiService.uploadDocument(
+          final submittedJobId = await apiService.uploadToDocOnFhir(
             file: localFile,
-            title: doc.title,
-            type: doc.type.name,
-            specialty: doc.speciality.name,
-            date: DateTime.now().toIso8601String(),
-            patientId: userId,
-            summary: doc.summary,
-            details: doc.details,
+            patientId: Session.fhirPatientId ?? userId,
           );
 
-          final remoteId = response['id']?.toString();
-          if (remoteId == null || remoteId.isEmpty) {
-            throw Exception('Sync response missing id');
-          }
-
-          await DBHelper.markDocumentSyncSuccess(
+          await DBHelper.markDocumentJobSubmitted(
             documentId: docId,
-            serverId: remoteId,
+            jobId: submittedJobId,
           );
-          print('Outbox sync succeeded for document $docId -> $remoteId');
+          print('[sync] DocOnFHIR upload queued: doc=$docId job=$submittedJobId');
+
+          // Attempt one immediate poll — job is rarely done this fast but worth checking
+          await _pollDocOnFhirJob(docId: docId, jobId: submittedJobId, retryCount: 0);
         } catch (e) {
           await DBHelper.markDocumentSyncFailure(
             documentId: docId,
             error: e.toString(),
           );
-          print('Outbox sync failed for document $docId: $e');
+          print('[sync] DocOnFHIR upload failed for doc=$docId: $e');
         }
       }
     } finally {
       _isSyncing = false;
     }
+  }
+
+  /// Polls the DocOnFHIR status for [jobId].
+  /// Updates progress on every call, auto-retries up to 2 times on FAILED,
+  /// then sets syncStatus='user_retry_needed' for the user to decide.
+  Future<void> _pollDocOnFhirJob({
+    required String docId,
+    required String jobId,
+    required int retryCount,
+  }) async {
+    try {
+      final status = await apiService.getDocOnFhirJobStatusDetails(jobId);
+
+      // Always persist the latest progress + API state
+      await DBHelper.updateDocumentProgress(
+        documentId: docId,
+        progress: status.progress,
+        jobState: status.state,
+      );
+
+      if (status.isCompleted) {
+        try {
+          final result = await apiService.getDocOnFhirJobResult(jobId);
+          final serverId = _extractServerIdFromResult(result) ?? jobId;
+          final ocrText = _extractOcrText(result);
+          await DBHelper.markDocumentSyncSuccess(
+            documentId: docId,
+            serverId: serverId,
+            summary: ocrText,
+          );
+          print('[sync] DocOnFHIR completed: doc=$docId job=$jobId');
+        } catch (e) {
+          print('[sync] DocOnFHIR result fetch error job=$jobId: $e');
+        }
+      } else if (status.isFailed) {
+        final error = status.errorMessage ?? 'DocOnFHIR pipeline failed';
+        if (retryCount < 2) {
+          // Auto-retry: clear the job and re-queue for upload next cycle
+          await DBHelper.resetDocumentForAutoRetry(docId);
+          print('[sync] DocOnFHIR job failed, auto-retry ${retryCount + 1}/2: doc=$docId');
+        } else {
+          // Exhausted auto-retries — let the user decide
+          await DBHelper.markNeedsUserRetry(
+            documentId: docId,
+            error: error,
+          );
+          print('[sync] DocOnFHIR job failed after 2 retries, needs user retry: doc=$docId');
+        }
+      } else {
+        // PENDING | OCR_PROCESSING | MAPPING — still running
+        print('[sync] DocOnFHIR job=$jobId state=${status.state} progress=${status.progress}');
+      }
+    } catch (e) {
+      // Network error during polling — don't mark as failed, will retry next cycle
+      print('[sync] DocOnFHIR poll network error job=$jobId: $e');
+    }
+  }
+
+  @override
+  Future<void> retryDocument(String documentId) async {
+    await DBHelper.resetDocumentForManualRetry(documentId);
+    await syncPendingDocuments();
+  }
+
+  /// Extracts the raw OCR text from the DocOnFHIR result to store as summary.
+  String? _extractOcrText(Map<String, dynamic> result) {
+    final ocrOutput = result['ocr_output'] as Map<String, dynamic>?;
+    final text = ocrOutput?['extracted_text'] as String?;
+    if (text == null || text.trim().isEmpty) return null;
+    return text.trim();
+  }
+
+  /// Extracts a FHIR resource ID from the DocOnFHIR result to use as serverId.
+  /// Prefers a DocumentReference ID from the FHIR bundle, falls back to
+  /// the first entry in created_resources from the COMPLETED event.
+  String? _extractServerIdFromResult(Map<String, dynamic> result) {
+    final fhirBundle = result['fhir_bundle'] as Map<String, dynamic>?;
+    if (fhirBundle != null) {
+      final entries = (fhirBundle['entry'] as List?) ?? [];
+      for (final entry in entries) {
+        if (entry is! Map) continue;
+        final resource = entry['resource'] as Map<String, dynamic>?;
+        if (resource != null && resource['resourceType'] == 'DocumentReference') {
+          final id = resource['id']?.toString();
+          if (id != null && id.isNotEmpty) return id;
+        }
+      }
+    }
+
+    final events = (result['events'] as List?) ?? [];
+    for (final event in events.reversed) {
+      if (event is! Map) continue;
+      final payload = event['payload'] as Map?;
+      if (payload == null) continue;
+      final created = payload['created_resources'];
+      if (created is List && created.isNotEmpty) {
+        return created.first.toString();
+      }
+    }
+
+    return null;
   }
 
   DocumentModel _documentFromDocumentReference(Map<String, dynamic> resource) {

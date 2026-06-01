@@ -115,6 +115,16 @@ export class PatientApiService {
     return this.http.get<any>(`/api/documentReferences/patient/${id}`);
   }
 
+  // Get all DiagnosticReports for a patient
+  getPatientDiagnosticReports(id: string | number): Observable<any> {
+    return this.http.get<any>(`/api/diagnosticReports/patient/${id}`);
+  }
+
+  // Get all Compositions (AI clinical summaries) for a patient
+  getPatientCompositions(id: string | number): Observable<any> {
+    return this.http.get<any>(`/api/compositions/patient/${id}`);
+  }
+
   // Get all EpisodeOfCare resources for a patient
   getPatientEpisodesOfCare(patientId: string | number): Observable<any[]> {
     return this.http.get<any[]>(`/api/episodeOfCare/patient/${patientId}`);

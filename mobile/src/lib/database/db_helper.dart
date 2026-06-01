@@ -8,12 +8,16 @@ import '../utils/enums/speciality_event.dart';
 
 class Session {
   static String? currentUserId;
+  // Always the Keycloak JWT sub — used for backend API calls where the server
+  // checks reqId (claims.sub) === patientId. May differ from currentUserId for
+  // legacy accounts that were created before Keycloak integration.
+  static String? fhirPatientId;
 }
 
 class DBHelper {
   static Database? _db;
   static const _dbName = 'medflow.db';
-  static const _version = 3;
+  static const _version = 5;
 
   static Future<Database> get database async {
     if (_db != null) return _db!;
@@ -64,6 +68,21 @@ class DBHelper {
       } catch (_) {}
       try {
         await db.execute('ALTER TABLE documents ADD COLUMN nextAttemptAt TEXT');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 4) {
+      try {
+        await db.execute('ALTER TABLE documents ADD COLUMN jobId TEXT');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 5) {
+      try {
+        await db.execute('ALTER TABLE documents ADD COLUMN progress REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE documents ADD COLUMN jobState TEXT');
       } catch (_) {}
     }
   }
@@ -136,10 +155,13 @@ class DBHelper {
       time TEXT,
       isSynced INTEGER DEFAULT 0,
       serverId TEXT,
+      jobId TEXT,
       syncStatus TEXT DEFAULT 'pending',
       retryCount INTEGER DEFAULT 0,
       lastError TEXT,
       nextAttemptAt TEXT,
+      progress REAL DEFAULT 0.0,
+      jobState TEXT,
       FOREIGN KEY(userId) REFERENCES users(userId)
     )
     """);
@@ -301,6 +323,7 @@ class DBHelper {
       'time': '${doc.time.hour}:${doc.time.minute}',
       'isSynced': doc.isSynced ? 1 : 0,
       'serverId': doc.serverId,
+      'jobId': doc.jobId,
       'syncStatus': doc.isSynced ? 'synced' : 'pending',
       'retryCount': 0,
       'lastError': null,
@@ -317,7 +340,7 @@ class DBHelper {
     final rows = await db.query(
       'documents',
       where:
-          'userId = ? AND isSynced = 0 AND (nextAttemptAt IS NULL OR nextAttemptAt <= ?)',
+          "userId = ? AND isSynced = 0 AND syncStatus != 'user_retry_needed' AND (nextAttemptAt IS NULL OR nextAttemptAt <= ?)",
       whereArgs: [userId, nowIso],
       orderBy: 'id ASC',
     );
@@ -327,6 +350,7 @@ class DBHelper {
       return DocumentModel(
         id: row['id'] as String,
         serverId: row['serverId'] as String?,
+        jobId: row['jobId'] as String?,
         title: row['title'] as String,
         filePath: row['filePath'] as String,
         isPDF: (row['isPDF'] as int) == 1,
@@ -340,8 +364,113 @@ class DBHelper {
           minute: int.parse(timeParts[1]),
         ),
         isSynced: false,
+        syncStatus: (row['syncStatus'] as String?) ?? 'pending',
+        progress: (row['progress'] as num?)?.toDouble() ?? 0.0,
+        jobState: row['jobState'] as String?,
+        lastError: row['lastError'] as String?,
+        retryCount: _parseEnumIndex(row['retryCount'], 0),
       );
     }).toList();
+  }
+
+  static Future<int> markDocumentJobSubmitted({
+    required String documentId,
+    required String jobId,
+  }) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {
+        'jobId': jobId,
+        'syncStatus': 'job_submitted',
+        'isSynced': 0,
+        'retryCount': 0,
+        'lastError': null,
+        'nextAttemptAt': null,
+        'progress': 0.0,
+        'jobState': 'PENDING',
+      },
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static Future<int> updateDocumentProgress({
+    required String documentId,
+    required double progress,
+    required String jobState,
+  }) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {'progress': progress, 'jobState': jobState},
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static Future<int> resetDocumentForAutoRetry(String documentId) async {
+    final db = await database;
+    final rows = await db.query(
+      'documents',
+      columns: ['retryCount'],
+      where: 'id = ?',
+      whereArgs: [documentId],
+      limit: 1,
+    );
+    final current = rows.isNotEmpty ? _parseEnumIndex(rows.first['retryCount'], 0) : 0;
+    return await db.update(
+      'documents',
+      {
+        'jobId': null,
+        'syncStatus': 'pending',
+        'isSynced': 0,
+        'retryCount': current + 1,
+        'lastError': null,
+        'nextAttemptAt': null,
+        'progress': 0.0,
+        'jobState': null,
+      },
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static Future<int> markNeedsUserRetry({
+    required String documentId,
+    required String error,
+  }) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {
+        'syncStatus': 'user_retry_needed',
+        'jobState': 'FAILED',
+        'lastError': error,
+        'isSynced': 0,
+      },
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
+
+  static Future<int> resetDocumentForManualRetry(String documentId) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {
+        'jobId': null,
+        'syncStatus': 'pending',
+        'isSynced': 0,
+        'retryCount': 0,
+        'lastError': null,
+        'nextAttemptAt': null,
+        'progress': 0.0,
+        'jobState': null,
+      },
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
   }
 
   static Future<int> markDocumentSyncInProgress(String documentId) async {
@@ -357,18 +486,23 @@ class DBHelper {
   static Future<int> markDocumentSyncSuccess({
     required String documentId,
     required String serverId,
+    String? summary,
   }) async {
     final db = await database;
+    final values = <String, dynamic>{
+      'isSynced': 1,
+      'serverId': serverId,
+      'syncStatus': 'synced',
+      'retryCount': 0,
+      'lastError': null,
+      'nextAttemptAt': null,
+    };
+    if (summary != null && summary.isNotEmpty) {
+      values['summary'] = summary;
+    }
     return await db.update(
       'documents',
-      {
-        'isSynced': 1,
-        'serverId': serverId,
-        'syncStatus': 'synced',
-        'retryCount': 0,
-        'lastError': null,
-        'nextAttemptAt': null,
-      },
+      values,
       where: 'id = ?',
       whereArgs: [documentId],
     );
@@ -433,6 +567,7 @@ class DBHelper {
       return DocumentModel(
         id: row['id'] as String,
         serverId: row['serverId'] as String?,
+        jobId: row['jobId'] as String?,
         title: row['title'] as String,
         filePath: row['filePath'] as String,
         isPDF: (row['isPDF'] as int) == 1,
@@ -446,6 +581,11 @@ class DBHelper {
           minute: int.parse(timeParts[1]),
         ),
         isSynced: _parseEnumIndex(row['isSynced'], 0) == 1,
+        syncStatus: (row['syncStatus'] as String?) ?? 'pending',
+        progress: (row['progress'] as num?)?.toDouble() ?? 0.0,
+        jobState: row['jobState'] as String?,
+        lastError: row['lastError'] as String?,
+        retryCount: _parseEnumIndex(row['retryCount'], 0),
       );
     }).toList();
   }
