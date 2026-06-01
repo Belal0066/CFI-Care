@@ -7,6 +7,10 @@ module.exports = {
       framework: "jest",
     },
   },
-  rootDir: "tests",
-  testMatch: ["**/unit/**/*.test.js"],
+  rootDir: ".",
+  testMatch: ["<rootDir>/tests/**/unit/**/*.test.js"],
+  collectCoverage: true,
+  collectCoverageFrom: ["<rootDir>/src/**/*.js"],
+  coverageDirectory: "<rootDir>/../tests/allure-results/backend",
+  coverageReporters: ["json-summary", "text"],
 };

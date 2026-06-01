@@ -51,8 +51,54 @@ jobs:
         run: npm ci
         working-directory: backend
 
+      - name: Download history from previous run
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREV_RUN=$(gh run list \
+            --repo ${{ github.repository }} \
+            --workflow allure.yml \
+            --branch ${{ github.ref_name }} \
+            --status success \
+            --json databaseId \
+            --jq '.[0].databaseId' \
+            --limit 1 2>/dev/null || echo "")
+          if [ -n "$PREV_RUN" ] && [ "$PREV_RUN" != "${{ github.run_id }}" ]; then
+            echo "Downloading history from run $PREV_RUN"
+            gh run download "$PREV_RUN" \
+              --name allure-history \
+              --dir /tmp/allure-history \
+              --repo ${{ github.repository }} 2>/dev/null || true
+            if [ -d /tmp/allure-history ]; then
+              mkdir -p allure-results/history
+              cp -r /tmp/allure-history/* allure-results/history/
+              echo "History loaded: $(ls allure-results/history/ | wc -l) entries"
+            fi
+          else
+            echo "No previous run found — starting fresh history"
+          fi
+
+      - name: Precompute stability (from history)
+        run: npm run stability:precompute
+
       - name: Run all tests
         run: npm test
+
+      - name: Analyze stability
+        run: npm run stability:summary
+
+      - name: Write environment metadata
+        run: node ../tests/allure-core/environment.js
+
+      - name: Write coverage summary
+        run: node ../tests/allure-core/coverage.js
+
+      - name: Write executor metadata
+        run: node ../tests/allure-core/executor.js
+
+      - name: Write test categories
+        run: node ../tests/allure-core/categories.js
 
       - name: Generate Allure report
         run: npm run report
@@ -64,3 +110,11 @@ jobs:
           path: |
             tests/allure-report
             tests/allure-results
+
+      - name: Upload history data for next run
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: tests/allure-report/data/test-results
+          retention-days: 30
+          overwrite: true

@@ -2,6 +2,8 @@ import allure
 
 
 @allure.title("integration smoke test")
+@allure.feature("Smoke")
+@allure.story("Bootstrap")
 def test_integration_bootstraps():
     assert True
 
