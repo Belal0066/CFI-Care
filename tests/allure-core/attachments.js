@@ -34,4 +34,23 @@ function attachVideo(allure, name, filePath) {
   }
 }
 
+function attachSQL(allure, name, sqlText) {
+  // Attach SQL snapshots or queries
+  try {
+    allure.attachment(name, sqlText, "text/sql");
+  } catch (e) {
+    console.warn(`[attachments] Could not attach SQL: ${name}`, e.message);
+  }
+}
+
+function attachHAR(allure, name, harObject) {
+  // Attach HAR (HTTP Archive) as JSON
+  try {
+    const content = typeof harObject === "string" ? harObject : JSON.stringify(harObject, null, 2);
+    allure.attachment(name, content, "application/json");
+  } catch (e) {
+    console.warn(`[attachments] Could not attach HAR: ${name}`, e.message);
+  }
+}
+
 module.exports = { attachJson, attachText, attachFile, attachScreenshot, attachVideo };

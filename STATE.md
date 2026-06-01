@@ -29,8 +29,11 @@ CFI-Care/
 ├── ai/
 │   ├── requirements.txt             # pytest + allure-pytest + pytest-cov
 │   ├── tests/
-│   │   ├── conftest.py              # Autouse fixture (layer, component) + junit_makereport (stability label)
-│   │   └── test_smoke.py            # 2 pytest smoke tests with allure.attach
+│   │   ├── conftest.py              # Autouse fixture (layer, component, RunID) + junit_makereport (stability + failure_trace)
+│   │   ├── test_pass_example.py     # Passing test — allure steps, attach_json, apply_labels
+│   │   ├── test_fail_example.py     # Failing test — assertion error, failure evidence in report
+│   │   ├── test_skip_example.py     # Skipped test — @pytest.mark.skip with reason
+│   │   └── test_broken_example.py   # Broken test — RuntimeError, shows as "broken" in Allure
 │   └── src/                         # (placeholder)
 │
 ├── backend/
@@ -38,7 +41,12 @@ CFI-Care/
 │   ├── jest.config.js               # allure-jest/node + coverage (json-summary) + rootDir: "."
 │   ├── tests/
 │   │   └── unit/
-│   │       └── sample.test.js       # 2 Jest smoke tests (beforeEach labels, attachJson)
+│   │       ├── validation.example.test.js      # Example: FHIR Patient validation (taxonomy.attachRequestResponse)
+│   │       ├── transformation.example.test.js  # Example: data transformation (taxonomy.attachJson, async)
+│   │       ├── pass.example.test.js            # Passing test — label/attach patterns
+│   │       ├── fail.example.test.js            # Failing test — assertion error (statusCode 500 ≠ 200)
+│   │       ├── skip.example.test.js            # Skipped test — test.skip for AllergyIntolerance validation
+│   │       └── broken.example.test.js          # Broken test — unhandled Error (FHIR connection refused)
 │   └── src/Nodejs/                  # Express API source (covered by istanbul)
 │
 ├── tests/                           # Centralized test orchestration
@@ -152,9 +160,10 @@ CFI-Care/
 |---|---|
 | `backend/package.json` | Declares `jest`, `allure-jest`, `allure-js-commons`, `jest-environment-node`; test script is `jest --coverage` |
 | `backend/jest.config.js` | `testEnvironment: "allure-jest/node"` + `resultsDir: "../tests/allure-results/backend"`; `collectCoverage: true` with `json-summary` reporter |
-| `backend/tests/unit/sample.test.js` | 2 smoke tests with `beforeEach` setting `layer=unit`, `component=backend` labels; `afterEach` reads `precomputed-stability.json` and applies `stability=new` for tests without history; uses `attachJson` for test metadata |
+| `backend/tests/unit/validation.example.test.js` | Example: FHIR Patient resource validation using `taxonomy.attachRequestResponse`, `allure.epic`/`feature`/`story`, Jest `expect` |
+| `backend/tests/unit/transformation.example.test.js` | Example: name merging transformation using `taxonomy.attachJson`, async test, multiple assertions |
 
-Per-test labels: `layer=unit`, `component=backend`, `epic=Backend`, `feature=Smoke`, stability label (new only).
+Per-test labels: `layer=unit`, `component=backend`, `epic=Backend`, `feature=FHIR Validation` / `Data Transformation`, stability label.
 
 Run: `cd backend && npm test` or `cd tests && npm run test:backend`
 
@@ -163,10 +172,13 @@ Run: `cd backend && npm test` or `cd tests && npm run test:backend`
 | File | Purpose |
 |---|---|
 | `ai/requirements.txt` | `pytest>=8.0`, `allure-pytest>=2.13.5`, `pytest-cov>=5.0` |
-| `ai/tests/conftest.py` | Loads `precomputed-stability.json` at module level; autouse fixture sets `layer=unit`, `component=ai`; `pytest_runtest_makereport` hook computes stability label from test outcome + history (new/stable/flaky/fixed/regressed) |
-| `ai/tests/test_smoke.py` | 2 smoke tests with `@allure.title`, `@allure.feature`, `@allure.story`, `allure.step()`, `allure.attach()` |
+| `ai/tests/conftest.py` | Loads `precomputed-stability.json` at module level; autouse fixture sets `layer=unit`, `component=ai`, `RunID`; `pytest_runtest_makereport` hook computes stability label + attaches `failure_trace` for failed/broken tests |
+| `ai/tests/test_pass_example.py` | Passing test — `@allure.feature`/`@allure.story`, `allure.step()`, `taxonomy.apply_labels`, `taxonomy.attach_json` |
+| `ai/tests/test_fail_example.py` | Failing test — assertion error with message, confidence threshold demo |
+| `ai/tests/test_skip_example.py` | Skipped test — `@pytest.mark.skip` with reason, no fixture execution |
+| `ai/tests/test_broken_example.py` | Broken test — `RuntimeError` during `allure.step`, shows as "broken" in Allure |
 
-Per-test labels: `layer=unit`, `component=ai`, stability label (via dynamic hook).
+Per-test labels: `layer=unit`, `component=ai`, `RunID`, `stability`, `feature`, `story`.  All 4 Allure statuses represented.
 
 Run: `cd tests && npm run test:ai`
 
@@ -192,13 +204,15 @@ Each Allure report now contains structured data mapped to the three report secti
 
 | Field | Source |
 |---|---|
-| OS | `environment.properties` — `process.platform` |
-| PYTHON | `environment.properties` — detected by `environment.js` via `python3 --version` |
-| NODE_VERSION | `environment.properties` — `process.version` |
+| OS | `/etc/os-release` — detected by `environment.js` (e.g. `Ubuntu 24.04.4 LTS`) |
+| LANGUAGE | `environment.js` — always `Python` |
+| FRAMEWORK | `python3 -c "import pytest; print(pytest.__version__)"` — detected by `environment.js` |
+| PYTHON | `python3 --version` — detected by `environment.js` |
+| NODE_VERSION | `process.version` — detected by `environment.js` |
 | CI / PROJECT / RUN_TIME | `environment.properties` |
 | RUN_ID | UUID generated in `pretest`, written to `run.properties` |
-| RUN_DURATION_SECONDS | Computed from `.start_time` file |
-| Coverage (unified) | `coverage-summary.json` — aggregated by `coverage.js` |
+| Duration_Sec | Computed from `.start_time` file |
+| CVRG_LINE/Branch/FUNCTION_PCT | `coverage-summary.json` — aggregated by `coverage.js`, mirrored in `environment.properties` |
 
 ### 🟦 Body (Test Cases)
 
@@ -206,9 +220,10 @@ Each Allure report now contains structured data mapped to the three report secti
 |---|---|
 | Suite / TestName / Status | Native Allure fields |
 | Duration | Native Allure `start` / `stop` |
-| Tags (layer, component, scope, dependency, journey, stability) | Injected labels |
-| Attachments | `attachJson` / `allure.attach` calls in test code |
-| Errors / Steps | Native Allure `steps` / `statusDetails` |
+| RunID / testID | Conftest injects `RunID` label (from `run.properties`) + `testID` label (nodeid) |
+| Tags (layer, component, scope, dependency, journey, stability, feature) | `taxonomy.apply_labels` / conftest fixture |
+| Attachments | `attachJson`, `attachText`, `attachFile` — plus auto-attached `failure_trace.json` on fail/broken |
+| Errors / Steps | Native Allure `steps` / `statusDetails` — failure messages include assertion diffs |
 
 ### 🟩 Conclusion (Analytics)
 
@@ -291,7 +306,7 @@ Coverage is **no longer** written into `environment.properties` — moved to a d
 | Precompute stability | `node stability.js --precompute` | Reads history, writes `precomputed-stability.json` |
 | Test | `npm test` | Runs all 3 suites with coverage; conftest fixtures apply stability labels dynamically |
 | Stability summary | `node stability.js` | Computes actual stability, writes `stability-summary.json` (no JSON mutation) |
-| Env final | `node environment.js` | Writes `environment.properties` with PYTHON, Node, RunID, duration |
+| Env final | `node environment.js` | Writes `environment.properties` with OS (distro), LANGUAGE, FRAMEWORK (pytest version), PYTHON, Node, RunID, duration, CVRG_PCT |
 | Coverage artifact | `node coverage.js` | Aggregates coverage into unified `coverage-summary.json` |
 | Executor metadata | `node executor.js` | Writes `executor.json` (CI or local build info) |
 | Postrun | `npm run postrun` | Collects global logs (scaffold) + copies `categories.json` + `known-issues.json` to `allure-results/` |
@@ -359,12 +374,12 @@ Steps:
 
 ## 10. Current Test Count
 
-| Suite | Framework | Tests | Allure Output | Coverage |
-|---|---|---|---|---|
-| Backend unit | Jest 30 | 2 | `tests/allure-results/backend/` | `coverage-summary.json` |
-| AI unit | pytest 9 | 2 | `tests/allure-results/ai/` | `coverage.json` |
-| Integration | pytest 9 | 2 | `tests/allure-results/integration/` | `coverage.json` |
-| **Total** | | **6** | **→ report** | |
+| Suite | Framework | Tests | Statuses | Allure Output | Coverage |
+|---|---|---|---|---|---|---|
+| Backend unit (example) | Jest 30 | 6 | 3 ✅ 1 ❌ 1 💥 1 ⏭️ | `tests/allure-results/backend/` | `coverage-summary.json` |
+| AI unit (example) | pytest 9 | 4 | 1 ✅ 1 ❌ 1 💥 1 ⏭️ | `tests/allure-results/ai/` | `coverage.json` |
+| Integration | pytest 9 | 2 | 2 ✅ | `tests/allure-results/integration/` | `coverage.json` |
+| **Total** | | **12** | **6 ✅ 2 ❌ 2 💥 2 ⏭️** | **→ report** | |
 
 ---
 

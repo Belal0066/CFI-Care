@@ -3,6 +3,7 @@ set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REPORT="$ROOT/allure-report"
+SUITE="$1"
 
 rm -rf "$REPORT"
 
@@ -21,10 +22,28 @@ if [ -f "$ROOT/known-issues.json" ]; then
   echo "Copied known-issues.json to allure-results/"
 fi
 
+# Collect only non-empty result directories
+RESULTS_DIRS=()
+if [ -n "$SUITE" ]; then
+  TARGET_DIR="$ROOT/allure-results/$SUITE"
+  if [ -d "$TARGET_DIR" ] && [ -n "$(find "$TARGET_DIR" -maxdepth 1 -name '*.json' 2>/dev/null | head -1)" ]; then
+    RESULTS_DIRS+=("$TARGET_DIR")
+  fi
+else
+  for dir in "$ROOT/allure-results"/*/; do
+    if [ -n "$(find "$dir" -maxdepth 1 -name '*.json' 2>/dev/null | head -1)" ]; then
+      RESULTS_DIRS+=("$dir")
+    fi
+  done
+fi
+
+if [ ${#RESULTS_DIRS[@]} -eq 0 ]; then
+  echo "ERROR: No result directories with JSON files found"
+  exit 1
+fi
+
 npx allure generate \
-  "$ROOT/allure-results/backend" \
-  "$ROOT/allure-results/ai" \
-  "$ROOT/allure-results/integration" \
+  "${RESULTS_DIRS[@]}" \
   -o "$REPORT" \
   --history-limit 10
 
