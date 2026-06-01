@@ -9,6 +9,10 @@ import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 import { VerifyOtpResponse, HandshakeStatus } from '../models/grant.model';
 
+//mock
+  // import { MOCK_PATIENTS } from '../mocks/patient.mocks';
+
+
 @Component({
   selector: 'app-users-panel',
   standalone: true,
@@ -74,6 +78,18 @@ export class UsersPanel implements OnInit, OnDestroy {
       },
     });
   }
+
+// mock
+// fetchPatients() {
+//   this.loading = true;
+
+//   setTimeout(() => {
+//     this.allPatients = MOCK_PATIENTS;
+//     this.filteredPatients = [...this.allPatients];
+//     this.loading = false;
+//   }, 300);
+// }
+//mock
 
   // --- Search & Filter Logic ---
   onSearch() {
