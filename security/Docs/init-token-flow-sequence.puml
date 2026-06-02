@@ -1,0 +1,47 @@
+' @startuml Init Token Flow Sequence <<Seqence Diagram>>
+' actor User
+' participant Browser
+' participant Keycloak
+' participant nginx
+' participant NodeJS
+' participant FHIR
+
+' User -> Browser : Login request
+' Browser -> nginx : Authentication request
+' nginx -> NodeJS : Authentication request
+' NodeJS -> nginx : Redirect to /login 
+' nginx -> Browser : login page
+' Browser -> Keycloak : Login with credentials
+' Keycloak -> nginx: Authorization code 
+' nginx -> NodeJS : Authorization code
+' NodeJS -> Keycloak : exchange code for tokens
+' Keycloak -> NodeJS : ID token + Access token + Refresh token
+' NodeJS -> NodeJS : validate JWTs
+' NodeJS -> NodeJS : enforce resource checks
+' NodeJS -> FHIR : forward Authorization
+' FHIR -> NodeJS : resource
+
+
+' User -> Browser : Action that needs Data
+' Browser -> nginx : API call
+' nginx -> NodeJS : request
+' NodeJS -> NodeJS : enforce resource checks
+' alt access token expired
+'     NodeJS -> Keycloak : use refresh token to get new tokens
+'     Keycloak -> NodeJS : new ID token + Access token + Refresh token
+'     NodeJS -> NodeJS : validate new JWTs
+' else access token valid
+'     alt resource available in cache
+'         NodeJS -> Redis : get resource from cache
+'         Redis -> NodeJS : resource
+'     else resource not in cache
+'         NodeJS -> FHIR : request resource with Access token
+'         FHIR -> NodeJS : resource
+'         NodeJS -> Redis : store resource in cache
+'         Redis -> NodeJS : ack
+'     end
+' end
+' NodeJS -> nginx : response
+' nginx -> Browser : response
+' Browser -> User : display data
+' @enduml

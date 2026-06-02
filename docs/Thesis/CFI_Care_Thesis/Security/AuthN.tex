@@ -13,9 +13,15 @@ Upon successful authentication, \texttt{oauth2-proxy} establishes a session, iss
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\linewidth]{Security/images/browser-tokens-flow.png}
+    \includegraphics[width=1\linewidth]{Security/images/browser-tokens-flow.png}
     \caption{Browser Authentication Sequence: Gateway-mediated OIDC flow and session cookie management.}
     \label{fig:browser-tokens-flow}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{Security/images/Browser Operational Lifecycle and Revocation.png}
+    \caption{Browser Authentication Sequence: Browser Operational Lifecycle and Revocation.}
+    \label{fig:browser-tokens-flow2}
 \end{figure}
 
 \paragraph{Client-Side Security (Angular)}
@@ -36,9 +42,16 @@ Once authenticated, tokens are stored in \textbf{Android Keystore}, providing pr
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\linewidth]{Security/images/Mobile-tokens-flow.png}
+    \includegraphics[width=0.9\linewidth]{Security/images/Mobile-tokens-flow.png}
     \caption{Mobile Authentication Flow: Native AppAuth integration and secure token persistence.}
     \label{fig:mobile-tokens-flow}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Security/images/Mobile Operational Lifecycle and Revocation.png}
+    \caption{Mobile Authentication Flow: Mobile Operational Lifecycle and Revocation}
+    \label{fig:mobile-tokens-flow2}
 \end{figure}
 
 \paragraph{Token Refresh Logic}
@@ -60,16 +73,25 @@ Session cookies are hardened with the following attributes:
 
 Please note that to resolve conflicting cross-origin requirements during initial authentication, the system utilizes a dual cookie strategy, so, as opposed to the backend's sessions that are hardened with \texttt{SameSite=Lax} to restrict browser-based CSRF attacks, the gateway employs a permissive cross-domain configuration to handle the initial OIDC flow
 
-\paragraph{Unified Logout}
-The system supports both per-session and global logout patterns (see Figure~\ref{fig:token-flow-overview}).
+% \paragraph{Unified Logout}
+% The system supports both per-session and global logout patterns (see Figure~\ref{fig:token-flow-overview}).
+% \begin{itemize}
+%     \item \textbf{Per-Session Logout:} Destroys the current Redis session and notifies Keycloak to revoke the associated refresh token.
+%     \item \textbf{Global Logout:} Removes all active sessions for a specific User ID across all devices.
+% \end{itemize}
+
+
+
+\paragraph{Unified Session Invalidation and Logout}
+To maintain tight control over data exposure across diverse client architectures, the system enforces a strict session invalidation matrix supporting both localized per-session and synchronized global logout vectors (see Figure~\ref{fig:token-flow-overview}):
 \begin{itemize}
-    \item \textbf{Per-Session Logout:} Destroys the current Redis session and notifies Keycloak to revoke the associated refresh token.
-    \item \textbf{Global Logout:} Removes all active sessions for a specific User ID across all devices.
+    \item \textbf{Per-Session Logout:} Destroys the immediate state context within the Redis cluster (for browser clients) or issues a localized revocation call to Keycloak's token endpoint (for mobile clients), neutralizing the active access on a single target device.
+    \item \textbf{Global Logout:} Triggers a backchannel administrative eviction loop across the identity core, this operation instructs Keycloak to instantly invalidate all active refresh tokens and session mappings associated with the specific User ID, while concurrently clearing downstream active states within the Redis session caches across all distributed client terminals.
 \end{itemize}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\linewidth]{Security/images/token-flow-overview.png}
+    \includegraphics[width=1\linewidth]{Security/images/token-flow-overview.png}
     \caption{Token Flow Overview: Unified management of browser and mobile session lifecycles.}
     \label{fig:token-flow-overview}
 \end{figure}
