@@ -1,0 +1,55 @@
+---
+config:
+  theme: base
+  themeVariables:
+    background: '#FAF9F6'
+    primaryColor: '#FAF9F6'
+    primaryTextColor: '#333333'
+    lineColor: '#8B857B'
+    fontSize: '15px'
+---
+graph TD
+    P((Patient <br/> Mobile))
+    DR((Practitioner <br/> Web))
+    
+    FW[OPNsense Perimeter Firewall]
+    NG[Nginx API Gateway]
+
+    subgraph KC [Keycloak Identity Provider]
+        BaseKC[Standard OIDC Provider]
+        SPI[Custom Handshake SPI]
+    end
+
+    subgraph BFF [BFF - The Security Brain]
+        MW[Middleware Pipeline]
+        JIT[Consent JIT Protocol]
+    end
+
+    subgraph Storage [Isolated Core Persistence]
+        REDIS[(Redis Audit / Grant Caches)]
+        FHIR[HAPI FHIR Server]
+        DB[(Postgres DB)]
+    end
+
+    P & DR --> FW
+    FW -->|Port 443| NG
+    NG --> KC
+    NG --> BFF
+    
+    BFF --> REDIS
+    BFF --> FHIR
+    BFF --> DB
+
+    classDef client fill:#FFFFFF,stroke:#8B857B,stroke-width:2px,color:#333333;
+    %% classDef edge fill:#EAE8E1,stroke:#6E685E,stroke-width:2px,color:#333333;
+    classDef custom fill:#D4AF37,stroke:#AA7C11,stroke-width:2px,color:#FFFFFF,font-weight:bold;
+    classDef standard fill:#FFFFFF,stroke:#D1CFC8,stroke-width:1.5px,stroke-dasharray: 4 4,color:#777777;
+
+    class P,DR client;
+    class FW,NG edge;
+    class SPI,MW,JIT custom;
+    class BaseKC,REDIS,FHIR,DB standard;
+
+    style KC fill:#FAF9F6,stroke:#D1CFC8,stroke-width:1px;
+    style BFF fill:#FAF9F6,stroke:#D1CFC8,stroke-width:1px;
+    style Storage fill:#FAF9F6,stroke:#D1CFC8,stroke-width:1px;

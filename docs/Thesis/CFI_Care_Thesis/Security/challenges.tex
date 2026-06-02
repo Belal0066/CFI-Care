@@ -1,0 +1,164 @@
+\section{Challenges and Security Analysis}\label{sec:security-challenges}
+
+The implementation of a unified security framework across diverse client types and healthcare workflows presented several technical and architectural challenges. This section analyzes these trade-offs and identifies residual risks within the current deployment.
+
+\subsection{Architectural Challenges}
+
+\subsubsection{Heterogeneous Session Management}
+Maintaining security parity between web and mobile clients required disparate implementation patterns. While browsers rely on gateway-managed OIDC sessions and secure cookies, mobile applications utilize direct bearer token management. Reconciling these necessitated the development of synchronized revocation logic, ensuring that a "Global Logout" event correctly invalidates both server-side Redis sessions and client-side mobile tokens.
+
+\subsubsection{Statelessness vs. Revocation Correctness}
+Standard \ac{OIDC} implementations favor stateless \acp{JWT} for scalability. However, healthcare privacy requirements mandate near-instant revocation capabilities. CFI-Care addresses this by trading perfect statelessness for security correctness: the BFF maintains a session state in Redis to validate the presence of an active session on every request, providing a centralized "kill switch" for compromised accounts.
+
+\subsubsection{Consent Privacy and Clinical Usability}
+The Patient-Doctor consent flow requires a delicate balance between data protection and system availability. Overly granular consent checks risk blocking critical clinical data during emergencies, while permissive policies may violate \ac{PHI} privacy. The current design utilizes a Just-In-Time (JIT) grant mechanism that prioritizes explicit patient approval while using Redis caching to minimize latency in clinical workflows.
+
+\subsubsection{Designing a secure Consent granted access Model}
+
+The target for the design was a Flow that's both secure and usable, i.e. Not too complex for user's satisfaction, 
+As detailed in Table~\ref{tab:access-models-analysis} we analyzed several patterns before selecting our current JIT Consent \& Capability-Based Access approach explained in Section~\ref{sec:JIT}
+
+% \begin{center}
+%   \textbf{Comparative Analysis of Access Models we studied}  
+% \end{center}
+
+
+\begin{table}[H] 
+\caption{\textbf{Comparative Analysis of Access Models we studied}}
+\label{tab:access-models-analysis}
+% \centering
+\begin{tabular}{|m{4cm}|m{5cm}|m{6cm}|}
+\hline 
+Approach&Reason it isn't the best approach&Why it was convenient \\ [0.5ex] 
+\hline \hline
+Static IAM IDs & provides higher entropy than otp input or custom IDs due to length & Rejected due to complexity in manual entry and high risk of user enumeration since they would have to be exposed \\
+\hline
+custom IDs & Easier due to shorter length & need to be exposed as well and less secure as they're shorter with a higher risk of brute forcing, there would also be an overhead of creating custom IDs for the system \\
+\hline
+ID compression algorithm (output a short display ID from the long IAM ID) & saves time, less complex than IAM IDs due to shorter length & a case of over engineering as needs more planning, would increase overhead, difficult to develop to be foolproof, and if the algorithm is discovered, guessing patient IDs would be easier \\
+\hline
+Location based access & would be ideal for face-to-face sessions & Privacy risk -> needs location permissions which could make users less hesitant to use the app, it also wouldn't work in remote access scenarios \\ [1ex] 
+\hline
+\end{tabular}
+% \label{table:1}
+
+\end{table}
+
+\subsection{Threat Model and Residual Risks}
+
+Despite the multi-layered defense strategy, several residual risks remain, which are addressed through ongoing mitigation plans:
+
+\begin{itemize}
+    % \item \textbf{Automated Account Creation and Credential Stuffing:} To protect the registration and authentication lifecycle, the system integrates the ALTCHA proof-of-work mechanism within the Keycloak registration flow, effectively filtering automated bot submissions. This is complemented by Keycloak’s native brute-force protection, which enforces linear account lockouts after consecutive failed attempts, 
+    % ensuring the Identity Provider remains resilient against high-frequency attack vectors.
+    \item \textbf{Automated Exploitation and Rate Limiting:} Dictionary attacks and credential stuffing are neutralized at the edge via the ALTCHA cryptographic proof-of-work registration constraint, blocking script-based client creation. 
+    This is complemented upstream by Keycloak's brute-force protection mechanism, which enforces linear account lockouts after consecutive failed attempts, alongside rate-limiting middleware bound to the BFF routers.
+    % \item \textbf{Identity Provider Compromise:} As the central IdP, a breach of the Keycloak database would expose user metadata. This risk is mitigated through network-level isolation of the Keycloak Postgres instance, with future plans for encryption-at-rest for the database volumes.
+    % \item \textbf{Redis Persistence Security:} Currently, session and audit data in Redis are unencrypted at rest. While mitigated by network isolation (no external port exposure), enabling Redis native encryption remains a high-priority hardening step.
+    \item \textbf{Identity Provider \& Clinical Registry Database Compromise:} An unauthorized breach of the PostgreSQL instances hosting Keycloak and HAPI FHIR records would directly expose protected health information (PHI) and credential hashes. 
+    In alignment with official Keycloak security design patterns -which advocate for filesystem-level encryption when native database engines lack built-in \ac{TDE}- our architecture enforces volume-level isolation via Linux block-device encryption (\texttt{dm-crypt/LUKS}). 
+    This ensures that the physical directories mapping to both database clusters remain completely unreadable without host-level authorization keys.
+    \item \textbf{Redis Persistence Exposure:} Active handshake sequences, Capability grants' ephemeral storage, volatile session storage, and audit logs are held primarily in-memory. 
+    However, backup routines write these data structures to disk via \texttt{.rdb} snapshots and \texttt{.aof} transaction logs, 
+    exposing a target for out-of-band data recovery. This risk is neutralized by binding the Redis persistence directory directly to the same host-level encrypted \texttt{LUKS} storage partition utilized by the database layer, implementing a cryptographic boundary across all backend persistence engines.
+    \item \textbf{Consent Enforcement Gaps:} The current model focuses on technical access grants. Future iterations must incorporate official healthcare consent documents and formalize the mapping between clinical roles and \ac{SMART} on FHIR scopes.
+    % \item \textbf{Atomic Invalidation and Replay Mitigation:} As detailed in \ref{sec:state-management-and-audit}, the system utilizes the Redis \texttt{GETDEL} primitive to ensure atomic retrieval and destruction of authorization secrets, effectively eliminating the Time-of-Check to Time-of-Use (TOCTOU) vulnerability window
+    % To prevent the reuse of authorization secrets, the system utilizes the Redis \texttt{GETDEL} command during OTP verification. This ensures that the retrieval and destruction of the secret occur as a single atomic primitive. By implementing a "Burn-on-Read" policy, the system eliminates the Time-of-Check to Time-of-Use (\ac{TOCTOU}) vulnerability window, ensuring that an intercepted or leaked OTP cannot be replayed by a malicious actor
+    % \item \textbf{Brute-Force Mitigation}: Backend endpoints are protected by rate-limiting middleware
+\end{itemize}
+
+\subsection{Gaps and Future Work}
+
+The following items represent the planned roadmap for evolving CFI-Care into a production-hardened healthcare platform:
+
+\begin{itemize}
+    \item \textbf{\ac{CSRF} Hardening:} While \texttt{SameSite=Lax} provides baseline protection, the design for a dedicated per-session \ac{CSRF} token middleware is complete. Future work includes activating this layer once origin validation is stabilized across all deployment environments.
+    \item \textbf{Decentralized Key Orchestration and KMS Integration:} The current storage architecture enforces data-at-rest protection across PostgreSQL and Redis using host-managed filesystem-level cryptographic volumes. 
+    To advance this structure toward large-scale production-hardened criteria, future iterations will decouple key management from the local host environment through integrating a dedicated hardware security module (HSM) or an external Key Management Service (KMS), such as HashiCorp Vault's Transit Secrets Engine, to allow for automated, programmatic key rotation, real-time cryptographic audit logging, and remote revocation capabilities without modifying backend application container images.
+    \item \textbf{Advanced Resource Filtering:} Implementation of resource-level access control directly on the \ac{FHIR} server to validate \acp{JWT} independently of the BFF, providing stricter Defense-in-Depth.
+    % \item \textbf{Security Observability:} Development of a centralized audit dashboard to visualize the Redis-based security logs, enabling real-time monitoring of anomalies such as repeated \texttt{LOGIN\_FAILURE} or unusual \texttt{GRANT\_REVOKED} patterns.
+    \item \textbf{Standardization:} Enhancing the Keycloak role-to-SMART-scope mapping to ensure strict adherence to international healthcare interoperability standards.
+    % \item \textbf{Token Binding:} Currently, if a practitioner's browser is compromised, the "Grant" (Capability Token) in their session could be used by an attacker. Sender Constraining (binding the token to the specific device's hardware/TLS fingerpint) is the next step for hardening
+    % \item \textbf{Break-Glass protocol:} Emergency Access without explicit JIT consent
+    \item \textbf{Break-Glass Emergency Overrides:} This allows authenticated practitioners to bypass standard JIT consent barriers during critical life-threatening events, while generating immediate alerts to compliance monitoring endpoints.
+\end{itemize}
+
+
+
+% \subsection{Session Management Across Client Types}
+% Browsers use server-side sessions with secure cookies, mobile apps use bearer
+% tokens in the Authorization header. Keeping behavior consistent requires:
+% \begin{itemize}
+%     \item Route guards and 401 interceptors on both client types.
+%     \item Different lifecycle handling: browser relies on gateway-managed OIDC session,
+%           mobile uses client-side refresh with stored tokens.
+%     \item Synchronized revocation: per-session logout on the BFF invalidates tokens
+%           server-side, mobile clients must also clear cached tokens locally.
+% \end{itemize}
+
+% \subsection{Stateless Tokens vs. Revocation Needs}
+% Access tokens are stateless (signed by Keycloak, verified locally), making them
+% scalable. However, true instant revocation (logout-all) for browsers requires
+% server-side state (redis session tracking). The current design trades off
+% stateless simplicity for revocation correctness: the BFF maintains session
+% state and validates session presence on every request,
+% %also for bearer token users in future deployments.
+
+% \subsection{Balancing Consent Privacy \& Usability}
+% Patient-granted access for doctors (consent grant flow) must be enforced
+% transparently. Overly strict consent checks may block legitimate clinical
+% workflows, overly permissive checks may expose PHI. The current design is for
+% grants to be stored in a database for grants' storage (grant key, scopes, TTL)
+% and validated at the BFF, and the FHIR server will apply additional constraints
+% based on consent resources.
+
+% \subsection{Clock Skew \& Distributed Verification}
+% JWT validation includes clock skew tolerance (10 seconds) to account for
+% distributed clock drift between Keycloak and the BFF. However, if system clocks
+% drift beyond this window or if Keycloak's keys rotate, validation failures may
+% spike.
+
+
+
+% \section{Security Analysis}\label{sec:security-analysis}
+% During development, authenticated vulnerability scans were performed to
+% identify and remediate server misconfiguration findings (missing headers,
+% version disclosure,..). Major findings were resolved; remaining items are
+% low-severity or limited to the development environment
+
+% \subsection{Attack Surface Analysis}
+% \begin{itemize}
+%     % \item \textbf{Token Theft}: mitigated by storing tokens server-side' not in browser memory. HTTP-only cookies prevent JavaScript access via XSS. TLS prevents interception in transit.
+%     % \item \textbf{Cross-Site Request Forgery}: Session cookies use SameSite=Lax, blocking cross-site submissions. The primary CSRF defense is `SameSite=Lax' on session cookies, which blocks cross-site form submissions. A CSRF token layer is designed and partially implemented as a planned hardening step
+%     %       % \item \textbf{Credential Enumeration / Brute-Force}: Rate limiters make password guessing infeasible within the policy window.
+%     %       % \item \textbf{Information Disclosure}: Error messages do not leak system internals, where registration validation errors are field-level and generic. Audit logs are server-side and not exposed to unauthenticated clients.
+%     % \item \textbf{Privilege Level}: Token claims are issued by Keycloak and validated server-side. The BFF doesn't allow clients to modify claims.
+%     \item \textbf{Patient Privacy Breach}: Scope checks enforce patient binding so doctors cannot access patients without appropriate consent. FHIR server is planned to apply additional resource-level checks.
+% \end{itemize}
+
+% \subsection{Threat Model \& Residual Risks}
+% Residual risks include:
+% \begin{itemize}
+%     % \item \textbf{Keycloak Compromise}: If Keycloak is breached, all issued tokens become untrustworthy. Mitigated by: securing Keycloak (strong admin passwords, HTTPS only), and monitoring for unusual token patterns.
+%     % \item \textbf{Denial of Service (DoS)}:Backend could be overwhelmed by excessive requests. Mitigated by: rate limiters on API endpoints.
+%     % \item \textbf{XSS Attacks}: While tokens are not in browser memory, XSS could still hijack sessions via cookies. Mitigated by: CSP headers, HttpOnly cookies
+%     % \item \textbf{Credentail Leakage}: Users reusing weak passwords across sites risk credential stuffing attacks. Mitigated by: strong password policies, rate limiting, and future MFA implementation.
+%     \item \textbf{Keycloak's Storage of Credentials}: If Keycloak's database is compromised, user credentials may be exposed. Mitigated by: securing Postgres access, Future work: encryption at rest.
+%     \item \textbf{redis Compromise}: Session and audit stores in redis are unencrypted at rest. Mitigated by: network isolation and future work on redis encryption.
+%     \item \textbf{Scope/Role Misconfiguration}: Overly broad scopes or clinician roles may grant unintended access. Mitigated by: audit logging, Future work: more granular access control through keycloak authorization functionalities.
+%     \item \textbf{Consent Enforcement Gaps}: Current consent model is incomplete, doctor-patient consent is not fully planned to include official consent documents. Mitigated by: future work on Consent resources and server-side validation.
+% \end{itemize}
+
+% % 
+
+
+% \subsubsection{Gaps \& Future Work}
+% \begin{itemize}
+%     % \item \textbf{Browser PKCE}: Implemented via \texttt{oauth2-proxy} (Authorization Code + PKCE, S256) in the gateway login flow.
+%     \item \textbf{Consent Enforcement}: Patient-granted doctor access is not yet planned to be implemented or validated using standards provided by healthcare institutions.
+%     \item \textbf{redis Encryption}: Session and audit data in redis are unencrypted at rest, future work includes enabling redis persistence encryption.
+%     \item \textbf{Centralized Audit Dashboard}: Audit logs are stored in redis, future work includes creating a dedicated UI for viewing and filtering logs as that would improve security monitoring (low priority future work).
+%     \item \textbf{Scope / Roles Mapping}: Keycloak role-to-SMART-scope mapping needs formalization and documentation.
+%     \item \textbf{Additional Headers}: CSP and HSTS are implemented; future work includes adding X-Content-Type-Options, Referrer-Policy, and Permissions-Policy.
+%     \item \textbf{CSRF Token Enforcement:} A per-session CSRF token middleware is designed for the BFF. It is not yet active in production. Future work includes stabilizing origin validation across deployment environments and enabling the token check for all session authenticated endpoints.
+% \end{itemize}
