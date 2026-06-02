@@ -1,0 +1,94 @@
+' @startuml Tokens Overview
+' actor User
+' participant Browser
+' participant MobileApp
+' participant nginx
+' participant BFF as "Node.js BFF"
+' participant Redis
+' participant Keycloak
+' participant FHIR
+
+' == Browser Login Flow (current implementation)==
+' User -> Browser : Login
+' Browser -> nginx : POST /auth/login
+' nginx -> BFF : forward request
+' BFF -> Keycloak : Password grant (token endpoint)
+' Keycloak -> BFF : Access token + Refresh token + ID token
+' BFF -> Redis : Store tokens in session
+' BFF -> nginx : Set session cookie
+' nginx -> Browser : Session cookie (HttpOnly, Secure)
+
+' == Mobile Login Flow (Future work) ==
+' User -> MobileApp : Enter credentials
+' MobileApp -> MobileApp : Generate code_verifier + code_challenge (PKCE)
+' MobileApp -> nginx : POST /auth/mobile/authorize 
+' nginx -> BFF : forward request
+' BFF -> BFF : Validate input (email, password)
+' BFF -> Keycloak : Authenticate user with credentials
+' Keycloak -> BFF : User authenticated
+' BFF -> Keycloak : Create authorization code
+' Keycloak -> BFF : Authorization code
+' BFF -> Keycloak : POST token endpoint (code + code_verifier + client_secret)
+' Keycloak -> BFF : Access token + Refresh token + ID token
+' BFF -> MobileApp : Return tokens in response body
+' MobileApp -> MobileApp : Store tokens in Keystore
+
+
+' == Browser API Request ==
+' Browser -> nginx : GET /api/patients (cookie)
+' nginx -> BFF : forward with cookie
+' BFF -> BFF : vValidate session
+' BFF -> Redis : Get tokens from session
+' BFF -> BFF : attachForwardedToken (session → header)
+' BFF -> BFF : verifyToken (JWKS validation)
+' BFF -> BFF : validateScopes (check permissions)
+' BFF -> FHIR : forward with Authorization header
+' FHIR -> BFF : response
+' BFF -> nginx : response
+' nginx -> Browser : response
+
+' == Mobile API Request ==
+' MobileApp -> nginx : GET /api/patients (Authorization: Bearer token)
+' nginx -> BFF : forward with Bearer token
+' BFF -> BFF : verifyToken (JWKS validation, JWT signature)
+' BFF -> BFF : validateScopes (check permissions)
+' BFF -> FHIR : forward request with token
+' FHIR -> BFF : response
+' BFF -> nginx : response
+' nginx -> MobileApp : response
+
+' == Token Refresh ==
+' alt Browser Token Refresh
+' Browser -> nginx : Automatic refresh via requireSession middleware
+' nginx -> BFF : forward request
+' BFF -> Keycloak : POST token endpoint (refresh_token grant)
+' Keycloak -> BFF : New access token + refresh token
+' BFF -> Redis : Update session with new tokens
+' BFF -> nginx : Continue original request
+
+' else Mobile Token Refresh
+' MobileApp -> nginx : POST /auth/mobile/refresh (refresh_token)
+' nginx -> BFF : forward request
+' BFF -> Keycloak : POST token endpoint (refresh_token grant)
+' Keycloak -> BFF : New access token + refresh token
+' BFF -> MobileApp : Return new tokens
+' MobileApp -> MobileApp : Update stored tokens
+' end
+
+' == Logout Flows ==
+' alt Per-session
+' Browser -> nginx : POST /auth/logout (per-session)
+' nginx -> BFF : forward request
+' BFF -> Redis : Destroy current session
+' BFF -> Keycloak : revoke tokens for current session
+' BFF -> nginx : 200 OK
+' nginx -> Browser : Session cleared
+
+' else Global Logout 
+' MobileApp -> nginx : POST /auth/logout-all
+' nginx -> BFF : forward request with Bearer token
+' BFF -> Keycloak : Revoke refresh tokens / user sessions (admin endpoint)
+' BFF -> nginx : 200 OK
+' nginx -> MobileApp : Tokens revoked
+' end
+' @enduml

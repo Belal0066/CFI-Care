@@ -1,0 +1,139 @@
+' @startuml Mobile Token Flow <<Seqence Diagram>>
+
+' actor User
+' participant MobileApplication as App
+
+' participant nginx
+' ' participant oauth2Proxy
+' participant Keycloak
+
+' participant NodeJS as "Node.js BFF"
+' participant Redis
+' participant FHIR
+' participant RevocationService
+' ==User Registration Flow==
+' ' User -> MobileApplication : Registration request 
+' ' MobileApplication -> Keycloak : Registration request
+' ' Keycloak -> MobileApplication : Accept registration request
+' ' MobileApplication -> Keycloak : Submit registration details
+' ' Keycloak -> Keycloak : Create user account
+' ' MobileApplication -> nginx : Patient profile data form
+' ' nginx -> NodeJS : Forward profile data
+' User -> App : Registration request 
+' ' App -> App : Input registration details in custom form
+' App -> nginx : POST /auth/register with credentials
+' nginx -> NodeJS : Forward to backend
+' NodeJS -> Keycloak : Create user 
+' Keycloak -> NodeJS : User created
+' NodeJS -> nginx : 201 Created
+' nginx -> App : Registration success
+' App -> User : Prompt to sign in
+' App -> nginx : POST /api/patient with Bearer token header
+' nginx -> NodeJS : Forward with Bearer token
+' NodeJS -> FHIR : Create user profile resource with token
+' FHIR -> NodeJS : Acknowledgment
+' NodeJS -> nginx : Acknowledgment
+' nginx -> App : Acknowledgment
+' App -> User : Display main page
+
+
+
+' == User Login Flow ==
+' ' User -> MobileApplication : Login request on login page
+' ' MobileApplication -> Keycloak : Redirect to auth endpoint (PKCE challenge)
+' ' Keycloak -> MobileApplication : Authorization code (Authz code Flow)
+' ' MobileApplication -> Keycloak : exchange code for tokens (with PKCE verifier)
+' ' Keycloak -> MobileApplication : Access token , Refresh token , ID token
+' ' MobileApplication -> MobileApplication : store tokens securely 
+' ' MobileApplication -> User : display main page
+
+' User -> App : Login request on login page
+' App -> App : Generate code_verifier + code_challenge (PKCE)
+' App -> App : Input credentials in custom login form
+' App -> nginx : POST /auth/mobile/authorize 
+' nginx -> NodeJS : Forward to backend 
+' NodeJS -> NodeJS : Validate input
+' NodeJS -> Keycloak : Authenticate user 
+' Keycloak -> NodeJS : User authenticated
+' NodeJS -> Keycloak : Create authorization code bound to code_challenge
+' Keycloak -> NodeJS : Authorization code 
+' NodeJS -> Keycloak : Exchange code with code_verifier + client_secret
+' Keycloak -> NodeJS : Access token, Refresh token, ID token
+' NodeJS -> nginx : Return tokens to client
+' nginx -> App : Return tokens
+' App -> App : Store tokens securely (Keystore)
+' App -> User : Display main page
+
+' == User Action Requiring Data (API Call) ==
+' ' User -> MobileApplication : Action that needs Data
+' ' MobileApplication -> nginx : API call with token
+
+' User -> App : Action that needs Data
+' App -> nginx : API call with Authorization: Bearer token header
+' nginx -> NodeJS : Forward request with Bearer token
+' NodeJS -> NodeJS : Validate Bearer token signature (JWT)
+
+' alt Access token valid
+'     ' NodeJS -> NodeJS : Validate Bearer token signature (JWT)
+'     alt Resource available in cache
+'         NodeJS -> Redis : Get resource from cache
+'         Redis -> NodeJS : Resource
+'     else Resource not in cache
+'         NodeJS -> FHIR : Request resource with Access token
+'         FHIR -> NodeJS : Resource
+'         NodeJS -> Redis : Store resource in cache
+'         Redis -> NodeJS : Ack
+'     end
+'     NodeJS -> nginx : Response with data
+'     nginx -> App : Response containing data
+'     App -> User : Display data
+
+
+
+' else Access token expired
+'     App -> App : Detect expiry locally
+'     App -> nginx : POST /auth/mobile/refresh with refresh_token in body
+'     nginx -> NodeJS : Forward refresh request
+'     NodeJS -> Keycloak : Use refresh token to obtain new tokens
+'     Keycloak -> NodeJS : New Access token, Refresh token, ID token
+'     NodeJS -> nginx : Return new access_token + refresh_token
+'     nginx -> App : Return tokens
+'     App -> App : Store new tokens securely (Keychain/Keystore)
+'     App -> nginx : Retry API call with new Bearer token
+' end
+
+' == Logout Flow (Mobile — Per-session) ==
+
+' ' User -> MobileApplication : Tap "Sign out"
+' ' MobileApplication -> nginx : POST /auth/logout { sessionId or accessToken }
+' ' nginx -> NodeJS : /auth/logout -> call RevocationService
+' ' RevocationService -> Redis : DEL oauth2_proxy:session:<id>
+' ' RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token) 
+' ' NodeJS -> MobileApplication : 200 OK
+' ' MobileApplication -> User : Signed out (this device)
+
+' User -> App : Tap "Logout"
+' App -> nginx : POST /auth/logout with refresh_token in body
+' nginx -> NodeJS : Forward logout request
+' NodeJS -> Keycloak : Revoke refresh token
+' Keycloak -> NodeJS : Token revoked
+' NodeJS -> nginx : 200 OK
+' nginx -> App : 200 OK
+' App -> App : Clear stored tokens from Keystore
+' App -> User : Return to login screen
+
+' == Logout Flow (Mobile — Global across all devices) ==
+' User -> App : Tap "Logout of all devices"
+' App -> nginx : POST /auth/logout-all with refresh_token
+' nginx -> NodeJS : Forward logout-all request
+' NodeJS -> Keycloak : Admin logout user (invalidate refresh tokens / sessions)
+' Keycloak -> NodeJS : Logout completed
+' NodeJS -> nginx : 200 OK
+' nginx -> App : Logout complete
+' App -> App : Clear stored tokens from Keystore
+' App -> User : All sessions signed out
+
+' ' MobileApplication -> Keycloak : use refresh token to obtain new tokens
+' ' Keycloak -> MobileApplication : new Access token , new Refresh token , new ID token
+' ' MobileApplication -> nginx : API call with new Access token
+' @enduml

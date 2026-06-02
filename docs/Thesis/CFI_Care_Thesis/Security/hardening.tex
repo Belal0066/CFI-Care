@@ -7,7 +7,7 @@ These configurations form a multi-layered defense against common attack vectors.
 \subsection{Perimeter Firewall and System Access Plan}\label{sec:security-firewall}
 We placed an OPNsense perimeter firewall at the network edge, providing WAN and LAN interfaces and performing NAT for internal services. 
 The firewall enforces a minimal exposure policy: only HTTPS (443) is forwarded to the internal Nginx reverse proxy, 
-the management GUI is restricted to a dedicated management VLAN, and administrative access is additionally protected with MFA and off-host encrypted backups.
+the management GUI (Whose Main dashboard can be seen in Fig~\ref{fig:opnsense-lobby} ) is restricted to a dedicated management VLAN, and administrative access is additionally protected with MFA and off-host encrypted backups.
 This flow can be seen in Figure~\ref{fig:sys-access-plan} \newline
 
 \textbf{Operational controls:}
@@ -23,6 +23,13 @@ This flow can be seen in Figure~\ref{fig:sys-access-plan} \newline
     \includegraphics[width=0.95\linewidth]{Security/images/System-access-plan.png}
     \caption{System Access diagram}
     \label{fig:sys-access-plan}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{Security/images/Firewall Dashboard.png}
+    \caption{OPNsense Perimeter Administration Interface: Active validation environment mapping network interface distribution, load profiles, and system operational states.}
+    \label{fig:opnsense-lobby}
 \end{figure}
 
 \subsection{Infrastructure Security and Gateway Configuration}
@@ -81,8 +88,30 @@ Entries are stored in sorted sets with a 90-day retention policy. This structure
 
 \paragraph{Visualization}
 we integrated a lightweight observability stack composed of Prometheus (metrics), Grafana (visualisation), and Loki (log indexing). 
-Audit events retained in Redis are forwarded to Loki via the Loki push API, and displayed as ordered logs in its Grafana dashboard . 
-Prometheus scrapes application metrics exposed at specific endpoints and feeds its dashboard for real-time statistical analysis
+Audit events retained in Redis are forwarded to Loki via the Loki push API, and displayed as ordered logs in its Grafana dashboard (Seen in Fig~\ref{fig:audit-raw-streams}) . 
+Prometheus scrapes application metrics exposed at specific endpoints and feeds its dashboard for real-time statistical analysis (As seen in Fig~\ref{fig:audit-metrics})
+
+\begin{figure}[H]
+    \centering
+    % \begin{subfigure}[b]
+        \centering
+        \includegraphics[width=0.85\linewidth]{Security/images/audit/metrics.png}
+        \caption{Grafana Security Dashboard mapping runtime volumetric authorization metrics, credential access violations, and structural log alerts.}
+        \label{fig:audit-metrics}
+    % \end{subfigure}
+\end{figure}
+    \vspace{0.3cm}
+\begin{figure}[H] 
+    % \begin{subfigure}[b]
+        \centering
+        \includegraphics[width=0.85\linewidth]{Security/images/audit/logs.png}
+        \caption{Structured security log streams containing granular authorization events, runtime timestamps, and user identifiers.}
+        \label{fig:audit-raw-streams}
+    % \end{subfigure}
+    % \caption{Unified Security Audit Monitoring Framework: Aggregated telemetry validating system access trends and real-time transaction tracking.}
+    % \label{fig:grafana-audit-suite}
+\end{figure}
+
 
 \subsection{Container and Network Isolation}
 
