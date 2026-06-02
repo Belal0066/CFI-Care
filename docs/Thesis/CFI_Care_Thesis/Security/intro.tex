@@ -1,0 +1,73 @@
+\section{Introduction}\label{sec:security-intro}
+
+Healthcare information systems are primary targets for security breaches due to the high commercial value of Protected Health Information (PHI). 
+We addressed these risks by managing multi-layered security challenges, including web-based access, mobile authentication, sensitive patient consent delegation, and complex doctor-patient workflows. 
+Furthermore, the system maintains audit trails and supports real-time session revocation.
+
+Since traditional monolithic security models are insufficient for such a distributed system CFI-Care adopts a \textbf{Defense-in-Depth} strategy, leveraging industry standards such as \ac{OAuth} 2.0 and \ac{OIDC} with \ac{JWT}. 
+Security is enforced through distributed validation across the system firewall and the \ac{API} gateway (Nginx), and the \ac{BFF} layer, ensuring multiple checkpoints before data access.
+
+\section{Architecture Overview}\label{sec:security-architecture}
+
+The security architecture follows a layered model where each component provides a specialized validation check. 
+Figure~\ref{fig:security-components} illustrates the interaction between edge clients, the identity provider, and backend resources. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Security/images/components-ver.png}
+    \caption{Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (Nginx, OAuth2 proxy), Backend-for-Frontend (Node.js), Identity (Keycloak), Storage (Redis, Postgres), and Resource Server (HAPI FHIR).}
+    \label{fig:security-components}
+\end{figure}
+
+The following pillars define the implementation:
+
+\begin{itemize}
+    \item \textbf{Identity \& Access Management:} Keycloak serves as the central Identity Provider (IdP), issuing signed \acp{JWT}. 
+    Authentication pathways are structurally split by client type to optimize token security for both browser-based environments and native mobile deployments
+    \item \textbf{Transport \& Edge Security:} Nginx terminates TLS and enforces HTTPS-only communication. 
+    At the application layer, defensive browser headers and strict cookie policies are enforced at the BFF boundary to neutralize client-side vulnerability vectors.
+    \item \textbf{Distributed Validation:} Token integrity, scope claims, and patient-specific bindings are validated at the BFF layer before requests reach the resource storage, ensuring that the principle of least privilege is maintained.
+\end{itemize}
+
+% Healthcare information systems are prime targets for security breaches due to
+% the commercial value of protected health information (PHI) . CFI-Care platform
+% presents multi-layered challenges: securing web-based browser access, mobile
+% device authentication, sensitive patient consent grants, and doctor-patient
+% access workflows.Also maintaining audit trails is required and so is enabling
+% session revocation
+
+% Traditional monolithic security approaches are insufficient for this use case
+% Instead, we adopted a defense-in-depth strategy leveraging modern standards
+% (\ac{OAuth} 2.0/OIDC with \ac{JWT}) and distributed validation across the
+% \ac{API} gateway (nginx), backend-for-frontend (Node.js/BFF) and \ac{FHIR}
+% server for final checks before database access
+
+% The CFI-Care security architecture follows a defense-in-depth model with
+% multiple validation layers Figure~\ref{fig:security-components} provides an
+% overview of the security components and their interactions.Figures
+% \ref{fig:browser-tokens-flow}, \ref{fig:mobile-tokens-flow}, and
+% \ref{fig:token-flow-overview} illustrate the key authentication and
+% authorization flows across browser, mobile workflows, this section details the
+% design and implementation principles
+
+
+% \begin{figure}[H]
+%     \begin{center}
+%         \includegraphics[width=\linewidth]{Security/images/components-ver.png}
+%         \caption{Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (Nginx, OAuth2 proxy), Backend-for-Frontend (Node.js), Identity (Keycloak), Storage(Redis, Postgres) and Resource Server (HAPI FHIR) with their security-focused interactions.}
+%         \label{fig:security-components}
+%     \end{center}
+% \end{figure}
+
+% \paragraph{Identity \& Access (Keycloak + Tokens)}
+% OAuth 2.0/OIDC issues JWTs signed by Keycloak. Browser and mobile follow
+% different integration paths: browser via gateway-managed OIDC
+% (\texttt{oauth2-proxy} + nginx, Authorization Code + PKCE), mobile via
+% Authorization Code + PKCE in-app. Tokens include user identity, scopes, roles,
+% and claims.
+
+% \paragraph{Transport \& Edge (TLS + Headers)}
+% nginx terminates TLS, enforces HTTPS-only access, and sets forwarded headers.
+% The BFF applies Helmet security headers (CSP, HSTS, X-Frame-Options)
+
+
