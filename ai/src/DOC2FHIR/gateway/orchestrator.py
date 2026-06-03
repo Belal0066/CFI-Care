@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import logging
 import time
 import uuid
@@ -28,6 +29,45 @@ from .observability import StructuredLogger, record_job_error, record_job_metric
 from .repository import JobRepository, JobNotFoundError
 
 logger = logging.getLogger(__name__)
+
+
+def _hash_file(path: Path) -> str:
+    payload = path.read_bytes()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _to_instant(date_str: str | None) -> str | None:
+    if not date_str:
+        return None
+    if "T" in date_str:
+        return date_str
+    return f"{date_str}T00:00:00+00:00"
+
+
+def _add_cross_references(bundle: dict[str, Any]) -> None:
+    doc_ref_id = None
+    for entry in bundle.get("entry", []):
+        res = entry.get("resource", {})
+        if res.get("resourceType") == "DocumentReference":
+            doc_ref_id = res.get("id")
+            break
+    if not doc_ref_id:
+        return
+    ref = f"urn:uuid:{doc_ref_id}"
+    for entry in bundle.get("entry", []):
+        res = entry.get("resource", {})
+        rtype = res.get("resourceType")
+        if rtype == "Observation":
+            derived = res.setdefault("derivedFrom", [])
+            if not any(isinstance(r, dict) and r.get("reference") == ref for r in derived):
+                derived.append({"reference": ref})
+        elif rtype == "Composition":
+            relates = res.setdefault("relatesTo", [])
+            if not any(isinstance(r, dict) and r.get("type") == "transforms" for r in relates):
+                relates.append({
+                    "type": "transforms",
+                    "resourceReference": {"reference": ref},
+                })
 
 
 class ServerBusyError(RuntimeError):
@@ -154,6 +194,7 @@ class JobOrchestrator:
             )
 
             # Run Mapper or Structured pipeline stage with global GPU lock.
+            patient_id = (job.metadata or {}).get("patient_id")
             if self.settings.structured_pipeline_enabled:
                 fhir_output = await self._run_gpu_bound_stage(
                     job_id,
@@ -165,6 +206,7 @@ class JobOrchestrator:
                         job.upload_path,
                         job.filename,
                         log,
+                        patient_id=patient_id,
                     ),
                     log=log,
                 )
@@ -178,12 +220,32 @@ class JobOrchestrator:
                 )
             progress = 70.0
 
-            # Attach uploaded PDF as base64 to DocumentReference
+            # Extract composition info from bundle for DocumentReference enrichment
+            encounter_date = None
+            loinc_code = None
+            for entry in fhir_output["fhir_bundle"].get("entry", []):
+                res = entry.get("resource", {})
+                if res.get("resourceType") == "Composition":
+                    encounter_date = res.get("date")
+                    type_coding = res.get("type", {}).get("coding", [])
+                    if type_coding:
+                        loinc_code = type_coding[0].get("code")
+                    break
+
+            doc_hash = _hash_file(Path(job.upload_path))
             fhir_output["fhir_bundle"] = self._attach_pdf_to_bundle(
                 fhir_output["fhir_bundle"],
                 job.upload_path,
                 job.filename,
+                patient_id=patient_id,
+                doc_hash=doc_hash,
+                ocr_engine=self.settings.ocr_engine_name,
+                loinc_code=loinc_code,
+                encounter_date=encounter_date,
             )
+
+            # Post-process: add derivedFrom to Observations and relatesTo to Composition
+            _add_cross_references(fhir_output["fhir_bundle"])
 
             # Re-save modified bundle to disk so API result endpoint returns the complete bundle
             fhir_dir = self.settings.runtime_dir / "fhir_outputs"
@@ -460,6 +522,7 @@ class JobOrchestrator:
         upload_path: str,
         filename: str,
         log: StructuredLogger | None = None,
+        patient_id: str | None = None,
     ) -> dict[str, Any]:
         if log is None:
             log = StructuredLogger(logger, correlation_id=job_id)
@@ -503,6 +566,7 @@ class JobOrchestrator:
                 filename=filename,
                 ocr_engine=self.settings.ocr_engine_name,
                 model_version=self.settings.structured_model_name,
+                patient_id=patient_id,
             )
 
             runtime_dir = self.settings.runtime_dir
@@ -684,6 +748,11 @@ class JobOrchestrator:
         fhir_bundle: dict[str, Any],
         upload_path: str,
         filename: str,
+        patient_id: str | None = None,
+        doc_hash: str | None = None,
+        ocr_engine: str | None = None,
+        loinc_code: str | None = None,
+        encounter_date: str | None = None,
     ) -> dict[str, Any]:
         """Attach the uploaded PDF as base64 to a DocumentReference in the bundle.
 
@@ -695,6 +764,11 @@ class JobOrchestrator:
             fhir_bundle: FHIR R5 bundle dict
             upload_path: Path to the uploaded PDF file
             filename: Original filename for the title field
+            patient_id: External patient ID for subject reference
+            doc_hash: Document hash for identifier
+            ocr_engine: OCR engine name for author
+            loinc_code: LOINC code for type
+            encounter_date: Document date (instant)
 
         Returns:
             Modified FHIR bundle with PDF attached
@@ -719,26 +793,47 @@ class JobOrchestrator:
             b64_data = "".join(b64_data.split())
             file_size = len(raw_bytes)
 
-            doc_ref_entry: dict[str, Any] = {
-                "fullUrl": f"urn:uuid:{uuid.uuid4()}",
-                "resource": {
-                    "resourceType": "DocumentReference",
-                    "status": "current",
-                    "text": {
-                        "status": "generated",
-                        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Generated narrative for DocumentReference</div>",
-                    },
-                    "content": [
-                        {
-                            "attachment": {
-                                "contentType": "application/pdf",
-                                "data": b64_data,
-                                "size": str(file_size),
-                                "title": filename,
-                            }
-                        }
-                    ],
+            doc_ref_resource: dict[str, Any] = {
+                "resourceType": "DocumentReference",
+                "status": "current",
+                "docStatus": "final",
+                "text": {
+                    "status": "generated",
+                    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Generated narrative for DocumentReference</div>",
                 },
+                "description": "Scanned lab report processed via DOC2FHIR",
+                "content": [
+                    {
+                        "attachment": {
+                            "contentType": "application/pdf",
+                            "data": b64_data,
+                            "size": str(file_size),
+                            "title": filename,
+                            "creation": _to_instant(encounter_date) or datetime.now(timezone.utc).isoformat(),
+                        },
+                    }
+                ],
+            }
+            if loinc_code:
+                doc_ref_resource["type"] = {
+                    "coding": [{"system": "http://loinc.org", "code": loinc_code, "display": "Laboratory report"}],
+                }
+            if patient_id:
+                doc_ref_resource["subject"] = {"reference": f"Patient/{patient_id}"}
+            if encounter_date:
+                doc_ref_resource["date"] = _to_instant(encounter_date)
+            if ocr_engine:
+                doc_ref_resource["author"] = [{"display": ocr_engine}]
+            if doc_hash:
+                doc_ref_resource.setdefault("identifier", []).append(
+                    {"system": "http://cfi-care.ai/document-hash", "value": doc_hash},
+                )
+
+            doc_ref_uuid = str(uuid.uuid4())
+            doc_ref_resource["id"] = doc_ref_uuid
+            doc_ref_entry: dict[str, Any] = {
+                "fullUrl": f"urn:uuid:{doc_ref_uuid}",
+                "resource": doc_ref_resource,
                 "request": {
                     "method": "POST",
                     "url": "DocumentReference",
@@ -766,12 +861,36 @@ class JobOrchestrator:
                 for item in res["content"]:
                     if not isinstance(item, dict):
                         continue
-                    item.pop("format", None)
                     attachment = item.get("attachment")
                     if isinstance(attachment, dict) and is_valid_base64(attachment.get("data", "")):
                         cleaned_content.append(item)
                 cleaned_content.append(doc_ref_entry["resource"]["content"][0])
                 res["content"] = cleaned_content
+                # Enrich existing DocumentReference with metadata
+                if "docStatus" not in res:
+                    res["docStatus"] = "final"
+                if "type" not in res and loinc_code:
+                    res["type"] = {
+                        "coding": [{"system": "http://loinc.org", "code": loinc_code, "display": "Laboratory report"}],
+                    }
+                if "date" not in res and encounter_date:
+                    res["date"] = _to_instant(encounter_date)
+                if "author" not in res and ocr_engine:
+                    res["author"] = [{"display": ocr_engine}]
+                if "description" not in res:
+                    res["description"] = "Scanned lab report processed via DOC2FHIR"
+                if patient_id and "subject" not in res:
+                    res["subject"] = {"reference": f"Patient/{patient_id}"}
+                if doc_hash:
+                    existing_identifiers = res.setdefault("identifier", [])
+                    has_hash = any(
+                        ident.get("system") == "http://cfi-care.ai/document-hash"
+                        for ident in existing_identifiers
+                    )
+                    if not has_hash:
+                        existing_identifiers.append(
+                            {"system": "http://cfi-care.ai/document-hash", "value": doc_hash},
+                        )
                 logger.info("Injected PDF into existing DocumentReference entry at index %d", existing_doc_ref_idx)
             else:
                 entries.insert(0, doc_ref_entry)
