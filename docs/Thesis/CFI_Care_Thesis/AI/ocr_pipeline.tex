@@ -1,0 +1,36 @@
+\section{Medical Document Digitization: OCR and Layout Analysis}
+\label{sec:ocr_pipeline}
+
+The integration of legacy paper-based medical records and scanned clinical laboratory reports into modern digital health systems presents a significant interoperability challenge. This system leverages Vision-Language Models (VLMs) to effectively parse complex document as nested tables, irregular layouts, and specific medical units, thereby converting visual data into semi-structured, machine-readable formats (MarkDown).
+
+\subsection{System Architecture and Inference Backend}
+\label{subsec:ocr_backend}
+
+The digitization pipeline employs a decoupled architecture comprising an inference backend. The core visual intelligence is driven by the \texttt{PaddleOCR-VL-1.5-0.9B} model, hosted via an vLLM container.
+
+\begin{itemize}
+    \item \textbf{Model Selection:} The \texttt{PaddleOCR-VL-1.5-0.9B} model was selected due to its capabilities in unified document understanding and joint layout analysis. Unlike traditional OCR engines that merely extract text, this VLM preserves the semantic relationships between disparate text blocks, which is crucial for interpreting tabular clinical data.
+    \item \textbf{Hardware Optimization and Constraints:} To guarantee deployment feasibility and cost-effectiveness on consumer-grade hardware (specifically, 8GB VRAM GPUs), the following optimization and quantization techniques were strictly enforced:
+    \begin{itemize}
+        \item \textbf{Memory Management:} GPU memory utilization is capped at 70\%. This preemptive boundary mitigates Out-of-Memory (OOM) errors during peak inference loads, ensuring high system availability.
+        \item \textbf{Eager Execution:} The configuration \texttt{enforce\_eager=True} is applied to minimize computational overhead and latency on lower-tier hardware architectures unsuited for complex graph compilation.
+        \item \textbf{Context Window Constraints:} The maximum model sequence length is restricted to 4,096 tokens. This threshold achieves an optimal balance, providing sufficient context for processing standard medical documents while maintaining a manageable memory footprint.
+    \end{itemize}
+\end{itemize}
+
+\subsection{OCR Processing Pipeline}
+\label{subsec:ocr_processing}
+
+The document processing pipeline orchestrates the ingestion, structural analysis, and semantic extraction sequence through the following distinct stages:
+
+\begin{enumerate}
+    \item \textbf{Core Extraction and Layout Analysis:} The VLM performs simultaneous joint layout analysis and text recognition. This dual-action approach is vital in the clinical domain, allowing the system to accurately identify hierarchical table boundaries, associate patient values with corresponding reference ranges, and accurately capture specialized medical units (e.g., mg/dL, mmol/L).
+    \item \textbf{Standardized Output Generation:} The pipeline's terminal stage constructs a high-fidelity Markdown representation. Rather than outputting a disjointed string of text, the Markdown format preserves the document's original human-readable structure, crucially retaining reconstructed tables and formatting. This structural preservation is a prerequisite for the downstream LLM-based data mapper.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{AI/OCR-FHIR_Mapper.png}
+    \caption{OCR to HL7 FHIR Transformation Architecture}
+    \label{fig:OCR-FHIR_Mapper}
+\end{figure}

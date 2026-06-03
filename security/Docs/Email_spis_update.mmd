@@ -1,0 +1,11 @@
+flowchart 
+  subgraph N["New"]
+    direction TB
+    N1["Email code"] --> N2["Validate code"] --> N3["Continue registration"]
+  end
+  
+  subgraph O["Old"]
+    direction TB
+    O1["Email link"] --> O2["Auto session"]
+  end
+

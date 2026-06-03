@@ -1,4 +1,3 @@
-
 \chapter{AI System}
 \label{chap:AI}
 
@@ -99,11 +98,15 @@ The system rejects the standard "fixed-size chunking" strategy in favor of \text
     \item \textbf{Semantic Indexing:} All nodes are embedded using \textbf{ModernPubMedBERT}, a domain-specific transformer fine-tuned on biomedical literature, ensuring that "Renal Failure" and "High Creatinine" map to the same vector space.
 \end{itemize}
 
+\input{AI/ocr_pipeline.tex}
+\input{AI/data_mapper.tex}
+\input{AI/ocr_mapper_testing.tex}
+
 \subsection{Generation, Reasoning \& Agentic Workflow}
 The core logic is governed by a \textbf{LangGraph} state machine.
 \begin{itemize}
     \item \textbf{Bounded Reasoning:} The \texttt{MedGemma 1.5} model is prompted with a strict "closed-world" assumption. It must answer solely based on the retrieved TOON context.
-    \item \textbf{Agentic Handoff (MCP):} If the \texttt{IntentClassifier} detects a query requiring general medical knowledge (e.g., "What are the guidelines for treatment?"), the system triggers the \texttt{mcp\_search} node. This effectively separates "Patient Memory" (Local RAG) from "Medical Knowledge" (eg, PubMed), preventing the hallucination of non-existent details.
+    \item \textbf{Agentic Handoff (MCP):} If the \texttt{IntentClassifier} detects a query requiring general medical knowledge (e.g., "What are the guidelines for treatment?"), the system triggers the \texttt{mcp\_search} node. This effectively separates "Patient Memory" (RAG) from "Medical Knowledge" (eg, PubMed), preventing the hallucination of non-existent details.
 \end{itemize}
 
 \subsection{Architectural Diagrams}
@@ -112,8 +115,8 @@ The core logic is governed by a \textbf{LangGraph} state machine.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{AI/High-Level-Architecture.png}
-    \caption{\textbf{High-Level System Architecture.} The flow connects the Streamlit UI to the FastAPI backend, which orchestrates the LangGraph agent. The agent routes between the Local RAG pipeline (Ingestion $\rightarrow$ Qdrant $\rightarrow$ MedGemma) and the External MCP Tools (eg. PubMed Access) based on query classification.}
-    \label{fig:high_level_arch}
+    \caption{\textbf{High-Level System Architecture.} The flow connects the Streamlit UI to the FastAPI backend, which orchestrates the LangGraph agent. The agent routes between the RAG pipeline (Ingestion $\rightarrow$ Qdrant $\rightarrow$ MedGemma) and the External MCP Tools (eg. PubMed Access) based on query classification.}
+    \label{fig:high_lev_arch}
 \end{figure}
 
 \begin{figure}[H]
@@ -131,24 +134,24 @@ The core logic is governed by a \textbf{LangGraph} state machine.
 \end{figure}
 
 \subsection{Evidence Grounding \& Citation Enforcement}
-To ensure auditability, the system enforces a strict citation protocol. Every generated claim must reference a \texttt{Node ID} from the vector store. The post-processor verifies that every sentence in the final output contains a valid pointer (e.g., \texttt{[Enc-123]}) to a source document, otherwise flagging the response as "Unverified."
+To ensure auditability, the system enforces a strict citation protocol. Every generated claim must reference a from the vector store.
 
 % --- Section 5: Use Cases ---
 \section{Use Cases \& Clinical Scenarios}
 \label{sec:use_cases}
 
-The practical utility of the MedGemma framework is demonstrated through its ability to synthesize complex patient histories and provide evidence-based diagnostic support. The following scenarios illustrate the system's performance in real-world clinical workflows.
+The practical utility of the MedGemma framework is demonstrated through its ability to synthesize complex patient histories and provide diagnostic support. The following scenarios illustrate the system's performance in real-world clinical workflows.
 
 \subsection{Clinical Synthesis and Retrieval-Augmented Generation}
 
-demonstrates the system's capability to generate a longitudinal summary of a patient's clinical course. By utilizing a \textbf{Local RAG (Retrieval-Augmented Generation)} architecture, the model parses data across multiple encounters—in this case, ten distinct interactions between December 1 and December 21, 2025. 
+demonstrates the system's capability to generate a longitudinal summary of a patient's clinical course. By utilizing a \textbf{RAG (Retrieval-Augmented Generation)} architecture, the model parses data across multiple encounters—in this case, ten distinct interactions between December 1 and December 21, 2025. 
 
 The system successfully identifies the primary diagnosis of \textit{Mycoplasma Pneumonia} and synthesizes critical safety information, such as the patient's allergy to the penicillin class (Amoxicillin). Notably, the interface provides \textbf{Verification Sources}, allowing clinicians to trace summarized points back to specific encounter IDs, ensuring transparency and reducing the risk of model hallucinations.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{AI/Summarize-Patient-Encounters.png}
-    \caption{AI-generated longitudinal patient summary utilizing Local RAG to synthesize data from 10 distinct clinical encounters.}
+    \caption{AI-generated longitudinal patient summary utilizing RAG to synthesize data from 10 distinct clinical encounters.}
     \label{fig:summarize_encounters}
 \end{figure}
 
@@ -181,7 +184,7 @@ The system's utility extends beyond the individual patient record through its in
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{AI/MedMCP.jpeg}
-    \caption{Interface of the MedMCP system demonstrating a Local RAG (Retrieval-Augmented Generation) response. The output includes synthesized clinical guidelines supported by specific evidence sources and PMIDs.}
+    \caption{Interface of the MedMCP system demonstrating a RAG (Retrieval-Augmented Generation) response. The output includes synthesized clinical guidelines supported by specific evidence sources and PMIDs.}
     \label{fig:medmcp_rag_interface}
 \end{figure}
 

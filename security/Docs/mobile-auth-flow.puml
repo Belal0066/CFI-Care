@@ -1,0 +1,47 @@
+@startuml Mobile Native OIDC Authentication Flow
+autonumber
+skinparam actorStyle AWESOME
+
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Patient User" as User
+box "Mobile Client Layer" #F4F9FF
+    participant "Flutter App Context" as App
+    participant "Secure Keystore" as Storage
+end box
+
+box "Edge Gateway Boundary" #FFFDF0
+    participant "Nginx Gateway" as Nginx
+end box
+
+box "Identity & Backend Core" #FAFAFA
+    participant "Keycloak IdP" as KC
+    participant "Node.js BFF" as BFF
+end box
+
+== 1. Native AppAuth OIDC Flow ==
+User -> App : Open Application while unauthenticated
+App -> App : Instruction System Entropy Generation\n(Derive Cryptographic code_verifier + code_challenge)
+App -> KC : Browser Launch (Challenge + OIDC Metadata)
+
+alt AppAuth Session Missing / Invalid
+    User <-> KC : Present Credentials + Resolve Multi-Factor Challenge
+    KC -> KC : Verify Identity & Generate Auth Code
+end
+
+KC --> App : Emit Redirect Deep Link containing Secure Authorization Code
+App -> KC : Backchannel Exchange (POST /token + Code + Verifier)
+KC -> KC : Validate Code Verification Proof
+KC --> App : Return Signed Token Payload
+App -> Storage : Write Tokens to Hardware Isolation Layer
+
+' == 2. Post-Auth Context Verification ==
+' App -> Storage : Read Access Token
+' ' App -> Nginx : GET /auth/me (Authorization: Bearer <Access_Token>)
+' Nginx -> BFF : Forward Request with Bearer Token
+' BFF -> BFF : Parse & Validate JWT \n (iss, aud, RS256)
+' BFF --> Nginx : Return Resource JSON
+' Nginx --> App : Forward 200 OK Context Response
+' App -> User : Keep user signed in
+@enduml

@@ -1,0 +1,39 @@
+\subsection{OCR-Mapper Pipeline Verification}
+\label{sec:ai_testing}
+
+The document-to-FHIR pipeline converts unstructured, scanned clinical reports into interoperable, schema-validated HL7 FHIR R5 transaction bundles.
+
+\textbf{Test Architecture.}
+The verification framework is organized into three distinct suites:
+\begin{itemize}
+    \item \textbf{Quality Evaluations (35 tests):} \texttt{test\_reconciliation\_loop.py} (22 tests) verifies token preservation from raw OCR through to structured JSON. \texttt{test\_llm\_reasoning.py} (13 tests) verifies the LLM's chain-of-thought reasoning before deterministic code mapping.
+    \item \textbf{Gateway Integration (15 tests):} \texttt{test\_gpu\_contention.py} (6 tests) evaluates queue bounds and GPU lock timeouts. \texttt{test\_dead\_letter.py} (6 tests) verifies retry logic and dead letter storage. \texttt{test\_sqlite\_wal.py} (3 tests) validates multi-thread concurrency under high load.
+    \item \textbf{Standards Compliance (6 tests):} \texttt{test\_standards\_compliance.py} enforces HL7 FHIR R5 structural rules, bundle separation, primitive type casting, and reference graph verification.
+\end{itemize}
+
+\textbf{Evaluation Metrics.}
+Extraction accuracy is measured without human-annotated datasets by treating the raw OCR string as the source of truth ($S$) and extracted FHIR resource paths as the target ($T$). Precision, Recall, and $F_1$ are computed as:
+
+\[
+P = \frac{TP}{TP + FP},\quad
+R = \frac{TP}{TP + FN},\quad
+F_1 = 2\cdot\frac{P \cdot R}{P + R}
+\]
+
+\textbf{Test Scenarios.}
+Three scenarios simulate varying degrees of text distortion:
+\begin{enumerate}
+    \item \textbf{Clean Clinical Data:} A synthetic string with 4 observation entries. 
+    \item \textbf{Sample Pipeline Output:} A realistic string with demographics and 5 clinical observations.
+    \item \textbf{Real Pipeline Mock:} A production object mixed with HTML, markdown, and metadata.
+\end{enumerate}
+
+
+
+\paragraph{Quality Metrics.}
+Scenarios 1 and 2 achieved perfect data preservation (100\% precision, recall, and $F_1$). Scenario 3 achieved 84.21\% precision with only 3 false positives out of 19 extracted tokens, confirming the Gemma-4 4B model introduces minimal hallucination.
+
+\paragraph{Operational Resilience.}
+The gateway correctly rejects traffic beyond a 32-slot queue capacity (HTTP 503). Single-GPU semaphore locks time out after the configured interval. Downstream failures trigger 3 retry attempts with exponential backoff (1s, 2s, 4s) and safe write to \texttt{.gateway\_runtime/dead\_letters/}. The SQLite database handled 600+ concurrent WAL operations without a single lock failure.
+
+

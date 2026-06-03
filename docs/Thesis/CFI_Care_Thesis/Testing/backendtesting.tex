@@ -56,8 +56,10 @@ invalid-category rejection.
 \begin{figure}[h]
     \centering
     \begin{tikzpicture}[
-            node distance=1.6cm and 2.0cm,
-            every node/.style={rectangle, rounded corners, draw=black!70, fill=blue!4, align=center, font=\small, minimum width=2.6cm},
+            scale=0.82,
+            transform shape,
+            node distance=1.2cm and 1.3cm,
+            every node/.style={rectangle, rounded corners, draw=black!70, fill=blue!4, align=center, font=\small, minimum width=2.1cm},
             arrow/.style={-Latex, thick, draw=black!70}
         ]
         \usetikzlibrary{positioning}
@@ -74,7 +76,7 @@ invalid-category rejection.
         \node[above=0.9cm of p2, font=\small\bfseries, draw=none, fill=none] {patient-workflow.e2e (Pass)};
 
         % History graph workflow
-        \node[below=2.2cm of p1] (h1) {Init\newline Graph/EOC};
+        \node[below=1.8cm of p1] (h1) {Init\newline Graph/EOC};
         \node[right=of h1] (h2) {Head\newline Node};
         \node[right=of h2] (h3) {Add/Update\newline Nodes};
         \node[right=of h3] (h4) {Branching\newline Verified};
@@ -177,4 +179,3 @@ summarize the principal suites and their last known status.
           scenarios but lacks assertions; adding those will close coverage on graph
           business logic.
 \end{itemize}
-
