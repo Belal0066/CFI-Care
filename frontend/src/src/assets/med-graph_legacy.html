@@ -9,6 +9,7 @@
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -3300,6 +3301,8 @@ container.selectAll(".timeline-link-hitbox")
         setTimeout(applyStandardClickBehavior, 50);
       }
       window._renderCategoricalGraph = renderCategoricalGraph;
+      window._getCurrentMode = () => currentMode;
+      window._setCategoricalMode = () => { currentMode = 'categorical'; };
 
 
       function applyCategoricalFilters() {
@@ -4100,6 +4103,12 @@ container.selectAll(".timeline-link-hitbox")
   //       window._tutorialLaunched = true;
   //       setTimeout(startTutorial, 800);
   //     }
+
+      // Fire deferred tutorial welcome prompt once graph is ready
+      if (typeof window._tutorialOnGraphReady === 'function') {
+        setTimeout(window._tutorialOnGraphReady, 500);
+        window._tutorialOnGraphReady = null;
+      }
     } // End of initializeGraph function
 
 
@@ -4248,7 +4257,17 @@ container.selectAll(".timeline-link-hitbox")
       title: '<i class="bi bi-clock-history"></i> Switch to Chronological view',
       body: "Click <strong>Chronological</strong> in the toggle to continue — events will lay out on a timeline.",
       cardPos: "below-element", highlight: ".toggle-group",
-      onEnter: () => { clearPulse(); },
+      onEnter: () => {
+        clearPulse();
+        // On back-navigation the view may already be chronological — revert it so
+        // the user can actually perform the switch action again.
+        if (typeof window._getCurrentMode === 'function' && window._getCurrentMode() === 'chronological') {
+          document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+          document.querySelector(".toggle-btn")?.classList.add("active");
+          if (typeof window._setCategoricalMode === 'function') window._setCategoricalMode();
+          if (typeof refreshGraph === 'function') refreshGraph();
+        }
+      },
       allowClicks: true,
       allowModeChange: true,   // ONLY step where mode change is allowed
       waitForChrono: true      // advance only after chrono mode is active
@@ -4518,7 +4537,12 @@ container.selectAll(".timeline-link-hitbox")
     const realRootId = realRoot ? realRoot.id : "t1";
 
     data.length = 0;
-    if (realRoot) data.push(JSON.parse(JSON.stringify(realRoot)));
+    if (realRoot) {
+      data.push(JSON.parse(JSON.stringify(realRoot)));
+    } else {
+      // No real root — push the demo root so the tree has a valid anchor
+      data.push(JSON.parse(JSON.stringify(DEMO_DATA.find(n => n.id === "t1"))));
+    }
 
     DEMO_DATA.forEach(n => {
       if (n.id === "t1") return;
@@ -4543,7 +4567,13 @@ container.selectAll(".timeline-link-hitbox")
     document.getElementById('darkModeToggle').style.display = 'flex';
     document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
     document.querySelector(".toggle-btn")?.classList.add("active");
-    if (typeof refreshGraph === 'function') refreshGraph();
+    if (typeof window._setCategoricalMode === 'function') window._setCategoricalMode();
+    const hasRealData = data.filter(d => !d.isVirtualRoot).length > 0;
+    if (hasRealData && typeof window._renderCategoricalGraph === 'function') {
+      window._renderCategoricalGraph();
+    } else if (typeof refreshGraph === 'function') {
+      refreshGraph();
+    }
   }
 
   // ─── RENDER STEP ──────────────────────────────────────────────────────────────
@@ -4661,6 +4691,7 @@ container.selectAll(".timeline-link-hitbox")
   // ─── START / END ──────────────────────────────────────────────────────────────
 
   function doStartTutorial() {
+    if (!graphInitialized) return; // graph not ready yet — avoid crash on undefined data
     tutActive = true;
     tutStep = 0;
     saveAndLoadDemo();
@@ -4703,7 +4734,6 @@ container.selectAll(".timeline-link-hitbox")
       filter: drop-shadow(0 0 8px #3B82F6) drop-shadow(0 0 16px #3B82F6) !important;
     }
     #tutorialCard { z-index: 2002 !important; }
-    #tut-interaction-blocker { z-index: 1999 !important; }
     #tut-interaction-blocker { z-index: 1999 !important; }
     /* Keep tutorial card always on top of blocker */
     #tutorialCard { pointer-events: all !important; }
@@ -4755,9 +4785,14 @@ container.selectAll(".timeline-link-hitbox")
     doStartTutorial();
   };
 
-  if (!localStorage.getItem("medflow_tutorial_done")) {
-    setTimeout(showWelcomePrompt, 900);
-  }
+  // Register a hook so initializeGraph fires the welcome prompt once data is ready,
+  // preventing a crash when the ? button or auto-launch fires before INIT_GRAPH arrives.
+  window._tutorialOnGraphReady = function () {
+    if (!localStorage.getItem("medflow_tutorial_done")) {
+      showWelcomePrompt();
+    }
+    window._tutorialOnGraphReady = null;
+  };
 
 })();
   </script>

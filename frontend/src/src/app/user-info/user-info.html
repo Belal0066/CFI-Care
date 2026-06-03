@@ -64,7 +64,8 @@
                 </div>
               </div>
 
-              <button (click)="openMedFlowGraph()" class="btn btn-primary btn-md graph-btn ms-3">
+              <button *ngIf="patientDetails.episodes && patientDetails.episodes.length > 0"
+                      (click)="openMedFlowGraph()" class="btn btn-primary btn-md graph-btn ms-3">
                 Open History Graph <i class="bi bi-box-arrow-up-right ms-2"></i>
               </button>
             </div>
