@@ -9,6 +9,7 @@ workflows:
     environment:
       groups:
         - gitcrypt_vars
+        - firebase_vars
     
     triggering:
       events:
@@ -30,6 +31,10 @@ workflows:
           cd $CM_BUILD_DIR
           git-crypt unlock /tmp/git-crypt-key.key
           
+      - name: Inject GoogleService-Info.plist
+        script: |
+          echo $GOOGLE_SERVICE_INFO_IOS | base64 --decode > ios/Runner/GoogleService-Info.plist
+
       - name: Get Flutter packages
         script: flutter pub get
         
