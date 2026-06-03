@@ -135,6 +135,7 @@ class StructuredPipeline:
         filename: str,
         ocr_engine: str,
         model_version: str,
+        patient_id: str | None = None,
     ) -> StructuredPipelineOutput:
         normalized = normalize_ocr_output(ocr_text, layouts)
         try:
@@ -165,11 +166,15 @@ class StructuredPipeline:
             ocr_engine=ocr_engine,
             model_version=model_version,
             encounter_date=extraction.encounter.date if extraction.encounter else None,
+            patient_id=patient_id,
         )
 
         resources = map_to_fhir(extraction, ctx)
-        patient_id, encounter_id = _extract_ids(resources)
-        resolver = ReferenceResolver(patient_id, encounter_id)
+        if patient_id:
+            resolver = ReferenceResolver(patient_id, None, external_patient_id=patient_id)
+        else:
+            pid, encounter_id = _extract_ids(resources)
+            resolver = ReferenceResolver(pid, encounter_id)
         resources = resolver.apply(resources)
 
         resources = [self.terminology.enrich_condition(r) for r in resources]
@@ -177,7 +182,7 @@ class StructuredPipeline:
         provenance = build_provenance(resources, doc_hash, ocr_engine, model_version)
         resources.extend(provenance)
 
-        bundle = resolver.to_bundle(resources)
+        bundle = resolver.to_bundle(resources, should_skip_patient=bool(patient_id))
         basic = _unmapped_sections_basic_resource(extraction.unmapped_sections)
         if basic:
             basic_uuid = str(uuid.uuid4())

@@ -41,6 +41,7 @@ class PatientInfo(BaseModel):
     name: Optional[str] = None
     dob: Optional[str] = None
     gender: Optional[str] = None
+    patient_id: Optional[str] = None
 
 
 class EncounterInfo(BaseModel):
