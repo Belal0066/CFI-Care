@@ -4,18 +4,39 @@ $RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 
 Write-Host "Starting container launcher (PowerShell-native)..."
 
-# LOCAL_HOSTNAME fallback (first non-loopback IPv4)
-if (-not $env:LOCAL_HOSTNAME) {
+# Always detect the real LAN IP — never use a cached value.
+# Priority 1: physical Wi-Fi or Ethernet adapter (excludes WSL2/Hyper-V/Docker virtual adapters).
+# Priority 2: default network route.
+# Priority 3: first non-loopback, non-APIPA, non-172 IP.
+$ip = $null
+
+$ip = (Get-NetIPAddress -AddressFamily IPv4 -Type Unicast -ErrorAction SilentlyContinue |
+  Where-Object { $_.IPAddress -notmatch "^127\." -and $_.IPAddress -notmatch "^169\.254\." } |
+  Where-Object {
+    $adp = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex -ErrorAction SilentlyContinue
+    # PhysicalMediaType identifies real hardware: 802.3 = Ethernet, Native 802.11 = WiFi
+    $adp -and ($adp.PhysicalMediaType -eq "802.3" -or $adp.PhysicalMediaType -eq "Native 802.11")
+  } | Select-Object -ExpandProperty IPAddress -First 1)
+
+if (-not $ip) {
   try {
-    $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
-      Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -ne '127.0.0.1' } |
-      Select-Object -ExpandProperty IPAddress -First 1)
-  }
-  catch {
-    $ip = '127.0.0.1'
-  }
-  $env:LOCAL_HOSTNAME = $ip
+    $route = Get-NetRoute -DestinationPrefix "0.0.0.0/0" -ErrorAction Stop |
+      Sort-Object RouteMetric | Select-Object -First 1
+    $ip = (Get-NetIPAddress -InterfaceIndex $route.InterfaceIndex `
+      -AddressFamily IPv4 -Type Unicast -ErrorAction Stop).IPAddress | Select-Object -First 1
+  } catch {}
 }
+
+if (-not $ip) {
+  $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.IPAddress -notmatch "^127\." -and
+      $_.IPAddress -notmatch "^169\.254\." -and
+      $_.IPAddress -notmatch "^172\."
+    } | Select-Object -ExpandProperty IPAddress -First 1)
+}
+
+$env:LOCAL_HOSTNAME = if ($ip) { $ip } else { '127.0.0.1' }
 Write-Host "LOCAL_HOSTNAME=$env:LOCAL_HOSTNAME"
 
 # Simple template substitution for ${LOCAL_HOSTNAME}

@@ -91,7 +91,7 @@
         </div>
 
         <div class="bubble-wrap">
-          <p *ngIf="msg.text" [class.error]="msg.type === 'error'">{{ msg.text }}</p>
+          <p *ngIf="msg.text || msg.isStreaming" [class.error]="msg.type === 'error'">{{ msg.text }}<span *ngIf="msg.isStreaming" class="typing-cursor">▍</span></p>
 
           <div class="bubble-files" *ngIf="msg.files && msg.files.length">
             <div class="bubble-file-item" *ngFor="let f of msg.files">
@@ -103,7 +103,7 @@
           </div>
 
           <!-- AI message action toolbar -->
-          <div class="msg-actions" *ngIf="msg.type === 'incoming' && msg.text !== 'Analyzing…'">
+          <div class="msg-actions" *ngIf="msg.type === 'incoming' && !msg.isStreaming">
 
             <!-- Like / Dislike -->
             <button class="act-btn" [class.liked]="msg.liked === true"

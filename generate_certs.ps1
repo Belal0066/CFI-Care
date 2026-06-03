@@ -4,13 +4,27 @@ $ErrorActionPreference = 'Stop'
 # 1. Set the target directory for certificates
 $certDir = Join-Path $PSScriptRoot "security\Containers\certs"
 
-# Dynamically grab the local IP address (equivalent to hostname -I)
-# Looks for the first IPv4 address that isn't a loopback or APIPA address
+# Dynamically grab the laptop's real LAN IP via the default network route.
+# This avoids picking up WSL2 / Hyper-V / Docker virtual adapter IPs (172.x.x.x).
 $localHostname = $env:LOCAL_HOSTNAME
 if ([string]::IsNullOrWhiteSpace($localHostname)) {
-    $localHostname = (Get-NetIPAddress -AddressFamily IPv4 -Type Unicast | Where-Object { 
-            $_.IPAddress -notmatch "^127\." -and $_.IPAddress -notmatch "^169\.254\." 
+    $defaultRoute = Get-NetRoute -DestinationPrefix "0.0.0.0/0" -ErrorAction SilentlyContinue |
+        Sort-Object RouteMetric | Select-Object -First 1
+
+    if ($defaultRoute) {
+        $localHostname = (Get-NetIPAddress -InterfaceIndex $defaultRoute.InterfaceIndex `
+            -AddressFamily IPv4 -Type Unicast -ErrorAction SilentlyContinue).IPAddress |
+            Select-Object -First 1
+    }
+
+    # Fallback: pick first non-loopback, non-APIPA, non-virtual IP
+    if ([string]::IsNullOrWhiteSpace($localHostname)) {
+        $localHostname = (Get-NetIPAddress -AddressFamily IPv4 -Type Unicast | Where-Object {
+            $_.IPAddress -notmatch "^127\."    -and   # loopback
+            $_.IPAddress -notmatch "^169\.254\." -and  # APIPA
+            $_.IPAddress -notmatch "^172\."            # WSL2 / Hyper-V / Docker
         }).IPAddress | Select-Object -First 1
+    }
 }
 
 Write-Host "--- Starting Certificate Generation ---" -ForegroundColor Cyan
