@@ -5,3 +5,6 @@
 .env.test
 
 *.pem
+*_protocol.md
+ai/reports/*
+ai/pytest.ini

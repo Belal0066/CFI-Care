@@ -28,6 +28,7 @@ class MappingContext:
     ocr_engine: str
     model_version: str
     encounter_date: Optional[str] = None
+    patient_id: Optional[str] = None
 
 
 def _stable_id(resource_type: str, content_key: str) -> str:
@@ -319,6 +320,15 @@ INTERPRETATION_CODES: dict[str, str] = {
     "critically high": "HH",
 }
 
+INTERPRETATION_DISPLAY: dict[str, str] = {
+    "L": "Low",
+    "H": "High",
+    "N": "Normal",
+    "A": "Abnormal",
+    "LL": "Critically Low",
+    "HH": "Critically High",
+}
+
 
 def _map_observation(item: ObservationItem, ctx: MappingContext) -> dict[str, Any]:
     content_key = f"{item.name}:{item.value}:{item.unit}:{ctx.document_hash}"
@@ -346,6 +356,8 @@ def _map_observation(item: ObservationItem, ctx: MappingContext) -> dict[str, An
         resource["effectiveDateTime"] = date_val
     if value:
         if "unit" in value:
+            value["system"] = "http://unitsofmeasure.org"
+            value["code"] = value["unit"]
             resource["valueQuantity"] = value
         else:
             resource["valueString"] = str(value["value"])
@@ -353,16 +365,14 @@ def _map_observation(item: ObservationItem, ctx: MappingContext) -> dict[str, An
     if item.interpretation:
         norm = item.interpretation.strip().lower()
         code = INTERPRETATION_CODES.get(norm, item.interpretation.strip().upper()[:2])
-        resource["interpretation"] = [
-            {
-                "coding": [
-                    {
-                        "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
-                        "code": code,
-                    }
-                ]
-            }
-        ]
+        display = INTERPRETATION_DISPLAY.get(code)
+        coding: dict[str, Any] = {
+            "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+            "code": code,
+        }
+        if display:
+            coding["display"] = display
+        resource["interpretation"] = [{"coding": [coding]}]
 
     if item.reference_range_low is not None or item.reference_range_high is not None:
         rr: dict[str, Any] = {}
@@ -447,6 +457,7 @@ def _map_composition(
     doc_type: DocumentType,
     patient_id: str,
     encounter_date: str | None = None,
+    observation_ids: list[str] | None = None,
 ) -> dict[str, Any] | None:
     if not document_summary:
         return None
@@ -456,6 +467,16 @@ def _map_composition(
 
     content_key = f"Composition:{summary}:{patient_id}"
     res_id = _stable_id("Composition", content_key)
+
+    section: dict[str, Any] = {
+        "title": "Summary",
+        "text": {
+            "status": "generated",
+            "div": f"<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>{summary}</p></div>",
+        },
+    }
+    if observation_ids:
+        section["entry"] = [{"reference": f"urn:uuid:{oid}"} for oid in observation_ids]
 
     return {
         "resourceType": "Composition",
@@ -470,15 +491,7 @@ def _map_composition(
         "date": _normalize_date(encounter_date) or str(date.today()),
         "subject": [{"reference": f"urn:uuid:{patient_id}"}],
         "author": [{"reference": f"urn:uuid:{patient_id}"}],
-        "section": [
-            {
-                "title": "Summary",
-                "text": {
-                    "status": "generated",
-                    "div": f"<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>{summary}</p></div>",
-                },
-            }
-        ],
+        "section": [section],
         "extension": _confidence_extension(1.0),
     }
 
@@ -490,20 +503,23 @@ def map_to_fhir(intermediate: IntermediateExtraction, ctx: MappingContext) -> li
     patient_name = patient.name or ""
     patient_dob = patient.dob or ""
     patient_gender = patient.gender or ""
-    patient_key = f"{patient_name}:{patient_dob}:{patient_gender}:{ctx.document_hash}"
-    patient_id = _stable_id("Patient", patient_key)
-    patient_resource = {
-        "resourceType": "Patient",
-        "id": patient_id,
-        "text": _narrative("Patient", patient_name),
-        "name": [_clean_patient_name(patient_name)],
-    }
-    normalized_gender = _normalize_gender(patient_gender)
-    if normalized_gender:
-        patient_resource["gender"] = normalized_gender
-    if patient_dob:
-        patient_resource["birthDate"] = patient_dob
-    resources.append(patient_resource)
+    if ctx.patient_id:
+        patient_id = ctx.patient_id
+    else:
+        patient_key = f"{patient_name}:{patient_dob}:{patient_gender}:{ctx.document_hash}"
+        patient_id = _stable_id("Patient", patient_key)
+        patient_resource = {
+            "resourceType": "Patient",
+            "id": patient_id,
+            "text": _narrative("Patient", patient_name),
+            "name": [_clean_patient_name(patient_name)],
+        }
+        normalized_gender = _normalize_gender(patient_gender)
+        if normalized_gender:
+            patient_resource["gender"] = normalized_gender
+        if patient_dob:
+            patient_resource["birthDate"] = patient_dob
+        resources.append(patient_resource)
 
     for cond in intermediate.conditions:
         resources.append(_map_condition(cond, ctx))
@@ -541,6 +557,7 @@ def map_to_fhir(intermediate: IntermediateExtraction, ctx: MappingContext) -> li
         intermediate.document_type,
         patient_id,
         intermediate.encounter.date if intermediate.encounter else None,
+        observation_ids=obs_ids or None,
     )
     if composition:
         resources.append(composition)
