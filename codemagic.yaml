@@ -1,0 +1,49 @@
+workflows:
+  flutter-monorepo-workflow:
+    name: Flutter App Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    
+    working_directory: mobile/src
+    
+    environment:
+      groups:
+        - gitcrypt_vars
+    
+    triggering:
+      events:
+        - push
+        - pull_request
+      cancel_previous_builds: true
+      
+    when:
+      changeset:
+        includes:
+          - 'mobile/src/**'
+            
+    scripts:
+      - name: Unlock git-crypt
+        script: |
+          set -e
+          brew install git-crypt
+          echo $GIT_CRYPT_KEY | base64 --decode > /tmp/git-crypt-key.key
+          cd $CM_BUILD_DIR
+          git-crypt unlock /tmp/git-crypt-key.key
+          
+      - name: Get Flutter packages
+        script: flutter pub get
+        
+      - name: Build Unsigned iOS App
+        script: flutter build ios --release --no-codesign --dart-define-from-file=env/dev_env.json
+        
+      # ADDED: Manually package the .app into an .ipa file
+      - name: Package into IPA
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          mv Runner.app Payload/
+          zip -qr CFICare-unsigned.ipa Payload
+          
+    artifacts:
+      # CHANGED: Tell Codemagic to grab our custom generated .ipa
+      - build/ios/iphoneos/*.ipa
