@@ -45,13 +45,37 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>192.168.1.32</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>CFI-Care requires camera access to scan medical documents.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CFI-Care requires microphone access for video recording.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CFI-Care requires photo library access to upload existing medical documents.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>CFI-Care requires permission to save documents to your photo library.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>CFI-Care needs to read health data to display your vitals.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>CFI-Care needs to write health data to update your vitals.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
