@@ -1,0 +1,57 @@
+@startuml Browser OIDC Authentication Flow
+autonumber
+skinparam actorStyle AWESOME
+
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Practitioner" as User
+box "Client Side" #F4F9FF
+    participant "Browser / UI" as Browser
+    participant "Angular Core" as Angular
+end box
+
+box "Edge Gateway Boundary" #FFFDF0
+    participant "Nginx Gateway" as Nginx
+    participant "oauth2-proxy" as Proxy
+end box
+
+box "Identity & Backend Core" #FAFAFA
+    participant "Keycloak IdP" as KC
+    participant "Node.js BFF" as BFF
+    participant "Redis Session" as Redis
+end box
+
+== 1. Gateway-Mediated OIDC Flow ==
+User -> Browser : Access Practitioner Dashboard
+Browser -> Angular : Route Initialization
+Angular -> Nginx : GET /api/dashboard (Request UI/Data assets)
+Nginx -> Proxy : Verify Edge Session Cookie
+
+alt Edge Session Missing / Invalid
+    Proxy --> Nginx : 401 Unauthorized / Redirect
+    Nginx --> Browser : HTTP 302 Redirect to Keycloak Auth URL
+    Browser -> KC : GET /auth (With PKCE Challenge & Client ID)
+    User <-> KC : Present Credentials + Resolve Multi-Factor Challenge
+    KC --> Browser : Return HTTP 302 Authorization Code
+    Browser -> Nginx : GET /oauth2/callback?code=<auth_code>
+    Nginx -> Proxy : Process Authorization Callback
+    Proxy -> KC : POST /token (Exchange Code + PKCE Verifier)
+    KC --> Proxy : Issue signed JWTs (Access, Refresh, ID Token)
+    Proxy -> Proxy : Encrypt tokens into secure Gateway Session Cookie
+    Proxy --> Nginx : Inject Session Header Assets
+    Nginx --> Browser : Set-Cookie (Secure, HttpOnly, SameSite=Lax) + Redirect
+end
+
+== 2. Post-Auth Context Verification ==
+Browser -> Angular : Load Dashboard Router
+Angular -> Nginx : GET /auth/me (Forward Gateway Cookie)
+Nginx -> Proxy : Validate Cookie & Hydrate Context
+Proxy -> Nginx : Inject Bearer Access Token into Upstream Header
+Nginx -> BFF : Forward Request with Hydrated Bearer Token
+BFF -> BFF : Parse & Validate Stateless JWT Claims (iss, aud, RS256)
+BFF -> Redis : Cache Active Application Session Map
+BFF --> Nginx : Return User Profile Context Json
+Nginx --> Angular : Forward 200 OK Context Response
+Angular -> Browser : Mount Protected Core Dashboard View
+@enduml

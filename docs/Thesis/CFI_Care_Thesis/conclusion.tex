@@ -14,23 +14,19 @@ clinicians to review patient histories.
 
 \section{Future Work}
 
-\subsection{Security}
+\subsection{System Security}
 
-\paragraph{Next Steps}
+\paragraph{Architecture Hardening and Lifecycle Maturity}
+The current implementation provides a robust baseline for secure health data exchange, Meanwhile, 
+future iterations will focus on advancing this prototype toward enterprise-grade maturity:
+
 \begin{itemize}
-      \item Implement mobile client authentication endpoints.
-      \item Integrate MFA for enhanced security and email verification during user
-            registration.
-      \item Deploy secrets management using a vault solution
-      \item Deploy security containers to cloud infrastructure with load balancing.
-      \item Use Let's Encrypt for production level TLS certificates after cloud deployment.
-      \item Complete the patient-doctor consent workflow and enforce it at the FHIR server.
-      \item Finalize role-to-scope mapping in Keycloak and document SMART on FHIR
-            compliance.
-      \item Migrate to Authorization Code + PKCE for improved security and standards
-            compliance.
-      \item Build a centralized audit dashboard for security monitoring.
-      \item Enable Redis persistence encryption for session and audit data at rest.
+    \item \textbf{Transition to Hardware-Backed Key Orchestration:} While the current LUKS-based storage encryption provides comprehensive at-rest protection, 
+    the next phase will integrate an external Key Management Service (KMS) or Hardware Security Module (HSM), 
+    which will decouple cryptographic key material from the host file system, enabling programmatic key rotation, tamper-evident audit logging, and ephemeral secret injection.
+    \item \textbf{Automated Infrastructure Hardening (IaC):} Move from manual container management to Infrastructure-as-Code (IaC) via hardened Kubernetes (K8s) manifests, to enable the enforcement of \textit{Pod Security Admissions} and ensure least-privilege runtime enforcement.
+    \item \textbf{Identity Provider Federation and mTLS:} Scale the identity architecture by transitioning from standard OIDC/OIDC-proxy patterns to mTLS (Mutual TLS) service-to-service authentication; requiring certificate-based validation for all internal API traffic should eliminate the reliance on network-level isolation, establishing a true Zero-Trust architecture.
+    \item \textbf{Production Lifecycle Orchestration:} Migrate the current static TLS configuration to automated lifecycle management (using the Let's Encrypt providers) integrated directly into the ingress gateway ensuring consistent, zero-touch certificate rotation across production environments , eliminating manual maintenance and preventing expiry-related downtime.
 \end{itemize}
 
 \subsection{Mobile}

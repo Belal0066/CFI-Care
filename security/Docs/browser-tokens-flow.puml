@@ -1,225 +1,225 @@
-@startuml Browser Token Flow <<Seqence Diagram>>
+' @startuml Browser Token Flow <<Seqence Diagram>>
 
-actor User
-participant Browser
-participant Angular
+' actor User
+' participant Browser
+' participant Angular
 
-participant nginx
-' participant oauth2Proxy
-participant Keycloak
+' participant nginx
+' ' participant oauth2Proxy
+' participant Keycloak
 
-participant NodeJS as "Node.js BFF"
-participant RedisSession as "Session Store"
-participant Redis
-participant FHIR
+' participant NodeJS as "Node.js BFF"
+' participant RedisSession as "Session Store"
+' participant Redis
+' participant FHIR
 
-' participant RevocationService
-
-
-
-
-==User Registration Flow==
-User -> Browser : Registration request 
-Browser -> Angular : Input registration details in custom form
-Angular -> NodeJS : POST /auth/register with credentials
-NodeJS -> Keycloak : Create user via Admin API
-Keycloak -> NodeJS : User created
-NodeJS -> FHIR : Create user profile resource
-FHIR -> NodeJS : Acknowledgment
-NodeJS -> Keycloak : Auto-login with password grant
-Keycloak -> NodeJS : Access token, Refresh token, ID token
-NodeJS -> RedisSession : Store tokens in Redis session
-NodeJS -> Angular : Return user info + set session cookie
-' Browser -> Angular :  success response
-Angular -> Browser : Set session cookie
-Angular -> Angular : Auto-redirect to dashboard
-Angular -> Browser : Display main page
-Browser -> User : Display main page
-' Browser -> Keycloak : Registration request from sign in page
-' Keycloak -> Browser : Redirect to registration page
-' Browser -> Keycloak : Submit registration details
-' Keycloak -> Keycloak : Create user account
-' Keycloak -> Browser : Registration successful, redirect to main page
-' Browser -> User : Display form to complete profile data
+' ' participant RevocationService
 
 
 
-' == Complete Profile Data ==
-' User -> Browser : Fill in profile data form
-' Browser -> Angular : Submit profile data
-' Angular -> nginx : Submit profile data with session cookie
-' nginx -> NodeJS : Forward profile data
+
+' ==User Registration Flow==
+' User -> Browser : Registration request 
+' Browser -> Angular : Input registration details in custom form
+' Angular -> NodeJS : POST /auth/register with credentials
+' NodeJS -> Keycloak : Create user via Admin API
+' Keycloak -> NodeJS : User created
 ' NodeJS -> FHIR : Create user profile resource
-' FHIR -> NodeJS : Acknowledge profile creation
-' NodeJS -> nginx : Acknowledge profile data saved
-' nginx -> Angular : display Confirmation
-' Angular -> Browser : Display dashboard
+' FHIR -> NodeJS : Acknowledgment
+' NodeJS -> Keycloak : Auto-login with password grant
+' Keycloak -> NodeJS : Access token, Refresh token, ID token
+' NodeJS -> RedisSession : Store tokens in Redis session
+' NodeJS -> Angular : Return user info + set session cookie
+' ' Browser -> Angular :  success response
+' Angular -> Browser : Set session cookie
+' Angular -> Angular : Auto-redirect to dashboard
+' Angular -> Browser : Display main page
 ' Browser -> User : Display main page
+' ' Browser -> Keycloak : Registration request from sign in page
+' ' Keycloak -> Browser : Redirect to registration page
+' ' Browser -> Keycloak : Submit registration details
+' ' Keycloak -> Keycloak : Create user account
+' ' Keycloak -> Browser : Registration successful, redirect to main page
+' ' Browser -> User : Display form to complete profile data
 
 
-== User Login Flow ==
-Browser -> Angular : Input credentials in custom login form
-Angular -> NodeJS : POST /auth/login with email/password
-NodeJS -> Keycloak : Authenticate via password grant
-Keycloak -> NodeJS : Access token, Refresh token, ID token
-NodeJS -> RedisSession : Store tokens in Redis session
-NodeJS -> Browser : Return user info + set session cookie
-Angular -> Browser : Receive success response
-Angular -> Browser : Redirect to dashboard
-Browser -> User : Display main page
-' User -> Browser : Login request
-' Browser -> nginx : Authentication request from frontend app
 
-' ' nginx -> Keycloak : Redirect 
+' ' == Complete Profile Data ==
+' ' User -> Browser : Fill in profile data form
+' ' Browser -> Angular : Submit profile data
+' ' Angular -> nginx : Submit profile data with session cookie
+' ' nginx -> NodeJS : Forward profile data
+' ' NodeJS -> FHIR : Create user profile resource
+' ' FHIR -> NodeJS : Acknowledge profile creation
+' ' NodeJS -> nginx : Acknowledge profile data saved
+' ' nginx -> Angular : display Confirmation
+' ' Angular -> Browser : Display dashboard
+' ' Browser -> User : Display main page
+
+
+' == User Login Flow ==
+' Browser -> Angular : Input credentials in custom login form
+' Angular -> NodeJS : POST /auth/login with email/password
+' NodeJS -> Keycloak : Authenticate via password grant
+' Keycloak -> NodeJS : Access token, Refresh token, ID token
+' NodeJS -> RedisSession : Store tokens in Redis session
+' NodeJS -> Browser : Return user info + set session cookie
+' Angular -> Browser : Receive success response
+' Angular -> Browser : Redirect to dashboard
+' Browser -> User : Display main page
+' ' User -> Browser : Login request
+' ' Browser -> nginx : Authentication request from frontend app
+
+' ' ' nginx -> Keycloak : Redirect 
+' ' ' Keycloak -> Browser : Authorization code (Authz code Flow)
+' ' ' Browser -> nginx : GET /callback with Authz code
+' ' ' nginx -> NodeJS : Authentication request with Authz code
+' ' ' NodeJS -> Keycloak : exchange code for tokens
+' ' ' Keycloak -> NodeJS : Access token , Refresh token , ID token
+' ' ' NodeJS -> NodeJS : validate tokens
+' ' ' NodeJS -> nginx : valid session
+
+' ' nginx -> oauth2Proxy : Redirect to /oauth2/start
+' ' oauth2Proxy -> Keycloak : Request Authorization code
 ' ' Keycloak -> Browser : Authorization code (Authz code Flow)
-' ' Browser -> nginx : GET /callback with Authz code
-' ' nginx -> NodeJS : Authentication request with Authz code
-' ' NodeJS -> Keycloak : exchange code for tokens
-' ' Keycloak -> NodeJS : Access token , Refresh token , ID token
-' ' NodeJS -> NodeJS : validate tokens
-' ' NodeJS -> nginx : valid session
-
-' nginx -> oauth2Proxy : Redirect to /oauth2/start
-' oauth2Proxy -> Keycloak : Request Authorization code
-' Keycloak -> Browser : Authorization code (Authz code Flow)
-' Browser -> nginx : GET /oauth2/callback with Authz code
-' nginx -> oauth2Proxy : callback with Authz code
-' oauth2Proxy -> Keycloak : exchange code for tokens
-' oauth2Proxy -> oauth2Proxy : store session cookie
-' oauth2Proxy -> nginx : return authorization headers , set session cookie
-' ' nginx -> NodeJs : proxy request with authorization headers
+' ' Browser -> nginx : GET /oauth2/callback with Authz code
+' ' nginx -> oauth2Proxy : callback with Authz code
+' ' oauth2Proxy -> Keycloak : exchange code for tokens
+' ' oauth2Proxy -> oauth2Proxy : store session cookie
+' ' oauth2Proxy -> nginx : return authorization headers , set session cookie
+' ' ' nginx -> NodeJs : proxy request with authorization headers
 
 
 
-' ' NodeJS -> FHIR : forward Authorization
-' ' FHIR -> NodeJS : resource
-' nginx -> Browser : redirect to main page
-' Browser -> User : display main page
+' ' ' NodeJS -> FHIR : forward Authorization
+' ' ' FHIR -> NodeJS : resource
+' ' nginx -> Browser : redirect to main page
+' ' Browser -> User : display main page
 
-== User Action Requiring Data (API Call) ==
+' == User Action Requiring Data (API Call) ==
 
-User -> Browser : Action that needs Data
-Browser -> Angular : Forward Action
-alt Session cookie present
-Angular -> nginx : API call with session cookie
-nginx -> NodeJS : Forward request with session
-NodeJS -> NodeJS : Validate session and tokens
-    alt Access token expired (within 30sec of expiry)
-        NodeJS -> Keycloak : Refresh tokens using refresh token
-        Keycloak -> NodeJS : New Access token, Refresh token
-        NodeJS -> RedisSession : Update Redis session with new tokens
-    end
-    alt Resource available in cache
-        NodeJS -> Redis : Get resource from cache
-        Redis -> NodeJS : Resource
-    else Resource not in cache
-        NodeJS -> FHIR : Request resource with Access token
-        FHIR -> NodeJS : Resource
-        NodeJS -> Redis : Store resource in cache
-        Redis -> NodeJS : Ack
-' Browser -> nginx : API call with session cookie
-' nginx -> oauth2Proxy : validate session cookie
-' alt session cookie expired
-' oauth2Proxy -> Keycloak : use refresh token to get new tokens
-' Keycloak -> oauth2Proxy : new Access token , new Refresh token , new ID token
-' oauth2Proxy -> oauth2Proxy : update session cookie
+' User -> Browser : Action that needs Data
+' Browser -> Angular : Forward Action
+' alt Session cookie present
+' Angular -> nginx : API call with session cookie
+' nginx -> NodeJS : Forward request with session
+' NodeJS -> NodeJS : Validate session and tokens
+'     alt Access token expired (within 30sec of expiry)
+'         NodeJS -> Keycloak : Refresh tokens using refresh token
+'         Keycloak -> NodeJS : New Access token, Refresh token
+'         NodeJS -> RedisSession : Update Redis session with new tokens
+'     end
+'     alt Resource available in cache
+'         NodeJS -> Redis : Get resource from cache
+'         Redis -> NodeJS : Resource
+'     else Resource not in cache
+'         NodeJS -> FHIR : Request resource with Access token
+'         FHIR -> NodeJS : Resource
+'         NodeJS -> Redis : Store resource in cache
+'         Redis -> NodeJS : Ack
+' ' Browser -> nginx : API call with session cookie
+' ' nginx -> oauth2Proxy : validate session cookie
+' ' alt session cookie expired
+' ' oauth2Proxy -> Keycloak : use refresh token to get new tokens
+' ' Keycloak -> oauth2Proxy : new Access token , new Refresh token , new ID token
+' ' oauth2Proxy -> oauth2Proxy : update session cookie
+' ' end
+' ' oauth2Proxy -> nginx : return access token
+' ' nginx -> NodeJS : forward request with access token
+' '     alt resource available in cache
+' '         NodeJS -> Redis : get resource from cache
+' '         Redis -> NodeJS : resource
+' '     else resource not in cache
+' '         NodeJS -> FHIR : request resource with Access token
+' '         FHIR -> NodeJS : resource
+' '         NodeJS -> Redis : store resource in cache
+' '         Redis -> NodeJS : ack
+'     end
+' NodeJS -> nginx : Response containing data
+' nginx -> Angular : Response
+' Angular -> Browser : Display data
+' Browser -> User : Display updated content
+
+' else No session cookie
+' nginx -> NodeJS : Request without session
+' NodeJS -> Angular : 401 Unauthorized
+' Angular -> Browser : Redirect to /login
+' Browser -> User : Prompt to login again (User Login Flow)
 ' end
-' oauth2Proxy -> nginx : return access token
-' nginx -> NodeJS : forward request with access token
-'     alt resource available in cache
-'         NodeJS -> Redis : get resource from cache
-'         Redis -> NodeJS : resource
-'     else resource not in cache
-'         NodeJS -> FHIR : request resource with Access token
-'         FHIR -> NodeJS : resource
-'         NodeJS -> Redis : store resource in cache
-'         Redis -> NodeJS : ack
-    end
-NodeJS -> nginx : Response containing data
-nginx -> Angular : Response
-Angular -> Browser : Display data
-Browser -> User : Display updated content
 
-else No session cookie
-nginx -> NodeJS : Request without session
-NodeJS -> Angular : 401 Unauthorized
-Angular -> Browser : Redirect to /login
-Browser -> User : Prompt to login again (User Login Flow)
-end
+' == Check Auth Status ==
+' Angular -> NodeJS : GET /auth/me
+' alt Session exists and valid
+' NodeJS -> Angular : Return authenticated: true, user info
+' Angular -> Angular : Update user state
+' else Session expired or missing
+' NodeJS -> Angular : Return authenticated: false
+' Angular -> Angular : Clear user state
+' Angular -> Browser : Redirect to login
+' end
 
-== Check Auth Status ==
-Angular -> NodeJS : GET /auth/me
-alt Session exists and valid
-NodeJS -> Angular : Return authenticated: true, user info
-Angular -> Angular : Update user state
-else Session expired or missing
-NodeJS -> Angular : Return authenticated: false
-Angular -> Angular : Clear user state
-Angular -> Browser : Redirect to login
-end
-
-== Logout Flow (Per-session) ==
-User -> Browser : Click "Sign out"
-Browser ->  Angular : Initiate logout
-Angular -> NodeJS : POST /auth/logout 
-NodeJS -> RedisSession : Destroy session
-NodeJS -> Keycloak : Revoke token for current session
-NodeJS -> Angular : Return logout URL
-Angular -> Browser : Clear local state
-Angular -> Browser : Redirect to /login
-Browser -> User : Display login page
+' == Logout Flow (Per-session) ==
+' User -> Browser : Click "Sign out"
+' Browser ->  Angular : Initiate logout
+' Angular -> NodeJS : POST /auth/logout 
+' NodeJS -> RedisSession : Destroy session
+' NodeJS -> Keycloak : Revoke token for current session
+' NodeJS -> Angular : Return logout URL
+' Angular -> Browser : Clear local state
+' Angular -> Browser : Redirect to /login
+' Browser -> User : Display login page
 
 
-== Logout Flow (Global) ==
-User -> Browser : Click "Logout of all devices"
-Browser ->  Angular : Initiate global logout
-Angular -> NodeJS : POST /auth/logout-global
-' Browser -> nginx : POST /auth/logout-global
-' nginx -> NodeJS : /auth/logout -> call RevocationService (global)
-NodeJS ->  Keycloak : Admin logout user (invalidate refresh tokens / sessions)
-NodeJS -> RedisSession : DEL keys matching user sessions 
-' RedisSession -> NodeJS : 200 OK
-NodeJS -> Angular : Logout complete
-Angular -> Browser : Clear state and redirect to /login
-Browser -> User : Display login page
-' NodeJS -> Browser : redirect to '/'
-' Browser -> oauth2Proxy : (old cookies invalid) /oauth2/auth -> requires login
-@enduml
+' == Logout Flow (Global) ==
+' User -> Browser : Click "Logout of all devices"
+' Browser ->  Angular : Initiate global logout
+' Angular -> NodeJS : POST /auth/logout-global
+' ' Browser -> nginx : POST /auth/logout-global
+' ' nginx -> NodeJS : /auth/logout -> call RevocationService (global)
+' NodeJS ->  Keycloak : Admin logout user (invalidate refresh tokens / sessions)
+' NodeJS -> RedisSession : DEL keys matching user sessions 
+' ' RedisSession -> NodeJS : 200 OK
+' NodeJS -> Angular : Logout complete
+' Angular -> Browser : Clear state and redirect to /login
+' Browser -> User : Display login page
+' ' NodeJS -> Browser : redirect to '/'
+' ' Browser -> oauth2Proxy : (old cookies invalid) /oauth2/auth -> requires login
+' @enduml
 
-' alt access token expired
-'     nginx -> NodeJS : use refresh token to get new tokens
-'     NodeJS -> Keycloak : exchange refresh token for new tokens
-'     Keycloak -> NodeJS : new Access token , new Refresh token , new ID token
-'     NodeJS -> NodeJS : validate new tokens
-'      nginx -> NodeJS : proxy request , forward sanitized authorization
-'     NodeJS -> NodeJS : enforce resource authorization checks
-'     alt resource available in cache
-'         NodeJS -> Redis : get resource from cache
-'         Redis -> NodeJS : resource
-'     else resource not in cache
-'         NodeJS -> FHIR : request resource with Access token
-'         FHIR -> NodeJS : resource
-'         NodeJS -> Redis : store resource in cache
-'         Redis -> NodeJS : ack
-'     end
-' else access token valid
-'     nginx -> NodeJS : proxy request , forward sanitized authorization
-'     NodeJS -> NodeJS : enforce resource authorization checks
-'     alt resource available in cache
-'         NodeJS -> Redis : get resource from cache
-'         Redis -> NodeJS : resource
-'     else resource not in cache
-'         NodeJS -> FHIR : request resource with Access token
-'         FHIR -> NodeJS : resource
-'         NodeJS -> Redis : store resource in cache
-'         Redis -> NodeJS : ack
-'     end
-' else access token not valid
-'     nginx -> Browser : 401 Unauthorized
-'     Browser -> User : display error
+' ' alt access token expired
+' '     nginx -> NodeJS : use refresh token to get new tokens
+' '     NodeJS -> Keycloak : exchange refresh token for new tokens
+' '     Keycloak -> NodeJS : new Access token , new Refresh token , new ID token
+' '     NodeJS -> NodeJS : validate new tokens
+' '      nginx -> NodeJS : proxy request , forward sanitized authorization
+' '     NodeJS -> NodeJS : enforce resource authorization checks
+' '     alt resource available in cache
+' '         NodeJS -> Redis : get resource from cache
+' '         Redis -> NodeJS : resource
+' '     else resource not in cache
+' '         NodeJS -> FHIR : request resource with Access token
+' '         FHIR -> NodeJS : resource
+' '         NodeJS -> Redis : store resource in cache
+' '         Redis -> NodeJS : ack
+' '     end
+' ' else access token valid
+' '     nginx -> NodeJS : proxy request , forward sanitized authorization
+' '     NodeJS -> NodeJS : enforce resource authorization checks
+' '     alt resource available in cache
+' '         NodeJS -> Redis : get resource from cache
+' '         Redis -> NodeJS : resource
+' '     else resource not in cache
+' '         NodeJS -> FHIR : request resource with Access token
+' '         FHIR -> NodeJS : resource
+' '         NodeJS -> Redis : store resource in cache
+' '         Redis -> NodeJS : ack
+' '     end
+' ' else access token not valid
+' '     nginx -> Browser : 401 Unauthorized
+' '     Browser -> User : display error
 
        
-' end
+' ' end
 
 
 
