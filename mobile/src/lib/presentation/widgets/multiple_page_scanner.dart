@@ -6,6 +6,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:pdf/pdf.dart';
 import '../../data/services/image_quality_service.dart';
 
@@ -40,6 +41,7 @@ class _MultiPageScannerState extends State<MultiPageScanner> {
 
   Future<void> _initCamera() async {
     try {
+      await Permission.camera.request();
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         debugPrint("DEBUG: No cameras found on device.");
