@@ -1,123 +1,118 @@
-\subsection{Mobile}\label{chap:Mobile}
+\chapter{Mobile}\label{chap:Mobile}
 
 % Change Password — triggers UPDATE_PASSWORD, opening the Keycloak password change page in the secure browser.
 % Set up 2FA (OTP) — triggers CONFIGURE_TOTP, which walks the user through scanning a QR code to register an authenticator app (Google Authenticator, etc.) and generates backup recovery codes.
 % Both actions return a fresh token set upon completion, so the session remains valid without requiring the user to log in again.
-\subsubsection{Mobile Application Objectives \& UI}
+\subsection{Mobile Application Objectives \& UI}
 
 The primary objective of developing the proposed mobile application is to
 provide a secure, efficient, and patient-centered platform for managing
 personal health information within the digital medical ecosystem integrated
 with the FHIR-compliant backend.
 
-\paragraph{Authentication Flow \& Account Security}
+\subsubsection{Authentication Flow \& Account Security}
 Authentication in CFI-Care is delegated entirely to Keycloak, an open-source Identity and Access Management server that implements the OpenID Connect (OIDC) protocol on top of OAuth 2.0. This approach means the mobile app never handles or stores user credentials , it only deals with tokens issued by Keycloak after the user authenticates.
 
 \begin{enumerate}
-
-\item \textbf{Login and Register}
-
-The Login and Register flow uses the Authorization Code Flow with \textbf{PKCE} (Proof Key for Code Exchange), implemented via the \textbf{flutter\_appauth} package\cite{flutter_appauth}.
+    \item \textbf{Login and Register}
+    \newline
+    The Login and Register flow uses the Authorization Code Flow with \textbf{PKCE} (Proof Key for Code Exchange), implemented via the \textbf{flutter\_appauth} package\cite{flutter_appauth}. 
     \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.14 PM.jpeg}
-    \caption{Login with KeyCloak}
-    \label{fig:Login with KeyCloak}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.14 PM.jpeg}
-    \caption{Register with KeyCloak}
-    \label{fig:Register with KeyCloak}
-\end{figure}
-
-\item \textbf{Email Verification Code}
-
-During the email verification process, a unique six-digit code is generated and saved within the Keycloak authentication session. This code is then delivered to the user's email address through Keycloak's email service using a customized HTML template. The user is presented with a verification page where the received code can be entered. Upon submission, the entered code is compared with the code stored in the session. If the codes match, the user's email address is successfully verified and the registration process proceeds. Otherwise, an error message is displayed, allowing the user to request a new verification code and try again.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.15 PM (1).jpeg}
-    \caption{Verification Code}
-    \label{fig:Verification Code}
-\end{figure}
-
-\item \textbf{Recovery Codes}
-
-After completing registration, Keycloak presents the user with backup recovery codes. These are Keycloak's built-in recovery codes, displayed in a XXXX-XXXX-XXXX format in a list.
-
-The page provides three options to save the codes:
-\begin{itemize}
-    \item \textbf{Copy :} copies all codes to the clipboard
-    \item \textbf{Save :} downloads them as a cfi-care-recovery-codes.txt file
-    \item \textbf{Print :} opens a print dialog with a clean formatted view
-\end{itemize}
-The user must check a confirmation checkbox ("I have stored these backup recovery codes safely") before the submit button becomes enabled. The codes are then stored server-side in Keycloak and can be used at any future login as an alternative to the OTP authenticator if the user loses access to their device.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.17 PM (3).jpeg}
-    \caption{Recovery Codes}
-    \label{fig:Recovery Codes}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.38 PM.jpeg}
-    \caption{Enter Recovery Code \#1 }
-    \label{fig:Enter Recovery-Code-1}
-\end{figure}
-
-\item \textbf{Authenticator Setup (TOTP)}
-
-Setting up a Time-based One-Time Password (TOTP) through three steps:
-\begin{enumerate}
-    \item \textbf{Install an authenticator app :} the page lists supported apps (Google Authenticator, FreeOTP, etc.).
-    \item \textbf{Scan the QR code :} Keycloak generates a totpSecret and renders it as a base64-encoded QR code image. Users who cannot scan can switch to manual entry mode, which shows the raw secret key along with the algorithm (TOTP, HMAC-SHA1), digit count (6), and time interval (30 seconds).
-    \item \textbf{Enter a test code :} the user enters the 6-digit code from their authenticator app to prove the setup worked, and optionally gives the device a name (e.g., "My Phone").
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.14 PM.jpeg}
+        \caption{Login with KeyCloak}
+        \label{fig:Login with KeyCloak}
+    \end{figure}
     \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.16 PM (1).jpeg}
-    \caption{Authenticator Setup}
-    \label{fig:Authenticator Setup}
-\end{figure}
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.14 PM.jpeg}
+        \caption{Register with KeyCloak}
+        \label{fig:Register with KeyCloak}
+    \end{figure}
+    
+    \item \textbf{Email Verification Code}
+    \newline
+    During the email verification process, a unique six-digit code is generated and saved within the Keycloak authentication session. This code is then delivered to the user's email address through Keycloak's email service using a customized HTML template. The user is presented with a verification page where the received code can be entered. Upon submission, the entered code is compared with the code stored in the session. If the codes match, the user's email address is successfully verified and the registration process proceeds. Otherwise, an error message is displayed, allowing the user to request a new verification code and try again.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.15 PM (1).jpeg}
+        \caption{Verification Code}
+        \label{fig:Verification Code}
+    \end{figure}
+
+    \item \textbf{Recovery Codes}
+    \newline
+    After completing registration, Keycloak presents the user with backup recovery codes. These are Keycloak's built-in recovery codes, displayed in a XXXX-XXXX-XXXX format in a list.
+    
+    The page provides three options to save the codes:
+    \begin{itemize}
+        \item \textbf{Copy :} copies all codes to the clipboard
+        \item \textbf{Save :} downloads them as a cfi-care-recovery-codes.txt file
+        \item \textbf{Print :} opens a print dialog with a clean formatted view
+    \end{itemize}
+    The user must check a confirmation checkbox ("I have stored these backup recovery codes safely") before the submit button becomes enabled. The codes are then stored server-side in Keycloak and can be used at any future login as an alternative to the OTP authenticator if the user loses access to their device.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.17 PM (3).jpeg}
+        \caption{Recovery Codes}
+        \label{fig:Recovery Codes}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.38 PM.jpeg}
+        \caption{Enter Recovery Code \#1 }
+        \label{fig:Enter Recovery-Code-1}
+    \end{figure}
+
+    \item \textbf{Authenticator Setup (TOTP)}
+    \newline
+    Setting up a Time-based One-Time Password (TOTP) through three steps:
+    \begin{enumerate}
+        \item \textbf{Install an authenticator app :} the page lists supported apps (Google Authenticator, FreeOTP, etc.).
+        \item \textbf{Scan the QR code :} Keycloak generates a totpSecret and renders it as a base64-encoded QR code image. Users who cannot scan can switch to manual entry mode, which shows the raw secret key along with the algorithm (TOTP, HMAC-SHA1), digit count (6), and time interval (30 seconds).
+        \item \textbf{Enter a test code :} the user enters the 6-digit code from their authenticator app to prove the setup worked, and optionally gives the device a name (e.g., "My Phone").
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.16 PM (1).jpeg}
+            \caption{Authenticator Setup}
+            \label{fig:Authenticator Setup}
+        \end{figure}
+    \end{enumerate}
+
+    \item \textbf{Reset Password}
+    \newline
+    \begin{enumerate}
+        \item \textbf{Unauthenticated Reset (Forgot Password)}
+        On the login page(\textbf{login.ftl}), a "Forgot Password" link is rendered. Clicking it navigates to \textbf{login-reset-password.ftl}, which presents a simple form asking for the user's username or email.
+        
+        On submission, Keycloak sends a password reset email to the user's registered address containing a time-limited link. Clicking the link in the email takes the user directly to login-update-password.ftl where they set a new password.
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.17 PM (1).jpeg}
+            \caption{Unauthenticated Reset Password}
+            \label{fig:Unauthenticated Reset Password}
+        \end{figure}
+        \item \textbf{Authenticated Reset (Change Password from App)}
+        A logged-in user can change their password from the Account \& Security section of their profile. Tapping "Change Password" redirects to "Verify your identity" page, and the username field is pre-filled with the user's email and set to read-only. This prevents the user from changing identity mid-action.
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/Verify your Identity.jpeg}
+            \caption{Verify your Identity}
+            \label{fig:Verify your Identity}
+        \end{figure}
+        
+        After re-verifying credentials, Keycloak presents \textbf{login-update-password.ftl}, which shows a new password field, a confirm password field ,and "Log out other sessions" checkbox, allowing the user to invalidate all other active sessions simultaneously
+        On successful submission, Keycloak returns a fresh token set and the app session remains active, the user does not need to log in again.
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.17 PM.jpeg}
+            \caption{Enter \& Confirm New Password}
+            \label{fig:Enter and Confirm New Password}
+        \end{figure}
+    \end{enumerate}
 \end{enumerate}
 
-\item \textbf{Reset Password}
-
-\begin{enumerate}
-    \item \textbf{Unauthenticated Reset (Forgot Password)}
-
-On the login page(\textbf{login.ftl}), a "Forgot Password" link is rendered. Clicking it navigates to \textbf{login-reset-password.ftl}, which presents a simple form asking for the user's username or email.
-
-On submission, Keycloak sends a password reset email to the user's registered address containing a time-limited link. Clicking the link in the email takes the user directly to login-update-password.ftl where they set a new password.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.17 PM (1).jpeg}
-    \caption{Unauthenticated Reset Password}
-    \label{fig:Unauthenticated Reset Password}
-\end{figure}
-
-    \item \textbf{Authenticated Reset (Change Password from App)}
-
-A logged-in user can change their password from the Account \& Security section of their profile. Tapping "Change Password" redirects to "Verify your identity" page, and the username field is pre-filled with the user's email and set to read-only. This prevents the user from changing identity mid-action.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Verify your Identity.jpeg}
-    \caption{Verify your Identity}
-    \label{fig:Verify your Identity}
-\end{figure}
-
-After re-verifying credentials, Keycloak presents \textbf{login-update-password.ftl}, which shows a new password field, a confirm password field ,and "Log out other sessions" checkbox, allowing the user to invalidate all other active sessions simultaneously.
-On successful submission, Keycloak returns a fresh token set and the app session remains active, the user does not need to log in again.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/WhatsApp Image 2026-06-02 at 1.18.17 PM.jpeg}
-    \caption{Enter \& Confirm New Password}
-    \label{fig:Enter and Confirm New Password}
-\end{figure}
-\end{enumerate}
-
-\end{enumerate}
-
-\paragraph{Episode of Care}
+\subsubsection{Episode of Care}
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{Mobile/Images/Episode of care.jpeg}
@@ -126,33 +121,31 @@ On successful submission, Keycloak returns a fresh token set and the app session
 \end{figure}
 \begin{enumerate}
     \item \textbf{View Episode of Care (Dashboard):} The entry point where the patient views
-high-level summaries of their active medical contexts (e.g., Cardiac Evaluation).
+    high-level summaries of their active medical contexts (e.g., Cardiac Evaluation).
     \item \textbf{View Encounter Details:} Selecting a specific node allows the user to inspect the full clinical details of that visit.
     \item \textbf{View Attached Documents:} Within the details view, the user can optionally retrieve and view specific medical files (PDFs/Images) associated with that encounter.
 \end{enumerate}
 
-\paragraph{Digital Document Management \& Elimination of Physical Records}
+\subsection{Digital Document Management \& Elimination of Physical Records}
 The application enables patients to digitally capture, upload, and store
 medical reports, diagnostic scans, and other relevant health documents using
-their mobile devices. These documents are maintained within the application's
+their mobile devices. These documents are maintained within the application’s
 local storage and synchronized with the backend system when required, thereby
 reducing reliance on physical medical records.
 
-\begin{enumerate}
-
-\item \textbf{Document List}
-
-It displays all uploaded medical documents as a scrollable list, with a custom search header at the top for filtering by title and a blue \textbf{Floating Action Button} with a + icon anchored to the bottom-right corner. Tapping the FAB opens the Add Document bottom sheet.
+\subsubsection{Document List}
+It displays all uploaded medical documents as a scrollable list, with a custom search header at the top for filtering by title and a blue \textbf{Floating Action Button } with a + icon anchored to the bottom-right corner. Tapping the FAB opens the Add Document bottom sheet.
 Each document is rendered as a card with:
 \begin{itemize}
     \item A type icon, red PDF icon or blue image icon, color-coded by file type.
-    \item A one-line summary below it, and two tag chips showing the document's type (e.g. LAB, XRAY) and speciality (e.g. CARDIOLOGY, GENERAL)
+    \item A one-line summary below it,and two tag chips showing the document's type (e.g. LAB, XRAY) and speciality (e.g. CARDIOLOGY, GENERAL)
     \item A time label on the right
-    \item \textbf{A cloud sync indicator} green cloud\_done if synced to the server, light blue cloud\_off if pending, and grey if out of sync.
+    \item \textbf{A cloud sync indicator} green cloud\_done if synced to the server, light blue cloud\_off if pending , and grey if out of sync.
     \item When a document is added, it is immediately inserted into the local list (\_documents.add(newDoc)) so it appears in the UI instantly, and then a sync is attempted. The isSynced flag on each DocumentModel tracks whether the backend has received the file, reflected visually by the cloud icon on each card.
     \item Documents support swipe-to-delete via Flutter's Dismissible widget \cite{flutter_dismissible}, swiping left reveals a red delete background with a trash icon.
-    \item Tapping a document opens it using OpenFilex \cite{open_filex}, which launches the device's default app for PDFs or images. If the file no longer exists, a toast error is shown.
+    \item  Tapping a document opens it using OpenFilex \cite{open_filex}, which launches the device's default app for PDFs or images. If the file no longer exists, a toast error is shown. 
 \end{itemize}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.3\textwidth]{Mobile/Images/list of documents.jpeg}
@@ -160,18 +153,18 @@ Each document is rendered as a card with:
     \label{fig:Documents Screen}
 \end{figure}
 
-\item \textbf{Add Document Bottom Sheet}
-
-Tapping the Floating Action Button opens a modal bottom sheet \textbf{(DocumentAddSheet)} that slides up from the bottom as it can be seen in figure~\ref{fig:Add Document Form}.
+\subsubsection{Add Document Bottom Sheet}
+Tapping the Floating Action Button opens a modal bottom sheet \textbf{(DocumentAddSheet)} that slides up from the bottom as it can be seen in figure~\ref{fig:Add Document Form}. . 
 The form contains:
 \begin{itemize}
-    \item \textbf{Title} required
-    \item \textbf{Summary} one-line description
-    \item \textbf{Details} multi-line notes
-    \item \textbf{Time picker} tapping opens a time picker dialog
-    \item \textbf{Two dropdowns side by side:} Type (Lab, Xray, Prescription, etc.) and Speciality (Cardiology, Neurology, General, etc.)
+    \item \textbf{Title } required 
+    \item \textbf{Summary } one-line description
+    \item \textbf{Details } multi-line notes
+    \item \textbf{Time picker } tapping opens a time picker dialog
+    \item \textbf{Two dropdowns side by side :} Type (Lab, Xray, Prescription, etc.) and Speciality (Cardiology, Neurology, General, etc.)
     \item \textbf{Save button} is disabled unless both a title and a file are provided (isValid check).
 \end{itemize}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.3\textwidth]{Mobile/Images/Add Document.jpeg}
@@ -179,104 +172,101 @@ The form contains:
     \label{fig:Add Document Form}
 \end{figure}
 
-\item \textbf{File Attachments}
-
-The bottom sheet offers three ways to attach a file:
 \begin{enumerate}
-    \item \textbf{PDF Picker:} opens the system file picker filtered to .pdf files only. The selected file is copied into the app's documents directory with a timestamp-prefixed filename to avoid collisions.
-    \item \textbf{Gallery:} opens the image gallery via image\_picker\cite{image_picker}. After selection, the image is copied to the app directory and an automatic blur check is run immediately.
-    \item \textbf{Scan:} navigates to the MultiPageScanner screen. The scanner returns a path to a PDF of the scanned pages, which is then copied to the app directory.
+    \item \textbf{File Attachments}
+    \newline
+    The bottom sheet offers three ways to attach a file:
+    \begin{enumerate}
+        \item \textbf{PDF Picker :}opens the system file picker filtered to .pdf files only. The selected file is copied into the app's documents directory with a timestamp-prefixed filename to avoid collisions.
+        \item \textbf{Gallery } opens the image gallery via image\_picker\cite{image_picker}. After selection, the image is copied to the app directory and an automatic blur check is run immediately.
+        \item \textbf{Scan }navigates to the MultiPageScanner screen. The scanner returns a path to a PDF of the scanned pages, which is then copied to the app directory.
+    \end{enumerate}
+
+    \item \textbf{Image Quality Detection — Laplacian Variance}
+    \newline
+    After any image is picked from the gallery or camera, ImageQualityService.computeBlurScore() runs automatically. The algorithm to compute if the image or the scanned photo is blurry or not.
+    \begin{enumerate}
+        \item Convert to grayscale to reduce each pixel to a single value and removes colour noise that could interfere with the edge detection
+        \item Computes the variance of all Laplacian responses
+    A high variance means many sharp edges (a clear image). A low variance means smooth, uniform regions ( a blurry image).
+        \item The threshold is set at 80.0: any score below this triggers an orange warning banner in the UI: "Image looks blurry. Try retaking or enhance it."
+    \end{enumerate}
+
+    \item \textbf{Magic Filter}
+    \newline
+    If the image is flagged as blurry (or the user simply wants better quality), the Magic Filter button applies a 6-step document enhancement pipeline :
+    \begin{table}[h]
+    \centering
+    \caption{Image Preprocessing Pipeline}
+    \label{tab:image_preprocessing}
+    \begin{tabular}{|c|p{4cm}|p{8cm}|}
+    \hline
+    \textbf{Step} & \textbf{Operation} & \textbf{Purpose} \\ \hline
+    1 & Grayscale & Removes colour noise and reduces the processing space. \\ \hline
+    2 & Percentile histogram stretch (2\%--98\%) & Corrects uneven lighting while preserving image details without binarization. \\ \hline
+    3 & Unsharp mask (radius 1, amount 2.5) & Enhances text edges while maintaining gradient information. \\ \hline
+    4 & 8-connected Laplacian convolution ([-1,-1,-1,-1,9,-1,-1,-1,-1]) & Sharpens both horizontal, vertical, and diagonal text strokes. \\ \hline
+    5 & S-curve contrast boost (factor 1.5) & Increases contrast by pushing the paper background toward white and the ink toward black. \\ \hline
+    6 & Auto-invert check & If more than 50\% of pixels are dark, the image is inverted to ensure black text on a white background. \\ \hline
+    \end{tabular}
+    \end{table}
+    The enhanced image is saved as a new file (enhanced\_FileName) and the blur score is re-computed on the result so the warning clears if enhancement succeeded.
+
+    \item \textbf{Spirit Level}
+    \newline
+    One of the most common problems with phone-based document scanning is perspective distortion, when the phone is held at an angle over the document, the resulting image is trapezoid-shaped rather than rectangular, making text harder to read and OCR less accurate. To address this, the CFI-Care scanner includes a real-time spirit level built using the device's accelerometer.
+    
+    \textbf{How It Works}
+    
+    The sensors\_plus \cite{sensors_plus} package provides a continuous stream of accelerometer events. The scanner subscribes to this stream in \textbf{\_initSensors()}.
+    \begin{itemize}
+        \item The accelerometer reports gravitational force in m/s² along three axes. When the phone is held perfectly flat and parallel to a surface, both x and y approach 0 and only z carries the full gravitational value (~9.8). The threshold of 0.7 on both axes was chosen experimentally to give a comfortable tolerance — the phone does not need to be perfectly flat, just reasonably aligned.
+        \item The bubble's position is a direct mapping of the accelerometer's x and y values . When the phone tilts right, the bubble moves right. When it tilts forward, it moves down, exactly like a physical spirit level. The bubble and its containing ring turn green when the phone is level and red when it is not.
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/tilted image.png}
+        \caption{trapezoid-shaped Image}
+        \label{fig:trapezoid-shaped Image}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/green spirit level.png}
+        \caption{Green Spirit Level because parallel to the surface}
+        \label{fig:Green Spirit Level because parallel to the surface}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/red spirit level.png}
+        \caption{Red Spirit Level because tilted to the surface}
+        \label{fig:Red Spirit Level because tilted to the surface}
+    \end{figure}
+
+    \item \textbf{Document Details \& OCR Pipeline}
+    \newline
+    Clicking on any document in the list shown in Figure~\ref{fig:Documents Screen} navigates the user to the Document Information screen. This screen displays the document details along with the status of the text extraction process, indicating whether extraction was successful, is still being processed, or has failed. Providing this information allows patients to verify whether the system was able to correctly interpret the uploaded document and identify cases where poor image quality or severe distortion prevented successful text extraction.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/OCR Failed.jpeg}
+        \caption{Text Extraction Failed}
+        \label{fig:OCR Failed}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/OCR processing.jpeg}
+        \caption{OCR processing}
+        \label{fig:OCR processing}
+    \end{figure}\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/text extract complete.jpeg}
+        \caption{Text Extract successfuly and synced with backend}
+        \label{fig:Text Extract Complete}
+    \end{figure}
 \end{enumerate}
 
-\item \textbf{Image Quality Detection --- Laplacian Variance}
-
-After any image is picked from the gallery or camera, ImageQualityService.computeBlurScore() runs automatically. The algorithm to compute if the image or the scanned photo is blurry or not.
-\begin{enumerate}
-    \item Convert to grayscale to reduce each pixel to a single value and removes colour noise that could interfere with the edge detection.
-    \item Computes the variance of all Laplacian responses. A high variance means many sharp edges (a clear image). A low variance means smooth, uniform regions (a blurry image).
-    \item The threshold is set at 80.0: any score below this triggers an orange warning banner in the UI: "Image looks blurry. Try retaking or enhance it."
-\end{enumerate}
-
-\item \textbf{Magic Filter}
-
-If the image is flagged as blurry (or the user simply wants better quality), the Magic Filter button applies a 6-step document enhancement pipeline:
-
-\begin{table}[h]
-\centering
-\caption{Image Preprocessing Pipeline}
-\label{tab:image_preprocessing}
-\begin{tabular}{|c|p{4cm}|p{8cm}|}
-\hline
-\textbf{Step} & \textbf{Operation} & \textbf{Purpose} \\ \hline
-1 & Grayscale & Removes colour noise and reduces the processing space. \\ \hline
-2 & Percentile histogram stretch (2\%--98\%) & Corrects uneven lighting while preserving image details without binarization. \\ \hline
-3 & Unsharp mask (radius 1, amount 2.5) & Enhances text edges while maintaining gradient information. \\ \hline
-4 & 8-connected Laplacian convolution ([-1,-1,-1,-1,9,-1,-1,-1,-1]) & Sharpens both horizontal, vertical, and diagonal text strokes. \\ \hline
-5 & S-curve contrast boost (factor 1.5) & Increases contrast by pushing the paper background toward white and the ink toward black. \\ \hline
-6 & Auto-invert check & If more than 50\% of pixels are dark, the image is inverted to ensure black text on a white background. \\ \hline
-\end{tabular}
-\end{table}
-The enhanced image is saved as a new file (enhanced\_FileName) and the blur score is re-computed on the result so the warning clears if enhancement succeeded.
-
-\item \textbf{Spirit Level}
-
-One of the most common problems with phone-based document scanning is perspective distortion, when the phone is held at an angle over the document, the resulting image is trapezoid-shaped rather than rectangular, making text harder to read and OCR less accurate. To address this, the CFI-Care scanner includes a real-time spirit level built using the device's accelerometer.
-
-\textbf{How It Works}
-
-The sensors\_plus \cite{sensors_plus} package provides a continuous stream of accelerometer events. The scanner subscribes to this stream in \textbf{\_initSensors()}.
-
-\begin{itemize}
-    \item The accelerometer reports gravitational force in m/s² along three axes. When the phone is held perfectly flat and parallel to a surface, both x and y approach 0 and only z carries the full gravitational value (~9.8). The threshold of 0.7 on both axes was chosen experimentally to give a comfortable tolerance — the phone does not need to be perfectly flat, just reasonably aligned.
-    \item The bubble's position is a direct mapping of the accelerometer's x and y values. When the phone tilts right, the bubble moves right. When it tilts forward, it moves down, exactly like a physical spirit level. The bubble and its containing ring turn green when the phone is level and red when it is not.
-\end{itemize}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/tilted image.png}
-    \caption{trapezoid-shaped Image}
-    \label{fig:trapezoid-shaped Image}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/green spirit level.png}
-    \caption{Green Spirit Level because parallel to the surface}
-    \label{fig:Green Spirit Level because parallel to the surface}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/red spirit level.png}
-    \caption{Red Spirit Level because tilted to the surface}
-    \label{fig:Red Spirit Level because tilted to the surface}
-\end{figure}
-
-\item \textbf{Document Details \& OCR Pipeline}
-
-Clicking on any document in the list shown in Figure~\ref{fig:Documents Screen} navigates the user to the Document Information screen. This screen displays the document details along with the status of the text extraction process, indicating whether extraction was successful, is still being processed, or has failed. Providing this information allows patients to verify whether the system was able to correctly interpret the uploaded document and identify cases where poor image quality or severe distortion prevented successful text extraction.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/OCR Failed.jpeg}
-    \caption{Text Extraction Failed}
-    \label{fig:OCR Failed}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/OCR processing.jpeg}
-    \caption{OCR processing}
-    \label{fig:OCR processing}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/text extract complete.jpeg}
-    \caption{Text Extract successfully and synced with backend}
-    \label{fig:Text Extract Complete}
-\end{figure}
-
-\end{enumerate}
-
-\paragraph{Doctor-Patient Data Sharing}
+\subsection{Doctor-Patient Data Sharing}
 A core objective of the system is to support controlled and consent-based data
-sharing. Doctors may submit requests to access a patient's medical data, which
+sharing. Doctors may submit requests to access a patient’s medical data, which
 the patient can explicitly approve or reject or revoke the access permission later. Upon approval, patients are able
 to define granular access permissions, such as read-only or read-write access,
 as well as specify a time-bound duration for which the access remains valid.
@@ -296,286 +286,268 @@ Share Access Code with Doctor is a code for the doctor to enter. The patient dec
     \label{fig:Doctor appearing in Doctors that can access your data list and user can revoke access}
 \end{figure}
 
-\paragraph{Caregiver and Family Involvement}
+\subsection{Caregiver and Family Involvement}
 In addition to doctor access, the application supports caregiver and family
 member involvement. Patients may grant designated caregivers permission to
-monitor their health status, subject to explicit consent.
+monitor their health status, subject to explicit consent. 
 
 \begin{enumerate}
+    \item \textbf{Caregiver Access Flow}
+    \newline
+    \begin{enumerate}
+        \item Patient generates a code
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient view code generation.jpeg}
+        \caption{Patient Generating Code}
+        \label{fig:Patient Generating Code}
+    \end{figure}
+        \item Caregiver enters the code
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver entering Patient code.jpeg}
+        \caption{Caregiver entering Patient's code}
+        \label{fig:Caregiver entering Patient's code}
+    \end{figure}
+        \item Patient receives notification and approves/denies
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver request access (Patient view).jpeg}
+        \caption{Caregiver request access (Patient view)}
+        \label{fig:Caregiver request access (Patient view}
+    \end{figure}
+        \item Caregiver s notified and their list updates
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver given Access to Patient data .jpeg}
+        \caption{Caregiver is notified and their list updates}
+        \label{fig:Caregiver is notified and their list updates}
+    \end{figure}
+        \item Patient sees Caregiver in their family accessors list
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient ability to revoke access.jpeg}
+        \caption{Patient sees Caregiver in their family accessors list and ability to revoke access}
+        \label{fig:Patient sees Caregiver in their family accessors list and ability to revoke access}
+    \end{figure}
+    \end{enumerate}
 
-\item \textbf{Caregiver Access Flow}
-
-\begin{enumerate}
-    \item Patient generates a code
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient view code generation.jpeg}
-    \caption{Patient Generating Code}
-    \label{fig:Patient Generating Code}
-\end{figure}
-    \item Caregiver enters the code
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver entering Patient code.jpeg}
-    \caption{Caregiver entering Patient's code}
-    \label{fig:Caregiver entering Patient's code}
-\end{figure}
-    \item Patient receives notification and approves/denies
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver request access (Patient view).jpeg}
-    \caption{Caregiver request access (Patient view)}
-    \label{fig:Caregiver request access (Patient view}
-\end{figure}
-    \item Caregiver is notified and their list updates
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver given Access to Patient data .jpeg}
-    \caption{Caregiver is notified and their list updates}
-    \label{fig:Caregiver is notified and their list updates}
-\end{figure}
-    \item Patient sees Caregiver in their family accessors list
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient ability to revoke access.jpeg}
-    \caption{Patient sees Caregiver in their family accessors list and ability to revoke access}
-    \label{fig:Patient sees Caregiver in their family accessors list and ability to revoke access}
-\end{figure}
+    \item \textbf{Proxy View (Caregiver viewing Patient's data)}
+    \newline
+    Caregiver taps Patient's name in their "Family I Can Access" list $\rightarrow$ ProxySessionProvider.switchTo(Patient.patientId, Patient.name).
+    
+    What changes immediately across the whole app:
+    \begin{enumerate}
+        \item A purple banner appears at the top of every screen: "Viewing (Patient name) s profile"
+        \item The home screen detects the proxy change, and loads Patient's episodes of care instead of Caregiver's own data.
+        \item In the Profile screen, all Shared Access sub-sections (pending requests, doctors, family lists, share code generator) are hidden Caregiver only sees Patient's profile data
+        \item Caregiver taps "Switch Back to My Profile" $\rightarrow$ everything reverts to Caregiver's own data.
+    \end{enumerate}
 \end{enumerate}
 
-\item \textbf{Proxy View (Caregiver viewing Patient's data)}
-
-Caregiver taps Patient's name in their "Family I Can Access" list → ProxySessionProvider.switchTo(Patient.patientId, Patient.name).
-
-What changes immediately across the whole app:
-\begin{enumerate}
-    \item A purple banner appears at the top of every screen: "Viewing (Patient name)'s profile"
-    \item The home screen detects the proxy change, and loads Patient's episodes of care instead of Caregiver's own data.
-    \item In the Profile screen, all Shared Access sub-sections (pending requests, doctors, family lists, share code generator) are hidden — Caregiver only sees Patient's profile data.
-    \item Caregiver taps "Switch Back to My Profile" → everything reverts to Caregiver's own data.
-\end{enumerate}
-
-\end{enumerate}
-
-\paragraph{Appointment Management}
+\subsection{Appointment Management}
 The application further facilitates appointment management by allowing patients
 to schedule medical appointments directly through the mobile interface. During
 the booking process, patients may optionally attach relevant medical documents
 to provide physicians with preliminary information prior to consultation.
 
 \begin{enumerate}
-
-\item \textbf{Updating Data}
-
-\begin{itemize}
-    \item If caregiver updates patient data, patient is notified, and data is updated for both.
-    \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver updating Patient data.jpeg}
-    \caption{Caregiver updating Patient data}
-    \label{fig:Caregiver updating Patient data}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient receiving notification that Caregiver updated Patient data.jpeg}
-    \caption{Patient receiving notification that Caregiver updated Patient data}
-    \label{fig:Patient receiving notification that Caregiver updated Patient data}
-\end{figure}
-    \item If patient updates their own data, caregiver is notified, and data is updated for both.
-     \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient update their own data.jpeg}
-    \caption{Patient update their own data}
-    \label{fig:Patient update their own data}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver receiving notification that Patient updated their data.jpeg}
-    \caption{Caregiver receiving notification that Patient updated their own data}
-    \label{fig:Caregiver receiving notification that Patient updated their own data}
-\end{figure}
-\end{itemize}
-
-\item \textbf{Booking Appointment Flow}
-
-\begin{enumerate}
-    \item \textbf{Search Doctor Specialty}
+    \item \textbf{Updating Data}
+    \newline
     \begin{itemize}
-        \item Patient sees a grid of medical specialties (Cardiology, Dermatology, Psychiatry, etc.), and selects one speciality based on their need → navigates to Doctor List.
+        \item If caregiver updates patient data, patient is notified, and data is updated for both.
         \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/list of doctor speciality.jpeg}
-    \caption{List of doctor specialities}
-    \label{fig:list of doctor speciality}
-\end{figure}
-    \end{itemize}
-    \item \textbf{Doctor List}
-    \begin{itemize}
-        \item Load list of doctors with the speciality chosen in \textbf{Search Doctor Specialty}
-        \item Displays cards with name, rating, fees, waiting time.
-        \item Patient taps a doctor card → Doctor Profile
-        \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/list of doctor speciality.jpeg}
-    \caption{List of doctors with the speciality chosen (in this case Dermatology)}
-    \label{fig:List of doctors with the speciality choosen (in this case Dermatology)}
-\end{figure}
-    \end{itemize}
-    \item \textbf{Doctor Profile}
-    \begin{itemize}
-        \item Shows full doctor details (about, reviews, fees)
-        \item Displays expandable schedules with available time slots
-        \item Patient taps a "Book" button on a slot → Confirmation Screen
-    \end{itemize}
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver updating Patient data.jpeg}
+        \caption{Caregiver updating Patient data}
+        \label{fig:Caregiver updating Patient data}
+    \end{figure}
     \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Doctor Profile with slots available 2.jpeg}
-    \caption{Doctor Profile with slots available}
-    \label{fig:Doctor Profile with slots available}
-\end{figure}
-    \item \textbf{Confirmation}
-    \begin{itemize}
-        \item Summary card: doctor info, date/time, location
-        \item Patient form: name (pre-filled), phone number, optional "booking for someone else"
-        \item Checkbox "Confirm Booking"
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient receiving notification that Caregiver updated Patient data.jpeg}
+        \caption{Patient receiving notification that Caregiver updated Patient data}
+        \label{fig:Patient receiving notification that Caregiver updated Patient data}
+    \end{figure}
+        \item If patient updates their own data, caregiver is notified, and data is updated for both.
+         \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Patient update their own data.jpeg}
+        \caption{Patient update their own data}
+        \label{fig:Patient update their own data}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Caregiver receiving notification that Patient updated their data.jpeg}
+        \caption{Caregiver receiving notification that Patient updated their own data}
+        \label{fig:Caregiver receiving notification that Patient updated their own data}
+    \end{figure}
     \end{itemize}
-    \item \textbf{Thank You Screen}
+    \textbf{Booking Appointment Flow}
+    \begin{enumerate}
+        \item \textbf{Search Doctor Specialty}
+        \begin{itemize}
+            \item Patient sees a grid of medical specialties (Cardiology, Dermatology, Psychiatry, etc.), and selects one speciality based on their need$\rightarrow$ navigates to Doctor List.
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/list of doctor speciality.jpeg}
+            \caption{list of doctor speciality}
+            \label{fig:list of doctor speciality}
+        \end{figure}
+        \end{itemize}
+        \item \textbf{Doctor List}
+        \begin{itemize}
+            \item Load list of doctors withe speciality chosen in \textbf{Search Doctor Specialty}
+            \item Displays cards with name, rating, fees, waiting time.
+            \item Patient taps a doctor card $\rightarrow$ Doctor Profile
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/list of doctor speciality.jpeg}
+            \caption{List of doctors with the speciality choosen (in this case Dermatology)}
+            \label{fig:List of doctors with the speciality choosen (in this case Dermatology)}
+        \end{figure}
+        \end{itemize}
+        \item \textbf{Doctor Profile}
+        \begin{itemize}
+            \item Shows full doctor details (about, reviews, fees)
+            \item Displays expandable schedules with available time slots
+            \item Patient taps a "Book" button on a slot $\rightarrow$ Thank You Screen
+        \end{itemize}
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Doctor Profile with slots available 2.jpeg}
+        \caption{Doctor Profile with slots available}
+        \label{fig:Doctor Profile with slots available}
+    \end{figure}
+        \item \textbf{Confirmation}
+        \begin{itemize}
+            \item Summary card: doctor info, date/time, location
+            \item Patient form: name (pre-filled), phone number, optional "booking for someone else" 
+            \item checkbox "Confirm Booking" 
+        \end{itemize}
+        \item \textbf{Thank You Screen}
     \begin{itemize}
         \item Shows confirmation with appointment ID, doctor, date/time, fees
-        \item Optional: patient can add notes/symptoms
+        \item Optional: patient can add notes/symptoms 
         \item Optional: attach documents
-        \item Back to Home → resets all selections
-    \end{itemize}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Thank You Screen.jpeg}
-    \caption{Thank You Screen}
-    \label{fig:Thank You Screen}
-\end{figure}
-\end{enumerate}
-
-\end{enumerate}
-
-\paragraph{Wearable Device Integration}
-Finally, the system is designed to support integration with wearable and smart
-health devices, such as smartwatches, to collect physiological data including
-heart rate and other vital signs Using Google Health\_Connect\cite{android_health_connect}.
-
-\begin{enumerate}
-
-\item \textbf{What is Health\_Connect}
-
-Health Connect is a database that's stored on your device. This means that Google doesn't use the cloud to store data that's sent to Health Connect by connected applications.
-
-Health Connect facilitates interoperability among Android health applications by providing a centralized platform for sharing wellness and fitness data without requiring direct integrations between applications. The platform offers APIs for both storing and retrieving medical records, while also providing users with granular control over data access permissions and a dedicated interface for viewing their medical information.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Health_Connect Diagram 3.png}
-    \caption{Health\_Connect Diagram}
-    \label{fig:Health-Connect-Diagram}
-\end{figure}
-
-\item \textbf{How to handle Health Connect with several recent versions of Android}
-
-\begin{itemize}
-    \item Starting \textbf{Android 14} (API Level 34), Health Connect is part of the Android Framework. This version of Health Connect is a framework module. With that, there's no setup necessary.
-
-Go to Settings $>$ Security and Privacy $>$ Privacy Controls $>$ Health Connect, or search for Health Connect in Settings.
-    \item \textbf{On Android 13 (API Level 33) and lower} versions, Health Connect is not part of the Android Framework. With that, you need to install the Health Connect app from the Google Play Store.
-
-Go to Settings $>$ Apps $>$ Health Connect, or add Health Connect to your Quick Settings menu.
-\end{itemize}
-
-\item \textbf{Health Connect Granular Permissions}
-
-One of the key benefits of Health Connect is its support for granular permissions. Instead of granting applications unrestricted access to all health information, users can authorize access to individual data categories. This fine-grained permission model strengthens privacy and security while allowing applications to access only the data necessary for their functionality.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Granular Permissions.jpeg}
-    \caption{Granular Permissions}
-    \label{fig:Granular Permissions}
-\end{figure}
-
-\item \textbf{Data Sources \& Priority}
-
-\begin{itemize}
-    \item \textbf{Data Sources}
-
-Health Connect acts as a centralized repository that receives health data from different applications and wearable ecosystems, such as:
-\begin{itemize}
-    \item CFI-Care
-    \item Samsung Health
-    \item OMRON Connect
-    \item Withings
-    \item Other Health Connect--compatible applications
-\end{itemize}
-Each record stored in Health Connect contains metadata identifying the source application that created it.
-
-    \item \textbf{Data Priority}
-
-Because multiple applications may contribute the same health metric (for example, step counts from both Samsung Health and Fitbit), Health Connect allows users to configure data source priority.
-
-The priority setting determines which application's data should be preferred when conflicts or overlapping records occur. This helps avoid duplicate counting and improves data consistency.
-\end{itemize}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Data sources and priority.jpeg}
-    \caption{Data Sources \& Priority}
-    \label{fig:Data Sources and Priority}
-\end{figure}
-
-\item \textbf{Collecting Medical Data from Various Medical Devices}
-
-By integrating with Health Connect, the application can access health and fitness data aggregated from a wide range of compatible wearable devices and health platforms. This interoperability eliminates the need for separate integrations with individual device vendors, allowing the system to obtain user health metrics from multiple sources through a unified interface.
-
-\begin{enumerate}
-    \item \textbf{Galaxy Watch:}
-    \begin{itemize}
-        \item Both the smartphone and Android Smartphone have Samsung Health\cite{samsung_health}.
-        \item Samsung Health sends data to Health Connect.
-        \item CFI-Care then asks for data from Health Connect.
+    Back to Home $\rightarrow$ resets all selections    
     \end{itemize}
     \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{Mobile/Images/Health_Connect_GalaxyWatch_AndroidSmartphone3.jpg}
-    \caption{Health\_Connect with GalaxyWatch \& AndroidSmartphone}
-    \label{fig:Health-Connect-GalaxyWatch}
-\end{figure}
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Thank You Screen.jpeg}
+        \caption{Thank You Screen}
+        \label{fig:Thank You Screen}
+    \end{figure}
+    \end{enumerate}
+\end{enumerate}
 
-    \item \textbf{OMRON Connect}
+\subsection{Wearable Device Integration}
+Finally, the system is designed to support integration with wearable and smart
+health devices, such as smartwatches, to collect physiological data including
+heart rate and other vital signs Using Google Health\_Connect\cite{android_health_connect}. 
+
+\begin{enumerate}
+    \item \textbf{What is Health\_Connect}
+    \newline
+    Health Connect is a database that's stored on your device. This means that Google doesn’t use the cloud to store data that’s sent to Health Connect by connected applications.
+    
+    Health Connect facilitates interoperability among Android health applications by providing a centralized platform for sharing wellness and fitness data without requiring direct integrations between applications.The platform offers APIs for both storing and retrieving medical records, while also providing users with granular control over data access permissions and a dedicated interface for viewing their medical information.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Health_Connect Diagram 3.png}
+        \caption{Health\_Connect Diagram}
+        \label{fig:Health-Connect-Diagram}
+    \end{figure}
+
+    \item \textbf{How to handle Health Connect with several recent versions of Android}
+    \newline
+    \begin{itemize}
+        \item Starting \textbf{Android 14} (API Level 34), Health Connect is part of the Android Framework. This version of Health Connect is a framework module. With that, there's no setup necessary.
+    Go to Settings $>$ Security and Privacy $>$ Privacy Controls $>$ Health Connect, or search for Health Connect in Settings.
+    \item \textbf{On Android 13 (API Level 33) and lower} versions, Health Connect is not part of the Android Framework. With that, you need to install the Health Connect app from the Google Play Store.
+    Go to Settings $>$ Apps $>$ Health Connect, or add Health Connect to your Quick Settings menu.
+    \end{itemize}
+
+    \item \textbf{Health Connect Granular Permissions}
+    \newline
+    One of the key benefits of Health Connect is its support for granular permissions. Instead of granting applications unrestricted access to all health information, users can authorize access to individual data categories. This fine-grained permission model strengthens privacy and security while allowing applications to access only the data necessary for their functionality.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Granular Permissions.jpeg}
+        \caption{Granular Permissions}
+        \label{fig:Granular Permissions}
+    \end{figure}
+
+    \item \textbf{Data Sources \& Priority}
+    \newline
+    \begin{itemize}
+        \item \textbf{Data Sources}
+        Health Connect acts as a centralized repository that receives health data from different applications and wearable ecosystems, such as:
+        \begin{itemize}
+            \item CFI-Care
+            \item Samsung Health
+            \item OMRON Connect
+            \item Withings
+            \item Other Health Connect–compatible applications
+        \end{itemize}
+        Each record stored in Health Connect contains metadata identifying the source application that created it.
+    
+        \item \textbf{Data Priority}
+        Because multiple applications may contribute the same health metric (for example, step counts from both Samsung Health and Fitbit), Health Connect allows users to configure data source priority.
+        The priority setting determines which application's data should be preferred when conflicts or overlapping records occur. This helps avoid duplicate counting and improves data consistency.
+    \end{itemize}
+     \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Data sources and priority.jpeg}
+        \caption{Data Sources \& Priority}
+        \label{fig:Data Sources and Priority}
+    \end{figure}
+
+    \item \textbf{Collecting Medical Data from Various Medical Devices}
+    \newline
+    By integrating with Health Connect, the application can access health and fitness data aggregated from a wide range of compatible wearable devices and health platforms. This interoperability eliminates the need for separate integrations with individual device vendors, allowing the system to obtain user health metrics from multiple sources through a unified interface.
+    \begin{enumerate}
+        \item \textbf{Galaxy Watch :}
+        \begin{itemize}
+            \item Both the smartphone and Android Smartphone have Samsung Health\cite{samsung_health}. 
+            \item Samsung Health sends data to Health Connect.
+            \item CFI-Care then asks for data from Health.
+        \end{itemize} 
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{Mobile/Images/Health_Connect_GalaxyWatch_AndroidSmartphone3.jpg}
+        \caption{Health\_Connect with GalaxyWatch \& AndroidSmartphone}
+        \label{fig:Health-Connect-GalaxyWatch}
+    \end{figure}
+        \item \textbf{OMRON Connect}
     \begin{itemize}
         \item User installs OMRON Connect on their smartphone.
-        \item OMRON Connect gets data from one of OMRON medical devices (e.g. Arm Blood Pressure).
-        \item OMRON asks for permission to read and write data on Samsung Health.
-        \item Samsung Health sends data to Health Connect.
-        \item CFI-Care then asks for data from Health Connect.
+        \item OMRON Connect gets data from one of OMRON medical devices (eg. Arm Blood Pressure).
+        \item OMRON ask for permission to read and write data on Samsung health
+        \item Samsung has sends data to Health Connect.
+        \item CFI-Care then asks for data from Health.
     \end{itemize}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/OMRON Connect requesting to read & write Samsung Health data.jpeg}
-    \caption{OMRON Connect requesting to read \& write Samsung Health data}
-    \label{fig:OMRON Connect requesting to read and write Samsung Health data}
-\end{figure}
-
-    \item \textbf{Withings App}
-    \begin{itemize}
-        \item Withings asks for permission to read and write data directly to Health Connect.
-        \item CFI-Care then asks for data from Health Connect.
-        \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Withings requesting access to Health Connect .jpeg}
-    \caption{Withings requesting access to Health Connect}
-    \label{fig:Withings requesting access to Health Connect }
-\end{figure}
-    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/OMRON Connect requesting to read & write Samsung Health data.jpeg}
+        \caption{OMRON Connect requesting to read \& write Samsung Health data}
+        \label{fig:OMRON Connect requesting to read and write Samsung Health data}
+    \end{figure}
+        \item \textbf{Withings App}
+        \begin{itemize}
+            \item Withings ask for permission to read and write data on directly to Health Connect.
+            \item CFI-Care then asks for data from Health.
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.3\textwidth]{Mobile/Images/Withings requesting access to Health Connect .jpeg}
+            \caption{Withings requesting access to Health Connect }
+            \label{fig:Withings requesting access to Health Connect }
+        \end{figure}
+        \end{itemize}
+    \end{enumerate}
 \end{enumerate}
 
-\end{enumerate}
-
-\subsubsection{Flutter and Dart}
-
-\paragraph{Clean Architecture in the Mobile Application}
+\subsection{Flutter and Dart}
+\subsubsection{Clean Architecture in the Mobile Application}
 
 To ensure a scalable, maintainable, and testable codebase for the patient
 mobile application, this project adopts principles of Clean Architecture.
@@ -594,7 +566,7 @@ emphasizes the importance of isolating state management, dependency injection,
 and data access concerns to support growth and complexity in larger
 applications \cite{flutter_architecture}.
 
-As illustrated in Figure~\ref{fig:clean-architecture}, the application is
+As illustrated in Figure~\ref{fig:clean-architecture}, the the application is
 structured into three principal layers: the presentation layer, the domain
 layer, and the data layer. Each layer has a distinct responsibility and
 communicates with adjacent layers through abstract interfaces, ensuring that
@@ -607,33 +579,28 @@ toward infrastructure or frameworks \cite{clean_arch_flutter}.
     \label{fig:clean-architecture}
 \end{figure}
 
-\paragraph{Layered Structure}
+\subsubsection{Layered Structure}
 
-\begin{enumerate}
-
-\item \textbf{Presentation Layer}
-
+\paragraph{Presentation Layer}
 This outermost layer contains code that directly interacts with the user
 interface. In the context of this Flutter application, it includes widgets,
 screens, routing logic, and Riverpod providers to manage application state when
-implemented. The presentation layer orchestrates the flow of data from use
+implemented. The presentation layer orbits the flow of data from use
 cases in the domain layer to the UI and captures user interactions for
 processing. Presentation logic is kept distinct from business rules and data
 access to avoid tightly coupling UI changes with core system logic
 \cite{clean_arch_flutter}.
 
-\item \textbf{Domain Layer}
-
+\paragraph{Domain Layer}
 The domain layer encapsulates the core business logic and entities of the
 system. It is independent of Flutter or any external dependencies. This layer
 defines use cases that represent application-specific operations, such as
 requesting document access or scheduling appointments, and serves as the
-central coordinator of business rules. The domain layer's independence from
+central coordinator of business rules. The domain layer’s independence from
 external libraries and frameworks enhances testability and ensures that
 business logic can be validated in isolation \cite{clean_arch_flutter}.
 
-\item \textbf{Data Layer}
-
+\paragraph{Data Layer}
 The data layer is responsible for integrating with external systems, including
 APIs, local storage, and the backend FHIR server. It provides implementations
 of repository interfaces defined in the domain layer and manages data
@@ -641,9 +608,7 @@ transformation between network responses, local models, and domain entities.
 The layered separation ensures that external dependencies do not leak into the
 domain or presentation layers \cite{clean_arch_flutter}.
 
-\end{enumerate}
-
-\paragraph{Centralized Runtime Permission Handling}
+\subsubsection{Centralized Runtime Permission Handling}
 
 To ensure a secure and seamless interaction with device hardware, the
 application implements a centralized asynchronous mechanism for managing
@@ -663,7 +628,7 @@ the function executes the following logic flow:
     \item \textbf{Status Evaluation:} The returned \texttt{PermissionStatus} is evaluated against standard authorization states:
           \begin{itemize}
               \item \textbf{Granted:} If the user approves the request (\texttt{isGranted}), the function immediately returns \texttt{true}, allowing the calling process to proceed.
-              \item \textbf{Permanently Denied:} If the permission is flagged as \texttt{isPermanentlyDenied} (a state where the operating system suppresses further prompts due to repeated denials), the system intervenes to prevent a silent failure. It displays a toast notification instructing the user to enable the permission manually and invokes \texttt{openAppSettings()} to redirect the user to the device's settings menu.
+              \item \textbf{Permanently Denied:} If the permission is flagged as \texttt{isPermanentlyDenied} (a state where the operating system suppresses further prompts due to repeated denials), the system intervenes to prevent a silent failure. It displays a toast notification instructing the user to enable the permission manually and invokes \texttt{openAppSettings()} to redirect the user to the device’s settings menu.
               \item \textbf{Denied:} In cases of a standard denial, a feedback message is displayed via \texttt{Fluttertoast} to inform the user of the restriction, and the function returns \texttt{false}.
           \end{itemize}
 \end{enumerate}
@@ -673,11 +638,11 @@ handled gracefully, guiding users through recovery steps when necessary rather
 than causing application crashes or unresponsive features. The implementation
 of this logic is demonstrated in Listing \ref{lst:perm_logic}. \newpage
 \begin{lstlisting}[
-    language=Java,
-    basicstyle=\ttfamily\footnotesize,
-    frame=single,
-    breaklines=true,
-    caption={Asynchronous Permission Handling Function},
+    language=Java, 
+    basicstyle=\ttfamily\footnotesize, 
+    frame=single, 
+    breaklines=true, 
+    caption={Asynchronous Permission Handling Function}, 
     label={lst:perm_logic}
 ]
 import 'package:permission_handler/permission_handler.dart';
@@ -711,186 +676,182 @@ Future<bool> handlePermission(
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{Mobile/Images/Permission_handler_Camera.png}
-    \caption{Using handlePermission for Camera Access in code}
+    \caption{using handlePermission For Camera Access In code}
     \label{fig:handlePermission For camera access in code}
 \end{figure}
 
 \begin{enumerate}
-
-\item \textbf{Best Practices for handling Permissions in Flutter}
-
-\begin{itemize}
-    \item \textbf{Contextual Permission Requests:} To avoid overwhelming the user and to establish context, the application rejects the traditional ``up-front'' permission model (where all permissions are requested at launch). Instead, a \textit{Contextual Request} pattern is employed. Permissions are only requested at the specific moment a feature is invoked. For example, access to the \texttt{Camera} is requested solely when the user attempts to scan a medical report.
-    \item \textbf{Transparent Rationale and Trust Building:} In compliance with privacy best practices, the application explains the ``Why'' before the ``How.'' Prior to triggering the system permission dialog, the application presents a custom UI explanation detailing exactly why a specific permission is needed and how it benefits the user. This transparency is critical in a healthcare context, increasing the likelihood of approval and reinforcing the patient's understanding that their data is being used strictly for medical management.\cite{daydreamsoft2025permissions}
-    \item \textbf{User Agency and Graceful Degradation:} The system is designed to respect user choices without compromising the core functionality of the application. If a user denies a non-critical permission, the app enters a state of \textit{Graceful Degradation}. The application avoids repetitive prompting (``nagging''), ensuring a respectful user experience. \cite{daydreamsoft2025permissions}
-    \item \textbf{Comprehensive State Handling:} The application logic accounts for the full lifecycle of permission states, ensuring stability across different scenarios\cite{daydreamsoft2025permissions}\cite{boudanes2024permissions}:
-          \begin{itemize}
-              \item \textbf{Granted:} The feature proceeds immediately.
-              \item \textbf{Denied:} The feature is disabled, and the user is informed of the limitation.
-              \item \textbf{Permanently Denied:} In cases where the user has selected ``Don't ask again,'' the application detects this state and provides a subtle option to guide the user to the system \texttt{App Settings} menu for manual enablement, should they choose to do so later.
-          \end{itemize}
-\end{itemize}
-
-\end{enumerate}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{Mobile/Images/diagram_for_permissions.jpg}
-    \caption{Best Practices for Handling Permissions in Flutter}
-    \label{fig:Best Practices for Handling Permissions in Flutter}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.3\textwidth]{Mobile/Images/Asking_camera_permission.jpeg}
-    \caption{Dialog to allow the app to access the camera}
-    \label{fig:Dialog to allow the app to access the camera}
-\end{figure}
-
-\subsubsection{FCM Push Notifications}
-The system uses Firebase Cloud Messaging (FCM) to deliver real-time push notifications from the Node.js backend to the Flutter mobile app. FCM acts as a broker: the backend never sends a message directly to a device --- it sends a message to Google's FCM servers, which deliver it to the target device using its unique FCM token.
-
-\paragraph{How It Works}
-
-\begin{enumerate}
-
-\item \textbf{Token Registration}
-
-\begin{itemize}
-    \item Before any notification can be sent, the backend must know the device's Firebase Cloud Messaging (FCM) token.
-    \item On the Flutter side, the application calls FirebaseMessaging.instance.getToken() to obtain the device's unique FCM token.
-    \item The token is then sent to the backend through:
-    \begin{verbatim}
-POST /FCM/fcm-token
-{
-    "fcmToken": "abc123"
-}
-    \end{verbatim}
-    \item Token rotation is handled automatically. Whenever Firebase generates a new token, the updated value is sent again to the same endpoint.
-\end{itemize}
-
-\item \textbf{The Shared Sender Utility}
-
-All notifications go through one private function:
-\begin{itemize}
-    \item Before sending a notification, the backend retrieves the recipient's FCM token from Redis using the user's identifier.
-    \item If no token is found, the notification is skipped because the user does not have a registered device.
-    \item The backend then sends a Firebase Cloud Messaging (FCM) message containing both notification and data payloads.
-    \item Notifications are sent with high priority to ensure timely delivery.
-    \item Each notification message consists of two components:
+    \item \textbf{Best Practices for handling Permissions in Flutter}
+    \newline
     \begin{itemize}
-        \item \textbf{Notification Payload}: Contains the user-visible content, including the notification title and body displayed in the operating system's notification tray.
-        \item \textbf{Data Payload}: Contains structured key--value pairs processed by the Flutter application. The most important field is \texttt{type}, which identifies the notification category and determines the action that the application should perform upon receiving the message.
+        \item \textbf{Contextual Permission Requests: }To avoid overwhelming the user and to establish context, the application rejects the traditional ``up-front'' permission model (where all permissions are requested at launch). Instead, a \textit{Contextual Request} pattern is employed. Permissions are only requested at the specific moment a feature is invoked. For example, access to the \texttt{Camera} is requested solely when the user attempts to scan a medical report.
+        \item \textbf{Transparent Rationale and Trust Building: } In compliance with privacy best practices, the application explains the ``Why'' before the ``How.'' Prior to triggering the system permission dialog, the application presents a custom UI explanation detailing exactly why a specific permission is needed and how it benefits the user. This transparency is critical in a healthcare context, increasing the likelihood of approval and reinforcing the patient's understanding that their data is being used strictly for medical management.\cite{daydreamsoft2025permissions}
+        \item \textbf{User Agency and Graceful Degradation: } The system is designed to respect user choices without compromising the core functionality of the application. If a user denies a non-critical permission, the app enters a state of \textit{Graceful Degradation}.
+              The application avoids repetitive prompting (``nagging''), ensuring a
+              respectful user experience. \cite{daydreamsoft2025permissions}
+        \item \textbf{Comprehensive State Handling: }The application logic accounts for the full lifecycle of permission states, ensuring stability across different scenarios\cite{daydreamsoft2025permissions}\cite{boudanes2024permissions}:
+              \begin{itemize}
+                  \item \textbf{Granted:} The feature proceeds immediately.
+                  \item \textbf{Denied:} The feature is disabled, and the user is informed of the limitation.
+                  \item \textbf{Permanently Denied:} In cases where the user has selected ``Don't ask again,'' the application detects this state and provides a subtle option to guide the user to the system \texttt{App Settings} menu for manual enablement, should they choose to do so later.
+              \end{itemize}
     \end{itemize}
-\end{itemize}
-
-\item \textbf{The Four Notification Types}
-
-The system defines four distinct event types, each triggering a different UI response:
-\begin{table}[H]
-\centering
-\caption{Notification Events and Actions}
-\label{tab:notification_events}
-\begin{tabular}{|l|l|l|p{6cm}|}
-\hline
-\textbf{Event Type} & \textbf{Trigger} & \textbf{Recipient} & \textbf{Action} \\ \hline
-grant\_request &
-Doctor submits patient's OTP &
-Patient  &
-Orange snackbar and refresh pending doctor requests \\ \hline
-family\_request &
-Caregiver submits patient's OTP &
-Patient  &
-Purple snackbar and refresh pending family requests \\ \hline
-grant\_approved &
-Patient approves any request &
-Requester  &
-Green snackbar, refresh accessible members, and navigate to Profile tab \\ \hline
-data\_updated &
-Patient or caregiver edits health data &
-The other party &
-Blue-grey snackbar notification \\ \hline
-\end{tabular}
-\end{table}
-
-\item \textbf{Access Request Notifications (\texttt{grant\_request} / \texttt{family\_request})}
-
-When a doctor or caregiver submits a patient's OTP through the
-\texttt{/verify-practitioner-otp} or \texttt{/verify-caregiver-otp}
-endpoint, the backend first validates the OTP against Redis and retrieves
-the corresponding patient identifier. A pending handshake record is then
-created and an FCM notification is sent to the patient.
-
-Depending on the requester type, the notification payload contains either
-the \texttt{grant\_request} or \texttt{family\_request} event type.
-
-Upon receiving the notification, the Flutter application refreshes the
-appropriate provider and displays a visual notification to the user.
-Doctor requests trigger an orange snackbar and refresh the pending grants
-list, while caregiver requests trigger a purple snackbar and refresh the
-pending family requests list.
-
-\item \textbf{Approval Notification (\texttt{grant\_approved})}
-
-When a patient approves an access request through the
-\texttt{/create-grant} endpoint, the backend creates a grant record in
-Redis with a predefined time-to-live (TTL). The patient's display name is
-retrieved from the FHIR server and included in an approval notification
-sent to the requester.
-
-The notification contains the event type
-\texttt{grant\_approved}. Upon receipt, the Flutter application refreshes
-the accessible members list, navigates the requester to the profile tab,
-and displays a green snackbar indicating that access has been approved.
-
-\item \textbf{Data Update Notifications (\texttt{data\_updated})}
-
-Whenever a patient's health data is modified, the backend determines
-whether the update was performed by the patient or by a caregiver.
-
-If a caregiver updates the patient's data, a notification is sent to the
-patient informing them of the change. Conversely, if the patient updates
-their own data, all active caregivers associated with that patient are
-notified.
-
-This implementation follows a fan-out notification pattern, where a
-single patient update may generate notifications for multiple caregivers.
-The Flutter application displays an informational snackbar upon receiving
-a \texttt{data\_updated} event.
-
-\item \textbf{Application State Handling}
-
-The notification subsystem supports three application states:
-
-\begin{table}[htbp]
-\centering
-\caption{Notification Handling by Application State}
-\label{tab:notification_states}
-\begin{tabular}{|l|l|p{3cm}|}
-\hline
-\textbf{Application State} & \textbf{Handler} & \textbf{Purpose} \\
-\hline
-Foreground &
-\texttt{FirebaseMessaging.onMessage.listen()} &
-Display snackbars and refresh providers \\
-\hline
-Background &
-\texttt{FirebaseMessaging.onMessageOpenedApp.listen()} &
-Handle notification tap events \\
-\hline
-Terminated &
-\texttt{getInitialMessage()} &
-Process notifications after application launch \\
-\hline
-\end{tabular}
-\end{table}
-
-Background and terminated notification flows share a common message
-handler responsible for refreshing application state after the user opens
-the notification.
-
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\textwidth]{Mobile/Images/diagram_for_permissions.jpg}
+        \caption{Best Practices for Handling Permissions in Flutter}
+        \label{fig:Best Practices for Handling Permissions in Flutter}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\textwidth]{Mobile/Images/Asking_camera_permission.jpeg}
+        \caption{Dialog to allow the app to access the camera}
+        \label{fig:Dialog to allow the app to access the camera}
+    \end{figure}
 \end{enumerate}
 
-\subsubsection{Requirements Engineering}
+\subsection{FCM Push Notifications}
+The system uses Firebase Cloud Messaging (FCM) to deliver real-time push notifications from the Node.js backend to the Flutter mobile app. FCM acts as a broker: the backend never sends a message directly to a device — it sends a message to Google's FCM servers, which deliver it to the target device using its unique FCM token.
+
+\subsubsection{How It Works}
+\begin{enumerate}
+    \item \textbf{Token Registration}
+    \newline
+    \begin{itemize}
+        \item Before any notification can be sent, the backend must know the device's Firebase Cloud Messaging (FCM) token.
+        \item On the Flutter side, the application calls FirebaseMessaging.instance.getToken()
+        to obtain the device's unique FCM token.
+        \item The token is then sent to the backend through:
+        \begin{verbatim}
+    POST /FCM/fcm-token
+    {
+        "fcmToken": "abc123"
+    }
+        \end{verbatim}
+        \item Token rotation is handled automatically. Whenever Firebase generates a new token, the updated value is sent again to the same endpoint.
+    \end{itemize}
+
+    \item \textbf{The Shared Sender Utility}
+    \newline
+    All notifications go through one private function :
+    \begin{itemize}
+        \item Before sending a notification, the backend retrieves the recipient's FCM token from Redis using the user's identifier.
+        \item If no token is found, the notification is skipped because the user does not have a registered device.
+        \item The backend then sends a Firebase Cloud Messaging (FCM) message containing both notification and data payloads.
+        \item Notifications are sent with high priority to ensure timely delivery.
+        \item Each notification message consists of two components:
+        \begin{itemize}
+            \item \textbf{Notification Payload}: Contains the user-visible content, including the notification title and body displayed in the operating system's notification tray.
+            \item \textbf{Data Payload}: Contains structured key--value pairs processed by the Flutter application. The most important field is \texttt{type}, which identifies the notification category and determines the action that the application should perform upon receiving the message.
+        \end{itemize}
+    \end{itemize}
+
+    \item \textbf{The Four Notification Types}
+    \newline
+    The system defines four distinct event types, each triggering a different UI response:
+    \begin{table}[H]
+    \centering
+    \caption{Notification Events and Actions}
+    \label{tab:notification_events}
+    \begin{tabular}{|l|l|l|p{6cm}|}
+    \hline
+    \textbf{Event Type} & \textbf{Trigger} & \textbf{Recipient} & \textbf{Action} \\ \hline
+    grant\_request &
+    Doctor submits patient's OTP &
+    Patient  &
+    Orange snackbar and refresh pending doctor requests \\ \hline
+    family\_request &
+    Caregiver submits patient's OTP &
+    Patient  &
+    Purple snackbar and refresh pending family requests \\ \hline
+    grant\_approved &
+    Patient approves any request &
+    Requester  &
+    Green snackbar, refresh accessible members, and navigate to Profile tab \\ \hline
+    data\_updated &
+    Patient or caregiver edits health data &
+    The other party &
+    Blue-grey snackbar notification \\ \hline
+    \end{tabular}
+    \end{table}
+
+    \item \textbf{Access Request Notifications (\texttt{grant\_request} / \texttt{family\_request})}
+    \newline
+    When a doctor or caregiver submits a patient's OTP through the
+    \texttt{/verify-practitioner-otp} or \texttt{/verify-caregiver-otp}
+    endpoint, the backend first validates the OTP against Redis and retrieves
+    the corresponding patient identifier. A pending handshake record is then
+    created and an FCM notification is sent to the patient.
+    
+    Depending on the requester type, the notification payload contains either
+    the \texttt{grant\_request} or \texttt{family\_request} event type.
+    
+    Upon receiving the notification, the Flutter application refreshes the
+    appropriate provider and displays a visual notification to the user.
+    Doctor requests trigger an orange snackbar and refresh the pending grants
+    list, while caregiver requests trigger a purple snackbar and refresh the
+    pending family requests list.
+
+    \item \textbf{Approval Notification (\texttt{grant\_approved})}
+    \newline
+    When a patient approves an access request through the
+    \texttt{/create-grant} endpoint, the backend creates a grant record in
+    Redis with a predefined time-to-live (TTL). The patient's display name is
+    retrieved from the FHIR server and included in an approval notification
+    sent to the requester.
+    
+    The notification contains the event type
+    \texttt{grant\_approved}. Upon receipt, the Flutter application refreshes
+    the accessible members list, navigates the requester to the profile tab,
+    and displays a green snackbar indicating that access has been approved.
+
+    \item \textbf{Data Update Notifications (\texttt{data\_updated})}
+    \newline
+    Whenever a patient's health data is modified, the backend determines
+    whether the update was performed by the patient or by a caregiver.
+    
+    If a caregiver updates the patient's data, a notification is sent to the
+    patient informing them of the change. Conversely, if the patient updates
+    their own data, all active caregivers associated with that patient are
+    notified.
+    
+    This implementation follows a fan-out notification pattern, where a
+    single patient update may generate notifications for multiple caregivers.
+    The Flutter application displays an informational snackbar upon receiving
+    a \texttt{data\_updated} event.
+    demand when needed.
+
+    \item \textbf{Application State Handling}
+    \newline
+    The notification subsystem supports three application states:
+    \begin{table}[htbp]
+    \centering
+    \caption{Notification Handling by Application State}
+    \label{tab:notification_states}
+    \begin{tabular}{|l|l|p{3cm}|}
+    \hline
+    \textbf{Application State} & \textbf{Handler} & \textbf{Purpose} \\
+    \hline
+    Foreground &
+    \texttt{FirebaseMessaging.onMessage.listen()} &
+    Display snackbars and refresh providers \\
+    \hline
+    Background &
+    \texttt{FirebaseMessaging.onMessageOpenedApp.listen()} &
+    Handle notification tap events \\
+    \hline
+    Terminated &
+    \texttt{getInitialMessage()} &
+    Process notifications after application launch \\
+    \hline
+    \end{tabular}
+    \end{table}
+    Background and terminated notification flows share a common message
+    handler responsible for refreshing application state after the user opens
+    the notification.
+\end{enumerate}
+
+\subsection{Requirements Engineering}
 To ensure the delivery of a viable and effective application, the development
 lifecycle begins with a stakeholder analysis to establish the system context.
 This is followed by a comprehensive definition of the functional,
@@ -898,68 +859,57 @@ non-functional, and optional requirements. Synthesizing this information
 facilitates the creation of a domain model, which acts as the foundational
 blueprint for the subsequent database design.
 
-\paragraph{Target Group and User Group}
-
+\subsubsection{Target Group and User Group}
 Stakeholders are categorized into Internal Stakeholders, who are directly
 involved in the development and operation of the system, and External
 Stakeholders, who utilize the system's end products.
 
 \begin{enumerate}
+    \item \textbf{External Stakeholders}
+    \newline
+    External stakeholders are the primary users of the system. Their interaction
+    drives the application's core functionality.
+    \paragraph{1. Patients (Primary Users)}
+    \textbf{Interaction:}
+    \begin{itemize}
+        \item \textbf{Data Management:} Patients interact with the mobile interface to upload medical documents (lab results, scans) and view their historical data presented in a structured "Major Events" timeline.
+        \item \textbf{Access Control:} They possess full authority over their data privacy. Patients receive requests from doctors for data access and can grant permissions (Read-Only or Read-Write) for a specific duration. Crucially, they retain the ability to revoke this access at any time.
+        \item \textbf{Family Management:} Patients can authorize family members to view their health records for monitoring purposes.
+    \end{itemize}
+    \textbf{Benefits:}
+    \begin{itemize}
+        \item \textbf{Centralized History:} Eliminates the need for physical paperwork by consolidating all medical history into a single, organized mobile repository.
+        \item \textbf{Data Ownership:} Empowers patients with absolute control over who views their medical information and for how long.
+        \item \textbf{Continuity of Care:} Ensures that any new doctor can immediately access a complete medical background, reducing diagnostic errors.
+    \end{itemize}
+    
+    \paragraph{2. Family Members (Secondary Users)}
+    \textbf{Interaction:}
+    \begin{itemize}
+        \item \textbf{Monitoring:} Through shared access granted by the patient, family members can view health trends and documents to assist in care.
+        \item \textbf{Administrative Support:} Unlike doctors, family members have the permission to book appointments , and change data on behalf of the patient, facilitating care for elderly or incapacitated users.
+    \end{itemize}
+    \textbf{Benefits:}
+    \begin{itemize}
+        \item \textbf{Remote Assurance:} Provides peace of mind by allowing real-time monitoring of a loved one's health status.
+        \item \textbf{Care Coordination:} Simplifies the logistical burden of managing appointments and records for dependents.
+    \end{itemize}
+    
+    \paragraph{3. Doctors (Service Providers)}
+    \textbf{Interaction:}
+    \begin{itemize}
+        \item \textbf{Session Initiation:} While doctors primarily use the Web Interface, their actions directly trigger updates on the mobile app. A doctor initiates a "New Encounter Node" in the patient's history tree during a visit.
+        \item \textbf{Access Requests:} Doctors request permission to view a patient's historical records. If granted "Write" access, they can add new diagnoses and prescriptions to the encounter node.
+        \item \textbf{Limitation:} Doctors strictly cannot book appointments; this function is reserved for patients and their families to prevent conflict of interest or scheduling errors.
+    \end{itemize}
+    \textbf{Benefits:}
+    \begin{itemize}
+        \item \textbf{Informed Decision Making:} Instant access to a comprehensive medical history allows for more accurate diagnoses.
+        \item \textbf{Efficiency:} Reduces time spent interviewing patients for past medical details, allowing more focus on current treatment.
+    \end{itemize}
 
-\item \textbf{External Stakeholders}
-
-External stakeholders are the primary users of the system. Their interaction
-drives the application's core functionality.
-
-\begin{enumerate}
-
-\item \textbf{Patients (Primary Users)}
-
-\textbf{Interaction:}
-\begin{itemize}
-    \item \textbf{Data Management:} Patients interact with the mobile interface to upload medical documents (lab results, scans) and view their historical data presented in a structured "Major Events" timeline.
-    \item \textbf{Access Control:} They possess full authority over their data privacy. Patients receive requests from doctors for data access and can grant permissions (Read-Only or Read-Write) for a specific duration. Crucially, they retain the ability to revoke this access at any time.
-    \item \textbf{Family Management:} Patients can authorize family members to view their health records for monitoring purposes.
-\end{itemize}
-\textbf{Benefits:}
-\begin{itemize}
-    \item \textbf{Centralized History:} Eliminates the need for physical paperwork by consolidating all medical history into a single, organized mobile repository.
-    \item \textbf{Data Ownership:} Empowers patients with absolute control over who views their medical information and for how long.
-    \item \textbf{Continuity of Care:} Ensures that any new doctor can immediately access a complete medical background, reducing diagnostic errors.
-\end{itemize}
-
-\item \textbf{Family Members (Secondary Users)}
-
-\textbf{Interaction:}
-\begin{itemize}
-    \item \textbf{Monitoring:} Through shared access granted by the patient, family members can view health trends and documents to assist in care.
-    \item \textbf{Administrative Support:} Unlike doctors, family members have the permission to book appointments and change data on behalf of the patient, facilitating care for elderly or incapacitated users.
-\end{itemize}
-\textbf{Benefits:}
-\begin{itemize}
-    \item \textbf{Remote Assurance:} Provides peace of mind by allowing real-time monitoring of a loved one's health status.
-    \item \textbf{Care Coordination:} Simplifies the logistical burden of managing appointments and records for dependents.
-\end{itemize}
-
-\item \textbf{Doctors (Service Providers)}
-
-\textbf{Interaction:}
-\begin{itemize}
-    \item \textbf{Session Initiation:} While doctors primarily use the Web Interface, their actions directly trigger updates on the mobile app. A doctor initiates a "New Encounter Node" in the patient's history tree during a visit.
-    \item \textbf{Access Requests:} Doctors request permission to view a patient's historical records. If granted "Write" access, they can add new diagnoses and prescriptions to the encounter node.
-    \item \textbf{Limitation:} Doctors strictly cannot book appointments; this function is reserved for patients and their families to prevent conflict of interest or scheduling errors.
-\end{itemize}
-\textbf{Benefits:}
-\begin{itemize}
-    \item \textbf{Informed Decision Making:} Instant access to a comprehensive medical history allows for more accurate diagnoses.
-    \item \textbf{Efficiency:} Reduces time spent interviewing patients for past medical details, allowing more focus on current treatment.
-\end{itemize}
-
-\end{enumerate}
-
-\item \textbf{Internal Stakeholders}
-
-Internal stakeholders are responsible for the technical construction,
-maintenance, and security of the platform.
-
+    \item \textbf{Internal Stakeholders}
+    \newline
+    Internal stakeholders are responsible for the technical construction,
+    maintenance, and security of the platform.
 \end{enumerate}
