@@ -81,9 +81,6 @@
 % technology can provide. By failing to integrate real-time vitals into the
 % formal medical record, the system misses critical opportunities for
 % preventative monitoring and early intervention.
-<<<<<<< HEAD
-\section{Mobile Application Goal and Methods}
-=======
 % \section{Authentication \& Session Management}
 
 
@@ -93,7 +90,6 @@
 % Set up 2FA (OTP) — triggers CONFIGURE_TOTP, which walks the user through scanning a QR code to register an authenticator app (Google Authenticator, etc.) and generates backup recovery codes.
 % Both actions return a fresh token set upon completion, so the session remains valid without requiring the user to log in again.
 \section{Mobile Application Objectives \& UI}
->>>>>>> 4ecf847 (docs: mobile thesis [rel])
 
 The primary objective of developing the proposed mobile application is to
 provide a secure, efficient, and patient-centered platform for managing
@@ -1115,34 +1111,6 @@ drives the application's core functionality.
 Internal stakeholders are responsible for the technical construction,
 maintenance, and security of the platform.
 
-<<<<<<< HEAD
-\paragraph{1.Developers}
-% \newline
-\textbf{Interaction:}
-\begin{itemize}
-    \item \textbf{Frontend Implementation:} Responsible for building the cross-platform mobile interface using the Flutter framework.
-    \item \textbf{API Integration:} They implement the communication layer that sends authentication requests and data queries to the backend.
-    \item \textbf{UX/UI Design:} They translate the complex "Medical History Tree" concept into a user-friendly mobile timeline.
-          % \end{itemize}
-          % % \textbf{Interaction:}
-          % \begin{itemize}
-    \item \textbf{Authentication Flow:} They manage the identity management integration. The Flutter app sends credentials to the Node.js backend, which acts as an intermediary to communicate with \textbf{Keycloak} for secure Single Sign-On (SSO) and token validation.
-    \item \textbf{Data Orchestration:} They maintain the Node.js middleware that fetches data from the \textbf{FHIR Server} and formats it for the mobile client.
-    \item \textbf{Standardization:} They ensure that all medical data stored and retrieved adheres to HL7 FHIR standards for interoperability.
-\end{itemize}
-
-\section{System Sequence Diagram}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\textwidth]{Mobile/Images/Sequence_family_patient.png}
-    \caption{Sequence Diagram for Mobile Application}
-    \label{fig:Sequence Diagram for Mobile Application}
-\end{figure}
-\section{System Requirements Specification}
-The requirements for an application can be divided into three categories:
-functional requirements, non-functional requirements, and optional
-requirements. In this section all 3 requirements will be discussed.
-=======
 % \paragraph{1.Developers}
 % % \newline
 % \textbf{Interaction:}
@@ -1158,7 +1126,6 @@ requirements. In this section all 3 requirements will be discussed.
 %     \item \textbf{Standardization:} They ensure that all medical data stored and retrieved adheres to HL7 FHIR standards for interoperability.
 % \end{itemize}
 
->>>>>>> 4ecf847 (docs: mobile thesis [rel])
 
 % \section{System Requirements Specification}
 % The requirements for an application can be divided into three categories:
@@ -1184,21 +1151,11 @@ requirements. In this section all 3 requirements will be discussed.
 %               \item \textbf{FR-04 Wearable Device Sync:} The system integrates with Health Connect to aggregate data from a wide ecosystem of wearable companion applications, including Samsung Health, Withings, Fitbit, and Garmin Connect. By acting as a single, unified bridge, Health Connect drastically increases hardware compatibility and minimizes custom API maintenance across different manufacturers.
 % \end{itemize}
 
-<<<<<<< HEAD
-\subsection{Non-Functional Requirements}
-\begin{itemize}
-    % \item \textbf{NFR-01 Security \& Privacy:} All Protected Health Information (PHI) must be encrypted in transit and at rest. Authentication shall be handled via Keycloak OIDC (OpenID Connect) to ensure secure session management.
-    \item \textbf{NFR-01 Interoperability:} The application must parse and render data compliant with HL7 FHIR standards to ensure seamless integration with the Node.js backend.
-          % \item \textbf{NFR-02 Localization:} To serve the local demographic, the interface must fully support Arabic (RTL) and English (LTR) languages.
-    \item \textbf{NFR-02 Performance:} The medical history timeline uses "Lazy Loading" to ensure the application remains responsive even for patients with extensive medical records.
-\end{itemize}
-=======
 % \subsubsection{Family \& Caregiver Capabilities}
 % \begin{itemize}
 %     \item \textbf{FR-04 Monitoring Dashboard:} Authorized family members shall have a read-only view of the patient’s medical timeline to monitor health trends.
 %     \item \textbf{FR-05 Proxy Booking:} Unlike doctors, family members shall have the authority to search for providers and schedule appointments on behalf of the patient.
 % \end{itemize}
->>>>>>> 4ecf847 (docs: mobile thesis [rel])
 
 % \subsection{Non-Functional Requirements}
 % \begin{itemize}
@@ -1250,22 +1207,6 @@ requirements. In this section all 3 requirements will be discussed.
 % %     \item \textbf{Doctor Request Flow:} The process begins externally when a doctor requests access via the Web Interface. The Backend triggers a push notification service (e.g., Firebase) to alert the patient. The patient then retrieves the doctor's profile and submits a structured permission object (Scope + Duration).
 % %     \item \textbf{Family Linking Flow:} Similar to the doctor's request, a family member initiates a "Follow Request." The patient must explicitly confirm the relationship to authorize the read-only monitoring view.
 % % \end{enumerate}
-<<<<<<< HEAD
-\section{My Profile Update}
-Figure \ref{fig:My Profile Use Case} details the data consistency mechanism.
-\begin{enumerate}
-    \item \textbf{Local Commit:} When the user saves changes, the application first updates the local SQLite database. This ensures the user interface is responsive and works even with poor internet connectivity.
-    \item \textbf{Remote Synchronization:} Immediately following the local commit, the application initiates an asynchronous API call to update the backend server.
-    \item \textbf{Consistency Check:} Upon a successful server response, the application confirms the synchronization status, ensuring the patient's data is consistent across all platforms.
-\end{enumerate}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\textwidth]{Mobile/Images/My-Profile-usecase.png}
-    \caption{My Profile Use Case}
-    \label{fig:My Profile Use Case}
-\end{figure}
-
-=======
 % \section{My Profile Update}
 % Figure \ref{fig:My Profile Use Case} details the data consistency mechanism.
 % \begin{enumerate}
@@ -1289,4 +1230,3 @@ Figure \ref{fig:My Profile Use Case} details the data consistency mechanism.
 
 
 \end{document}
->>>>>>> 4ecf847 (docs: mobile thesis [rel])
