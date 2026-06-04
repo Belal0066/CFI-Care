@@ -1,73 +1,78 @@
-const express = require('express');
-const { requireApiAuth } = require('../middleware/requireApiAuth');
-
-
 const redis = require('../utils/redisOTPCli');
-
 const admin = require('firebase-admin');
 
-
-
-async function getFCMToken(patientId) {
-  const token = await redis.get(`fcm_token:${patientId}`);
-  return token;
-  
+async function _sendToUser(userId, data, notification) {
+  const token = await redis.get(`fcm_token:${userId}`);
+  if (!token) return;
+  try {
+    await admin.messaging().send({
+      token,
+      data,
+      notification,
+      android: { priority: 'high' },
+      apns: { payload: { aps: { contentAvailable: true } } },
+    });
+  } catch (err) {
+    console.error(`[FCM] failed to send to ${userId}:`, err.message);
+  }
 }
 
 const bodyByType = {
-      practitioner: "A practitioner is requesting access to your health data.",
-      caregiver: "A caregiver is requesting access to your health data.",
-    };
+  practitioner: 'A practitioner is requesting access to your health data.',
+  caregiver: 'A caregiver is requesting access to your health data.',
+};
 
-
-async function sendNotif(patientId, handshakeId , requesterType) {
-
-  // TODO: Send an FCM push notification to the patient here so their app
-    // receives the access request instantly (type: 'grant_request').
-    //
-    // Prerequisites:
-    //   - The patient's device must have POSTed its FCM token to the backend
-    //     after login (see navigation_bar.dart → setupInteractedMessage).
-    //   - Store it in Redis when received, e.g.:
-    //       redis.set(`fcm_token:${patientId}`, fcmToken)
-    //
-    // How to send the notification (Firebase Admin SDK):
-    //
-    //   const admin = require('firebase-admin');          // init once in app.js
-    //
-    //   const patientFcmToken = await redis.get(`fcm_token:${patientId}`);
-    //   if (patientFcmToken) {
-    //     await admin.messaging().send({
-    //       token: patientFcmToken,
-    //       data: { type: 'grant_request', handshakeId },   // data-only message
-    //       notification: {                                  // shown in system tray
-    //         title: 'Access Request',
-    //         body:  'A doctor is requesting access to your health data.',
-    //       },
-    //       android: { priority: 'high' },
-    //       apns:    { payload: { aps: { contentAvailable: true } } },
-    //     });
-    //   }
-    
-    // Send FCM push notification to patient
-    const patientFcmToken = await getFCMToken(patientId);
-
-    const body= bodyByType[requesterType];
-    
-    if (patientFcmToken) {
-      await admin.messaging().send({
-        token: patientFcmToken,
-        data: { type: 'grant_request', handshakeId },
-        notification: {
-          title: 'Access Request',
-          // body: 'A doctor is requesting access to your health data.',
-          body:body
-        },
-        android: { priority: 'high' },
-        apns: { payload: { aps: { contentAvailable: true } } },
-      });
-    }
-  
+async function sendNotif(patientId, handshakeId, requesterType) {
+  // Use 'family_request' for caregivers so the Flutter app can distinguish
+  // family requests from doctor (practitioner) requests.
+  const type = requesterType === 'caregiver' ? 'family_request' : 'grant_request';
+  await _sendToUser(
+    patientId,
+    { type, handshakeId },
+    { title: 'Access Request', body: bodyByType[requesterType] ?? 'Someone is requesting access to your health data.' }
+  );
 }
 
-module.exports={sendNotif};
+async function sendGrantApprovalNotif(requesterId, patientDisplayName) {
+  const body = patientDisplayName
+    ? `${patientDisplayName} approved your access request.`
+    : 'Your access request has been approved.';
+  await _sendToUser(
+    requesterId,
+    { type: 'grant_approved' },
+    { title: 'Access Approved', body }
+  );
+}
+
+async function sendDataUpdatedByCaregiver(patientId, caregiverName) {
+  await _sendToUser(
+    patientId,
+    { type: 'data_updated' },
+    { title: 'Data Updated', body: `Your data was updated by ${caregiverName}.` }
+  );
+}
+
+async function sendDataUpdatedByPatient(caregiverIds, patientName) {
+  for (const caregiverId of caregiverIds) {
+    await _sendToUser(
+      caregiverId,
+      { type: 'data_updated' },
+      { title: 'Data Updated', body: `${patientName} updated their data.` }
+    );
+  }
+}
+
+// Notify a caregiver (Y) that a patient (X) revoked their access, so Y's app
+// can drop X from the accessible list and exit proxy mode if viewing X.
+async function sendAccessRevokedNotif(caregiverId, patientId, patientName) {
+  const body = patientName
+    ? `${patientName} revoked your access to their data.`
+    : 'Your access to a patient was revoked.';
+  await _sendToUser(
+    caregiverId,
+    { type: 'access_revoked', patientId: String(patientId) },
+    { title: 'Access Revoked', body }
+  );
+}
+
+module.exports = { sendNotif, sendGrantApprovalNotif, sendDataUpdatedByCaregiver, sendDataUpdatedByPatient, sendAccessRevokedNotif };

@@ -7,7 +7,7 @@ class FamilyAccessProvider with ChangeNotifier {
 
   FamilyAccessProvider(this.repository);
 
-  // --- Accessible members (x's list of patients x can view) ---
+  // --- Y's accessible patients (patients Y can proxy-view) ---
   List<FamilyMember> _accessibleMembers = [];
   bool _isLoadingMembers = false;
   String? _membersError;
@@ -16,14 +16,23 @@ class FamilyAccessProvider with ChangeNotifier {
   bool get isLoadingMembers => _isLoadingMembers;
   String? get membersError => _membersError;
 
-  // --- Pending family requests (y's incoming requests) ---
+  // --- X's pending requests from family members (Y's waiting for approval) ---
   List<PendingFamilyRequest> _pendingRequests = [];
   bool _isLoadingPending = false;
 
   List<PendingFamilyRequest> get pendingRequests => _pendingRequests;
   bool get isLoadingPending => _isLoadingPending;
 
-  // --- Code submission (x submits y's OTP) ---
+  // --- X's active family accessors (Y's who currently have access to X's data) ---
+  List<FamilyAccessor> _familyAccessors = [];
+  bool _isLoadingAccessors = false;
+  String? _accessorsError;
+
+  List<FamilyAccessor> get familyAccessors => _familyAccessors;
+  bool get isLoadingAccessors => _isLoadingAccessors;
+  String? get accessorsError => _accessorsError;
+
+  // --- Y submitting X's code ---
   bool _isSubmitting = false;
   String? _submitError;
 
@@ -34,23 +43,16 @@ class FamilyAccessProvider with ChangeNotifier {
     _isSubmitting = true;
     _submitError = null;
     notifyListeners();
-    // TODO: remove this stub when backend is ready
-    await Future.delayed(const Duration(seconds: 1));
-    _isSubmitting = false;
-    notifyListeners();
-    return true;
-
-    // TODO: uncomment when backend is ready
-    // try {
-    //   await repository.submitFamilyCode(code);
-    //   return true;
-    // } catch (e) {
-    //   _submitError = e.toString().replaceFirst('Exception: ', '');
-    //   return false;
-    // } finally {
-    //   _isSubmitting = false;
-    //   notifyListeners();
-    // }
+    try {
+      await repository.submitFamilyCode(code);
+      return true;
+    } catch (e) {
+      _submitError = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
   }
 
   void clearSubmitError() {
@@ -62,24 +64,14 @@ class FamilyAccessProvider with ChangeNotifier {
     _isLoadingMembers = true;
     _membersError = null;
     notifyListeners();
-
-    // TODO: remove this stub when backend is ready
-    await Future.delayed(const Duration(milliseconds: 300));
-    _accessibleMembers = [
-      FamilyMember(patientId: 'fake-id', name: 'Martha Doe', grantId: 'g1'),
-    ];
-    _isLoadingMembers = false;
-    notifyListeners();
-
-    // TODO: uncomment when backend is ready
-    // try {
-    //   _accessibleMembers = await repository.getAccessibleMembers();
-    // } catch (e) {
-    //   _membersError = e.toString().replaceFirst('Exception: ', '');
-    // } finally {
-    //   _isLoadingMembers = false;
-    //   notifyListeners();
-    // }
+    try {
+      _accessibleMembers = await repository.getAccessibleMembers();
+    } catch (e) {
+      _membersError = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isLoadingMembers = false;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchPendingRequests() async {
@@ -102,6 +94,31 @@ class FamilyAccessProvider with ChangeNotifier {
         approved: approved,
       );
       _pendingRequests.removeWhere((r) => r.handshakeId == handshakeId);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> fetchFamilyAccessors() async {
+    _isLoadingAccessors = true;
+    _accessorsError = null;
+    notifyListeners();
+    try {
+      _familyAccessors = await repository.getFamilyAccessors();
+    } catch (e) {
+      _accessorsError = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isLoadingAccessors = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> revokeFamilyAccessor(String caregiverId) async {
+    try {
+      await repository.revokeFamilyAccess(caregiverId);
+      _familyAccessors.removeWhere((a) => a.requesterId == caregiverId);
       notifyListeners();
       return true;
     } catch (_) {

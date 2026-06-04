@@ -50,6 +50,16 @@ function scopeMatches(requiredScope, tokenScope) {
 function requireScopes(requiredScopes = []) {
     return function (req, res, next) {
         try {
+            // If requirePatientContext already ran and approved this request as
+            // delegated access (caregiver/practitioner with a valid, scoped Redis
+            // grant), trust that decision and skip the SMART scope check entirely.
+            // The delegate's own token does not carry patient/*.rs scopes, so this
+            // check would otherwise wrongly reject a legitimately-granted reader.
+            const accessType = req.accessContext?.type || '';
+            if (accessType.endsWith('_delegated')) {
+                return next();
+            }
+
             const payload = req.kauth && req.kauth.token && req.kauth.token.grant;
             if (!payload) {
                 return res.status(401).json({ error: 'Unauthorized: missing payload' });
@@ -83,7 +93,13 @@ function requireScopes(requiredScopes = []) {
                     const patientClaim = payload.patient || payload.patient_id || null;
                     if (patientClaim && req.params && req.params.id) {
                         if (patientClaim !== req.params.id) {
-                            return res.status(403).json({ error: 'Forbidden: patient scope does not match requested patient ID' });
+                            // requirePatientContext already ran and approved this as delegated access
+                            // (caregiver or practitioner with active grant) — skip the ownership check.
+                            const accessType = req.accessContext?.type || '';
+                            const isDelegated = accessType.endsWith('_delegated');
+                            if (!isDelegated) {
+                                return res.status(403).json({ error: 'Forbidden: patient scope does not match requested patient ID' });
+                            }
                         }
                     }
                 }

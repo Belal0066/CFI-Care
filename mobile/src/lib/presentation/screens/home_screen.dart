@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:medflow/utils/themes/theme.dart';
 import '../widgets/vitals_section.dart';
 import '../viewmodels/major_event_provider.dart';
+import '../viewmodels/proxy_session_provider.dart';
 import 'event_node_screen.dart';
 import '../viewmodels/booking_provider.dart';
 import '../widgets/appointment_card.dart';
@@ -15,12 +16,28 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Tracks which proxy ID we last fetched for, so we reload when it changes.
+  // 'UNSET' sentinel ensures the first build always triggers a fetch.
+  String? _lastFetchedForProxyId = 'UNSET';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MajorEventProvider>().fetchEvents();
+      if (!mounted) return;
+      final proxyId = context.read<ProxySessionProvider>().proxyPatientId;
+      _lastFetchedForProxyId = proxyId;
+      context.read<MajorEventProvider>().fetchEvents(overridePatientId: proxyId);
       context.read<BookingProvider>().loadAppointmentsForCurrentUser();
+    });
+  }
+
+  void _reloadIfProxyChanged(String? proxyId) {
+    if (_lastFetchedForProxyId == proxyId) return;
+    _lastFetchedForProxyId = proxyId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<MajorEventProvider>().fetchEvents(overridePatientId: proxyId);
     });
   }
 
@@ -40,6 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     //----WATCH PROVIDERS----
+    final proxy = context.watch<ProxySessionProvider>();
+    _reloadIfProxyChanged(proxy.proxyPatientId);
+
     final provider = context.watch<MajorEventProvider>();
     final bookingProvider = context.watch<BookingProvider>();
 
@@ -174,8 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 25),
                     ],
-                    // --- VITALS SECTION ---
-                    const VitalsSection(),
+                    // --- VITALS SECTION (hidden when viewing another patient's data) ---
+                    if (!proxy.isProxying) const VitalsSection(),
                   ],
                 ),
               ),
