@@ -7,61 +7,96 @@ class FamilyAccessRepository {
 
   FamilyAccessRepository(this.apiService);
 
-  // TODO(backend): POST /family-access/submit-code  body: { otp: string }
-  // Returns 200/201 on success; throws on invalid code.
+  // Y (family member) submits X's OTP code to request proxy access.
+  // Backend: POST /api/handshakes/verify-caregiver-otp { otp }
   Future<void> submitFamilyCode(String otp) async {
     final response = await apiService.postData(
-      endpoint: '/family-access/submit-code',
+      endpoint: '/handshakes/verify-caregiver-otp',
       data: {'otp': otp},
     );
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Invalid code or request failed: ${response.body}');
+      final body = json.decode(response.body) as Map<String, dynamic>?;
+      throw Exception(body?['error'] ?? 'Invalid code or request failed');
     }
   }
 
-  // TODO(backend): GET /family-access/members
-  // Returns { members: [ { patientId, name, grantId } ] }
+  // Y gets the list of patients (X's) they can access.
+  // Backend: GET /api/caregiver-grants/my-patients → { patients: [...] }
   Future<List<FamilyMember>> getAccessibleMembers() async {
     final response = await apiService.getData(
-      endpoint: '/family-access/members',
+      endpoint: '/caregiver-grants/my-patients',
     );
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
-      final list = body['members'] as List<dynamic>? ?? [];
+      final list = body['patients'] as List<dynamic>? ?? [];
       return list
           .map((e) => FamilyMember.fromJson(e as Map<String, dynamic>))
           .toList();
     }
-    throw Exception('Failed to fetch family members: ${response.body}');
+    throw Exception('Failed to fetch accessible family members: ${response.body}');
   }
 
-  // TODO(backend): GET /family-access/pending
-  // Returns { pending: [ { handshakeId, requesterId, requesterName, createdAt } ] }
+  // X gets the list of pending caregiver access requests (from Y's).
+  // Backend: GET /api/handshakes/pending → { pending: [...] }
+  // Filters to only caregiver-type requests.
   Future<List<PendingFamilyRequest>> getPendingFamilyRequests() async {
-    final response = await apiService.getData(
-      endpoint: '/family-access/pending',
-    );
+    final response = await apiService.getData(endpoint: '/handshakes/pending');
     if (response.statusCode == 200) {
       final body = json.decode(response.body) as Map<String, dynamic>;
       final list = body['pending'] as List<dynamic>? ?? [];
       return list
           .map((e) => PendingFamilyRequest.fromJson(e as Map<String, dynamic>))
+          .where((r) => r.isFamilyRequest)
           .toList();
     }
     throw Exception('Failed to fetch pending family requests: ${response.body}');
   }
 
-  // TODO(backend): POST /family-access/respond  body: { handshakeId, approved }
+  // X approves or denies Y's request.
+  // Backend: POST /api/handshakes/create-grant { handshakeId, approved, durationMinutes? }
   Future<void> respondToFamilyRequest({
     required String handshakeId,
     required bool approved,
+    int durationMinutes = 60 * 24 * 365, // ~1 year default for family access
   }) async {
     final response = await apiService.postData(
-      endpoint: '/family-access/respond',
-      data: {'handshakeId': handshakeId, 'approved': approved},
+      endpoint: '/handshakes/create-grant',
+      data: {
+        'handshakeId': handshakeId,
+        'approved': approved,
+        if (approved) 'durationMinutes': durationMinutes,
+        if (approved) 'scopes': ['read', 'write'],
+      },
     );
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to respond to family request: ${response.body}');
+    }
+  }
+
+  // X gets the list of family members (Y's) who currently have access to their data.
+  // Backend: GET /api/patient-grants/grants → { practitioners: [...], caregivers: [...] }
+  Future<List<FamilyAccessor>> getFamilyAccessors() async {
+    final response = await apiService.getData(
+      endpoint: '/patient-grants/grants',
+    );
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body) as Map<String, dynamic>;
+      final list = body['caregivers'] as List<dynamic>? ?? [];
+      return list
+          .map((e) => FamilyAccessor.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to fetch family accessors: ${response.body}');
+  }
+
+  // X revokes Y's access.
+  // Backend: DELETE /api/patient-grants/caregivers/:caregiverId
+  Future<void> revokeFamilyAccess(String caregiverId) async {
+    final response = await apiService.deleteData(
+      endpoint: '/patient-grants/caregivers/$caregiverId',
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to revoke family access: ${response.body}');
     }
   }
 }

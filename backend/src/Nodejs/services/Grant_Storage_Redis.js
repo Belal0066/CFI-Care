@@ -81,6 +81,21 @@ async function getGrantByRequesterAndPatient(requesterId, patientId) {
   return raw ? JSON.parse(raw) : null;
 }
 
+async function getPatientCaregiversList(patientId) {
+  const keys = await redis.keys(`grant:caregiver:*:${patientId}`);
+  const now = new Date();
+  const caregiverIds = [];
+  for (const key of keys) {
+    const raw = await redis.get(key);
+    if (!raw) continue;
+    const grant = JSON.parse(raw);
+    if (grant?.expiresAt && new Date(grant.expiresAt) > now) {
+      caregiverIds.push(grant.requesterId);
+    }
+  }
+  return caregiverIds;
+}
+
 module.exports = {
     saveGrant,
     getGrant,
@@ -93,5 +108,6 @@ module.exports = {
     getGrantbyKey,
     deleteGrantbyKey,
     getGrantByRequesterAndPatient,
-    getCaregiverGrants
+    getCaregiverGrants,
+    getPatientCaregiversList
 };

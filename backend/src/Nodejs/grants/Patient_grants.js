@@ -6,6 +6,7 @@ const { requireApiAuth } = require('../middleware/requireApiAuth');
 const { logSecurityEvent } = require('../utils/logSecurityEvent');
 const {deleteGrant,delCaregiverMappings,getGrant,getPatIentGrants,countCaregiverMappings,getGrantbyKey,deleteGrantbyKey}=require("../services/Grant_Storage_Redis");
 const { removeUserFromGroup, revokeCaregiverGroupIfNoActivePatients } = require("../auth/Role_assignment");
+const { sendAccessRevokedNotif } = require("../services/FCM_Send_Notification");
 const router = express.Router();
 
 const fhirApi = axios.create({
@@ -120,6 +121,20 @@ router.delete("/caregivers/:caregiverId", requireApiAuth, async (req, res) => {
         remainingMappings: remaining,
         reason: "Patient revoked caregiver access",
       });
+    }
+
+    // Notify the caregiver (Y) so their app drops this patient from the
+    // accessible list and exits proxy mode if currently viewing them.
+    try {
+      let patientName = null;
+      const fhirRes = await fhirApi.get(`/Patient/${patientId}`);
+      const namePart = fhirRes.data?.name?.[0];
+      if (namePart) {
+        patientName = `${namePart.given?.join(' ') || ''} ${namePart.family || ''}`.trim() || null;
+      }
+      await sendAccessRevokedNotif(caregiverId, patientId, patientName);
+    } catch (_) {
+      // best-effort notification
     }
 
     return res.json({ message: "Caregiver access revoked" });

@@ -9,7 +9,12 @@ const { logSecurityEvent } = require('../utils/logSecurityEvent');
 const router = express.Router();
 const redis = require('../utils/redisOTPCli');
 
-const { sendNotif } = require('../services/FCM_Send_Notification');
+const { sendNotif, sendGrantApprovalNotif } = require('../services/FCM_Send_Notification');
+
+const fhirApi = axios.create({
+  baseURL: process.env.FHIR_SERVER_URL,
+  headers: { 'Content-Type': 'application/fhir+json' },
+});
 const { resolveRequesterType } = require('../services/Caller_Role_resolver');
 const { clearExistingOtp, createUniqueOtp, ClearVerifiedOtp, savePendingGrant, getPendingGrant, listPendingHandshakes, deletePendingGrant } = require('../services/Handshake_storage_redis');
 const { saveGrant,
@@ -115,21 +120,30 @@ router.post('/verify-caregiver-otp', requireApiAuth, async (req, res) => {
     if (!patientId)
       return res.status(401).json({ error: "Invalid or expired OTP" });
 
+    const claims = req.jwt || req.kauth?.token?.grant;
+    const requesterName = (claims?.name ||
+      `${claims?.given_name || ''} ${claims?.family_name || ''}`.trim() ||
+      claims?.email ||
+      'Unknown').trim();
+
     const handshakeId = crypto.randomUUID();
     const pending = {
       handshakeId,
       patientId,
       requesterId,
       requesterType: requesterType,
+      requesterName,
       caregiverRoleAssignment,
       createdAt: new Date().toISOString(),
     };
-
     // hancall func yb3t notif hena -> assigned to the coolest flutter head <3
-    await sendNotif(patientId, handshakeId, requesterType);
+    // await sendNotif(patientId, handshakeId, requesterType);
 
 
     // await redis.set(`pending:${patientId}`, practitionerId, 'EX', 120);
+
+    
+    await sendNotif(patientId, handshakeId, 'caregiver');
 
     await savePendingGrant(pending);
 
@@ -222,6 +236,7 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
       grantId,
       patientId,
       requesterId,
+      requesterName: pending.requesterName || null,
       status: "active",
       scopes:
         Array.isArray(scopes) && scopes.length
@@ -244,6 +259,17 @@ router.post('/create-grant', requireApiAuth, async (req, res) => {
 
     if (pending.caregiverRoleAssignment == "caregiver_assigned")
       await setCaregiverMappings(requesterId, patientId);
+
+    // Notify the requester that their access was approved
+    try {
+      let patientDisplayName = null;
+      const fhirRes = await fhirApi.get(`/Patient/${patientId}`);
+      const namePart = fhirRes.data?.name?.[0];
+      if (namePart) {
+        patientDisplayName = `${namePart.given?.join(' ') || ''} ${namePart.family || ''}`.trim() || null;
+      }
+      await sendGrantApprovalNotif(requesterId, patientDisplayName);
+    } catch (_) {}
 
     await logSecurityEvent('access', 'GRANT_ISSUED', req, {
       requesterType,
