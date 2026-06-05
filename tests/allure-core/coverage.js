@@ -35,15 +35,19 @@ function readPythonCoverage(filePath) {
 
 function readSecurityCoverage(base) {
   const file = path.join(base, "security", "coverage-summary.json");
+  
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf-8"));
     const t = raw.total || {};
     return {
-      line: t.lines && t.lines.pct !== "Unknown" ? t.lines.pct : null,
-      branch: t.branches && t.branches.pct !== "Unknown" ? t.branches.pct : null,
-      function: t.functions && t.functions.pct !== "Unknown" ? t.functions.pct : null
+      line: t.lines ? t.lines.pct : null,
+      branch: t.branches ? t.branches.pct : null,
+      function: t.functions ? t.functions.pct : null,
     };
-  } catch { return null; }
+  } catch (e) {
+    console.error("Failed to read security coverage at:", file, e);
+    return null;
+  }
 }
 
 function writeCoverageSummary(basePath) {

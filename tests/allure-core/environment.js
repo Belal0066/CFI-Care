@@ -92,7 +92,18 @@ function readCoverageForSuite(suiteDir, suiteName) {
       };
     }
 
-    const covPath = path.join(suiteDir, "coverage.json");
+    if (suiteName === "security") {
+      const covPath = path.join(suiteDir, "coverage-summary.json");
+      const cov = JSON.parse(fs.readFileSync(covPath, "utf-8"));
+      const t = cov.total || {};
+      return {
+        CVRG_LINE: t.lines ? t.lines.pct : "n/a",
+        CVRG_BRANCH: t.branches ? t.branches.pct : "n/a",
+        CVRG_FUNCTION: t.functions ? t.functions.pct : "n/a"
+      };
+    }
+
+    const covPath = path.join(suiteDir, suiteName === "security" ? "coverage-summary.json" : "coverage.json");
     const cov = JSON.parse(fs.readFileSync(covPath, "utf-8"));
     const totals = cov.totals || {};
     const coveredBranches = totals.covered_branches || 0;
@@ -103,7 +114,8 @@ function readCoverageForSuite(suiteDir, suiteName) {
       CVRG_BRANCH: branchPct === "n/a" ? "n/a" : branchPct.toFixed(2),
       CVRG_FUNCTION: "n/a"
     };
-  } catch {
+  } catch(e) {
+    console.log(`DEBUG: Error parsing coverage for ${suiteName}:`, e.message);
     return {
       CVRG_LINE: "n/a",
       CVRG_BRANCH: "n/a",
@@ -196,7 +208,13 @@ function writeEnvironment(basePath) {
   }
 
   const parentPath = path.join(base, "environment.properties");
-  const parentContent = Object.entries(env)
+  let parentEnv = { ...env };
+  if (suiteOverride) {
+      const suiteDir = path.join(base, suiteOverride);
+      const coverageMeta = readCoverageForSuite(suiteDir, suiteOverride);
+      parentEnv = { ...parentEnv, ...coverageMeta };
+  }
+  const parentContent = Object.entries(parentEnv)
     .filter(([, v]) => v !== undefined && v !== null)
     .map(([k, v]) => `${k}=${v}`)
     .join("\n");

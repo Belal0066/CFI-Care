@@ -22,6 +22,12 @@ if [ -f "$ROOT/known-issues.json" ]; then
   echo "Copied known-issues.json to allure-results/"
 fi
 
+echo "Generating coverage and environment metadata"
+
+node "$ROOT/allure-core/coverage.js" "$ROOT/allure-results"
+
+node "$ROOT/allure-core/environment.js" "$ROOT/allure-results" --suite="$SUITE"
+
 # Collect only non-empty result directories
 RESULTS_DIRS=()
 if [ -n "$SUITE" ]; then
