@@ -27,55 +27,19 @@ future iterations will focus on advancing this prototype toward enterprise-grade
     \item \textbf{Production Lifecycle Orchestration:} Migrate the current static TLS configuration to automated lifecycle management (using the Let's Encrypt providers) integrated directly into the ingress gateway ensuring consistent, zero-touch certificate rotation across production environments , eliminating manual maintenance and preventing expiry-related downtime.
 \end{itemize}
 
-\subsection{Mobile}
+\subsection{Mobile Application}
 
-\subsubsection{Push Notifications}
-To enhance user engagement and ensure immediate response to critical events
-(e.g., doctor access requests), we plan to implement a robust Push Notification
-system. This architecture relies on \textbf{Firebase Cloud Messaging (FCM)} as
-the delivery intermediary.
+\subsubsection{Patient adding an Episode of Care}
+Currently our system only allows doctors to create an episode of care for a patient. 
+In the future, we plan to allow patients to create their own episodes of care, which will enable them to track their health conditions and share their health data with their doctors.
+This will empower patients to take a more active role in their healthcare and improve patient engagement.
 
 \paragraph{Technical Implementation}
-The proposed workflow consists of two distinct phases: Token Registration and
-Message Delivery.
+After an appointment, patients are prompted to upload any requested follow-up medical records, 
+such as laboratory results or imaging scans, to the Episode of Care associated with the appointment. 
+The Episode of Care is initially created by the physician and serves as a centralized repository for all documents related to the patient's condition. 
+This will allow doctors to have a more comprehensive view of the patient's health and make more informed decisions about their care.
 
-\begin{itemize}
-      \item \textbf{Token Generation (Frontend):}
-            Upon logging in, the Flutter application utilizes the \texttt{firebase\_messaging} \cite{firebase_messaging_pub}package to generate a unique Registration Token for the device. This token acts as the specific address for the user's phone.
-
-      \item \textbf{Token Registration (Backend):}
-            The mobile application transmits this token via a secure API endpoint (e.g., \texttt{POST /user/fcm-token}) to our Node.js backend. The backend associates this token with the User ID and stores it in the database.
-
-      \item \textbf{Notification Triggering:}
-            When a business event occurs (e.g., a doctor requests access), the Node.js backend retrieves the target user's stored FCM token. It then utilizes the \texttt{firebase-admin} SDK to dispatch the payload to the FCM servers, which subsequently route the notification to the user's device, even if the application is in the background.\cite{ashan2024push}
-\end{itemize}
-\subsubsection{Wearable Data Integration}
-To transition from a system of historical records to a platform for active
-health monitoring, we propose integrating \textbf{Android Health Connect}. This
-allows the application to ingest vital signs collected by smartwatches and
-fitness trackers.
-
-\subsubsection{Objective: Remote Patient Monitoring (RPM)}
-The goal is to automatically populate the "My Vitals" dashboard without manual
-entry. By syncing with devices (e.g., Samsung Galaxy Watch, Google Pixel
-Watch), the system can track:
-\begin{itemize}
-      \item \textbf{Heart Rate \& Variability (HRV):} To detect potential cardiac anomalies early.
-      \item \textbf{Activity Levels (Steps):} To monitor recovery progress after surgery.
-      \item \textbf{Sleep Quality:} To assess overall patient well-being.
-\end{itemize}
-
-\subsubsection{Health Connect}
-The Health Connect app is responsible for handling all the requests that your
-application sends through the Health Connect SDK. These requests include
-storing data and managing its read and write access.
-\cite{android_health_connect}
-\begin{enumerate}
-      \item \textbf{Data Aggregation:} Smartwatches sync their raw sensor data to the Health Connect app on the patient's Android phone.
-      \item \textbf{Privacy-First Access:} Our Flutter application requests specific granular permissions (e.g., \texttt{READ\_HEART\_RATE}) from Health Connect.
-      \item \textbf{Background Synchronization:} A background worker in the Flutter app periodically fetches new data points and transmits them to our Node.js backend.
-      \item \textbf{Anomaly Detection:} The backend analyzes these trends and triggers an alert notification to the doctor if vitals exceed safety thresholds.
-\end{enumerate}
 % \subsection{unit and widget testing and mockito}
 % image picker 
 % \subsection{How to monetize the application}
