@@ -86,10 +86,10 @@ This ensures that even a fully authenticated practitioner has -by default- zero 
 
 To implement the JIT Consent Handshake Protocol and manage the complete lifecycle of temporary capability grants, 
 the system exposes structured routers in the backend, listed in detail here \ref{tab:api-matrix}. 
-These endpoints -like all api endpoints- are strictly protected by token verification middleware.
+These endpoints -like all API endpoints- are strictly protected by token verification middleware.
 
-\begin{center}
-\begin{longtable}{|p{5cm}|p{2cm}|p{3cm}|p{4.8cm}|}
+% \begin{center}
+\begin{longtable}{|p{4.8cm}|p{2cm}|p{2.8cm}|p{4.5cm}|}
 \caption{API Endpoints used for the protocol} \label{tab:api-matrix} \\
 \hline
 \textbf{Endpoint \& Method} & \textbf{Actor} & \textbf{Payload Parameters} & \textbf{Primary Action} \\ \hline
@@ -109,7 +109,7 @@ Patient &
 N/A (\ac{JWT} Derived) & 
 Clears existing user sessions in cache, generates a unique 6-digit random token. \\ \hline
 
-\texttt{POST /api/handshakes/} \newline \texttt{verify-practitioner-otp} & 
+\texttt{POST /api/handshakes/} \newline \texttt{verify-practitioner}\newline\texttt{-otp} & 
 Practitioner & 
 \texttt{\{otp\}} & 
 Links practitioner metadata to target patient identity in the pending cache. \\ \hline
@@ -146,7 +146,7 @@ Patient &
 \texttt{practitionerId} (Param) & 
 Terminates specified grant, records event to audit logs. \\ \hline
 
-\texttt{DELETE /api/patient-grants/} \newline \texttt{caregivers/:caregiverId} & 
+\texttt{DELETE /api/patient-grants/} \newline \texttt{caregivers/}\newline \texttt{:caregiverId} & 
 Patient & 
 \texttt{caregiverId} (Param) & 
 Terminates specified grant, records event to audit logs, withdraws target user's caregiver role mapping if no patient attachments remain. \\ \hline
@@ -171,7 +171,7 @@ Patient &
 Binds individual devices to matching user contexts in the backend. \\ \hline
 
 \end{longtable}
-\end{center}
+% \end{center}
 % \label{tab:api-matrix}
 
 \subsubsection{Atomic Handshake Protocol}
