@@ -1,4 +1,4 @@
-\section{Security Validation \& Testing}
+\section{Security Validation \& Testing}\label{sec:testing_results}
 
 \subsection{Scope and Methodology}
 The security validation of the CFI-Care platform was conducted using a dual-layer approach to ensure both architectural integrity and infrastructure resilience.
@@ -75,11 +75,11 @@ The scan highlighted informational findings regarding server-identifying headers
     \label{fig:final-nessus}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \fbox{\includegraphics[width=0.8\textwidth]{Testing/Images/security/nessus_vulnerabilities_page.png}}
-    \caption{Nessus Vulnerability Scan: Complete removal of actionable security risk flags}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \fbox{\includegraphics[width=0.8\textwidth]{Testing/Images/security/nessus_vulnerabilities_page.png}}
+%     \caption{Nessus Vulnerability Scan: Complete removal of actionable security risk flags}
+% \end{figure}
 
 
 \subsection{Manual Penetration Testing (Burp Suite)}
@@ -104,7 +104,7 @@ These tests confirmed that parameter manipulation resulted in immediate rejectio
     \caption{Burp Suite Interception: Auth State Verification}
 \end{figure}
 
-\subsection{Logical Security Coverage}
+\subsection{Logical Security Coverage}\label{sec:logical-sec-testing-coverage}
 The application logic was validated through 39 unit tests, they're categorized by their specific security function:
 
 \begin{itemize}
