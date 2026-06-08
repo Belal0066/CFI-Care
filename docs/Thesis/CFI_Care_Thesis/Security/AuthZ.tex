@@ -19,6 +19,11 @@ This pipeline ensures that only validated requests with appropriate scopes are p
     \item \textbf{Caller Restriction:} Administrative endpoints, such as the registration provisioning route, are restricted to a specific allow list of service clients.
 \end{itemize}
 
+
+The enforcement of this multi-tiered middleware hierarchy guarantees that malformed inputs or missing credential headers are caught. 
+This behavior was mapped via negative testing sequences \texttt{SEC-API-001} through \texttt{SEC-API-011}, proving structural verification resilience against forged tokens (see Section~\ref{sec:testing_results}).
+Furthermore, live request manipulations intercepted via Burpsuite confirmed active perimeter isolation (Fig~\ref{fig:burp-cookie-auth})
+
 \subsection{\ac{CBAC}}
 Unlike role-based permissions which are stored in a central directory, a capability is a key that bundles the resource address and the permitted operations into a single unit stored in the system.
 While RBAC is used for basic application navigation, the actual access to medical data is Capability-Based, 
@@ -86,10 +91,10 @@ This ensures that even a fully authenticated practitioner has -by default- zero 
 
 To implement the JIT Consent Handshake Protocol and manage the complete lifecycle of temporary capability grants, 
 the system exposes structured routers in the backend, listed in detail here \ref{tab:api-matrix}. 
-These endpoints -like all api endpoints- are strictly protected by token verification middleware.
+These endpoints -like all API endpoints- are strictly protected by token verification middleware.
 
-\begin{center}
-\begin{longtable}{|p{5cm}|p{2cm}|p{3cm}|p{4.8cm}|}
+% \begin{center}
+\begin{longtable}{|p{4.8cm}|p{2cm}|p{2.8cm}|p{4.5cm}|}
 \caption{API Endpoints used for the protocol} \label{tab:api-matrix} \\
 \hline
 \textbf{Endpoint \& Method} & \textbf{Actor} & \textbf{Payload Parameters} & \textbf{Primary Action} \\ \hline
@@ -109,7 +114,7 @@ Patient &
 N/A (\ac{JWT} Derived) & 
 Clears existing user sessions in cache, generates a unique 6-digit random token. \\ \hline
 
-\texttt{POST /api/handshakes/} \newline \texttt{verify-practitioner-otp} & 
+\texttt{POST /api/handshakes/} \newline \texttt{verify-practitioner}\newline\texttt{-otp} & 
 Practitioner & 
 \texttt{\{otp\}} & 
 Links practitioner metadata to target patient identity in the pending cache. \\ \hline
@@ -146,7 +151,7 @@ Patient &
 \texttt{practitionerId} (Param) & 
 Terminates specified grant, records event to audit logs. \\ \hline
 
-\texttt{DELETE /api/patient-grants/} \newline \texttt{caregivers/:caregiverId} & 
+\texttt{DELETE /api/patient-grants/} \newline \texttt{caregivers/}\newline \texttt{:caregiverId} & 
 Patient & 
 \texttt{caregiverId} (Param) & 
 Terminates specified grant, records event to audit logs, withdraws target user's caregiver role mapping if no patient attachments remain. \\ \hline
@@ -171,8 +176,10 @@ Patient &
 Binds individual devices to matching user contexts in the backend. \\ \hline
 
 \end{longtable}
-\end{center}
+% \end{center}
 % \label{tab:api-matrix}
+
+The structural logic governing OTP lifespans was evaluated across 15 unit tests (\texttt{HANDSHAKE-001} to \texttt{HANDSHAKE-014}), this automated verification proved that cross-patient transaction hijacking variants are successfully trapped and audited, these tests are described at section~\ref{sec:logical-sec-testing-coverage}.
 
 \subsubsection{Atomic Handshake Protocol}
 To ensure the integrity of the delegation process, the system implements a "Burn-on-Read" policy. 
