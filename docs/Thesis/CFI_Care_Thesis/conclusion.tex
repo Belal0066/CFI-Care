@@ -1,14 +1,42 @@
 \chapter{Conclusion and Future Work}\label{chap:conclAndFutureWork}
 
 \section{Conclusion}
-This thesis presented CFI-Care, a patient-centric healthcare platform that
-addresses three critical gaps in current digital health systems. The
-implemented system successfully consolidates fragmented medical records into a
-unified platform. The HAPI FHIR server, backed by PostgreSQL, provides
-standards-compliant storage for clinical resources (Patient, Encounter,
-Practioner, etc..), enabling cross-institutional data exchange. The Node.js
-layer translates FHIR resources into application-specific formats while
-enforcing business logic and security policies. The Angular frontend delivers an interactive interface for doctors to manage health data and review patient histories.
+
+This thesis addressed a major challenge in healthcare systems in Egypt and other developing countries: medical records are often scattered across different healthcare providers. Patient can visit the same doctor but in different hospitals, and each hospital may have its own system for storing medical records, but do not have the data from other institutions. This fragmentation makes it difficult for healthcare professionals to access a complete view of a patient's medical history, which can lead to missed opportunities for early intervention.
+Data still is stored on paper, difficult to access, and not easily shared with healthcare providers. These issues make it harder for healthcare professionals to obtain a complete view of a patient's medical history and limit the use of modern AI technologies in healthcare.
+
+To address these challenges, this thesis designed and implemented \textbf{CFI-Care}, a patient-centered healthcare platform that brings medical information together in one secure system while giving patients control over their own data.
+
+The proposed system tackles the key problems identified in this research:
+
+\begin{itemize}
+\item \textbf{Fragmented medical records} are addressed through a centralized FHIR-based server that stores and manages healthcare data using international interoperability standards.
+
+```
+\item \textbf{Paper-based healthcare records} are addressed through a mobile application that allows patients to scan and upload medical documents directly from their smartphones.
+
+\item \textbf{Limited visualization of patient history} is addressed through an interactive medical history graph that helps healthcare professionals understand diagnoses, treatments, and patient progress over time.
+
+\item \textbf{Privacy and consent concerns} are addressed through secure authentication, role-based access control, and a consent management system that allows patients to control who can access their healthcare information.
+
+\item \textbf{Limited use of AI in healthcare} is addressed through a Retrieval-Augmented Generation (RAG) system that generates responses for doctors and summaries based on verified patient records, improving reliability and reducing human errors and time consumption.
+```
+
+\end{itemize}
+
+The main contribution of this work is the integration of these features into a single platform consisting of web, mobile, and backend components. By combining interoperability standards, secure data sharing, patient-controlled consent, healthcare visualization, document digitization, and AI-powered doctor assistance, CFI-Care demonstrates a practical approach to modern healthcare management.
+
+The system was tested ,and the results showed that the different components work correctly together and support the intended functionality of the platform.
+
+\section{Expected Impact}
+
+CFI-Care provides a foundation for improving healthcare record management in Egypt and other developing countries. By using open standards such as FHIR, OAuth 2.0, and OpenID Connect, the platform can be expanded in the future and integrated with other healthcare systems.
+
+The platform also promotes patient involvement by allowing individuals to manage access to their own healthcare information. This can improve trust, transparency, and collaboration between patients and healthcare providers.
+
+Although CFI-Care is currently a prototype and further development is required before large-scale deployment, the project demonstrates that a secure, interoperable, patient-centered, and AI-enabled healthcare system can be successfully implemented using modern technologies. 
+The work provides a strong foundation for future research and development in digital healthcare solutions.
+
 
 \section{Future Work}
 
