@@ -295,7 +295,7 @@ The system is currently deployed on a Ubuntu Server cloud instance BWS (Belal We
     \begin{itemize}
         \item \textbf{Inference Engine:} \texttt{llama.cpp} server with full CUDA offloading. The MedGemma 1.5-4b-it model is quantized to \texttt{Q6\_K} format, occupying approximately 5.4GB of VRAM, leaving headroom for context processing.
         \item \textbf{Vector Database:} Qdrant (v1.7.0) running in a lightweight Docker container. It manages the High-Dimensional Vector Space (768d) for patient encounter retrieval, utilizing \texttt{HNSW} indexing for sub-millisecond search latencies.
-        \item \textbf{Clinical Data Source:} Redis Cloud connected to HAPI FHIR R4 server for standards-compliant data persistence, ensuring the system can integrate with modern EHR architectures.
+        \item \textbf{Clinical Data Source:} Redis Cloud connected to HAPI FHIR R5 server for standards-compliant data persistence, ensuring the system can integrate with modern EHR architectures.
         \item \textbf{Application Layer:} A FastAPI backend orchestrates the RAG pipeline, connecting the CPU-bound embedding generation with the GPU-bound inference. Streamlit serves as the clinical dashboard, while an MCP (Model Context Protocol) server allows internet connectivity.
     \end{itemize}
 \end{itemize}
