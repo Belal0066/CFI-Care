@@ -77,7 +77,10 @@ class ReferenceResolver:
             if rid:
                 entry["fullUrl"] = f"urn:uuid:{rid}"
             if rtype:
-                entry["request"] = {"method": "POST", "url": rtype}
+                if rid:
+                    entry["request"] = {"method": "PUT", "url": f"{rtype}/{rid}"}
+                else:
+                    entry["request"] = {"method": "POST", "url": rtype}
             entries.append(entry)
         return {
             "resourceType": "Bundle",

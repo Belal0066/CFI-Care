@@ -11,11 +11,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
-from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
 from .config import GatewaySettings
+from .job_event_bus import JobEventBus
 from .job_queue import InMemoryJobQueue, QueueFullError
 from .models import ErrorResponse, HealthResponse, JobStatus, JobStatusResponse, UploadDocumentResponse
 from .observability import get_metrics
@@ -37,7 +38,8 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
     repository = JobRepository(settings.db_path)
     repository.bootstrap()
 
-    orchestrator = JobOrchestrator(repository, settings)
+    event_bus = JobEventBus()
+    orchestrator = JobOrchestrator(repository, settings, event_bus=event_bus)
     job_queue = InMemoryJobQueue(settings.queue_max_size)
 
     app = FastAPI(
@@ -57,6 +59,7 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
     app.state.repository = repository
     app.state.orchestrator = orchestrator
     app.state.job_queue = job_queue
+    app.state.event_bus = event_bus
     app.state.worker_task = None
 
     async def _run_queue_worker() -> None:
@@ -395,6 +398,61 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
         repo: JobRepository = Depends(get_repository),
     ):
         return await get_document_status(job_id=job_id, request=request, repo=repo)
+
+    @app.websocket("/v1/documents/{job_id}/stream")
+    async def job_status_stream(job_id: str, websocket: WebSocket):
+        """WebSocket endpoint that streams real-time job status events.
+
+        Sends a JSON message for every stage transition:
+        { "state": "OCR_PROCESSING"|"MAPPING"|"COMPLETED"|"FAILED"|"SERVER_BUSY",
+          "progress": 0.0–100.0,
+          "detail": "..." }
+
+        The connection is kept open with 30-second keepalive pings until the job
+        reaches a terminal state (COMPLETED, FAILED) or the client disconnects.
+        Falls back gracefully: if the job is already terminal when the client
+        connects, the current state is sent immediately and the connection closes.
+        """
+        try:
+            job = repository.get_job_by_id(job_id)
+        except JobNotFoundError:
+            await websocket.close(code=4004, reason="job not found")
+            return
+
+        await websocket.accept()
+
+        terminal_states = {JobStatus.COMPLETED, JobStatus.FAILED}
+
+        # Send current state immediately so the client is never left waiting
+        await websocket.send_json({
+            "state": job.state.value,
+            "progress": job.progress,
+            "detail": job.detail,
+        })
+
+        if job.state in terminal_states:
+            await websocket.close()
+            return
+
+        q = event_bus.subscribe(job_id)
+        try:
+            while True:
+                try:
+                    evt = await asyncio.wait_for(q.get(), timeout=30.0)
+                    await websocket.send_json(evt)
+                    if evt.get("state") in {"COMPLETED", "FAILED", "SERVER_BUSY"}:
+                        break
+                except asyncio.TimeoutError:
+                    # Keepalive ping — client should ignore unknown types
+                    await websocket.send_json({"type": "ping"})
+        except WebSocketDisconnect:
+            pass
+        finally:
+            event_bus.unsubscribe(job_id, q)
+            try:
+                await websocket.close()
+            except Exception:
+                pass
 
     @app.post(
         "/v1/document/sqs/ingest",

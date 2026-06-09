@@ -255,6 +255,44 @@ async function deleteObservation(observationId) {
   }
 }
 
+// Fetch observations that belong to a specific DiagnosticReport.
+// Resolves the DR's result[] references and batch-fetches via ?_id=id1,id2,...
+async function getObservationsByDiagnosticReport(diagnosticReportId) {
+  const cacheKey = `observations:dr:${diagnosticReportId}`;
+
+  try {
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) return cachedData;
+
+    // Step 1: fetch the DiagnosticReport to read its result[] references
+    const drResponse = await fhirApi.get(`/DiagnosticReport/${diagnosticReportId}`);
+    const dr = drResponse.data;
+    const resultRefs = dr.result ?? [];
+
+    if (resultRefs.length === 0) return [];
+
+    // Step 2: extract Observation IDs from result[] refs
+    // ref.reference may be "Observation/{id}" or "Observation/{id}/_history/1"
+    const ids = resultRefs
+      .map((r) => (r.reference ?? "").split("/")[1])
+      .filter(Boolean);
+
+    if (ids.length === 0) return [];
+
+    // Step 3: batch-fetch all observations in one HAPI FHIR call
+    const obsResponse = await fhirApi.get(`/Observation?_id=${ids.join(",")}`);
+    const observations = (obsResponse.data.entry ?? [])
+      .map((e) => e.resource)
+      .filter(Boolean);
+
+    await setInCache(cacheKey, observations, CACHE_EXPIRATION.DEFAULT);
+    return observations;
+  } catch (error) {
+    console.error("FHIR Server Error:", error.message);
+    throw new Error("Could not fetch observations for diagnostic report.");
+  }
+}
+
 // Helper function to invalidate observation caches
 async function invalidateObservationCache(observationId, observationData) {
   // Invalidate observation cache
@@ -283,6 +321,7 @@ async function invalidateObservationCache(observationId, observationData) {
 module.exports = {
   getObservationsByPatient,
   getObservationsByCategory,
+  getObservationsByDiagnosticReport,
   getObservationById,
   createObservationWithSpecificId,
   createObservation,

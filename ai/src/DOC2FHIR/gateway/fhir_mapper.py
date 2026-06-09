@@ -53,15 +53,20 @@ def _evidence_extension(evidence: Optional[dict[str, Any]]) -> list[dict[str, An
         return []
     ext = {"url": "http://cfi-care.ai/fhir/StructureDefinition/evidence-span", "extension": []}
     if evidence.get("text"):
-        ext["extension"].append({"url": "text", "valueString": evidence["text"]})
+        ext["extension"].append(
+            {"url": "text", "valueString": evidence["text"]})
     if evidence.get("start") is not None:
-        ext["extension"].append({"url": "start", "valueInteger": int(evidence["start"])})
+        ext["extension"].append(
+            {"url": "start", "valueInteger": int(evidence["start"])})
     if evidence.get("end") is not None:
-        ext["extension"].append({"url": "end", "valueInteger": int(evidence["end"])})
+        ext["extension"].append(
+            {"url": "end", "valueInteger": int(evidence["end"])})
     if evidence.get("page") is not None:
-        ext["extension"].append({"url": "page", "valueInteger": int(evidence["page"])})
+        ext["extension"].append(
+            {"url": "page", "valueInteger": int(evidence["page"])})
     if evidence.get("bbox") is not None:
-        ext["extension"].append({"url": "bbox", "valueString": str(evidence["bbox"])})
+        ext["extension"].append(
+            {"url": "bbox", "valueString": str(evidence["bbox"])})
     return [ext] if ext["extension"] else []
 
 
@@ -204,16 +209,18 @@ def _observation_coding(name: str | None) -> dict[str, Any]:
     if not name:
         return {
             "coding": [{"system": "http://loinc.org", "code": "unspecified", "display": "Unspecified"}],
-            "text": "",
+            "text": "Unspecified",
         }
     key = name.strip().lower()
     match = LOINC_MAP.get(key)
     loinc_code = match[0] if match else None
     loinc_display = match[1] if match else None
     if loinc_code:
-        coding = [{"system": "http://loinc.org", "code": loinc_code, "display": loinc_display}]
+        coding = [{"system": "http://loinc.org",
+                   "code": loinc_code, "display": loinc_display}]
     else:
-        coding = [{"system": "http://cfi-care.ai/fhir/CodeSystem/observations", "code": "unknown", "display": name.strip()}]
+        coding = [{"system": "http://cfi-care.ai/fhir/CodeSystem/observations",
+                   "code": "unknown", "display": name.strip()}]
     return {"coding": coding, "text": name.strip()}
 
 
@@ -258,7 +265,8 @@ def _map_condition(item: ConditionItem, ctx: MappingContext) -> dict[str, Any]:
     res_id = _stable_id("Condition", content_key)
     status = (item.status or "active").lower()
     clinical_code = "active" if status == "active" else "inactive"
-    verification_code = "confirmed" if status in {"active", "confirmed"} else "unconfirmed"
+    verification_code = "confirmed" if status in {
+        "active", "confirmed"} else "unconfirmed"
     resource = {
         "resourceType": "Condition",
         "id": res_id,
@@ -330,17 +338,61 @@ INTERPRETATION_DISPLAY: dict[str, str] = {
 }
 
 
+_LATEX_SYMBOLS: dict[str, str] = {
+    r"\mu": "μ",
+    r"\alpha": "α",
+    r"\beta": "β",
+    r"\gamma": "γ",
+    r"\delta": "δ",
+    r"\epsilon": "ε",
+    r"\eta": "η",
+    r"\theta": "θ",
+    r"\kappa": "κ",
+    r"\lambda": "λ",
+    r"\nu": "ν",
+    r"\pi": "π",
+    r"\rho": "ρ",
+    r"\sigma": "σ",
+    r"\tau": "τ",
+    r"\phi": "φ",
+    r"\chi": "χ",
+    r"\psi": "ψ",
+    r"\omega": "ω",
+    r"\Omega": "Ω",
+}
+
+# Characters allowed in a valid UCUM code (subset check — if anything else remains we skip system claim)
+_UCUM_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9 /\.\[\]\{\}\^\-\+\(\)_°%'\"]+$")
+
+
+def _sanitize_unit(raw: str) -> str:
+    """Normalise AI-extracted unit strings that may contain LaTeX math notation.
+
+    Replaces known LaTeX sequences with Unicode equivalents, strips $ delimiters,
+    and collapses whitespace.  Returns the cleaned string (may still not be a
+    valid UCUM code — callers should check before claiming system = UCUM).
+    """
+    if not raw:
+        return raw
+    result = raw
+    for latex, symbol in _LATEX_SYMBOLS.items():
+        result = result.replace(latex, symbol)
+    result = result.replace("$", "").replace("\\", "")
+    return " ".join(result.split()).strip()
+
+
 def _map_observation(item: ObservationItem, ctx: MappingContext) -> dict[str, Any]:
     content_key = f"{item.name}:{item.value}:{item.unit}:{ctx.document_hash}"
     res_id = _stable_id("Observation", content_key)
     value_num = _parse_numeric(item.value)
+    clean_unit = _sanitize_unit(item.unit or "")
     value = None
     if value_num is not None:
         value = {"value": value_num}
-        if item.unit:
-            value["unit"] = item.unit
-    elif item.value is not None:
-        value = {"value": str(item.value)}
+        if clean_unit:
+            value["unit"] = clean_unit
+    elif item.value and item.value.strip():
+        value = {"value": item.value.strip()}
 
     resource = {
         "resourceType": "Observation",
@@ -351,20 +403,36 @@ def _map_observation(item: ObservationItem, ctx: MappingContext) -> dict[str, An
         "performer": [{"display": "Unknown Lab"}],
         "extension": _confidence_extension(item.confidence) + _evidence_extension(item.evidence.model_dump() if item.evidence else None),
     }
-    date_val = _normalize_date(item.effective_date) or _normalize_date(ctx.encounter_date)
+    date_val = _normalize_date(
+        item.effective_date) or _normalize_date(ctx.encounter_date)
     if date_val:
         resource["effectiveDateTime"] = date_val
     if value:
         if "unit" in value:
-            value["system"] = "http://unitsofmeasure.org"
-            value["code"] = value["unit"]
+            unit_str = value["unit"]
+            # Only claim UCUM system when the unit contains no characters that
+            # HAPI's UCUM parser will reject (e.g. $, \, or other LaTeX artefacts).
+            if _UCUM_SAFE_PATTERN.match(unit_str):
+                value["system"] = "http://unitsofmeasure.org"
+                value["code"] = unit_str
             resource["valueQuantity"] = value
         else:
             resource["valueString"] = str(value["value"])
+    else:
+        # FHIR R5 requires value[x] OR dataAbsentReason on every Observation.
+        # When the AI could not extract a value, mark it unknown so HAPI accepts the bundle.
+        resource["dataAbsentReason"] = {
+            "coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                "code": "unknown",
+                "display": "Unknown",
+            }]
+        }
 
     if item.interpretation:
         norm = item.interpretation.strip().lower()
-        code = INTERPRETATION_CODES.get(norm, item.interpretation.strip().upper()[:2])
+        code = INTERPRETATION_CODES.get(
+            norm, item.interpretation.strip().upper()[:2])
         display = INTERPRETATION_DISPLAY.get(code)
         coding: dict[str, Any] = {
             "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
@@ -382,6 +450,12 @@ def _map_observation(item: ObservationItem, ctx: MappingContext) -> dict[str, An
             rr["low"] = {"value": low}
         if high is not None:
             rr["high"] = {"value": high}
+        if not rr:
+            # Numeric parsing failed; store raw text so the UI can still display it
+            parts = [p for p in [item.reference_range_low,
+                                 item.reference_range_high] if p]
+            if parts:
+                rr["text"] = " – ".join(parts)
         if rr:
             resource["referenceRange"] = [rr]
 
@@ -434,11 +508,13 @@ def _map_diagnostic_report(
         "text": _narrative("DiagnosticReport", "Laboratory Report"),
         "status": "final",
         "code": _fallback_coding("http://loinc.org", "11502-2", "Laboratory Report"),
+        "subject": {"reference": f"urn:uuid:{patient_id}"},
         "result": [{"reference": f"urn:uuid:{oid}"} for oid in observation_ids],
         "extension": _confidence_extension(1.0),
     }
     if effective_date:
-        report["effectiveDateTime"] = _normalize_date(effective_date) or effective_date
+        report["effectiveDateTime"] = _normalize_date(
+            effective_date) or effective_date
     return report
 
 
@@ -458,15 +534,20 @@ def _map_composition(
     patient_id: str,
     encounter_date: str | None = None,
     observation_ids: list[str] | None = None,
+    is_external: bool = False,
 ) -> dict[str, Any] | None:
     if not document_summary:
         return None
-    summary = document_summary[:100]
+    summary = document_summary
 
     code_info = DOC_TYPE_LOINC.get(doc_type, ("11502-2", "Laboratory Report"))
 
-    content_key = f"Composition:{summary}:{patient_id}"
+    # Use only the first 100 chars for stable-id hashing to keep the key short,
+    # but store the full summary text in the section div.
+    content_key = f"Composition:{summary[:100]}:{patient_id}"
     res_id = _stable_id("Composition", content_key)
+
+    patient_ref = f"Patient/{patient_id}" if is_external else f"urn:uuid:{patient_id}"
 
     section: dict[str, Any] = {
         "title": "Summary",
@@ -476,7 +557,8 @@ def _map_composition(
         },
     }
     if observation_ids:
-        section["entry"] = [{"reference": f"urn:uuid:{oid}"} for oid in observation_ids]
+        section["entry"] = [{"reference": f"urn:uuid:{oid}"}
+                            for oid in observation_ids]
 
     return {
         "resourceType": "Composition",
@@ -489,8 +571,8 @@ def _map_composition(
         },
         "title": f"{code_info[1]} — Clinical Summary",
         "date": _normalize_date(encounter_date) or str(date.today()),
-        "subject": [{"reference": f"urn:uuid:{patient_id}"}],
-        "author": [{"reference": f"urn:uuid:{patient_id}"}],
+        "subject": [{"reference": patient_ref}],
+        "author": [{"display": "DOC2FHIR AI Pipeline"}],
         "section": [section],
         "extension": _confidence_extension(1.0),
     }
@@ -531,6 +613,8 @@ def map_to_fhir(intermediate: IntermediateExtraction, ctx: MappingContext) -> li
     obs_ids: list[str] = []
     first_effective_date: str | None = None
     for obs in intermediate.observations:
+        if not (obs.name and obs.name.strip()) and not (obs.value and obs.value.strip()):
+            continue
         r = _map_observation(obs, ctx)
         obs_resources.append(r)
         rid = r.get("id")
@@ -558,6 +642,7 @@ def map_to_fhir(intermediate: IntermediateExtraction, ctx: MappingContext) -> li
         patient_id,
         intermediate.encounter.date if intermediate.encounter else None,
         observation_ids=obs_ids or None,
+        is_external=bool(ctx.patient_id),
     )
     if composition:
         resources.append(composition)

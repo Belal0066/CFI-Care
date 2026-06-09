@@ -17,6 +17,7 @@ class DocumentProvider extends ChangeNotifier {
   final List<DocumentModel> _pendingUserRetry = [];
 
   bool _isMockMode = false;
+  StreamSubscription<String>? _statusSubscription;
 
   List<DocumentModel> get documents => _documents;
   bool get isLoading => _isLoading;
@@ -26,11 +27,27 @@ class DocumentProvider extends ChangeNotifier {
 
   DocumentProvider(this.repository) {
     _startAutoSyncLoop();
+    _statusSubscription =
+        repository.documentStatusUpdates.listen(_onDocumentStatusChanged);
+  }
+
+  Future<void> _onDocumentStatusChanged(String docId) async {
+    final updated = await repository.getDocumentById(docId);
+    if (updated == null) return;
+    final idx = _documents.indexWhere((d) => d.id == docId);
+    if (idx < 0) return; // not in list yet — fetchDocuments will pick it up
+    _documents[idx] = updated;
+    _refreshPendingUserRetry();
+    notifyListeners();
   }
 
   void _startAutoSyncLoop() {
     _syncTimer?.cancel();
-    _syncTimer = Timer.periodic(const Duration(seconds: 90), (_) async {
+    // Fallback timer: picks up any jobs that lost their WebSocket connection
+    // (app resumed from background, network blip, app restart with in-flight jobs).
+    // Active jobs are driven by the WebSocket stream in the repository layer;
+    // this timer only matters for orphaned jobs that have no live stream.
+    _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
       try {
         await repository.syncPendingDocuments();
       } catch (e) {
@@ -207,10 +224,9 @@ class DocumentProvider extends ChangeNotifier {
   }) async {
     _isLoading = true;
     _error = null;
-    notifyListeners(); // Update UI to show spinner
+    notifyListeners();
 
     try {
-      // Call the repository
       final newDoc = await repository.saveDocument(
         title: title,
         summary: summary,
@@ -222,26 +238,24 @@ class DocumentProvider extends ChangeNotifier {
         speciality: speciality,
       );
 
-      // Add to our local list so we can show it in the app immediately
+      // Show the document immediately as pending — real-time updates arrive via the stream.
       _documents.add(newDoc);
-
-      if (!newDoc.isSynced) {
-        await repository.syncPendingDocuments();
-      }
-
       _isLoading = false;
-      notifyListeners(); // Update UI to show success
+      notifyListeners();
+      // Upload + stream in background; stream events drive all subsequent status changes.
+      unawaited(repository.syncPendingDocuments());
       return true;
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
-      notifyListeners(); // Update UI to show error
+      notifyListeners();
       return false;
     }
   }
 
   @override
   void dispose() {
+    _statusSubscription?.cancel();
     _syncTimer?.cancel();
     super.dispose();
   }

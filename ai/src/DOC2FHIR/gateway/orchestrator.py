@@ -18,6 +18,7 @@ from .adapters.ocr import OCRAdapter, OCRError
 from .adapters.hapi_fhir import HapiFhirDownstreamAdapter, HapiFhirDownstreamError
 from .adapters.callback import NodeJsCallbackAdapter
 from .config import GatewaySettings
+from .job_event_bus import JobEventBus
 from .doc_classifier import DocumentTypeClassifier
 from .fhir_validator import FhirValidator
 from .structured_extractor import StructuredExtractor
@@ -46,28 +47,94 @@ def _to_instant(date_str: str | None) -> str | None:
 
 def _add_cross_references(bundle: dict[str, Any]) -> None:
     doc_ref_id = None
+    doc_ref_full_url = None
     for entry in bundle.get("entry", []):
         res = entry.get("resource", {})
         if res.get("resourceType") == "DocumentReference":
             doc_ref_id = res.get("id")
+            doc_ref_full_url = entry.get("fullUrl", "")
             break
     if not doc_ref_id:
         return
-    ref = f"urn:uuid:{doc_ref_id}"
+
+    # Use the entry fullUrl so both urn:uuid and DocumentReference/{id} styles
+    # resolve correctly inside the transaction bundle.
+    ref = doc_ref_full_url if doc_ref_full_url else f"urn:uuid:{doc_ref_id}"
+    source_ext_url = "http://cfi-care.ai/fhir/StructureDefinition/source-document"
+    source_ext = {"url": source_ext_url, "valueReference": {"reference": ref}}
+
     for entry in bundle.get("entry", []):
         res = entry.get("resource", {})
         rtype = res.get("resourceType")
+
         if rtype == "Observation":
+            # R5: Observation.derivedFrom — Reference(DocumentReference|...)
             derived = res.setdefault("derivedFrom", [])
             if not any(isinstance(r, dict) and r.get("reference") == ref for r in derived):
                 derived.append({"reference": ref})
+
         elif rtype == "Composition":
+            # R5: Composition.relatesTo — documents the source document
             relates = res.setdefault("relatesTo", [])
             if not any(isinstance(r, dict) and r.get("type") == "transforms" for r in relates):
                 relates.append({
                     "type": "transforms",
                     "resourceReference": {"reference": ref},
                 })
+
+        elif rtype == "Condition":
+            # R5: Condition.evidence — CodeableReference(Any)
+            evidence = res.setdefault("evidence", [])
+            if not any(
+                isinstance(e, dict)
+                and isinstance(e.get("reference"), dict)
+                and e["reference"].get("reference") == ref
+                for e in evidence
+            ):
+                evidence.append({"reference": {"reference": ref}})
+
+        elif rtype == "MedicationRequest":
+            # R5: MedicationRequest.supportingInformation — Reference(Any)
+            supporting = res.setdefault("supportingInformation", [])
+            if not any(isinstance(r, dict) and r.get("reference") == ref for r in supporting):
+                supporting.append({"reference": ref})
+
+        elif rtype == "Procedure":
+            # R5: Procedure.report — Reference(DocumentReference|DiagnosticReport|Composition)
+            report = res.setdefault("report", [])
+            if not any(isinstance(r, dict) and r.get("reference") == ref for r in report):
+                report.append({"reference": ref})
+
+        elif rtype in {"DiagnosticReport", "AllergyIntolerance", "Basic"}:
+            # No standard R5 field — use custom extension
+            exts = res.setdefault("extension", [])
+            if not any(isinstance(e, dict) and e.get("url") == source_ext_url for e in exts):
+                exts.append(source_ext)
+
+        elif rtype == "Provenance":
+            # Update entity[0].what from hash-only identifier to direct DocumentReference reference
+            for ent in res.get("entity", []):
+                if isinstance(ent, dict) and ent.get("role") == "source":
+                    ent["what"] = {"reference": ref}
+                    break
+
+
+def _stamp_composition_identifier(bundle: dict[str, Any], pdf_id: str) -> None:
+    """Add the mobile pdf_id as an identifier on the Composition resource.
+
+    The ?relates-to= HAPI search parameter is unreliable for FHIR R5 because
+    the field was renamed from targetReference (R4) to resourceReference (R5)
+    and many HAPI versions don't re-index it. Stamping the pdf_id as an
+    identifier lets Node.js find the Composition via ?identifier=<system>|<value>,
+    which is always indexed and version-independent.
+    """
+    system = "http://cfi-care.ai/mobile-document-id"
+    for entry in bundle.get("entry", []):
+        res = entry.get("resource", {})
+        if isinstance(res, dict) and res.get("resourceType") == "Composition":
+            identifiers = res.setdefault("identifier", [])
+            if not any(isinstance(i, dict) and i.get("system") == system for i in identifiers):
+                identifiers.append({"system": system, "value": pdf_id})
 
 
 class ServerBusyError(RuntimeError):
@@ -94,6 +161,7 @@ class JobOrchestrator:
         mapper_adapter: Optional[MapperAdapter] = None,
         downstream_adapter: Optional[DownstreamAdapter | HapiFhirDownstreamAdapter] = None,
         callback_adapter: Optional[NodeJsCallbackAdapter] = None,
+        event_bus: Optional[JobEventBus] = None,
     ):
         """Initialize orchestrator.
 
@@ -127,6 +195,15 @@ class JobOrchestrator:
             dead_letter_dir=str(dead_letter_dir),
         )
         self._gpu_semaphore = asyncio.Semaphore(max(1, settings.gpu_max_concurrency))
+        self._event_bus: JobEventBus = event_bus or JobEventBus()
+
+    def _publish(self, job_id: str, state: str, progress: float, detail: str = "") -> None:
+        """Fire-and-forget event to all WebSocket subscribers for this job."""
+        self._event_bus.publish_nowait(job_id, {
+            "state": state,
+            "progress": progress,
+            "detail": detail,
+        })
 
     @staticmethod
     def _build_downstream_adapter(
@@ -174,6 +251,7 @@ class JobOrchestrator:
                 started_at=datetime.now(timezone.utc).isoformat(),
                 progress=10.0,
             )
+            self._publish(job_id, "OCR_PROCESSING", 10.0, "Starting OCR processing")
 
             # Run OCR stage with global GPU lock.
             ocr_output = await self._run_gpu_bound_stage(
@@ -192,9 +270,11 @@ class JobOrchestrator:
                 detail="Starting FHIR mapping",
                 progress=progress,
             )
+            self._publish(job_id, "MAPPING", progress, "Starting FHIR mapping")
 
             # Run Mapper or Structured pipeline stage with global GPU lock.
             patient_id = (job.metadata or {}).get("patient_id")
+            pdf_id = (job.metadata or {}).get("pdf_id")
             if self.settings.structured_pipeline_enabled:
                 fhir_output = await self._run_gpu_bound_stage(
                     job_id,
@@ -242,10 +322,15 @@ class JobOrchestrator:
                 ocr_engine=self.settings.ocr_engine_name,
                 loinc_code=loinc_code,
                 encounter_date=encounter_date,
+                pdf_id=pdf_id,
             )
 
             # Post-process: add derivedFrom to Observations and relatesTo to Composition
             _add_cross_references(fhir_output["fhir_bundle"])
+            # Stamp the mobile pdf_id as an identifier on the Composition so
+            # Node.js can find it via ?identifier= (more reliable than ?relates-to=).
+            if pdf_id:
+                _stamp_composition_identifier(fhir_output["fhir_bundle"], pdf_id)
 
             # Re-save modified bundle to disk so API result endpoint returns the complete bundle
             fhir_dir = self.settings.runtime_dir / "fhir_outputs"
@@ -259,6 +344,7 @@ class JobOrchestrator:
                 fhir_output_path=str(fhir_path),
                 progress=progress,
             )
+            self._publish(job_id, "MAPPING", progress, "FHIR bundle saved, starting delivery")
 
             # Deliver to downstream and capture result for Neon DB verification
             downstream_result = await asyncio.wait_for(
@@ -297,6 +383,7 @@ class JobOrchestrator:
                 finished_at=datetime.now(timezone.utc).isoformat(),
                 extra_payload=extra or None,
             )
+            self._publish(job_id, "COMPLETED", 100.0, detail)
 
             elapsed_sec = time.time() - start_time
             record_job_metric(job_id, "end_to_end", elapsed_sec)
@@ -318,6 +405,7 @@ class JobOrchestrator:
                 error_code="server_busy",
                 error_message=str(exc),
             )
+            self._publish(job_id, "SERVER_BUSY", 0.0, str(exc))
         except StageTimeoutError as exc:
             log.error("Stage timeout", stage=exc.stage, timeout_sec=exc.timeout_sec)
             record_job_error(job_id, "stage_timeout")
@@ -329,6 +417,7 @@ class JobOrchestrator:
                 error_message=str(exc),
                 finished_at=datetime.now(timezone.utc).isoformat(),
             )
+            self._publish(job_id, "FAILED", 0.0, f"Stage timeout: {exc.stage}")
             asyncio.create_task(self._fire_callback(
                 job_id=job_id,
                 status="FAILED",
@@ -436,6 +525,7 @@ class JobOrchestrator:
             )
 
             log.info("OCR stage completed", ocr_time_sec=ocr_result.processing_time_sec, text_length=len(ocr_result.extracted_text))
+            self._publish(job_id, "OCR_PROCESSING", 35.0, f"OCR completed in {ocr_result.processing_time_sec:.1f}s")
             return ocr_result.to_dict()
 
         except OCRError as exc:
@@ -743,6 +833,16 @@ class JobOrchestrator:
         except Exception as exc:
             log.error("Callback adapter threw", exception=exc, job_id=job_id)
 
+    # Maps LOINC codes to their correct display names for DocumentReference.type
+    _LOINC_DISPLAY: dict[str, str] = {
+        "11502-2": "Laboratory report",
+        "57833-6": "Prescription for medication",
+        "18842-5": "Discharge summary",
+        "18748-4": "Diagnostic imaging study",
+        "34117-4": "History and physical note",
+        "11369-6": "Immunization record",
+    }
+
     @staticmethod
     def _attach_pdf_to_bundle(
         fhir_bundle: dict[str, Any],
@@ -753,12 +853,13 @@ class JobOrchestrator:
         ocr_engine: str | None = None,
         loinc_code: str | None = None,
         encounter_date: str | None = None,
+        pdf_id: str | None = None,
     ) -> dict[str, Any]:
-        """Attach the uploaded PDF as base64 to a DocumentReference in the bundle.
+        """Create a Binary resource for the PDF and a DocumentReference pointing to it.
 
-        Always creates a DocumentReference with the raw PDF binary.
-        If the bundle already contains a DocumentReference, injects into the first one.
-        Otherwise, creates a new DocumentReference entry and prepends it.
+        Stores the raw PDF in a FHIR Binary resource and references it from
+        DocumentReference.content[0].attachment.url. If the bundle already contains
+        a DocumentReference the Binary url is appended to its content list.
 
         Args:
             fhir_bundle: FHIR R5 bundle dict
@@ -771,17 +872,8 @@ class JobOrchestrator:
             encounter_date: Document date (instant)
 
         Returns:
-            Modified FHIR bundle with PDF attached
+            Modified FHIR bundle with Binary and DocumentReference entries
         """
-        def is_valid_base64(value: str) -> bool:
-            if not value or not isinstance(value, str):
-                return False
-            try:
-                base64.b64decode(value, validate=True)
-                return True
-            except Exception:
-                return False
-
         try:
             pdf_path = Path(upload_path)
             if not pdf_path.exists():
@@ -793,8 +885,39 @@ class JobOrchestrator:
             b64_data = "".join(b64_data.split())
             file_size = len(raw_bytes)
 
+            # ── Binary resource ──────────────────────────────────────────────
+            binary_uuid = str(uuid.uuid4())
+            binary_resource: dict[str, Any] = {
+                "resourceType": "Binary",
+                "id": binary_uuid,
+                "contentType": "application/pdf",
+                "data": b64_data,
+            }
+            binary_entry: dict[str, Any] = {
+                "fullUrl": f"urn:uuid:{binary_uuid}",
+                "resource": binary_resource,
+                "request": {"method": "PUT", "url": f"Binary/{binary_uuid}"},
+            }
+
+            # ── Attachment that references the Binary ────────────────────────
+            attachment: dict[str, Any] = {
+                "contentType": "application/pdf",
+                "url": f"Binary/{binary_uuid}",
+                "size": str(file_size),  # integer64 in FHIR R5 is serialised as a JSON string
+                "title": filename,
+                "creation": _to_instant(encounter_date) or datetime.now(timezone.utc).isoformat(),
+            }
+            loinc_display = JobOrchestrator._LOINC_DISPLAY.get(loinc_code or "", "Clinical document") if loinc_code else None
+
+            # ── DocumentReference resource ───────────────────────────────────
+            doc_ref_uuid = str(uuid.uuid4())
+            # Use pdf_id as the FHIR resource id (and in request.url so HAPI stores
+            # it under that id). The fullUrl stays urn:uuid: so it remains a valid
+            # absolute URL and bundle-internal cross-references resolve correctly.
+            doc_ref_fhir_id = pdf_id if pdf_id else doc_ref_uuid
             doc_ref_resource: dict[str, Any] = {
                 "resourceType": "DocumentReference",
+                "id": doc_ref_fhir_id,
                 "status": "current",
                 "docStatus": "final",
                 "text": {
@@ -802,21 +925,12 @@ class JobOrchestrator:
                     "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Generated narrative for DocumentReference</div>",
                 },
                 "description": "Scanned lab report processed via DOC2FHIR",
-                "content": [
-                    {
-                        "attachment": {
-                            "contentType": "application/pdf",
-                            "data": b64_data,
-                            "size": str(file_size),
-                            "title": filename,
-                            "creation": _to_instant(encounter_date) or datetime.now(timezone.utc).isoformat(),
-                        },
-                    }
-                ],
+                "content": [{"attachment": attachment}],
             }
-            if loinc_code:
+            if loinc_code and loinc_display:
                 doc_ref_resource["type"] = {
-                    "coding": [{"system": "http://loinc.org", "code": loinc_code, "display": "Laboratory report"}],
+                    "coding": [{"system": "http://loinc.org", "code": loinc_code, "display": loinc_display}],
+                    "text": loinc_display,
                 }
             if patient_id:
                 doc_ref_resource["subject"] = {"reference": f"Patient/{patient_id}"}
@@ -828,22 +942,22 @@ class JobOrchestrator:
                 doc_ref_resource.setdefault("identifier", []).append(
                     {"system": "http://cfi-care.ai/document-hash", "value": doc_hash},
                 )
+            if pdf_id:
+                doc_ref_resource.setdefault("identifier", []).append(
+                    {"system": "http://cfi-care.ai/mobile-document-id", "value": pdf_id},
+                )
 
-            doc_ref_uuid = str(uuid.uuid4())
-            doc_ref_resource["id"] = doc_ref_uuid
             doc_ref_entry: dict[str, Any] = {
                 "fullUrl": f"urn:uuid:{doc_ref_uuid}",
                 "resource": doc_ref_resource,
-                "request": {
-                    "method": "POST",
-                    "url": "DocumentReference",
-                },
+                "request": {"method": "PUT", "url": f"DocumentReference/{doc_ref_fhir_id}"},
             }
 
             entries = fhir_bundle.get("entry", [])
             if not isinstance(entries, list):
                 entries = []
 
+            # Check for existing DocumentReference to enrich instead of creating a new one
             existing_doc_ref_idx = None
             for idx, entry in enumerate(entries):
                 res = entry.get("resource") if isinstance(entry, dict) else None
@@ -852,52 +966,64 @@ class JobOrchestrator:
                     break
 
             if existing_doc_ref_idx is not None:
-                existing = entries[existing_doc_ref_idx]
-                res = existing["resource"]
-                if "content" not in res or not isinstance(res.get("content"), list):
+                res = entries[existing_doc_ref_idx]["resource"]
+                # Override the FHIR resource ID with the mobile-local pdf_id so
+                # HAPI FHIR stores the DocumentReference under the same ID.
+                if pdf_id:
+                    res["id"] = pdf_id
+                    existing_entry = entries[existing_doc_ref_idx]
+                    # Keep fullUrl as urn:uuid so it stays a valid absolute URL and
+                    # bundle-internal cross-references continue to resolve. Only
+                    # request.url tells HAPI FHIR which resource ID to store it under.
+                    existing_entry["request"] = {"method": "PUT", "url": f"DocumentReference/{pdf_id}"}
+                if not isinstance(res.get("content"), list):
                     res["content"] = []
-                # Remove invalid placeholder attachments before inserting the real PDF
-                cleaned_content = []
-                for item in res["content"]:
-                    if not isinstance(item, dict):
-                        continue
-                    attachment = item.get("attachment")
-                    if isinstance(attachment, dict) and is_valid_base64(attachment.get("data", "")):
-                        cleaned_content.append(item)
-                cleaned_content.append(doc_ref_entry["resource"]["content"][0])
+                # Keep existing url-based attachments, drop any stale embedded data
+                cleaned_content = [
+                    item for item in res["content"]
+                    if isinstance(item, dict)
+                    and isinstance(item.get("attachment"), dict)
+                    and item["attachment"].get("url")
+                ]
+                cleaned_content.append({"attachment": attachment})
                 res["content"] = cleaned_content
-                # Enrich existing DocumentReference with metadata
-                if "docStatus" not in res:
-                    res["docStatus"] = "final"
-                if "type" not in res and loinc_code:
+                # Enrich metadata only if not already set
+                res.setdefault("docStatus", "final")
+                res.setdefault("description", "Scanned lab report processed via DOC2FHIR")
+                if loinc_code and loinc_display and "type" not in res:
                     res["type"] = {
-                        "coding": [{"system": "http://loinc.org", "code": loinc_code, "display": "Laboratory report"}],
+                        "coding": [{"system": "http://loinc.org", "code": loinc_code, "display": loinc_display}],
+                        "text": loinc_display,
                     }
-                if "date" not in res and encounter_date:
+                if encounter_date and "date" not in res:
                     res["date"] = _to_instant(encounter_date)
-                if "author" not in res and ocr_engine:
+                if ocr_engine and "author" not in res:
                     res["author"] = [{"display": ocr_engine}]
-                if "description" not in res:
-                    res["description"] = "Scanned lab report processed via DOC2FHIR"
                 if patient_id and "subject" not in res:
                     res["subject"] = {"reference": f"Patient/{patient_id}"}
                 if doc_hash:
                     existing_identifiers = res.setdefault("identifier", [])
-                    has_hash = any(
-                        ident.get("system") == "http://cfi-care.ai/document-hash"
-                        for ident in existing_identifiers
-                    )
-                    if not has_hash:
+                    if not any(i.get("system") == "http://cfi-care.ai/document-hash" for i in existing_identifiers):
                         existing_identifiers.append(
                             {"system": "http://cfi-care.ai/document-hash", "value": doc_hash},
                         )
-                logger.info("Injected PDF into existing DocumentReference entry at index %d", existing_doc_ref_idx)
+                if pdf_id:
+                    existing_identifiers = res.setdefault("identifier", [])
+                    if not any(i.get("system") == "http://cfi-care.ai/mobile-document-id" for i in existing_identifiers):
+                        existing_identifiers.append(
+                            {"system": "http://cfi-care.ai/mobile-document-id", "value": pdf_id},
+                        )
+                # Prepend Binary entry before the existing DocumentReference
+                entries.insert(existing_doc_ref_idx, binary_entry)
+                logger.info("Injected Binary+url into existing DocumentReference at index %d", existing_doc_ref_idx)
             else:
+                # Prepend Binary first, then DocumentReference
                 entries.insert(0, doc_ref_entry)
+                entries.insert(0, binary_entry)
                 fhir_bundle["entry"] = entries
-                logger.info("Created new DocumentReference entry for PDF attachment")
+                logger.info("Created new Binary and DocumentReference entries for PDF attachment")
 
-            # Sanitize all DocumentReference content attachments after injection
+            # Sanitize all DocumentReference content: remove format, drop items with neither url nor data
             for entry in entries:
                 res = entry.get("resource") if isinstance(entry, dict) else None
                 if not isinstance(res, dict) or res.get("resourceType") != "DocumentReference":
@@ -910,15 +1036,12 @@ class JobOrchestrator:
                     if not isinstance(item, dict):
                         continue
                     item.pop("format", None)
-                    attachment = item.get("attachment")
-                    if isinstance(attachment, dict):
-                        data = attachment.get("data")
-                        if isinstance(data, str):
-                            data = "".join(data.split())
-                            attachment["data"] = data
-                            if not is_valid_base64(data):
-                                attachment.pop("data", None)
-                        if attachment.get("data") is None and not attachment.get("url"):
+                    att = item.get("attachment")
+                    if isinstance(att, dict):
+                        # Drop embedded data when a url is already present
+                        if att.get("url") and att.get("data"):
+                            att.pop("data", None)
+                        if not att.get("url") and not att.get("data"):
                             continue
                     cleaned_items.append(item)
                 res["content"] = cleaned_items

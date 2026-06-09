@@ -85,9 +85,9 @@ export class PatientApiService {
     return this.http.get<any>(`${this.baseUrl}/${id}/related-data`);
   }
 
-  // Get patient observations
-  getPatientObservations(id: string | number): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/${id}/observations`);
+  // Get observations that belong to a specific DiagnosticReport (resolves result[] refs)
+  getObservationsByDiagnosticReport(diagnosticReportId: string): Observable<any[]> {
+    return this.http.get<any[]>(`/api/observations/diagnostic-report/${diagnosticReportId}`);
   }
 
   // Get patient encounters

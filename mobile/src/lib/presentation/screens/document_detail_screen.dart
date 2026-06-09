@@ -160,7 +160,7 @@ class DocumentDetailScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${(live.progress * 100).toStringAsFixed(0)}%',
+                  '${(live.progress.clamp(0.0, 1.0) * 100).toStringAsFixed(0)}%',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -288,10 +288,6 @@ class DocumentDetailScreen extends StatelessWidget {
             'Format',
             live.isPDF ? 'PDF Document' : 'Image',
           ),
-          if (live.jobId != null) ...[
-            const Divider(height: 1),
-            _infoRow(Icons.fingerprint, 'Job ID', live.jobId!, monospace: true),
-          ],
         ],
       ),
     );
@@ -324,8 +320,8 @@ class DocumentDetailScreen extends StatelessWidget {
 
   Widget _buildSummaryCard(DocumentModel live) {
     return _card(
-      title: 'Extracted Text',
-      icon: Icons.text_snippet_outlined,
+      title: 'AI Summary',
+      icon: Icons.auto_awesome_outlined,
       child: Text(
         live.summary,
         style: TextStyle(
