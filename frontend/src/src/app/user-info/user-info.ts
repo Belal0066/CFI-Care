@@ -44,14 +44,15 @@ export class UserInfo implements OnInit {
   private rawProcedures: any[] = [];
   private rawLabResults: string[] = [];
   private rawDocumentReferences: any[] = [];
-  private rawObservations: any[] = [];
   private rawDiagnosticReports: any[] = [];
   private rawCompositions: any[] = [];
 
-  // One entry per DocumentReference: linked DiagnosticReport + Observations + Composition
+  // One entry per DocumentReference: linked DiagnosticReport + Observations + Composition.
+  // Observations start empty and are loaded on demand when the accordion row expands.
   enrichedLabData: {
     report: any;
     observations: any[];
+    observationsLoaded: boolean;
     composition: any | null;
   }[] = [];
 
@@ -109,7 +110,6 @@ export class UserInfo implements OnInit {
       procedures: this.patientApi.getPatientProcedures(id),
       documentReferences: this.patientApi.getPatientDocumentReferences(id),
       episodesOfCare: this.patientApi.getPatientEpisodesOfCare(id),
-      observations: this.patientApi.getPatientObservations(id),
       diagnosticReports: this.patientApi.getPatientDiagnosticReports(id),
       compositions: this.patientApi.getPatientCompositions(id),
     }).subscribe({
@@ -121,7 +121,6 @@ export class UserInfo implements OnInit {
         procedures: any;
         documentReferences: any;
         episodesOfCare: any[];
-        observations: any;
         diagnosticReports: any;
         compositions: any;
       }) => {
@@ -132,7 +131,6 @@ export class UserInfo implements OnInit {
           procedures,
           documentReferences,
           episodesOfCare,
-          observations,
           diagnosticReports,
           compositions,
         } = data;
@@ -197,9 +195,7 @@ export class UserInfo implements OnInit {
           .filter(
             (resource: any) =>
               resource &&
-              resource.resourceType === 'DocumentReference' &&
-              this.isLabDocument(resource) &&
-              this.isUploadedByPatient(resource, patientReference),
+              resource.resourceType === 'DocumentReference',
           )
           .sort((a: any, b: any) => {
             const timeA = Date.parse(a?.date || a?.meta?.lastUpdated || '');
@@ -217,10 +213,7 @@ export class UserInfo implements OnInit {
         );
         this.rawLabResults = this.patientDetails.recentLabResults || [];
 
-        // Store Observations, DiagnosticReports, Compositions
-        this.rawObservations = ((observations?.entry ?? []) as any[])
-          .map((e: any) => e.resource)
-          .filter(Boolean);
+        // Store DiagnosticReports and Compositions (Observations are loaded per-document on demand)
         this.rawDiagnosticReports = ((diagnosticReports?.entry ?? []) as any[])
           .map((e: any) => e.resource)
           .filter(Boolean);
@@ -438,12 +431,6 @@ export class UserInfo implements OnInit {
   }
 
   viewOriginalPdf(index: number): void {
-    if (UserInfo._mockMode) {
-      alert(
-        'Mock mode: no real PDF available.\nIn production this opens the original scanned document.',
-      );
-      return;
-    }
     this.openLabPdf(index);
   }
 
@@ -772,6 +759,7 @@ export class UserInfo implements OnInit {
             ],
           },
         ],
+        observationsLoaded: true,
       },
 
       // ── Lab 2: Lipid Panel — elevated cholesterol + low HDL ──
@@ -896,6 +884,7 @@ export class UserInfo implements OnInit {
             ],
           },
         ],
+        observationsLoaded: true,
       },
 
       // ── Lab 3: Urinalysis — no FHIR resources linked (shows fallback) ──
@@ -903,6 +892,7 @@ export class UserInfo implements OnInit {
         composition: null,
         report: null,
         observations: [],
+        observationsLoaded: true,
       },
     ];
   }
@@ -912,45 +902,66 @@ export class UserInfo implements OnInit {
   private _buildEnrichedLabData(): {
     report: any;
     observations: any[];
+    observationsLoaded: boolean;
     composition: any | null;
   }[] {
-    // Index Observations by FHIR server ID for O(1) lookup
-    const obsById = new Map<string, any>(
-      this.rawObservations.map((o: any) => [String(o.id), o]),
-    );
+    const sourceDocUrl =
+      'http://cfi-care.ai/fhir/StructureDefinition/source-document';
 
     return this.rawDocumentReferences.map((docRef: any) => {
-      const docDate = (docRef.date || docRef.meta?.lastUpdated || '').substring(
-        0,
-        10,
-      );
+      const docRefRef = `DocumentReference/${docRef.id}`;
 
-      // Match DiagnosticReport by same effectiveDateTime date
+      // Match DiagnosticReport by the source-document extension that
+      // _add_cross_references stamps on every DiagnosticReport.
       const report =
-        this.rawDiagnosticReports.find(
-          (dr: any) =>
-            (dr.effectiveDateTime || dr.date || '').substring(0, 10) ===
-            docDate,
+        this.rawDiagnosticReports.find((dr: any) =>
+          (dr.extension ?? []).some(
+            (e: any) =>
+              e.url === sourceDocUrl &&
+              e.valueReference?.reference === docRefRef,
+          ),
         ) ?? null;
 
-      // Resolve Observations referenced by the DiagnosticReport's result[]
-      const observations: any[] = (report?.result ?? [])
-        .map((ref: any) => {
-          // ref.reference can be "Observation/4590/_history/1" or "Observation/4590"
-          const parts = (ref.reference ?? '').split('/');
-          const id = parts[1] ?? '';
-          return id ? obsById.get(id) : null;
-        })
-        .filter(Boolean);
-
-      // Match Composition by same date
+      // Match Composition by relatesTo.resourceReference (R5 field, resolved by HAPI
+      // during transaction processing) or by the mobile-document-id identifier
+      // stamped on the Composition during pipeline processing (reliable fallback).
       const composition =
-        this.rawCompositions.find(
-          (c: any) => (c.date || '').substring(0, 10) === docDate,
-        ) ?? null;
+        this.rawCompositions.find((c: any) => {
+          const byRelatesTo = (c.relatesTo ?? []).some(
+            (r: any) => r.resourceReference?.reference === docRefRef,
+          );
+          if (byRelatesTo) return true;
+          return (c.identifier ?? []).some(
+            (id: any) =>
+              id.system === 'http://cfi-care.ai/mobile-document-id' &&
+              id.value === docRef.id,
+          );
+        }) ?? null;
 
-      return { report, observations, composition };
+      // Observations are loaded lazily when the accordion row expands.
+      return { report, observations: [], observationsLoaded: false, composition };
     });
+  }
+
+  // Called from the template when a lab accordion row is opened.
+  // Fetches the observations for the DiagnosticReport linked to that document
+  // and writes them into enrichedLabData[index].observations.
+  loadObservationsForDocument(index: number): void {
+    const entry = this.enrichedLabData[index];
+    if (!entry || entry.observationsLoaded || !entry.report?.id) return;
+
+    this.patientApi
+      .getObservationsByDiagnosticReport(entry.report.id)
+      .subscribe({
+        next: (observations: any[]) => {
+          entry.observations = observations;
+          entry.observationsLoaded = true;
+        },
+        error: () => {
+          entry.observations = [];
+          entry.observationsLoaded = true;
+        },
+      });
   }
 
   interpretationClass(obs: any): string {

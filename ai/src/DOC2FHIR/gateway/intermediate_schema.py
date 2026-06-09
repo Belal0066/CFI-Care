@@ -73,14 +73,14 @@ class MedicationItem(BaseModel):
 class ObservationItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: Optional[str] = None
-    value: Optional[str] = None
-    unit: Optional[str] = None
-    interpretation: Optional[str] = None
-    effective_date: Optional[str] = None
-    reference_range_low: Optional[str] = None
-    reference_range_high: Optional[str] = None
-    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    name: Optional[str] = Field(default=None, description="Test or analyte name, e.g. 'Hemoglobin'")
+    value: Optional[str] = Field(default=None, description="Raw numeric result as a string, e.g. '1.1' or '14.5'. Do NOT include units or flags here.")
+    unit: Optional[str] = Field(default=None, description="Unit of measure, e.g. 'mg/dL' or 'g/dL'. Separate from value.")
+    interpretation: Optional[str] = Field(default=None, description="Abnormality flag only: 'H' (high), 'L' (low), 'N' (normal). Do NOT put the numeric value here.")
+    effective_date: Optional[str] = Field(default=None, description="Collection or result date in YYYY-MM-DD format")
+    reference_range_low: Optional[str] = Field(default=None, description="Lower bound of the reference range as a numeric string, e.g. '0.2'")
+    reference_range_high: Optional[str] = Field(default=None, description="Upper bound of the reference range as a numeric string, e.g. '1.2'")
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Extraction confidence 0.0–1.0")
     evidence: Optional[EvidenceSpan] = None
 
 class AllergyItem(BaseModel):

@@ -115,7 +115,7 @@
     </div>
 
     <div class="info-section">
-        <h6><i class="bi bi-flask-fill me-1"></i> Recent Lab Results</h6>
+        <h6><i class="bi bi-file-earmark-medical-fill me-1"></i> Documents &amp; Lab Results</h6>
         <div class="info-box">
             <div class="accordion accordion-flush" id="accordionFlushExample"
                 *ngIf="patientDetails.recentLabResults?.length">
@@ -124,6 +124,7 @@
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                             [attr.data-bs-target]="'#lab' + i"
+                            (click)="loadObservationsForDocument(i)"
                             style="display:flex;align-items:center;justify-content:space-between">
                             <span>{{ lab }}</span>
                             <button *ngIf="hasLabPdf(i)"
@@ -176,7 +177,7 @@
                                                    title="Low extraction confidence"></i>
                                             </td>
                                             <td style="padding:7px 8px;text-align:right;font-weight:600;color:#1a2332">
-                                                {{ obs.valueQuantity?.value ?? '—' }}
+                                                {{ obs.valueQuantity?.value ?? obs.valueString ?? '—' }}
                                                 <span style="font-weight:400;color:#64748b">
                                                     {{ obs.valueQuantity?.unit ?? '' }}
                                                 </span>
@@ -194,7 +195,10 @@
                                                     {{ obs.referenceRange?.[0]?.high?.value ?? '?' }}
                                                     {{ obs.referenceRange?.[0]?.low?.unit ?? obs.valueQuantity?.unit ?? '' }}
                                                 </ng-container>
-                                                <ng-container *ngIf="obs.referenceRange?.[0]?.low?.value == null && obs.referenceRange?.[0]?.high?.value == null">
+                                                <ng-container *ngIf="obs.referenceRange?.[0]?.low?.value == null && obs.referenceRange?.[0]?.high?.value == null && obs.referenceRange?.[0]?.text">
+                                                    {{ obs.referenceRange?.[0]?.text }}
+                                                </ng-container>
+                                                <ng-container *ngIf="obs.referenceRange?.[0]?.low?.value == null && obs.referenceRange?.[0]?.high?.value == null && !obs.referenceRange?.[0]?.text">
                                                     —
                                                 </ng-container>
                                             </td>
@@ -231,7 +235,7 @@
                 </div>
             </div>
             <p *ngIf="!patientDetails.recentLabResults?.length"
-                class="text-muted mb-0">No recent lab results</p>
+                class="text-muted mb-0">No documents uploaded yet</p>
         </div>
     </div>
 

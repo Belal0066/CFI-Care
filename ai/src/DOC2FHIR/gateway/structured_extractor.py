@@ -63,9 +63,13 @@ def _build_extraction_prompt(doc_type: DocumentType) -> str:
     return (
         "Extract into the intermediate schema only. Do not produce FHIR. "
         "Use null for missing data. Always include evidence span offsets when text is present. "
-        "For observations: separate numeric value from flags (L/H/N). "
-        "Set interpretation to the flag, effective_date to collection date, "
-        "reference_range_low/high to range bounds. "
+        "For each observation row: "
+        "  - `value` = the numeric result ONLY as a string, e.g. '1.1'. Never include units or flags in `value`. "
+        "  - `unit` = the unit string only, e.g. 'mg/dL'. "
+        "  - `interpretation` = the abnormality flag only: 'H', 'L', or 'N'. "
+        "  - `reference_range_low` and `reference_range_high` = lower and upper bounds as numeric strings. "
+        "  - `confidence` = your confidence in the extraction, 0.0–1.0. "
+        "Example: result '1.1 mg/dL (H)' → value='1.1', unit='mg/dL', interpretation='H'. "
         f"Profile: {profile}."
     )
 
@@ -166,7 +170,7 @@ class StructuredExtractor:
                 data = json.loads(content)
                 summary = data.get("summary", "").strip()
                 if summary:
-                    return summary[:100]
+                    return summary
                 logger.warning("summarize: LLM returned no summary key in %s", content)
                 return None
             reasoning = (message.get("reasoning_content") or "").strip()

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 
@@ -20,6 +21,18 @@ class DocumentRepositoryImpl implements DocumentRepository {
   final ImageStorageService imageService;
   final ApiService apiService;
   bool _isSyncing = false;
+
+  final Set<String> _pendingSummaryFetches = {};
+  final Set<String> _activeStreamingJobs = {};
+  final StreamController<String> _statusController =
+      StreamController<String>.broadcast();
+
+  @override
+  Stream<String> get documentStatusUpdates => _statusController.stream;
+
+  @override
+  Future<DocumentModel?> getDocumentById(String documentId) =>
+      DBHelper.getDocumentById(documentId);
 
   DocumentRepositoryImpl(this.pdfService, this.imageService, this.apiService);
 
@@ -54,14 +67,47 @@ class DocumentRepositoryImpl implements DocumentRepository {
             final serverId = remoteDoc.serverId;
             if (serverId != null && localByServerId.containsKey(serverId)) {
               final localDoc = localByServerId[serverId]!;
-              return remoteDoc.copyWith(filePath: localDoc.filePath);
+              return remoteDoc.copyWith(
+                // Prefer local file path (HAPI FHIR only stores a remote URL)
+                filePath: localDoc.filePath.isNotEmpty ? localDoc.filePath : null,
+                // Prefer the AI summary stored in the local DB
+                summary: localDoc.summary.isNotEmpty ? localDoc.summary : null,
+                // Carry the pipeline job ID so the detail screen can display it
+                jobId: localDoc.jobId,
+              );
             }
             return remoteDoc;
           })
           .toList();
 
-      final unsyncedLocal = localDocs.where((doc) => !doc.isSynced).toList();
-      return [...remoteDocs, ...unsyncedLocal];
+      // Include all local docs not already represented in the remote result.
+      // This covers (a) unsynced docs and (b) synced docs whose remote record
+      // isn't queryable yet (cache stale, HAPI indexing lag, etc.).
+      final remoteServerIds = remoteDocs
+          .where((d) => (d.serverId ?? '').isNotEmpty)
+          .map((d) => d.serverId!)
+          .toSet();
+      final localNotInRemote = localDocs
+          .where((doc) {
+            final sid = doc.serverId ?? '';
+            return sid.isEmpty || !remoteServerIds.contains(sid);
+          })
+          .toList();
+
+      final allDocs = [...remoteDocs, ...localNotInRemote];
+
+      // For synced docs whose summary hasn't been cached yet, fetch it from
+      // Node.js in the background. The guard prevents duplicate in-flight
+      // requests; the result is saved to SQLite and picked up on the next refresh.
+      for (final doc in allDocs) {
+        final sid = doc.serverId ?? '';
+        final docId = doc.id ?? '';
+        if (doc.isSynced && doc.summary.isEmpty && sid.isNotEmpty && docId.isNotEmpty) {
+          _fetchAndCacheSummary(docId: docId, serverId: sid);
+        }
+      }
+
+      return allDocs;
     } catch (e) {
       print('Remote fetch failed, returning local docs only: $e');
       return DBHelper.getDocumentsForUser(userId);
@@ -84,9 +130,12 @@ class DocumentRepositoryImpl implements DocumentRepository {
 
         final existingJobId = doc.jobId;
 
-        // Phase 2: job already submitted — poll for completion
+        // Phase 2: job already submitted — attach stream if not already active
         if (existingJobId != null && existingJobId.isNotEmpty) {
-          await _pollDocOnFhirJob(docId: docId, jobId: existingJobId, retryCount: doc.retryCount);
+          if (!_activeStreamingJobs.contains(existingJobId)) {
+            unawaited(_streamDocOnFhirJob(
+                docId: docId, jobId: existingJobId, retryCount: doc.retryCount));
+          }
           continue;
         }
 
@@ -101,16 +150,21 @@ class DocumentRepositoryImpl implements DocumentRepository {
           final submittedJobId = await apiService.uploadToDocOnFhir(
             file: localFile,
             patientId: Session.fhirPatientId ?? userId,
+            pdfId: docId,
           );
 
           await DBHelper.markDocumentJobSubmitted(
             documentId: docId,
             jobId: submittedJobId,
           );
+          // Notify UI immediately so the card transitions pending → job_submitted
+          // without waiting for the first WebSocket event.
+          _statusController.add(docId);
           print('[sync] DocOnFHIR upload queued: doc=$docId job=$submittedJobId');
 
-          // Attempt one immediate poll — job is rarely done this fast but worth checking
-          await _pollDocOnFhirJob(docId: docId, jobId: submittedJobId, retryCount: 0);
+          // Start streaming in background — returns immediately
+          unawaited(_streamDocOnFhirJob(
+              docId: docId, jobId: submittedJobId, retryCount: 0));
         } catch (e) {
           await DBHelper.markDocumentSyncFailure(
             documentId: docId,
@@ -124,59 +178,148 @@ class DocumentRepositoryImpl implements DocumentRepository {
     }
   }
 
-  /// Polls the DocOnFHIR status for [jobId].
-  /// Updates progress on every call, auto-retries up to 2 times on FAILED,
-  /// then sets syncStatus='user_retry_needed' for the user to decide.
-  Future<void> _pollDocOnFhirJob({
+  /// Streams real-time status events from the FastAPI WebSocket endpoint.
+  /// Falls back to a single HTTP poll if the WebSocket connection cannot be
+  /// established (e.g. the gateway is unreachable or the job is already done).
+  Future<void> _streamDocOnFhirJob({
+    required String docId,
+    required String jobId,
+    required int retryCount,
+  }) async {
+    // Synchronous — runs before first await so the guard is set instantly.
+    _activeStreamingJobs.add(jobId);
+    bool receivedAnyEvent = false;
+
+    try {
+      await for (final status in apiService.streamDocOnFhirJobStatus(jobId)) {
+        receivedAnyEvent = true;
+
+        await DBHelper.updateDocumentProgress(
+          documentId: docId,
+          progress: status.progress,
+          jobState: status.state,
+        );
+        _statusController.add(docId);
+
+        print('[stream] DocOnFHIR job=$jobId state=${status.state} progress=${status.progress}');
+
+        if (status.isCompleted) {
+          await _handleJobCompleted(docId: docId, jobId: jobId);
+          _statusController.add(docId);
+          return;
+        }
+
+        if (status.isFailed) {
+          await _handleJobFailed(
+              docId: docId, jobId: jobId, retryCount: retryCount, status: status);
+          _statusController.add(docId);
+          return;
+        }
+      }
+    } catch (e) {
+      print('[stream] DocOnFHIR stream error job=$jobId: $e');
+    } finally {
+      _activeStreamingJobs.remove(jobId);
+    }
+
+    // WebSocket either never connected or dropped mid-stream without a terminal
+    // event — fall back to a single HTTP poll so the sync cycle is not lost.
+    if (!receivedAnyEvent) {
+      await _fallbackPoll(docId: docId, jobId: jobId, retryCount: retryCount);
+      _statusController.add(docId);
+    }
+  }
+
+  Future<void> _handleJobCompleted({
+    required String docId,
+    required String jobId,
+  }) async {
+    try {
+      final result = await apiService.getDocOnFhirJobResult(jobId);
+      final serverId = _extractServerIdFromResult(result) ?? jobId;
+
+      // Mark the document synced first so the UI can update immediately
+      await DBHelper.markDocumentSyncSuccess(
+        documentId: docId,
+        serverId: serverId,
+      );
+      print('[stream] DocOnFHIR completed: doc=$docId job=$jobId serverId=$serverId');
+
+      // Fetch the AI summary from the FHIR Composition via Node.js.
+      // Node.js queries HAPI FHIR using the pdf_id identifier stamped on the
+      // Composition during pipeline processing.
+      if (serverId.isNotEmpty) {
+        await _fetchAndCacheSummary(docId: docId, serverId: serverId);
+      }
+    } catch (e) {
+      print('[stream] DocOnFHIR result fetch error job=$jobId: $e');
+    }
+  }
+
+  /// Fetches the AI summary from the Node.js → HAPI FHIR Composition endpoint
+  /// and persists it to local SQLite. Safe to call concurrently — the
+  /// [_pendingSummaryFetches] guard prevents duplicate in-flight requests.
+  Future<void> _fetchAndCacheSummary({
+    required String docId,
+    required String serverId,
+  }) async {
+    if (_pendingSummaryFetches.contains(serverId)) return;
+    _pendingSummaryFetches.add(serverId);
+    try {
+      final aiSummary = await apiService.fetchDocumentSummary(serverId);
+      if (aiSummary != null && aiSummary.isNotEmpty) {
+        await DBHelper.markDocumentSyncSuccess(
+          documentId: docId,
+          serverId: serverId,
+          summary: aiSummary,
+        );
+        print('[summary] Saved from Node.js: doc=$docId length=${aiSummary.length}');
+      }
+    } catch (e) {
+      print('[summary] Fetch error: doc=$docId serverId=$serverId: $e');
+    } finally {
+      _pendingSummaryFetches.remove(serverId);
+    }
+  }
+
+  Future<void> _handleJobFailed({
+    required String docId,
+    required String jobId,
+    required int retryCount,
+    required status,
+  }) async {
+    final error = (status.errorMessage as String?) ?? 'DocOnFHIR pipeline failed';
+    if (retryCount < 2) {
+      await DBHelper.resetDocumentForAutoRetry(docId);
+      print('[stream] DocOnFHIR job failed, auto-retry ${retryCount + 1}/2: doc=$docId');
+    } else {
+      await DBHelper.markNeedsUserRetry(documentId: docId, error: error);
+      print('[stream] DocOnFHIR job failed after 2 retries, needs user retry: doc=$docId');
+    }
+  }
+
+  /// Single HTTP poll — used only when the WebSocket is unavailable.
+  Future<void> _fallbackPoll({
     required String docId,
     required String jobId,
     required int retryCount,
   }) async {
     try {
       final status = await apiService.getDocOnFhirJobStatusDetails(jobId);
-
-      // Always persist the latest progress + API state
       await DBHelper.updateDocumentProgress(
         documentId: docId,
         progress: status.progress,
         jobState: status.state,
       );
-
       if (status.isCompleted) {
-        try {
-          final result = await apiService.getDocOnFhirJobResult(jobId);
-          final serverId = _extractServerIdFromResult(result) ?? jobId;
-          final ocrText = _extractOcrText(result);
-          await DBHelper.markDocumentSyncSuccess(
-            documentId: docId,
-            serverId: serverId,
-            summary: ocrText,
-          );
-          print('[sync] DocOnFHIR completed: doc=$docId job=$jobId');
-        } catch (e) {
-          print('[sync] DocOnFHIR result fetch error job=$jobId: $e');
-        }
+        await _handleJobCompleted(docId: docId, jobId: jobId);
       } else if (status.isFailed) {
-        final error = status.errorMessage ?? 'DocOnFHIR pipeline failed';
-        if (retryCount < 2) {
-          // Auto-retry: clear the job and re-queue for upload next cycle
-          await DBHelper.resetDocumentForAutoRetry(docId);
-          print('[sync] DocOnFHIR job failed, auto-retry ${retryCount + 1}/2: doc=$docId');
-        } else {
-          // Exhausted auto-retries — let the user decide
-          await DBHelper.markNeedsUserRetry(
-            documentId: docId,
-            error: error,
-          );
-          print('[sync] DocOnFHIR job failed after 2 retries, needs user retry: doc=$docId');
-        }
+        await _handleJobFailed(docId: docId, jobId: jobId, retryCount: retryCount, status: status);
       } else {
-        // PENDING | OCR_PROCESSING | MAPPING — still running
-        print('[sync] DocOnFHIR job=$jobId state=${status.state} progress=${status.progress}');
+        print('[fallback-poll] DocOnFHIR job=$jobId state=${status.state} progress=${status.progress}');
       }
     } catch (e) {
-      // Network error during polling — don't mark as failed, will retry next cycle
-      print('[sync] DocOnFHIR poll network error job=$jobId: $e');
+      print('[fallback-poll] DocOnFHIR network error job=$jobId: $e');
     }
   }
 
@@ -186,13 +329,6 @@ class DocumentRepositoryImpl implements DocumentRepository {
     await syncPendingDocuments();
   }
 
-  /// Extracts the raw OCR text from the DocOnFHIR result to store as summary.
-  String? _extractOcrText(Map<String, dynamic> result) {
-    final ocrOutput = result['ocr_output'] as Map<String, dynamic>?;
-    final text = ocrOutput?['extracted_text'] as String?;
-    if (text == null || text.trim().isEmpty) return null;
-    return text.trim();
-  }
 
   /// Extracts a FHIR resource ID from the DocOnFHIR result to use as serverId.
   /// Prefers a DocumentReference ID from the FHIR bundle, falls back to
@@ -252,12 +388,15 @@ class DocumentRepositoryImpl implements DocumentRepository {
       filePath: url,
       isPDF: contentType.toLowerCase().contains('pdf'),
       url: url,
-      summary: (resource['description'] ?? '').toString(),
+      summary: '',  // AI summary comes from local DB (set by fetchDocumentSummary), not DocumentReference.description
       details: '',
       type: type,
       speciality: speciality,
       time: TimeOfDay(hour: parsedDate.hour, minute: parsedDate.minute),
       isSynced: true,
+      syncStatus: 'synced',
+      progress: 1.0,
+      jobState: 'COMPLETED',
     );
   }
 
@@ -398,11 +537,8 @@ class DocumentRepositoryImpl implements DocumentRepository {
     final localId = await DBHelper.insertDocument(userId, newDoc);
 
     // 4. Update Model with ID (Fixes copyWith error)
-    newDoc = newDoc.copyWith(id: localId.toString());
+    newDoc = newDoc.copyWith(id: localId);
 
-    // 5. Queue for outbox sync worker (local-first)
-    await syncPendingDocuments();
-
-    return newDoc;
+    return newDoc; // Caller triggers sync; keeps saveDocument fast
   }
 }

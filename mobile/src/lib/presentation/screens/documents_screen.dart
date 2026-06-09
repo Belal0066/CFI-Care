@@ -397,7 +397,7 @@ class _MedicalDocsPageState extends State<MedicalDocsPage> {
                 ),
                 const Spacer(),
                 Text(
-                  '${(doc.progress * 100).toStringAsFixed(0)}%',
+                  '${(doc.progress.clamp(0.0, 1.0) * 100).toStringAsFixed(0)}%',
                   style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
                 ),
               ],
@@ -406,7 +406,7 @@ class _MedicalDocsPageState extends State<MedicalDocsPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: doc.progress > 0 ? doc.progress : null,
+                value: doc.progress > 0 ? doc.progress.clamp(0.0, 1.0) : null,
                 minHeight: 4,
                 backgroundColor: Colors.blue.shade50,
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade400),

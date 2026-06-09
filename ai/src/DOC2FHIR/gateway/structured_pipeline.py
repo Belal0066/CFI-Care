@@ -80,12 +80,14 @@ def _extract_ids(resources: list[dict[str, Any]]) -> tuple[str | None, str | Non
     return patient_id, encounter_id
 
 
-def _unmapped_sections_basic_resource(unmapped_sections: list[str]) -> dict[str, Any] | None:
+def _unmapped_sections_basic_resource(
+    unmapped_sections: list[str],
+    patient_id: str | None = None,
+) -> dict[str, Any] | None:
     if not unmapped_sections:
         return None
-    return {
+    resource: dict[str, Any] = {
         "resourceType": "Basic",
-        "id": "unmapped-sections",
         "text": {
             "status": "generated",
             "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Basic resource containing unmapped clinical document sections.</div>",
@@ -110,6 +112,9 @@ def _unmapped_sections_basic_resource(unmapped_sections: list[str]) -> dict[str,
             }
         ],
     }
+    if patient_id:
+        resource["subject"] = {"reference": f"Patient/{patient_id}"}
+    return resource
 
 
 class StructuredPipeline:
@@ -179,19 +184,22 @@ class StructuredPipeline:
 
         resources = [self.terminology.enrich_condition(r) for r in resources]
 
-        provenance = build_provenance(resources, doc_hash, ocr_engine, model_version)
+        provenance = build_provenance(resources, doc_hash, ocr_engine, model_version, patient_id=patient_id)
         resources.extend(provenance)
 
         bundle = resolver.to_bundle(resources, should_skip_patient=bool(patient_id))
-        basic = _unmapped_sections_basic_resource(extraction.unmapped_sections)
+        basic = _unmapped_sections_basic_resource(extraction.unmapped_sections, patient_id=patient_id)
         if basic:
-            basic_uuid = str(uuid.uuid4())
-            basic["id"] = basic_uuid
+            stable_basic_id = str(uuid.uuid5(
+                uuid.UUID("2c4a93f2-8b62-4f61-9b1a-3f76df6522a2"),
+                f"Basic:{doc_hash}",
+            ))
+            basic["id"] = stable_basic_id
             bundle["entry"].append(
                 {
-                    "fullUrl": f"urn:uuid:{basic_uuid}",
+                    "fullUrl": f"urn:uuid:{stable_basic_id}",
                     "resource": basic,
-                    "request": {"method": "POST", "url": "Basic"},
+                    "request": {"method": "PUT", "url": f"Basic/{stable_basic_id}"},
                 }
             )
 

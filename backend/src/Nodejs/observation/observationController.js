@@ -41,6 +41,17 @@ const getObservationById = async (req, res) => {
   }
 };
 
+const getObservationsByDiagnosticReport = async (req, res) => {
+  try {
+    const { diagnosticReportId } = req.params;
+    const observations = await observationService.getObservationsByDiagnosticReport(diagnosticReportId);
+    res.status(200).json(observations);
+  } catch (error) {
+    console.error("Error in getObservationsByDiagnosticReport controller:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const getObservationsByPatient = async (req, res) => {
   try {
     const { patientId } = req.params;
@@ -113,6 +124,7 @@ module.exports = {
   getObservationById,
   getObservationsByPatient,
   getObservationsByCategory,
+  getObservationsByDiagnosticReport,
   createObservationWithSpecificId,
   createObservation,
   updateObservation,

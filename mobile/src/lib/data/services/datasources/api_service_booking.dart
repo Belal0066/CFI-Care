@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:io';
 import '../../../domain/models/document.dart';
 import '../../../domain/models/doc_job_status.dart';
@@ -658,12 +659,14 @@ class ApiService {
   Future<String> uploadToDocOnFhir({
     required File file,
     required String patientId,
+    String? pdfId,
   }) async {
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$_docOnFhirBaseUrl/v1/documents/upload'),
     );
     request.fields['patient_id'] = patientId;
+    if (pdfId != null) request.fields['pdf_id'] = pdfId;
     request.fields['upload_time'] = DateTime.now().toUtc().toIso8601String();
     request.files.add(
       await http.MultipartFile.fromPath(
@@ -725,6 +728,78 @@ class ApiService {
       progress: ((data['progress'] as num?) ?? 0.0).toDouble(),
       errorMessage: data['error_message'] as String?,
     );
+  }
+
+  /// Fetches the AI-generated document summary from Node.js.
+  ///
+  /// Node.js queries HAPI FHIR for the Composition resource that was created
+  /// for this DocumentReference and returns the extracted plain-text summary.
+  /// Returns null if the Composition is not yet available or the request fails.
+  Future<String?> fetchDocumentSummary(String documentReferenceId) async {
+    try {
+      final response = await _authorizedRequest((headers) {
+        return http.get(
+          Uri.parse('$baseUrl/compositions/document/$documentReferenceId'),
+          headers: headers,
+        );
+      });
+
+      if (response.statusCode == 404) return null;
+      if (response.statusCode != 200) return null;
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final summary = data['summary'] as String?;
+      return (summary != null && summary.trim().isNotEmpty) ? summary.trim() : null;
+    } catch (e) {
+      print('[fetchDocumentSummary] error docRef=$documentReferenceId: $e');
+      return null;
+    }
+  }
+
+  /// Opens a WebSocket to the FastAPI gateway and streams real-time job status
+  /// events until the job reaches a terminal state (COMPLETED / FAILED) or the
+  /// caller cancels the subscription.
+  ///
+  /// Each event is a [DocJobStatus]. Keepalive pings from the server (type=ping)
+  /// are silently dropped. On any connection error the stream simply ends —
+  /// the caller should fall back to HTTP polling.
+  Stream<DocJobStatus> streamDocOnFhirJobStatus(String jobId) async* {
+    final wsBase = _docOnFhirBaseUrl
+        .replaceFirst(RegExp(r'^http://'), 'ws://')
+        .replaceFirst(RegExp(r'^https://'), 'wss://');
+    final uri = Uri.parse('$wsBase/v1/documents/$jobId/stream');
+
+    WebSocketChannel? channel;
+    try {
+      channel = WebSocketChannel.connect(uri);
+
+      await for (final raw in channel.stream) {
+        final Map<String, dynamic> data;
+        try {
+          data = json.decode(raw as String) as Map<String, dynamic>;
+        } catch (_) {
+          continue;
+        }
+
+        // Skip server-sent keepalive pings
+        if (data['type'] == 'ping') continue;
+
+        final status = DocJobStatus(
+          state: (data['state'] as String?) ?? 'PENDING',
+          progress: ((data['progress'] as num?) ?? 0.0).toDouble(),
+          errorMessage: data['error_message'] as String?,
+        );
+
+        yield status;
+
+        if (status.isCompleted || status.isFailed) break;
+      }
+    } catch (e) {
+      // Connection failed or dropped — caller falls back to polling
+      print('[streamDocOnFhirJobStatus] WebSocket error job=$jobId: $e');
+    } finally {
+      await channel?.sink.close();
+    }
   }
 
   /// Fetch the completed result for a DocOnFHIR job.

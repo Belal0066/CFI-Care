@@ -14,6 +14,15 @@ router.get(
   observationController.getObservationsByPatient,
 );
 
+// Get observations that belong to a specific DiagnosticReport.
+// Resolves result[] references from the DiagnosticReport and batch-fetches
+// the corresponding Observations in a single HAPI FHIR call.
+router.get(
+  "/diagnostic-report/:diagnosticReportId",
+  requireApiAuth,
+  observationController.getObservationsByDiagnosticReport,
+);
+
 // Get observations by patient ID and category (query param: ?category=vital-signs)
 router.get(
   "/patient/:patientId/category",

@@ -16,6 +16,7 @@ def build_provenance(
     document_hash: str,
     ocr_engine: str,
     model_version: str,
+    patient_id: str | None = None,
 ) -> list[dict[str, Any]]:
     provenance_list: list[dict[str, Any]] = []
     recorded = datetime.now(timezone.utc).isoformat()
@@ -28,63 +29,66 @@ def build_provenance(
         if not rtype or not rid:
             continue
 
-        provenance_list.append(
-            {
-                "resourceType": "Provenance",
-                "id": _provenance_id(rtype, rid, document_hash),
-                "text": {
-                    "status": "generated",
-                    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Generated narrative for Provenance</div>",
-                },
-                "recorded": recorded,
-                "target": [{"reference": f"urn:uuid:{rid}"}],
-                "agent": [
-                    {
-                        "type": {
-                            "coding": [
-                                {
-                                    "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
-                                    "code": "assembler",
-                                }
-                            ]
-                        },
-                        "who": {"display": "DOC2FHIR Deterministic Mapper"},
-                    },
-                    {
-                        "type": {
-                            "coding": [
-                                {
-                                    "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
-                                    "code": "author",
-                                }
-                            ]
-                        },
-                        "who": {"display": ocr_engine},
-                    },
-                    {
-                        "type": {
-                            "coding": [
-                                {
-                                    "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
-                                    "code": "author",
-                                }
-                            ]
-                        },
-                        "who": {"display": model_version},
-                    },
-                ],
-                "entity": [
-                    {
-                        "role": "source",
-                        "what": {
-                            "identifier": {
-                                "system": "http://cfi-care.ai/document-hash",
-                                "value": document_hash,
+        entry: dict[str, Any] = {
+            "resourceType": "Provenance",
+            "id": _provenance_id(rtype, rid, document_hash),
+            "text": {
+                "status": "generated",
+                "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Generated narrative for Provenance</div>",
+            },
+            "recorded": recorded,
+            "target": [{"reference": f"urn:uuid:{rid}"}],
+            "agent": [
+                {
+                    "type": {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                                "code": "assembler",
                             }
-                        },
-                    }
-                ],
-            }
-        )
+                        ]
+                    },
+                    "who": {"display": "DOC2FHIR Deterministic Mapper"},
+                },
+                {
+                    "type": {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                                "code": "author",
+                            }
+                        ]
+                    },
+                    "who": {"display": ocr_engine},
+                },
+                {
+                    "type": {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                                "code": "author",
+                            }
+                        ]
+                    },
+                    "who": {"display": model_version},
+                },
+            ],
+            "entity": [
+                {
+                    "role": "source",
+                    "what": {
+                        "identifier": {
+                            "system": "http://cfi-care.ai/document-hash",
+                            "value": document_hash,
+                        }
+                    },
+                }
+            ],
+        }
+
+        if patient_id:
+            entry["patient"] = {"reference": f"Patient/{patient_id}"}
+
+        provenance_list.append(entry)
 
     return provenance_list

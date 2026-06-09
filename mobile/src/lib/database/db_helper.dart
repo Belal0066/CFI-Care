@@ -310,11 +310,11 @@ class DBHelper {
 
   // ---------- Documents Methods ----------
 
-  static Future<int> insertDocument(String userId, DocumentModel doc) async {
+  static Future<String> insertDocument(String userId, DocumentModel doc) async {
     final db = await database;
-    final id = doc.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final id = doc.id ?? 'doc-${DateTime.now().millisecondsSinceEpoch}';
 
-    return await db.insert('documents', {
+    await db.insert('documents', {
       'id': id,
       'userId': userId,
       'title': doc.title,
@@ -333,6 +333,7 @@ class DBHelper {
       'lastError': null,
       'nextAttemptAt': null,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    return id;
   }
 
   static Future<List<DocumentModel>> getPendingDocumentsForSync(
@@ -592,6 +593,41 @@ class DBHelper {
         retryCount: _parseEnumIndex(row['retryCount'], 0),
       );
     }).toList();
+  }
+
+  static Future<DocumentModel?> getDocumentById(String docId) async {
+    final db = await database;
+    final rows = await db.query(
+      'documents',
+      where: 'id = ?',
+      whereArgs: [docId],
+    );
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    final timeParts = (row['time'] as String).split(':');
+    return DocumentModel(
+      id: row['id'] as String,
+      serverId: row['serverId'] as String?,
+      jobId: row['jobId'] as String?,
+      title: row['title'] as String,
+      filePath: row['filePath'] as String,
+      isPDF: (row['isPDF'] as int) == 1,
+      summary: row['summary'] as String,
+      details: row['details'] as String,
+      type: TypeOfEventEnum.values[_parseEnumIndex(row['type'], 0)],
+      speciality:
+          SpecialityEventEnum.values[_parseEnumIndex(row['speciality'], 0)],
+      time: TimeOfDay(
+        hour: int.parse(timeParts[0]),
+        minute: int.parse(timeParts[1]),
+      ),
+      isSynced: _parseEnumIndex(row['isSynced'], 0) == 1,
+      syncStatus: (row['syncStatus'] as String?) ?? 'pending',
+      progress: (row['progress'] as num?)?.toDouble() ?? 0.0,
+      jobState: row['jobState'] as String?,
+      lastError: row['lastError'] as String?,
+      retryCount: _parseEnumIndex(row['retryCount'], 0),
+    );
   }
 
   static Future<int> deleteDocument(String docId) async {
