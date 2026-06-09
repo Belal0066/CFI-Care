@@ -7,27 +7,42 @@ Data still is stored on paper, difficult to access, and not easily shared with h
 
 To address these challenges, this thesis designed and implemented \textbf{CFI-Care}, a patient-centered healthcare platform that brings medical information together in one secure system while giving patients control over their own data.
 
-The proposed system tackles the key problems identified in this research:
+The proposed system tackles the key problems mentioned in the Introduction (see Section~\ref{sec:problem_statement}):
 
-\begin{itemize}
-\item \textbf{Fragmented medical records} are addressed through a centralized FHIR-based server that stores and manages healthcare data using international interoperability standards.
-
-```
-\item \textbf{Paper-based healthcare records} are addressed through a mobile application that allows patients to scan and upload medical documents directly from their smartphones.
-
-\item \textbf{Limited visualization of patient history} is addressed through an interactive medical history graph that helps healthcare professionals understand diagnoses, treatments, and patient progress over time.
-
-\item \textbf{Privacy and consent concerns} are addressed through secure authentication, role-based access control, and a consent management system that allows patients to control who can access their healthcare information.
-
-\item \textbf{Limited use of AI in healthcare} is addressed through a Retrieval-Augmented Generation (RAG) system that generates responses for doctors and summaries based on verified patient records, improving reliability and reducing human errors and time consumption.
-```
-
-\end{itemize}
-
-The main contribution of this work is the integration of these features into a single platform consisting of web, mobile, and backend components. By combining interoperability standards, secure data sharing, patient-controlled consent, healthcare visualization, document digitization, and AI-powered doctor assistance, CFI-Care demonstrates a practical approach to modern healthcare management.
+\subsubsection{Results}
+The main contribution of this work is the integration of these features into a single platform consisting of web, mobile, and backend components. By combining interoperability standards,
+ secure data sharing, patient-controlled consent, healthcare visualization, document digitization, and AI-powered doctor assistance,
+  CFI-Care demonstrates a practical approach to modern healthcare management.
 
 The system was tested ,and the results showed that the different components work correctly together and support the intended functionality of the platform.
 
+\begin{itemize}
+
+\item \textbf{Elimination of fragmented healthcare records:} The FHIR R4-compliant server successfully consolidates patient records from disparate sources into a single longitudinal store.
+ Backend end-to-end tests confirmed that patient creation, encounter retrieval, and related-data bundling all pass.
+\item \textbf{TOON export pipeline:} The TOON export pipeline successfully transforms FHIR resources into the TOON format, and reduces context usage by 30\% to 50\% while maintaining semantic integrity.
+ Enabling seamless integration with the interactive medical history graph. End-to-end tests verified that FHIR resources are correctly transformed and visualized in the graph interface.
+
+\item \textbf{LLM-powered Markdown-to-FHIR mapping:} A locally hosted, quantized
+Gemma-4 model maps OCR Markdown into schema-validated FHIR JSON, achieving perfect
+extraction on clean and realistic inputs and 84.21\% precision in the worst case
+across a 56-test suite.
+\item \textbf{AI-powered RAG and OCR pipeline:} The AI components demonstrated strong performance across retrieval, summarization, and document processing tasks.
+ The RAG system achieved a mean Recall@10 of 0.88,
+  a Mean Reciprocal Rank (MRR) of 0.68,
+   and a precision score of 0.75, while maintaining 100\% faithfulness across all evaluation queries.
+    Retrieval operations were completed with a mean latency of 0.155 ms,
+     and end-to-end generation of clinical summaries required 8--12 seconds at a throughput of 40--50 tokens per second.
+      Additionally, the OCR pipeline achieved 100\% precision, recall, and F$_1$-score on clean datasets,
+       while maintaining 84.21\% precision under real-world pipeline conditions.
+\item \textbf{Interactive tree-based visualization of patient medical history:} The interactive medical history graph, backed by a PostgreSQL timeline store, delivers a complete navigable view of a patient's diagnostic progression.
+ Integration tests verified node and edge creation, branching logic, cache-aware readback, and invalid-category rejection.
+
+\item \textbf{Enhanced privacy and consent management:} OIDC/PKCE authentication, role-based access control, OTP-based consent handshakes, and XSRF-TOKEN enforcement were all validated.
+ A comparative Nessus scan between March 2026 and June 2026 confirmed that all identified vulnerabilities---missing HSTS headers,
+  permissive cookie attributes, and absent XSRF protection---were fully remediated.
+
+\end{itemize}
 \section{Expected Impact}
 
 CFI-Care provides a foundation for improving healthcare record management in Egypt and other developing countries. By using open standards such as FHIR, OAuth 2.0, and OpenID Connect, the platform can be expanded in the future and integrated with other healthcare systems.
