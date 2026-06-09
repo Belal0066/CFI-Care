@@ -6,46 +6,51 @@
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {3.1}{\ignorespaces High-Level Container Architecture showing the interaction between the Nginx proxy, application services, and data persistence layers.}}{12}{figure.caption.14}%
 \contentsline {figure}{\numberline {3.2}{\ignorespaces Internal layered architecture of the Node.js Application Server, detailing the middleware stack and service distribution.}}{13}{figure.caption.17}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table.}}{15}{figure.caption.21}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Request/Response flow for patient data retrieval, showing cache hit and miss scenarios with complete middleware pipeline.}}{17}{figure.caption.25}%
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Complete encounter creation workflow showing FHIR resource persistence, graph construction, and cache invalidation cascade.}}{19}{figure.caption.27}%
-\contentsline {figure}{\numberline {3.6}{\ignorespaces Example Patient History Graph showing a diabetes patient with concurrent hypertension, demonstrating temporal branching and multiple relationship types.}}{24}{figure.caption.33}%
-\contentsline {figure}{\numberline {3.7}{\ignorespaces Two-Tier Caching Architecture showing distinct strategies for standard FHIR resources (Tier 1) and complex graph structures (Tier 2).}}{28}{figure.caption.39}%
-\contentsline {figure}{\numberline {3.8}{\ignorespaces Sign In interface of CFI-Care showing a split-view layout with value proposition messaging on the left and a glassmorphism-inspired authentication card on the right.}}{36}{figure.caption.56}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table.}}{14}{figure.caption.21}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Request/Response flow for patient data retrieval, showing cache hit and miss scenarios with complete middleware pipeline.}}{16}{figure.caption.25}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Complete encounter creation workflow showing FHIR resource persistence, graph construction, and cache invalidation cascade.}}{18}{figure.caption.27}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Example Patient History Graph showing a diabetes patient with concurrent hypertension, demonstrating temporal branching and multiple relationship types.}}{23}{figure.caption.33}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Two-Tier Caching Architecture showing distinct strategies for standard FHIR resources (Tier 1) and complex graph structures (Tier 2).}}{27}{figure.caption.39}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Sign In interface of CFI-Care showing a split-view layout with value proposition messaging on the left and a glassmorphism-inspired authentication card on the right.}}{35}{figure.caption.56}%
 \contentsline {figure}{\numberline {3.9}{\ignorespaces Create Account interface maintaining visual consistency with the Sign In page to ensure low cognitive load and streamlined onboarding.}}{36}{figure.caption.58}%
 \contentsline {figure}{\numberline {3.10}{\ignorespaces Patients Dashboard illustrating the master--detail layout with a patient navigator on the left and a structured clinical summary view on the right.}}{37}{figure.caption.61}%
-\contentsline {figure}{\numberline {3.11}{\ignorespaces Categorical Patient Journey view representing medical events as a hierarchical graph. High-priority events are highlighted, and structural relationships between nodes are emphasized.}}{40}{figure.caption.68}%
-\contentsline {figure}{\numberline {3.12}{\ignorespaces Chronological Patient Journey view displaying medical events along a horizontal timeline. Parallel branches represent alternative diagnostic or treatment pathways explored during clinical reasoning.}}{42}{figure.caption.74}%
-\contentsline {figure}{\numberline {3.13}{\ignorespaces Sequence diagram illustrating MedGraph node operations, mode switching, and branching.}}{43}{figure.caption.75}%
-\contentsline {figure}{\numberline {3.14}{\ignorespaces Component diagram illustrating the architecture of the dashboard, MedGraph, MedGemma AI modules, application services, and backend integration.}}{44}{figure.caption.76}%
-\contentsline {figure}{\numberline {3.15}{\ignorespaces Layered Clean Architecture adopted in the mobile application}}{49}{figure.caption.79}%
-\contentsline {figure}{\numberline {3.16}{\ignorespaces using handlePermission For Camera Access In code}}{51}{figure.caption.83}%
-\contentsline {figure}{\numberline {3.17}{\ignorespaces Best Practices for Handling Permissions in Flutter}}{52}{figure.caption.85}%
-\contentsline {figure}{\numberline {3.18}{\ignorespaces Dialog to allow the app to access the camera}}{53}{figure.caption.86}%
-\contentsline {figure}{\numberline {3.19}{\ignorespaces Sequence Diagram for Mobile Application}}{56}{figure.caption.93}%
-\contentsline {figure}{\numberline {3.20}{\ignorespaces Documents Management Use Case}}{58}{figure.caption.96}%
-\contentsline {figure}{\numberline {3.21}{\ignorespaces Major Events}}{59}{figure.caption.97}%
-\contentsline {figure}{\numberline {3.22}{\ignorespaces List of Nodes}}{60}{figure.caption.98}%
-\contentsline {figure}{\numberline {3.23}{\ignorespaces Node Details}}{61}{figure.caption.99}%
-\contentsline {figure}{\numberline {3.24}{\ignorespaces History Navigation Use Case}}{62}{figure.caption.100}%
-\contentsline {figure}{\numberline {3.25}{\ignorespaces Booking Appointments Usecase}}{63}{figure.caption.101}%
-\contentsline {figure}{\numberline {3.26}{\ignorespaces My Profile Use Case}}{63}{figure.caption.102}%
+\contentsline {figure}{\numberline {3.11}{\ignorespaces Categorical Patient Journey view representing medical events as a hierarchical graph. High-priority events are highlighted, and structural relationships between nodes are emphasized.}}{39}{figure.caption.68}%
+\contentsline {figure}{\numberline {3.12}{\ignorespaces Chronological Patient Journey view displaying medical events along a horizontal timeline. Parallel branches represent alternative diagnostic or treatment pathways explored during clinical reasoning.}}{41}{figure.caption.74}%
+\contentsline {figure}{\numberline {3.13}{\ignorespaces Sequence diagram illustrating MedGraph node operations, mode switching, and branching.}}{42}{figure.caption.75}%
+\contentsline {figure}{\numberline {3.14}{\ignorespaces Component diagram illustrating the architecture of the dashboard, MedGraph, MedGemma AI modules, application services, and backend integration.}}{43}{figure.caption.76}%
+\contentsline {figure}{\numberline {3.15}{\ignorespaces Layered Clean Architecture adopted in the mobile application}}{47}{figure.caption.79}%
+\contentsline {figure}{\numberline {3.16}{\ignorespaces using handlePermission For Camera Access In code}}{50}{figure.caption.83}%
+\contentsline {figure}{\numberline {3.17}{\ignorespaces Best Practices for Handling Permissions in Flutter}}{51}{figure.caption.85}%
+\contentsline {figure}{\numberline {3.18}{\ignorespaces Dialog to allow the app to access the camera}}{52}{figure.caption.86}%
+\contentsline {figure}{\numberline {3.19}{\ignorespaces Sequence Diagram for Mobile Application}}{55}{figure.caption.93}%
+\contentsline {figure}{\numberline {3.20}{\ignorespaces Documents Management Use Case}}{57}{figure.caption.96}%
+\contentsline {figure}{\numberline {3.21}{\ignorespaces Major Events}}{58}{figure.caption.97}%
+\contentsline {figure}{\numberline {3.22}{\ignorespaces List of Nodes}}{59}{figure.caption.98}%
+\contentsline {figure}{\numberline {3.23}{\ignorespaces Node Details}}{60}{figure.caption.99}%
+\contentsline {figure}{\numberline {3.24}{\ignorespaces History Navigation Use Case}}{61}{figure.caption.100}%
+\contentsline {figure}{\numberline {3.25}{\ignorespaces Booking Appointments Usecase}}{62}{figure.caption.101}%
+\contentsline {figure}{\numberline {3.26}{\ignorespaces My Profile Use Case}}{62}{figure.caption.102}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (Nginx, OAuth2 proxy), Backend-for-Frontend (Node.js), Identity (Keycloak), Storage(Redis, Postgres) and Resource Server (HAPI FHIR) with their security-focused interactions.}}{65}{figure.caption.103}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Browser Token Authentication Flow: User registration, login, and API request handling with session cookies.}}{67}{figure.caption.106}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Mobile Authentication Flow: auth code PKCE, secure keystore token storage, and client-driven token refresh.}}{69}{figure.caption.109}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Registration Provisioning Sequence: Keycloak emits REGISTER event, the Event Listener obtains a client-credentials token, calls the BFF provisioning endpoint, and the BFF enforces JWT and caller allowlist checks before creating the mapped FHIR resource}}{71}{figure.caption.113}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Token Flow Overview: Multi-client architecture (browser vs. mobile), session/token management, per-session and global logout patterns.}}{73}{figure.caption.115}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Security Architecture Components: Edge clients (Browser, Mobile), API Gateway (Nginx, OAuth2 proxy), Backend-for-Frontend (Node.js), Identity (Keycloak), Storage(Redis, Postgres) and Resource Server (HAPI FHIR) with their security-focused interactions.}}{64}{figure.caption.103}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Browser Token Authentication Flow: User registration, login, and API request handling with session cookies.}}{66}{figure.caption.106}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Mobile Authentication Flow: auth code PKCE, secure keystore token storage, and client-driven token refresh.}}{68}{figure.caption.109}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Registration Provisioning Sequence: Keycloak emits REGISTER event, the Event Listener obtains a client-credentials token, calls the BFF provisioning endpoint, and the BFF enforces JWT and caller allowlist checks before creating the mapped FHIR resource}}{70}{figure.caption.113}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Patients grant doctors access to their data with TTL-based revocation}}{71}{figure.caption.115}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Practitioner accessing data}}{72}{figure.caption.116}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Patient graph access}}{73}{figure.caption.117}%
+\contentsline {figure}{\numberline {4.8}{\ignorespaces Patient revokes grant}}{73}{figure.caption.118}%
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Token Flow Overview: Multi-client architecture (browser vs. mobile), session/token management, per-session and global logout patterns.}}{75}{figure.caption.119}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces \textbf {High-Level System Architecture.} The flow connects the Streamlit UI to the FastAPI backend, which orchestrates the LangGraph agent. The agent routes between the Local RAG pipeline (Ingestion $\rightarrow $ Qdrant $\rightarrow $ MedGemma) and the External MCP Tools (eg. PubMed Access) based on query classification.}}{93}{figure.caption.151}%
-\contentsline {figure}{\numberline {5.2}{\ignorespaces \textbf {TOON Ingestion Pipeline.} Raw FHIR JSON resources are processed by the \texttt {ToonNormalizer}, extracting semantic value and temporal metadata to create token-optimized strings before vector embedding by ModernPubMedBERT.}}{94}{figure.caption.152}%
-\contentsline {figure}{\numberline {5.3}{\ignorespaces \textbf {LangGraph Reasoning State Machine.} The decision logic for the agent, illustrating the bifurcation between \texttt {LocalRAG} (Patient Specific) and \texttt {MCPSearch} (General Knowledge) paths, converging at the grounded generation node.}}{95}{figure.caption.153}%
-\contentsline {figure}{\numberline {5.4}{\ignorespaces AI-generated longitudinal patient summary utilizing Local RAG to synthesize data from 10 distinct clinical encounters.}}{96}{figure.caption.154}%
-\contentsline {figure}{\numberline {5.5}{\ignorespaces Diagnostic reasoning workflow showing the transition from initial clinical impressions to a final confirmed diagnosis based on patient progression.}}{97}{figure.caption.155}%
-\contentsline {figure}{\numberline {5.6}{\ignorespaces Interface of the MedMCP system demonstrating a Local RAG (Retrieval-Augmented Generation) response. The output includes synthesized clinical guidelines supported by specific evidence sources and PMIDs.}}{97}{figure.caption.156}%
+\contentsline {figure}{\numberline {5.1}{\ignorespaces OCR to HL7 FHIR Transformation Architecture}}{95}{figure.caption.152}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces \textbf {High-Level System Architecture.} The flow connects the Streamlit UI to the FastAPI backend, which orchestrates the LangGraph agent. The agent routes between the Local RAG pipeline (Ingestion $\rightarrow $ Qdrant $\rightarrow $ MedGemma) and the External MCP Tools (eg. PubMed Access) based on query classification.}}{98}{figure.caption.153}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces \textbf {TOON Ingestion Pipeline.} Raw FHIR JSON resources are processed by the \texttt {ToonNormalizer}, extracting semantic value and temporal metadata to create token-optimized strings before vector embedding by ModernPubMedBERT.}}{99}{figure.caption.154}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces \textbf {LangGraph Reasoning State Machine.} The decision logic for the agent, illustrating the bifurcation between \texttt {LocalRAG} (Patient Specific) and \texttt {MCPSearch} (General Knowledge) paths, converging at the grounded generation node.}}{100}{figure.caption.155}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces AI-generated longitudinal patient summary utilizing Local RAG to synthesize data from 10 distinct clinical encounters.}}{101}{figure.caption.156}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Diagnostic reasoning workflow showing the transition from initial clinical impressions to a final confirmed diagnosis based on patient progression.}}{102}{figure.caption.157}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Interface of the MedMCP system demonstrating a Local RAG (Retrieval-Augmented Generation) response. The output includes synthesized clinical guidelines supported by specific evidence sources and PMIDs.}}{102}{figure.caption.158}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Graph view of the two end-to-end suites; edges align to assertions within each test.}}{104}{figure.caption.161}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Number of Test Cases and its status.}}{105}{figure.caption.162}%
-\contentsline {figure}{\numberline {6.3}{\ignorespaces Unit, integration and End-to-end workflow suite status.}}{106}{figure.caption.163}%
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Graph view of the two end-to-end suites; edges align to assertions within each test.}}{109}{figure.caption.163}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Number of Test Cases and its status.}}{110}{figure.caption.164}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Unit, integration and End-to-end workflow suite status.}}{111}{figure.caption.165}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

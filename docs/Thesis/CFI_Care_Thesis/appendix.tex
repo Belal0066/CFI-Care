@@ -6,7 +6,13 @@
 \appendixpage
 
 \chapter{Lists}
+
+% Add a phantom section to create an anchor for the PDF bookmark
+\phantomsection
+% It's also highly recommended to actually print the header on the page:
+\section*{List of Abbreviations}
 \addcontentsline{toc}{section}{List of Abbreviations}
+
 \begin{acronym}[\hspace{3cm}]
     \acro{API}{Application Programming Interface}
     \acro{FHIR}{Fast Healthcare Interoperability Resources}
@@ -15,10 +21,33 @@
     \acro{HIPAA}{Health Insurance Portability and Accountability Act}
     \acro{SMART}{Substitutable Medical Applications and Reusable Technology}
     \acro{EHR}{Electronic Health Record}
+    \acro{JIT}{Just in Time}
+    \acro{OIDC}{OpenID Connect}
+    \acro{PHI}{Protected Health Information}
+    \acro{CSRF}{Cross-Site Request Forgery}
+    \acro{XSS}{Cross-Site Scripting}
+    \acro{CSP}{Content-Security-Policy}
+    \acro{HSTS}{HTTP Strict-Transport-Security}
+    \acro{FCM}{Firebase Cloud Messaging}
+    \acro{TOCTOU}{Time-of-Check to Time-of-Use}
+    \acro{OTP}{One-Time Password}
+    \acro{PII}{Personally identifiable information}
+    \acro{MITM}{Man in the Middle}
+    \acro{CBAC}{Capability-Based Access Control}
+    \acro{RBAC}{Role-Based Access Control }
+    \acro{BFF}{Backend for Frontend}
+    \acro{CORS}{Cross-Origin Resource Sharing}
+    \acro{PKCE}{Proof Key for Code Exchange}
+    \acro{DoS}{Denial of Service}
 \end{acronym}
 
-
+% If you are generating a list of figures here, do it like this:
+\clearpage % Good practice to start list of figures on a new page
+\phantomsection
 \addcontentsline{toc}{section}{List of Figures}
+\listoffigures % Actually generates the list of figures
 
-% \listoftables
+% \clearpage
+% \phantomsection
 % \addcontentsline{toc}{section}{List of Tables}
+% \listoftables

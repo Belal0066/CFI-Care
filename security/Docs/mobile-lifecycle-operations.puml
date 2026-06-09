@@ -1,0 +1,58 @@
+@startuml Mobile Operational Lifecycle and Revocation
+autonumber
+skinparam actorStyle AWESOME
+
+skinparam BoxPadding 10
+
+actor "Patient User" as User
+participant "Flutter App Context" as App
+participant "Secure Keystore" as Storage
+participant "Nginx Gateway" as Nginx
+participant "Node.js BFF" as BFF
+participant "Redis Cache" as Redis
+participant "HAPI FHIR Server" as FHIR
+participant "Keycloak IdP" as KC
+
+== 1. API Call with Runtime Token Verification ==
+User -> App : Action requiring Record Aqcuisition
+App -> Storage : Fetch Access Token
+Storage --> App : Present Token String Payload
+
+alt Token Check Indicates Local Expiration
+    App -> Storage : Pull Active Long-Lived Refresh Token
+    App -> KC : POST /protocol/openid-connect/token (Refresh Grant)
+    KC --> App : Yield Fresh Token Payload
+    App -> Storage : Commit Refreshed Assets to Keystore
+end
+
+App -> Nginx : GET needed api endpoint
+Nginx -> BFF : Forward Request with Bearer Token
+BFF -> BFF : Parse User Identity
+
+alt Target Cache Match Valid
+    BFF -> Redis : Query Clinical Cache Store
+    Redis --> BFF : Return Cached PHI Context
+else Cache Miss
+    BFF -> FHIR : Query Patient data
+    activate FHIR
+    FHIR --> BFF : Return Data
+    deactivate FHIR
+    BFF -> Redis : Write Data to Cache
+end
+
+BFF --> Nginx : Return Payload
+Nginx --> App : Forward Payload Response
+App -> User : Render Content on the Display
+
+== 2. Local-First Per-Session Sign Out ==
+User -> App : Tap "Sign Out of This Device"
+' App -> Storage : Pull Target Refresh Token
+App -> Nginx : POST /logoutredirect
+Nginx -> KC : Forward Invalidation Request
+' BFF -> KC : POST /protocol/openid-connect/revoke (Revoke Token Target API)
+' KC --> BFF : Invalidation Flag Synchronized Natively
+KC --> Nginx : Success Response (200 OK)
+Nginx --> App : Forward Success
+App -> Storage : Clear Keys from Keystore
+App -> User : Redirect to Login Route
+@enduml
