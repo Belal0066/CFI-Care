@@ -1,52 +1,49 @@
-% \documentclass{article}
-% \usepackage{graphicx} % Required for inserting images
-% \usepackage{url}
-% \usepackage{hyperref}
-
-% \usepackage{tikz}
-% \usetikzlibrary{positioning, shapes.geometric, arrows.meta}
-% \usepackage{float} % Required for the [H] placement
-
-% \title{Thesis_1}
-% \author{Youssef Tamer}
-% \date{January 2026}
-
-% \begin{document}
+% ============================================================
+%  CFI-Care — Frontend Chapter  (extended & revised)
+% ============================================================
 
 \section{Frontend}\label{chap:Frontend}
-% \chapter{Frontend Design and Implementation}
 
+% -----------------------------------------------------------
 \subsection{Overview and Design Objectives}
+% -----------------------------------------------------------
 
 The frontend of \textit{CFI-Care} was designed as an interactive medical
 information system aimed at enabling healthcare professionals to efficiently
 explore, manage, and reason about patient data. The primary objective was to
 transform fragmented medical records into a coherent, visual, and navigable
-representation of a patient’s medical journey, while maintaining clinical
-clarity, responsiveness, and usability.
+representation of a patient's medical journey, while maintaining clinical
+clarity, responsiveness, and usability across the full scope of the
+application.
 
 The frontend follows a component-based architecture implemented using the
-Angular framework. Advanced data visualization is achieved through the
-integration of D3.js and Treeviz, while Bootstrap and Bootstrap Icons are used
-to ensure responsive layout, visual consistency, and accessibility across
-devices.
+Angular framework. Advanced data visualisation is achieved through the
+integration of D3.js and Treeviz, while Bootstrap and Bootstrap Icons provide
+responsive layout, visual consistency, and accessibility across devices.
 
 The main design goals of the frontend include:
 \begin{itemize}
-    \item Clear separation of concerns between navigation, visualization, and data
-          manipulation.
-    \item Visual prioritization of clinically critical events.
-    \item Support for both categorical and temporal reasoning over patient medical data.
-    \item Extensibility to support future backend integration and advanced analytics.
+    \item Clear separation of concerns between navigation, visualisation, and
+          data manipulation.
+    \item Visual prioritisation of clinically critical events through
+          deliberate colour coding and animated indicators.
+    \item Support for both categorical and temporal reasoning over patient
+          medical data through two complementary visualisation modes.
+    \item A patient-access grant workflow that balances security requirements
+          with a smooth, low-friction clinical experience.
+    \item A fully integrated AI-assisted chat interface that enables
+          real-time clinical reasoning alongside patient data.
 \end{itemize}
 
 Component-based frontend architectures have been shown to improve scalability,
 maintainability, and development efficiency in large-scale systems
-\cite{componentFrontEnd2021,componentFrontEnd2021}.
+\cite{componentFrontEnd2021}.
 
+% -----------------------------------------------------------
 \subsection{Technology Stack}
+% -----------------------------------------------------------
 
-Table~\ref{tab:frontend_stack} summarizes the main technologies used in the
+Table~\ref{tab:frontend_stack} summarises the main technologies used in the
 frontend implementation.
 
 \begin{table}[h]
@@ -55,64 +52,133 @@ frontend implementation.
     \label{tab:frontend_stack}
     \begin{tabular}{|l|l|}
         \hline
-        \textbf{Technology} & \textbf{Purpose}                                \\
+        \textbf{Technology} & \textbf{Purpose}                                    \\
         \hline
-        Angular             & Core frontend framework and state management    \\
-        D3.js               & Data-driven visualization and interaction logic \\
-        Treeviz             & Hierarchical graph layout abstraction           \\
-        Bootstrap           & Responsive layout and UI consistency            \\
-        Bootstrap Icons     & Visual indicators and interaction affordances   \\
+        Angular 17          & Core frontend framework, routing, and state management \\
+        D3.js (v7)          & Data-driven visualisation and interaction logic      \\
+        Treeviz             & Hierarchical graph layout abstraction                \\
+        Bootstrap           & Responsive layout and UI consistency                 \\
+        Bootstrap Icons     & Visual indicators and interaction affordances        \\
+        RxJS                & Reactive streams for async data flow and polling     \\
+        ng-otp-input        & Six-digit OTP input component for grant handshake    \\
         \hline
     \end{tabular}
 \end{table}
 
-Angular’s declarative templates and reactive change detection model make it
+Angular's declarative templates and reactive change-detection model make it
 suitable for highly interactive, state-driven medical interfaces
-\cite{angularDocs}.
+\cite{angularDocs}. RxJS operators such as \texttt{interval}, \texttt{switchMap},
+and \texttt{takeWhile} are used to implement the patient-access grant polling
+loop, avoiding manual timer management and ensuring automatic teardown on
+component destruction.
 
+% -----------------------------------------------------------
 \subsection{System Architecture}
 \label{sec:system-architecture}
+% -----------------------------------------------------------
 
-The Patient Journey Dashboard is implemented as a modular, component-based
-single-page application using Angular. The system follows a layered frontend
-architecture that separates concerns between presentation, state management,
-domain models, and visualization logic.
+The CFI-Care frontend is structured as a modular, component-based single-page
+application (SPA) built with Angular. The system follows a layered frontend
+architecture that cleanly separates presentation, state management, domain
+models, and visualisation logic.
 
-At a high level, the architecture consists of:
+At a high level, the architecture consists of the following layers:
+
 \begin{itemize}
-    \item A core application shell responsible for routing, authentication, and global
-          layout
-    \item Feature-specific UI modules (dashboard, user management, patient selection)
-    \item A dedicated MedGraph visualization module for patient journey rendering
-    \item Shared domain models and state services
-    \item A graph rendering engine isolated from the Angular component tree
+    \item \textbf{Application Shell}: Responsible for route registration,
+          authentication guards, and top-level layout composition.
+    \item \textbf{Feature Modules}: Self-contained UI modules grouped by
+          clinical concern, covering the patient dashboard, doctor profile and
+          schedule management, grant management screens, and the AI chat
+          interface.
+    \item \textbf{MedGraph Visualisation Module}: A dedicated
+          visualisation boundary hosting both the categorical tree and the
+          chronological timeline, isolated from Angular's change-detection loop
+          via an iframe boundary to prevent rendering interference.
+    \item \textbf{Shared Domain Models and Services}: Centralised TypeScript
+          interfaces and injectable Angular services that carry application
+          state and mediate all HTTP communication with the backend.
+    \item \textbf{Graph Rendering Engine}: A self-contained HTML file
+          (loaded inside an iframe) that combines Treeviz, D3.js, and
+          vanilla JavaScript to render interactive patient journey graphs,
+          communicating with the Angular host via the \texttt{postMessage} API.
 \end{itemize}
 
-This separation supports scalability, testability, and controlled integration
-of complex visualization logic.
+\subsubsection{Route Structure and Navigation Guards}
 
+The application defines the following client-side routes:
+
+\begin{table}[h]
+    \centering
+    \caption{Application Route Configuration}
+    \label{tab:routes}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Path}           & \textbf{Component}          & \textbf{Guard}   \\
+        \hline
+        \texttt{/}              & Redirect to \texttt{/dashboard} & ---             \\
+        \texttt{/dashboard}     & Dashboard                   & \texttt{authGuard} \\
+        \texttt{/med-graph/:id} & MedGraph                    & \texttt{authGuard} \\
+        \texttt{/chat-section}  & ChatSection                 & \texttt{authGuard} \\
+        \texttt{/doctor-profile}& DoctorProfileComponent      & \texttt{authGuard} \\
+        \texttt{/grants/pending}& GrantPendingComponent       & \texttt{authGuard} \\
+        \texttt{/grants/active} & GrantActiveComponent        & \texttt{authGuard} \\
+        \texttt{/error/:status} & GatewayErrorComponent       & ---              \\
+        \hline
+    \end{tabular}
+\end{table}
+
+All clinically sensitive routes are protected by \texttt{authGuard}, an
+Angular route guard that verifies session validity before permitting
+navigation. Unauthenticated users are redirected to the login flow. The
+\texttt{/error/:status} route accepts a dynamic HTTP status code and renders a
+contextual error page, handling backend or gateway failures gracefully without
+exposing raw error traces to the user.
+
+The \texttt{/med-graph/:id} route accepts a patient identifier as a path
+parameter and an optional \texttt{eocId} query parameter, enabling direct
+deep-linking to a specific episode of care's visualisation.
+
+\subsubsection{Component Hierarchy}
+
+Figure~\ref{fig:component-diag} illustrates the full component tree. The
+\texttt{Dashboard} component acts as a layout compositor, combining three
+child components: \texttt{TopBar} (global navigation and account controls),
+\texttt{UsersPanel} (patient search, filter, and list), and \texttt{UserInfo}
+(detailed clinical summary for the selected patient). The \texttt{MedGraph}
+component operates independently, receiving its patient context from route
+parameters and communicating with the embedded iframe via \texttt{postMessage}.
+
+% -----------------------------------------------------------
 \subsection{Styling and UX Philosophy}
 \label{subsec:styling}
+% -----------------------------------------------------------
 
 The CFI-Care frontend adopts a \textit{High-Contrast Clinical Design System},
 intentionally crafted to balance institutional medical trust with modern,
-AI-driven sophistication. This design approach prioritizes clarity, confidence,
-and rapid information recognition, all critical requirements in high-stakes
-clinical environments.
+interactive sophistication. This design approach prioritises clarity,
+confidence, and rapid information recognition, all critical requirements in
+high-stakes clinical environments.
 
-\subsubsection{Color Theory and Semantic Encoding}
+\subsubsection{Colour Theory and Semantic Encoding}
 
-The visual palette is dominated by blue-scale tones combined with cyan and teal
-gradients. Deep blue hues are widely associated with trust, security, and
+The visual palette is dominated by blue-scale tones combined with cyan and
+teal gradients. Deep blue hues are widely associated with trust, security, and
 professionalism in healthcare interfaces, while cyan gradients introduce a
-contemporary, technology-forward aesthetic.
+contemporary, technology-forward aesthetic suited to an AI-augmented system.
 
-Color is used not merely as decoration but as a semantic layer of information.
-Medical categories such as laboratory results, consultations, and AI-generated
-suggestions are consistently color-coded, enabling pre-attentive processing.
-This allows clinicians to identify event types instantly without explicit
-textual reading, a principle well-supported in visualization research
-\cite{hospitalDashboards2022,interactiveDashboards2020}.
+Colour is used not merely as decoration but as a primary semantic layer.
+Medical event categories such as laboratory results, consultations, imaging
+studies, AI-generated suggestions, prescriptions, and allergies are
+consistently colour-coded across every view of the system. This allows
+clinicians to identify event types instantly through pre-attentive visual
+processing, without requiring explicit text reading, a principle well-supported
+in visualisation research \cite{hospitalDashboards2022,interactiveDashboards2020}.
+
+The same colour assignments are maintained across the categorical tree, the
+chronological timeline, node detail panels, and the legend, ensuring that the
+visual vocabulary is learned once and remains coherent throughout the
+application.
 
 \subsubsection{Visual Hierarchy and Layout Strategy}
 
@@ -121,7 +187,7 @@ neutral background. Glassmorphism and soft elevation effects are applied
 selectively to authentication cards and dashboard panels, creating visual depth
 without introducing clutter.
 
-A master - detail layout is employed throughout the dashboard, with a
+A master-detail layout is employed throughout the patient dashboard, with a
 persistent high-contrast sidebar acting as a stable navigational anchor. This
 structure reduces spatial disorientation and supports rapid context switching,
 which is essential in time-constrained clinical workflows
@@ -129,359 +195,1109 @@ which is essential in time-constrained clinical workflows
 
 \subsubsection{Typography, Iconography, and Micro-Interactions}
 
-Clean sans-serif typography is used consistently to maximize legibility across
-varying screen sizes and lighting conditions. Minimalist line-based medical
-icons provide language-independent visual cues, accelerating recognition and
-navigation.
+The Inter typeface is used consistently throughout the application to maximise
+legibility across varying screen sizes and lighting conditions. Minimalist
+line-based Bootstrap Icons provide language-independent visual cues,
+accelerating recognition and navigation.
 
 Within the Patient Journey Dashboard, medical events are represented as
-stylized nodes with subtle glow effects and connective paths. This transforms
-static medical history into an interactive visual map, reinforcing the notion
-of patient data as an evolving clinical narrative rather than a static record.
+stylised circular nodes. High-priority nodes carry red rings rendered through
+CSS, drawing clinical attention without requiring user interaction. Hover
+states on node circles include a smooth scale transform and an enhanced
+drop-shadow filter, reinforcing the interactive affordance of each element.
 
-\subsection{Authentication Suite}
+The application additionally provides a dark mode, toggled via a persistent
+button in the top-right corner of the graph view. The user's preference is
+persisted to \texttt{localStorage}, ensuring continuity across sessions.
+Dark mode applies a comprehensive set of CSS variable overrides across all
+panels, the SVG canvas, modal dialogs, and sidebar components.
 
-\subsubsection{Sign In Interface}
+% -----------------------------------------------------------
+\subsection{Authentication and Navigation Shell}
+% -----------------------------------------------------------
+
+\subsubsection{Login Interface}
 
 The Sign In page serves as the primary entry point to the system and was
 designed to establish trust and professionalism, which are critical factors in
-healthcare software adoption.
+healthcare software adoption. The interface follows a split-view layout:
+the left pane reinforces the system's value proposition through concise
+messaging emphasising security and patient-centred care, while the right pane
+presents a modern authentication card. Authentication is handled via Keycloak
+and OAuth 2.0, providing industry-standard session management.
 
-The interface follows a split-view layout, as shown in Figure~\ref{fig:signin}:
-\begin{itemize}
-    \item \textbf{Left Pane:} Reinforces the system’s value proposition through concise messaging emphasizing security, collaboration, and patient-centered care.
-    \item \textbf{Right Pane:} Contains a modern authentication card inspired by glassmorphism design principles.
-\end{itemize}
-
-Supported features include standard credential authentication. Research
-indicates that early user impressions significantly influence perceived
-reliability in clinical systems.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\linewidth]{Frontend/Images/signin.jpeg}
-    \caption{Sign In interface of CFI-Care showing a split-view layout with value proposition messaging on the left and a glassmorphism-inspired authentication card on the right.}
-    \label{fig:signin}
-\end{figure}
-
-\subsubsection{Create Account Interface}
-
-The Create Account page maintains visual consistency with the Sign In interface
-to reduce cognitive load and ensure continuity. The registration form collects
-the user’s full name, email address, and password confirmation, enabling a
-low-friction onboarding process. Minimizing onboarding complexity has been
-shown to improve professional software adoption.
+The registration flow enforces input completeness before submission, preventing
+partial account creation. As shown in Figure~\ref{fig:signup_validation}, all
+required fields must be populated for the form to proceed. Once a user
+registers, they are required to verify their email address using a six-digit
+code sent to their registered address, as illustrated in
+Figure~\ref{fig:email_verify}. Upon first activation, the system also generates
+a set of recovery codes that the clinician must copy or download as a text
+file, providing a fallback authentication mechanism should primary credentials
+be lost (Figure~\ref{fig:recovery_codes}).
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\linewidth]{Frontend/Images/signup.jpeg}
-    \caption{Create Account interface maintaining visual consistency with the Sign In page to ensure low cognitive load and streamlined onboarding.}
-    \label{fig:signup}
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/signup_validation.png}
+    \caption{Registration form enforcing field completeness. The form cannot
+    be submitted until all required fields are populated, preventing
+    incomplete account creation.}
+    \label{fig:signup_validation}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/email_verify.png}
+    \caption{Email verification step requiring entry of a six-digit code sent
+    to the clinician's registered address, confirming ownership before account
+    activation.}
+    \label{fig:email_verify}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/recovery_codes.png}
+    \caption{Recovery code generation screen presented at account activation.
+    The clinician must copy or download the codes as a text file before
+    proceeding, establishing a secure fallback authentication method.}
+    \label{fig:recovery_codes}
+\end{figure}
+
+For subsequent logins, the system provides two multi-factor authentication
+options: a time-based authenticator application (TOTP) or a recovery
+authentication code, as shown in Figure~\ref{fig:mfa_select}. Should a
+clinician need to recover access, a dedicated password reset flow is also
+available (Figure~\ref{fig:password_reset}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/mfa_select.png}
+    \caption{Multi-factor authentication method selection screen, offering
+    the clinician a choice between a TOTP authenticator application and a
+    recovery authentication code.}
+    \label{fig:mfa_select}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/password_reset.png}
+    \caption{Password reset interface allowing clinicians to securely regain
+    access to their account through a guided credential recovery flow.}
+    \label{fig:password_reset}
+\end{figure}
+
+\subsubsection{Top Bar and Global Navigation}
+
+A persistent \texttt{TopBar} component is rendered across all authenticated
+views. It provides contextual navigation including a return link to the
+patient dashboard, access to the doctor's profile, account management options,
+and logout functionality. Within the MedGraph view specifically, the top bar
+includes a back-to-dashboard button rendered prominently to the left, ensuring
+the clinician is never more than one click from the patient list regardless of
+the depth of graph exploration.
+
+The consistent presence of the top bar across all routes ensures spatial
+orientation is maintained throughout the application, following established
+guidelines for navigation in complex information systems.
+
+% -----------------------------------------------------------
 \subsection{Patients Dashboard}
+% -----------------------------------------------------------
 
 \subsubsection{Overview}
 
-The Patients Dashboard functions as the primary data-management hub of the
-system. It enables clinicians to search, select, and review patient profiles
-efficiently.
-
-\subsubsection{Master--Detail Layout}
-
-The dashboard follows a master--detail layout, a design pattern widely adopted
-in medical information systems \cite{patientSafetyDashboards2021}. The layout
-consists of:
-\begin{itemize}
-    \item \textbf{Patient Navigator (Left Sidebar):} Includes a search bar and a list of patient cards displaying key metadata such as age and last update timestamp.
-    \item \textbf{Clinical Summary View (Main Panel):} Displays structured patient information using a card-based layout.
-\end{itemize}
+The Patients Dashboard, shown in Figure~\ref{fig:patients_dashboard},
+functions as the primary data management hub of the system. It enables
+clinicians to search, select, and review patient profiles, manage episodes of
+care, and navigate to the patient journey visualisation. The dashboard is
+composed of three Angular components that operate in concert: \texttt{UsersPanel},
+\texttt{Users}, and \texttt{UserInfo}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{Frontend/Images/dashboard.jpeg}
-    \caption{Patients Dashboard illustrating the master--detail layout with a patient navigator on the left and a structured clinical summary view on the right.}
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/patients_dashboard.jpeg}
+    \caption{Patients Dashboard showing the master-detail layout. The left
+    sidebar presents the patient navigator with search, filter, and episode
+    management controls. The main panel displays the full clinical summary for
+    the selected patient, including active conditions, medications, recent
+    laboratory results, procedures, and a scoped encounter history.}
     \label{fig:patients_dashboard}
 \end{figure}
 
-\subsection{Clinical Summary View}
+\subsubsection{Master-Detail Layout}
 
-The clinical summary view organizes patient data into clearly defined sections:
+The dashboard follows a master-detail layout, a design pattern widely adopted
+in medical information systems \cite{patientSafetyDashboards2021}. The layout
+consists of:
+
 \begin{itemize}
-    \item Demographics: name, age, gender, and patient identifier.
-    \item Clinical data: primary diagnosis, active conditions, and current medications.
-    \item Expandable sections for recent laboratory results and procedures.
+    \item \textbf{Patient Navigator (Left Sidebar):} Rendered by
+          \texttt{UsersPanel}, this panel contains a search bar, a filter
+          panel, an ``Add Patient'' action, and a scrollable list of patient
+          cards rendered by the \texttt{Users} component.
+    \item \textbf{Clinical Summary View (Main Panel):} Rendered by
+          \texttt{UserInfo}, this panel displays structured patient information
+          in a card-based layout, updating reactively when a new patient is
+          selected.
 \end{itemize}
 
-Card-based layouts improve information scanability and retrieval in dense
-clinical interfaces \cite{clinicalDashboardsPROMs2024}.
+\subsubsection{Patient Navigator: Search, Filter, and Selection}
 
-\subsection{Patient-Scoped MedGraph Access}
+The \texttt{UsersPanel} component implements a reactive search mechanism that
+filters the patient list in real time as the clinician types. A filter panel
+toggles open to expose additional controls for sorting (by name, age, ID, or
+last-updated timestamp) and filtering by age range. The \texttt{applyFilter}
+method recombines all active criteria into a single filtered list, and the
+filter panel closes automatically upon application. A reset action restores
+all defaults without requiring manual field clearing.
 
-Rather than exposing journey visualization controls globally, access to the
-MedGraph is embedded within the patient details card. This design ensures that
-any transition to the MedGraph view is explicitly scoped to the currently
-selected patient, preventing ambiguity and reducing the risk of context errors.
+Each patient card in the \texttt{Users} component displays the patient's name,
+age, and last-updated timestamp. A colour-coded status dot provides an
+immediate freshness indicator: green indicates the record was updated within
+the past 30 days, and yellow indicates a stale record. This status is computed
+by the \texttt{getStatus} method using a precise day-difference calculation,
+providing a passive clinical alert without requiring explicit user interrogation
+of individual records.
 
-Placing advanced visualization actions within the local context of the patient
-record aligns with established usability principles for safety-critical
-systems, where actions should be clearly associated with their target objects.
-Context-aware controls reduce mode errors and improve user confidence by making
-system state and action consequences explicit .
+Patient selection is mediated entirely through the \texttt{SelectedPatientService},
+an injectable Angular service that exposes a reactive \texttt{selectedPatientId\$}
+observable. Both the \texttt{Users} component (which sets the selected ID on
+click) and the \texttt{UserInfo} component (which subscribes to trigger a detail
+load) communicate through this shared service without any direct parent-to-child
+binding, exemplifying a clean observable-based state management pattern
+\cite{angularDocs}.
 
-By initiating the MedGraph from the patient’s summary card, the system
-preserves continuity between record-based inspection and journey-based
-visualization, while ensuring that the displayed care trajectory corresponds
-unambiguously to the intended patient.
+\subsubsection{Patient Access Grant Workflow (OTP Handshake)}
 
+A key usability and security feature of the patient navigator is the patient
+access grant workflow, accessible via the ``Add Patient'' button at the top of
+the navigator. This workflow allows a clinician to request access to a patient's
+data through a time-limited, patient-initiated one-time password (OTP). The
+six-digit OTP input modal is shown in Figure~\ref{fig:otp_input}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Frontend/Images/otp_input.jpeg}
+    \caption{Patient access grant modal presenting the six-cell OTP input
+    field. The clinician enters the code generated on the patient's device to
+    initiate the access request handshake.}
+    \label{fig:otp_input}
+\end{figure}
+
+The process operates as follows:
+\begin{enumerate}
+    \item The patient generates a six-digit OTP on their own device.
+    \item The clinician clicks ``Add Patient'' and a modal dialog opens
+          presenting a six-cell OTP input field (powered by \texttt{ng-otp-input})
+          with confirm and cancel actions.
+    \item Upon submission, the frontend calls \texttt{handshake.verifyOtp()}
+          and transitions to a ``forwarded'' state, displaying a confirmation
+          that the request has been sent for the patient's approval.
+    \item The component begins polling the backend via
+          \texttt{handshake.pollStatus()} on a three-second interval,
+          implemented using the RxJS \texttt{interval} and \texttt{switchMap}
+          operators with \texttt{takeWhile} to automatically terminate polling
+          when a terminal state is reached.
+    \item On patient approval, the modal transitions to a ``success'' state,
+          the polling subscription is cleaned up, and the patient list
+          refreshes to include the newly granted patient.
+    \item If the OTP is invalid, expired, or not found, distinct error states
+          are rendered inline within the modal with specific, actionable
+          messages.
+\end{enumerate}
+
+This design keeps the entire workflow within a single modal without page
+reloads, minimising disruption to the clinician's working context.
+
+\subsubsection{Clinical Summary View}
+
+The \texttt{UserInfo} component loads full patient details via a \texttt{forkJoin}
+of seven concurrent FHIR API calls, covering patient demographics, conditions,
+encounters, medications, procedures, document references, and episodes of care,
+ensuring that all data is fetched in parallel and the UI transitions to a
+loaded state only once all requests complete. The component maps raw FHIR
+resources to structured domain transfer objects using a set of dedicated
+transformation functions (\texttt{fhirPatientToDetailsDTO},
+\texttt{fhirEOCToEpisode}, \texttt{extractConditionDisplay}, etc.), isolating
+FHIR-specific parsing logic from presentation concerns.
+
+The clinical summary view organises data into clearly defined sections:
+\begin{itemize}
+    \item Demographics: name, age, gender, and patient identifier.
+    \item Primary diagnosis, active conditions with coloured pill badges,
+          and current medications.
+    \item Recent laboratory results with direct PDF viewing via inline
+          \texttt{DocumentReference} binary resolution.
+    \item Recent procedures.
+    \item A full encounter history scoped to the selected episode, with each
+          encounter typed and styled according to a comprehensive encounter
+          type map spanning twelve clinical categories.
+\end{itemize}
+
+\subsubsection{Episode of Care Management}
+
+The clinical summary panel includes an episode-of-care selector allowing the
+clinician to switch between multiple episodes for the same patient. The episode
+selector presents a dropdown of existing episodes, and each episode selection
+triggers a fresh encounter-scoped filter of conditions, medications, and
+procedures, ensuring that all displayed clinical data corresponds precisely to
+the chosen episode context.
+
+New episodes can be created inline via a name input and a ``+ Add Episode''
+button, which calls the FHIR EpisodeOfCare creation endpoint and immediately
+appends the result to the episode list. Fallback logic handles cases where FHIR
+filtering returns no data for a given episode, deriving medications from
+Medication-type encounters and diagnosing from AI-Diagnosis-type encounters as
+a secondary inference mechanism.
+
+\subsubsection{Patient-Scoped MedGraph Access}
+
+Rather than exposing the journey visualisation globally, access to the MedGraph
+is embedded within the patient details card. A prominent ``Open History Graph''
+button navigates to \texttt{/med-graph/:id}, passing the currently selected
+episode's ID as an \texttt{eocId} query parameter. This design ensures that
+any transition to the MedGraph view is explicitly scoped to the selected patient
+and episode, preventing context errors and reinforcing the principle that
+advanced visualisation actions should be clearly associated with their target
+data objects.
+
+% -----------------------------------------------------------
 \subsection{Patient Journey Dashboard}
+% -----------------------------------------------------------
 
 While traditional medical dashboards present patient data as isolated records,
-clinical decision-making often requires understanding how events evolve,
-relate, and unfold over time. To address this limitation, CFI-Care introduces
-the \textit{Patient Journey Dashboard}, a dedicated interactive environment
-that provides a holistic view of a patient’s medical history.
+clinical decision-making often requires understanding how events evolve, relate,
+and unfold over time. To address this limitation, CFI-Care introduces the
+\textit{Patient Journey Dashboard}, a dedicated interactive environment that
+provides a holistic, visual view of a patient's complete medical history.
 
 The Patient Journey Dashboard enables clinicians to:
 \begin{itemize}
-    \item Explore relationships between medical events.
-    \item Understand disease progression from initial presentation to treatment.
-    \item Analyze alternative diagnostic or treatment paths.
-    \item Identify clinically critical events without losing contextual awareness.
+    \item Explore relationships between medical events through a hierarchical
+          tree structure.
+    \item Understand disease progression from initial presentation through to
+          treatment and follow-up.
+    \item Analyse alternative diagnostic or treatment pathways via independent
+          branches.
+    \item Identify clinically critical events at a glance without losing
+          contextual awareness.
+    \item Add, edit, and delete medical events in-place with full
+          bidirectional backend synchronisation.
 \end{itemize}
 
 Rather than enforcing a single representation, the dashboard provides two
-complementary visualization modes: \textit{Categorical} and
+complementary visualisation modes: \textit{Categorical} and
 \textit{Chronological}. Each mode offers a distinct analytical perspective over
 the same underlying patient data, allowing clinicians to switch between
 structural and temporal reasoning as needed.
 
-This multi-perspective approach aligns with established visualization
-principles that emphasize coordinated views to reduce cognitive load and
-improve analytical accuracy \cite{hospitalDashboards2022}.
+\subsubsection{Iframe Isolation Architecture}
 
-\subsection{Patient Journey Dashboard -- Categorical View}
+The graph engine is implemented as a self-contained HTML document loaded inside
+an iframe within the Angular \texttt{MedGraph} component. This isolation is a
+deliberate and well-reasoned architectural choice driven by three compounding
+concerns. First, D3.js and Treeviz both perform direct, synchronous DOM
+mutations at high frequency during zoom, pan, and re-render cycles. Angular's
+Zone.js patches every asynchronous operation and triggers change detection on
+each one, so running D3 inside the Angular component tree would cause hundreds
+of unnecessary change-detection cycles per second during graph interaction,
+degrading performance meaningfully. Second, the iframe provides a complete DOM
+isolation boundary: the graph's global event listeners, CSS rules, and
+third-party library globals (D3 registers several of these) cannot leak into
+or conflict with the Angular host application. This goes beyond what
+\texttt{NgZone.runOutsideAngular()} would achieve, which suppresses Angular's
+change detection but still shares the same DOM, the same global CSS cascade,
+and the same JavaScript namespace. Third, full DOM isolation enables the
+visualisation layer to be developed, tested, and replaced independently,
+without destabilising the broader Angular application during iteration.
+
+Communication between the Angular host and the iframe is implemented entirely
+via the \texttt{window.postMessage} API. The Angular host sends an
+\texttt{INIT\_GRAPH} message on iframe load, carrying the full node list,
+patient ID, and episode of care ID. The iframe dispatches
+\texttt{NODE\_UPDATE} messages for every add, edit, and delete operation,
+which the Angular host intercepts and forwards to the corresponding backend
+API calls. Backend responses are relayed back to the iframe as
+\texttt{NODE\_SAVED} or \texttt{NODE\_ERROR} messages, enabling optimistic
+UI updates with rollback on failure. Figure~\ref{fig:medgraph-seq} illustrates
+this message-passing sequence in full, and Figure~\ref{fig:dataflow-diag}
+illustrates the complete data flow from user interaction through to backend
+persistence and rollback.
+
+\subsubsection{Node Data Model}
+
+Each node in the patient journey graph carries the following fields:
+\begin{itemize}
+    \item \textbf{id}: Unique identifier (temporary client-side ID prefixed
+          \texttt{temp-} until the backend assigns a persistent UUID).
+    \item \textbf{text\_1}: Display title of the medical event.
+    \item \textbf{father}: Parent node ID (\texttt{null} for the root node).
+    \item \textbf{category}: One of nine clinical categories, each mapped to
+          a distinct colour.
+    \item \textbf{priority}: Low, Medium, or High.
+    \item \textbf{normality}: Normal, Abnormal, or Pending.
+    \item \textbf{dateIssued}: ISO date string.
+    \item \textbf{details}: Free-text clinical notes.
+    \item \textbf{isDiagnosis / isManualBranch}: Flags marking branch-starter
+          nodes in the chronological view.
+    \item \textbf{branchState}: In-progress, discontinued, or completed,
+          governing branch rendering and interaction permissions.
+\end{itemize}
+
+\subsubsection{Global Controls and Interaction Modes}
+
+The graph header provides a consistent set of controls applicable to both
+views:
+\begin{itemize}
+    \item \textbf{Add Node}: Activates a crosshair cursor and highlights all
+          selectable nodes with a green ring. Clicking any node opens a modal
+          form to specify the child event's title, date, category, priority,
+          normality, and details. The new node is added optimistically to the
+          data array and rendered immediately; the backend is notified
+          asynchronously and the temporary ID is replaced with the real UUID
+          upon confirmation.
+    \item \textbf{Delete Node}: Activates a ``not-allowed'' cursor and highlights
+          deletable nodes with a red ring. Selecting a node triggers a
+          confirmation dialog and recursively removes the target node and all
+          its descendants. If the backend delete fails, all removed nodes are
+          restored from a \texttt{pendingDeletes} map.
+    \item \textbf{Filters}: Toggles a filter panel allowing refinement by
+          category, priority, normality, and date range. Filtering is applied
+          reactively to both views with parent-node inclusion logic ensuring
+          that matching nodes are never orphaned from the tree.
+    \item \textbf{View Toggle}: Switches between Categorical and Chronological
+          modes without page reload, preserving all filter and expansion state.
+\end{itemize}
+
+Guard logic prevents modifications within discontinued branches, completed
+branches, or a finished case, surfacing contextual toast messages that explain
+the restriction and describe how to lift it.
+
+% -----------------------------------------------------------
+\subsection{Patient Journey Dashboard — Categorical View}
+% -----------------------------------------------------------
 
 \subsubsection{Purpose and Conceptual Model}
 
 The categorical view presents the patient journey as a hierarchical,
-relationship-oriented structure similar to a family tree. Its primary purpose
-is to visualize \textbf{clinical relationships, causality, and dependency}
-between medical events.
-
-In this mode, clinicians can clearly observe:
-\begin{itemize}
-    \item How diagnostic steps lead to subsequent decisions.
-    \item Which medical events are logically connected.
-    \item Complete clinical paths from disease onset to treatment.
-\end{itemize}
-
-This representation is particularly effective for understanding the structure
-of a case, rather than its temporal sequence.
+relationship-oriented structure. Its primary purpose is to visualise
+\textbf{clinical relationships, causality, and dependency} between medical
+events. In this mode clinicians can clearly observe how diagnostic steps lead
+to subsequent decisions, which medical events are logically connected, and
+complete clinical paths from disease onset to treatment.
 
 \subsubsection{Hierarchical Graph Representation}
 
-Medical events are represented as nodes within a node-link hierarchical graph.
-A single root node represents the patient case, from which first-level
-categories branch out. These categories group related clinical events such as
-consultations, laboratory investigations, imaging studies, or AI-generated
-recommendations.
-
-Graph-based representations have been shown to support reasoning over complex
-medical workflows and dependencies more effectively than linear lists.
+Medical events are rendered as nodes within a directed node-link graph, laid
+out left-to-right using the Treeviz library. A single root node represents
+the patient case origin, from which first-level category branches emerge.
+When more than one root node exists in the data, for example when a patient
+has multiple concurrent care pathways, the system automatically inserts a
+hidden virtual root node to produce a single connected tree, ensuring Treeviz
+always receives a valid hierarchy without requiring manual data normalisation.
 
 \subsubsection{Expand and Collapse Semantics}
 
-Only first-level nodes directly connected to the root support expand and
-collapse interactions. This constraint limits visual complexity while
-preserving a stable mental model for the user. Deeper levels remain
-structurally intact but are revealed only when their parent category is
-expanded.
+First-level nodes directly connected to the root carry a small expand/collapse
+trigger button rendered in the top-right corner of their dot. Clicking this
+button expands or collapses the entire sub-tree rooted at that node, including
+all deeper descendants via the recursive \texttt{addAllDescendants} and
+\texttt{removeAllDescendants} functions. To contain visual complexity, a
+maximum of two first-level branches may be expanded simultaneously;
+activating a third branch automatically collapses the oldest expanded branch.
+This constraint preserves a coherent visual field without preventing access
+to any part of the tree.
 
 \subsubsection{High-Priority Propagation Mechanism}
 
-Clinically critical events are visually marked using a red circular border.
-When a high-priority node exists within a collapsed branch, the priority
-indicator propagates upward to the corresponding first-level parent node. This
-ensures that urgent information is never visually hidden.
-
-Upon expansion of the branch, the priority indicator is removed from the parent
-and restored to the exact node where the priority originates. This mechanism
-preserves both visibility and accuracy of clinical alerts, supporting patient
-safety and rapid risk identification \cite{hospitalDashboards2022}.
+Clinically critical events are visually marked with an animated pulsing red
+ring rendered via a CSS \texttt{@keyframes pulse} animation. When a
+high-priority node exists within a collapsed branch, the priority indicator
+propagates upward to the corresponding first-level parent node. This ensures
+that urgent information is never visually hidden from a collapsed state. Upon
+expansion, the indicator is removed from the parent and appears solely on the
+originating node, preserving both visibility and clinical accuracy
+\cite{hospitalDashboards2022}.
 
 \subsubsection{Node Relationship Indicators}
 
-Each node explicitly indicates whether it represents a single-child event or a
-sibling event within a group. This is conveyed through a labeled rectangular
-visual marker with distinct colors and text. These indicators allow clinicians
-to quickly infer structural relationships without expanding the entire
-hierarchy.
+Each non-root node carries a coloured sibling badge indicating whether it is
+the sole child of its parent (``SINGLE'', rendered in green) or one of
+multiple siblings (``SIBLING'', rendered in blue). These indicators allow
+clinicians to infer structural branching without expanding the full hierarchy,
+supporting rapid structural scanning.
 
-\subsubsection{Filtering and Actions}
+\subsubsection{Node Detail Sidebar}
 
-The categorical view supports filtering by event category, normality, priority
-level, and date range. Clinicians can add, edit, or delete nodes using
-structured modal dialogs. Destructive actions such as deletion require explicit
-confirmation to prevent accidental data loss, following safety-oriented
-interface guidelines \cite{hospitalDashboards2022}.
+Clicking any node opens a slide-in detail sidebar on the right of the canvas,
+displaying the node's title, normality status tag, priority tag, date, category
+with colour swatch, and full clinical detail text. The sidebar includes an
+``Edit Node'' button that opens a draggable, resizable floating form prepopulated
+with the node's current values. All edit operations are subject to the same
+branch-state guard logic as add and delete operations. The form itself is
+draggable via a \texttt{mousedown}-based drag handler and resizable via CSS
+\texttt{resize: both}, giving clinicians flexible screen real estate management
+during data entry.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{Frontend/Images/categorical.jpeg}
-    \caption{Categorical Patient Journey view representing medical events as a hierarchical graph. High-priority events are highlighted, and structural relationships between nodes are emphasized.}
+    \caption{Categorical Patient Journey view representing medical events as a
+    hierarchical left-to-right graph. High-priority events display animated
+    priority rings, sibling relationships are labelled on each node, and the
+    detail sidebar is visible on the right.}
     \label{fig:categorical_graph}
 \end{figure}
 
-\subsection{Patient Journey Dashboard -- Chronological View}
+% -----------------------------------------------------------
+\subsection{Patient Journey Dashboard — Chronological View}
+% -----------------------------------------------------------
 
 \subsubsection{Purpose and Conceptual Model}
 
-The chronological view reorganizes the same patient data into a time-oriented
-representation. Its purpose is to support \textbf{temporal reasoning} by
-allowing clinicians to read the patient journey as a sequential narrative.
-
-Unlike the categorical view, which emphasizes relationships, the chronological
-view emphasizes:
-\begin{itemize}
-    \item The order of events.
-    \item Time intervals between clinical decisions.
-    \item The progression of care across time.
-\end{itemize}
-
-This mode is particularly useful for auditing cases, reviewing treatment
-timelines, and understanding how a patient’s condition evolved over time
+The chronological view reorganises the same patient data into a time-oriented
+representation rendered using D3.js. Its purpose is to support
+\textbf{temporal reasoning} by allowing clinicians to read the patient journey
+as a sequential narrative. Unlike the categorical view, which emphasises
+relationships, the chronological view emphasises event order, time intervals
+between clinical decisions, and the progression of care across time
 \cite{patientSafetyDashboards2021}.
 
 \subsubsection{Temporal Layout and Event Stacking}
 
-Events are displayed along a horizontal timeline. When multiple events occur on
-the same date, they are stacked vertically above one another to preserve
-temporal accuracy while avoiding overlap. This design allows dense clinical
-activity to be represented without sacrificing readability.
+Events are distributed along a horizontal timeline scaled by a configurable
+\texttt{DATE\_SCALE} constant, ensuring even temporal spacing regardless of
+event density. Each unique date is marked with a vertical tick and label
+rendered by the \texttt{drawDateMarkers} function. When multiple events occur
+on the same date within the same lane, they are stacked vertically using an
+alternating offset algorithm that places successive same-date nodes above and
+below the lane centreline, preventing overlap while preserving temporal
+accuracy.
+
+The entire canvas supports pan and zoom via D3's \texttt{zoom} behaviour, with
+a configurable scale range of 0.05\texttimes{} to 3\texttimes{}. An automatic
+fit-to-view transform is computed and applied immediately after each render,
+ensuring the full timeline is visible on first load regardless of data density.
 
 \subsubsection{Branching Mechanism for Clinical Reasoning}
 
-A key feature of the chronological view is its branching mechanism. By default,
-the timeline contains a primary branch representing the main clinical pathway
-followed during patient care.
+A key feature of the chronological view is its branching mechanism. The main
+timeline represents the primary clinical pathway. When diagnostic uncertainty
+arises or alternative treatment strategies must be explored, clinicians can
+create independent sub-branches by activating the \textbf{branch creation
+button} (a blue code-branch icon in the bottom-right corner) and clicking any
+main-timeline node. This action opens the node creation form with the category
+preset to ``Diagnosis'', and the resulting node is flagged with
+\texttt{isDiagnosis: true} and \texttt{isManualBranch: true}.
 
-When uncertainty arises, such as alternative diagnostic hypotheses or treatment
-strategies, clinicians can create separate branches. These branches represent
-exploratory or tentative paths that may later be completed or rejected based on
-clinical validation.
+Sub-branches are rendered as distinct horizontal tracks below the main
+timeline, connected to their origin on the main line via smooth cubic B\'{e}zier
+divergence paths drawn by the \texttt{generateLinkPath} function. Each branch
+maintains its own horizontal baseline drawn at a fixed vertical offset
+determined by \texttt{BRANCH\_VERTICAL\_GAP}, ensuring consistent visual
+separation between parallel clinical reasoning paths.
 
-Branches are rendered using smooth curved linkage lines and maintain a constant
-vertical spacing to avoid visual overcrowding. This design enables parallel
-reasoning while preserving clarity and navigational stability. Branching
-supports clinical decision exploration and aligns with established models of
-hypothesis-driven medical reasoning \cite{interactiveDashboards2020}.
+Branching from an existing branch is explicitly prohibited; a contextual
+toast message is displayed if this is attempted, guiding the user to branch
+only from main-timeline nodes. This constraint reflects the clinical model
+that sub-branches represent direct hypotheses against the main care pathway.
 
-\subsubsection{High-Priority Visualization}
+\subsubsection{Branch State Management}
 
-High-priority events are highlighted using prominent red labels positioned
-beneath nodes. This visual hierarchy ensures that urgent clinical issues remain
-immediately noticeable within the temporal flow.
+Every branch carries a \textbf{branch state} that governs its visual
+presentation and edit permissions:
+
+\begin{itemize}
+    \item \textbf{In Progress} (blue): The branch is active. Nodes may be
+          added, edited, and deleted freely.
+    \item \textbf{Discontinued} (red): The branch has been ruled out. A
+          prominent ``DISCONTINUED'' wall marker and pulsing wall animation are
+          rendered at the branch terminus. All add, edit, and delete operations
+          within the branch are blocked with an explanatory message.
+          Figure~\ref{fig:chrono_discontinued} shows a zoomed view of a
+          discontinued branch.
+    \item \textbf{Completed} (green): The branch has been validated and merged
+          back into the main timeline. A green curved merge arc is drawn from
+          the branch's last node to the nearest main-timeline node, and a
+          ``MERGED'' label is rendered above the arc. If the branch's last event
+          post-dates all main-timeline events, the system automatically creates
+          a \textit{Linker} node on the main timeline at that date to serve as
+          the merge target, ensuring geometric accuracy of the arc.
+          Figure~\ref{fig:chrono_completed} shows a zoomed view of a completed
+          and merged branch.
+\end{itemize}
+
+Branch state is changed by clicking the branch line itself to open a
+state-selection menu. The main timeline also carries a state that can be
+set to \textbf{Finish Case}, which renders a ``CASE CLOSED'' flag at the
+timeline terminus, displays a ``Case Finished'' banner in the header, and
+blocks all modifications to the entire graph until the case is reopened.
+
+\subsubsection{High-Priority Visualisation}
+
+High-priority events in the chronological view are highlighted using a red
+``HIGH PRIORITY'' label rendered beneath the node's date stamp. This visual
+hierarchy ensures that urgent clinical issues remain immediately noticeable
+within the temporal flow regardless of zoom level.
 
 \subsubsection{Stateful Mode Switching}
 
-A toggle control allows instant switching between categorical and chronological
-views. This interaction is fully stateful and does not require page reloads,
-enabling clinicians to seamlessly transition between structural and temporal
-perspectives during analysis.
+A toggle control in the header allows instant switching between categorical
+and chronological views. This interaction is fully stateful: all filter
+selections, expansion state, and data mutations carry over seamlessly between
+modes. No page reload is required, and the \texttt{refreshGraph} function
+pointer is reassigned to the appropriate renderer on each mode switch, ensuring
+that subsequent filter changes or node operations automatically re-render in
+the correct mode.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{Frontend/Images/chronological.jpeg}
-    \caption{Chronological Patient Journey view displaying medical events along a horizontal timeline. Parallel branches represent alternative diagnostic or treatment pathways explored during clinical reasoning.}
+    \caption{Chronological Patient Journey view displaying medical events along
+    a horizontal D3.js timeline with pan and zoom. Parallel sub-branches
+    represent alternative diagnostic hypotheses, each on its own horizontal
+    track. The completed branch is merged back into the main timeline via a
+    green arc, and the discontinued branch is blocked with a red wall marker.
+    A ``CASE CLOSED'' flag is rendered at the timeline terminus when the main
+    timeline is set to the Finished state.}
     \label{fig:chronological_graph}
 \end{figure}
 
-\subsection{Complementary Roles of Categorical and Chronological Views}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/chrono_completed.jpeg}
+    \caption{Zoomed view of a completed branch in the chronological timeline.
+    The green curved merge arc connects the branch's final node back to the
+    main timeline, with a ``MERGED'' label rendered above the arc. The branch
+    line is rendered in green to indicate the validated state.}
+    \label{fig:chrono_completed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/chrono_discontinued.jpeg}
+    \caption{Zoomed view of a discontinued branch in the chronological
+    timeline. A pulsing red wall marker is rendered at the branch terminus
+    with a ``DISCONTINUED'' label. The branch line is rendered in red, and all
+    add, edit, and delete operations on nodes within this branch are blocked.}
+    \label{fig:chrono_discontinued}
+\end{figure}
+
+% -----------------------------------------------------------
+\subsection{Complementary Roles of the Two Views}
+% -----------------------------------------------------------
 
 The categorical and chronological views address fundamentally different
 cognitive tasks. The categorical view focuses on \textbf{structural
-    understanding}, enabling clinicians to reason about relationships,
-dependencies, and complete clinical paths. In contrast, the chronological view
-focuses on \textbf{temporal understanding}, enabling clinicians to interpret
-the sequence and timing of events.
+understanding}, enabling clinicians to reason about relationships,
+dependencies, and complete clinical paths. The chronological view focuses on
+\textbf{temporal understanding}, enabling clinicians to interpret the sequence
+and timing of events and to visualise parallel reasoning paths.
 
 Providing both views allows clinicians to:
 \begin{itemize}
     \item Understand how events are connected (categorical).
-    \item Understand when events occurred (chronological).
-    \item Reduce cognitive load by selecting the most appropriate representation for the
-          task at hand.
+    \item Understand when events occurred and how the case evolved (chronological).
+    \item Reduce cognitive load by selecting the most appropriate representation
+          for the current analytical task.
 \end{itemize}
 
 This dual-view approach follows established guidelines for multiple coordinated
-visualizations, which have been shown to improve usability and analytical
-effectiveness in complex systems.
+visualisations, which have been shown to improve usability and analytical
+effectiveness in complex information systems \cite{hospitalDashboards2022}.
 
-\subsection{Domain Models and State Services}
-\label{subsec:state-management}
+% -----------------------------------------------------------
+\subsection{Interactive Tutorial System}
+% -----------------------------------------------------------
 
-Shared domain concepts are defined in the \texttt{models} directory. The
-\texttt{patient.model.ts} file formalizes the patient entity, including
-identifiers, metadata, and associated medical events.
+A built-in interactive tutorial system guides new users through every major
+feature of the Patient Journey Dashboard on first login. The tutorial operates
+in two modes:
 
-Application-wide state is managed using injectable Angular services:
+\begin{enumerate}
+    \item \textbf{Welcome Prompt}: On first visit (controlled via a
+          \texttt{localStorage} flag), a modal dialog appears offering the
+          clinician the choice to begin the tour immediately or skip it.
+    \item \textbf{Step-by-Step Tour}: The tutorial progresses through eighteen
+          distinct steps covering categorical nodes, priority propagation,
+          expand/collapse interaction, the node detail sidebar, add and delete
+          modes, filters, the dashboard navigation button, chronological layout,
+          diagnosis nodes, sub-branch tracks, the branch creation button, the
+          completed-and-merged arc, the merge hint button, and both the main
+          and sub-branch state menus.
+\end{enumerate}
 
-\begin{itemize}
-    \item \texttt{PatientApiService}: Responsible for patient dashboard data retrieval and persistence
-    \item \texttt{SelectedPatientService}: Maintains the currently active patient context
-\end{itemize}
+Each step highlights the relevant UI element using a CSS outline pulse
+animation. Steps that require a direct user interaction (such as clicking the
+expand trigger, clicking a node, switching to chronological mode, or opening a
+branch state menu) display a ``\textbf{Interact to continue}'' badge in place
+of the Next button, and the tutorial advances automatically once the
+interaction is detected via targeted DOM event listeners.
 
-By centralizing patient selection state, multiple components can reactively
-synchronize without direct dependencies, reducing tight coupling and improving
-maintainability \cite{angularDocs}.
+To ensure the tutorial demonstrates the full feature set without depending on
+the live patient data, the system silently saves the clinician's real data
+array, substitutes a rich pre-defined demo dataset covering all categories,
+branch types, and states, and restores the real data array when the tour ends
+or is dismissed. A help button (\texttt{?}) in the fixed bottom-right corner
+allows the tutorial to be replayed at any time.
 
-\subsection{Sequence Diagram}
+Figure~\ref{fig:tutorial_step4} illustrates tutorial Step 4, which introduces
+branch expansion. First-level nodes are shown in their collapsed default state,
+with each node carrying its SIBLING badge and a highlighted \texttt{+} button
+in the top-right corner of its dot. The tutorial card instructs the clinician
+to click the highlighted button to expand a branch, and the step advances
+automatically once the interaction is detected. Figure~\ref{fig:tutorial_step10}
+shows Step 10, which guides the clinician to switch from the categorical view
+to the chronological timeline using the toggle control highlighted in the
+header. The step advances automatically when the toggle is activated, exposing
+the D3.js timeline without requiring a manual ``Next'' click.
+Figure~\ref{fig:tutorial_step16} demonstrates Step 16, in which the clinician
+is instructed to click the main horizontal timeline line to open its branch
+state menu. The menu presents two options: In Progress (the current default)
+and Finish Case. The step is classified as an interaction step, so the tutorial
+waits for the clinician to open the menu before advancing, ensuring they
+observe the state-change mechanism in context.
 
-% Placeholder for the detailed sequence diagram (MedGraph)
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{Frontend/Images/seqDiagram.jpeg}
-    % You can replace this with your Mermaid diagram using \begin{verbatim} ... \end{verbatim}
-    % \fbox{\parbox{0.9\textwidth}{
-    %         Detailed sequence diagram of MedGraph interactions
-    %     }}
-    \caption{Sequence diagram illustrating MedGraph node operations, mode switching, and branching.}
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/tutorial_step4.png}
+    \caption{Tutorial Step 4 of 18: Expand a branch. The categorical view
+    shows first-level nodes in their collapsed default state. The
+    \texttt{+} button on the CBC Blood Test node is highlighted with a pulse
+    animation, and the tutorial card instructs the clinician to click it to
+    expand the sub-tree. The step advances automatically upon interaction.}
+    \label{fig:tutorial_step4}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/tutorial_step10.png}
+    \caption{Tutorial Step 10 of 18: Switch to Chronological view. The view
+    toggle in the header is highlighted, and the tutorial card instructs the
+    clinician to click ``Chronological'' to transition the layout from the
+    hierarchical tree to the D3.js timeline. The step advances automatically
+    once the toggle is activated.}
+    \label{fig:tutorial_step10}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Frontend/Images/tutorial_step16.png}
+    \caption{Tutorial Step 16 of 18: Main timeline state. The chronological
+    view is shown with the branch state menu open on the main timeline line,
+    presenting the In Progress and Finish Case options. The tutorial card
+    instructs the clinician to click the main timeline to open this menu,
+    advancing automatically once the interaction occurs.}
+    \label{fig:tutorial_step16}
+\end{figure}
+
+% -----------------------------------------------------------
+\subsection{AI-Assisted Clinical Chat}
+% -----------------------------------------------------------
+
+The \texttt{ChatSection} component provides an integrated AI chat interface
+accessible from within the MedGraph view, supporting real-time clinical
+reasoning alongside patient journey data. The component is designed for
+sustained, multi-turn clinical dialogue and incorporates a range of usability
+features tailored to medical workflows.
+
+\subsubsection{Conversation and Session Management}
+
+The chat interface maintains a list of named conversation sessions. A ``New
+Chat'' action saves the current session's messages and initialises a blank
+session. Switching between sessions restores the full message history for the
+selected session. Sessions are auto-titled from the first user message
+(truncated to 27 characters for display), and titles can be manually edited
+inline via a double-click interaction on the session list item.
+
+A search field filters the session list in real time, matching sessions by
+title prefix.
+
+\subsubsection{Message Composition and Input Controls}
+
+The message composer features a self-expanding textarea that grows vertically
+up to a maximum of 180 pixels as the user types, implemented via the
+\texttt{autoResize} event handler. File attachments (images and PDFs) can be
+added via a file picker; attached files are base64-encoded and displayed as
+inline previews in the outgoing message bubble, with individual removal
+controls. A voice input button activates the Web Speech API
+(\texttt{webkitSpeechRecognition}) for continuous speech-to-text input with
+real-time interim transcript display.
+
+\subsubsection{Response Mode Selection}
+
+Four response modes, Concise, Detailed, Bullet Points, and Differential,
+allow the clinician to specify the desired output format for AI responses,
+adapting the interface to different clinical contexts such as rapid triage
+versus comprehensive case review.
+
+\subsubsection{Message-Level Interactions}
+
+Each AI response bubble exposes a set of interaction controls:
+\begin{itemize}
+    \item \textbf{Like / Dislike}: Binary feedback toggles allowing the
+          clinician to rate response quality.
+    \item \textbf{Copy}: Copies the full response text to the clipboard.
+    \item \textbf{Retry}: Replaces the AI response in-place with a new
+          generation, preserving conversation position.
+    \item \textbf{Fork}: Opens a new browser tab pre-loaded with a snapshot
+          of the conversation up to and including the selected response,
+          encoded in URL parameters, allowing independent exploration of
+          alternative follow-up threads from any prior point.
+    \item \textbf{Delete}: Removes the AI response and its corresponding user
+          message from the session.
+    \item \textbf{Citations}: Opens an inline citations panel listing the
+          reference sources associated with the AI response.
+\end{itemize}
+
+A confidence score is displayed with each AI response, giving the clinician a
+visible signal of response certainty.
+
+\subsubsection{Maximised View and Branch Tabs}
+
+The chat panel supports a maximised mode that expands the component to fill
+the available viewport, providing a focused environment for extended clinical
+dialogue. Sessions opened via the Fork action automatically launch in
+maximised mode and display a visual divider message indicating the branch
+origin session and message index, preserving chain-of-custody of the
+conversation thread.
+
+Figure~\ref{fig:chat_panel} shows the chat interface in its compact panel
+form, as it appears alongside the patient journey graph. Figure~\ref{fig:chat_maximised}
+shows the same interface in its maximised mode, expanding to fill the viewport
+for extended clinical dialogue.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/chat_panel.jpeg}
+    \caption{AI-assisted clinical chat in its compact panel view, rendered
+    alongside the Patient Journey Dashboard. The session list, message
+    history, response mode selector, and composer are all visible within
+    the panel.}
+    \label{fig:chat_panel}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/chat_maximised.jpeg}
+    \caption{AI-assisted clinical chat in maximised mode, expanding to fill
+    the full viewport. This mode is intended for extended clinical reasoning
+    sessions and is also the default view for conversations opened via the
+    Fork action.}
+    \label{fig:chat_maximised}
+\end{figure}
+
+% -----------------------------------------------------------
+\subsection{Doctor Profile and Schedule Management}
+% -----------------------------------------------------------
+
+The \texttt{DoctorProfileComponent}, shown in
+Figure~\ref{fig:doctor_profile}, provides each practitioner with a dedicated
+profile and availability management interface, structured as a two-panel
+layout.
+
+\subsubsection{Profile Panel}
+
+The left panel displays the practitioner's initials avatar, name, title,
+specialty, contact details (phone and address), affiliated hospitals, and an
+``Active \& Verified'' status badge. An ``Edit Profile'' button at the bottom of
+the panel opens a modal dialog pre-populated with the current profile values,
+allowing inline editing of all fields. Hospital affiliations can be added and
+removed individually within the modal. On save, the component performs
+parallel FHIR updates to both the \texttt{Practitioner} resource and the
+\texttt{PractitionerRole} resource, with the role update preserving all
+existing FHIR metadata.
+
+\subsubsection{Schedule Manager}
+
+The right panel hosts the Schedule Manager, which presents schedules and slots
+in two separate tabular sections. A ``Today's Summary'' sidebar on the far right
+provides an at-a-glance count of total slots broken down by status. A Glossary
+section beneath the summary defines the three slot states (Free, Busy,
+Unavailable) in plain language, reducing the need for external documentation.
+
+Schedules represent planning horizons (date ranges during which the
+practitioner is available). New schedules are created via a collapsible form,
+and existing schedules can be edited in-place via an inline edit row or deleted
+with a confirmation guard. Each schedule creation validates that the start date
+precedes the end date, surfacing inline error messages on failure.
+
+Slots are bookable time units within a schedule. The slot creation form
+validates that the selected time range falls within the bounds of the chosen
+schedule, preventing orphaned slot creation. Slot statuses (Free, Busy,
+Unavailable) can be updated individually via an inline dropdown that persists
+the change to the backend immediately. A set of filter buttons (All / Free /
+Busy / Unavailable) controls which slots are displayed in the table, with
+counters for each status category visible in the summary panel.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/doctor_profile.jpeg}
+    \caption{Doctor Profile page showing the practitioner information panel on
+    the left and the Schedule Manager on the right, with slot creation form,
+    status filters, and a today's summary sidebar.}
+    \label{fig:doctor_profile}
+\end{figure}
+
+% -----------------------------------------------------------
+\subsection{Domain Models and State Services}
+\label{subsec:state-management}
+% -----------------------------------------------------------
+
+Shared domain concepts are defined in the \texttt{models} directory. The
+\texttt{patient.model.ts} file formalises the patient entity, covering
+identifiers, metadata, episodes, encounters, and associated medical events,
+and provides all FHIR-to-DTO transformation functions as pure, stateless
+utilities.
+
+Application-wide state is managed via injectable Angular services:
+
+\begin{itemize}
+    \item \texttt{PatientApiService}: Responsible for all patient-related API
+          communication, including FHIR resource retrieval, graph node
+          operations, and binary resource resolution for lab PDF viewing.
+    \item \texttt{SelectedPatientService}: Maintains the currently active
+          patient context as a BehaviourSubject, enabling any component in the
+          tree to subscribe to patient selection events without tight coupling.
+    \item \texttt{HandshakeService}: Encapsulates the OTP verification and
+          grant status polling API calls.
+    \item \texttt{AppointmentService}: Manages all schedule and slot CRUD
+          operations.
+    \item \texttt{AuthService}: Wraps the Keycloak authentication status check
+          used by both the auth guard and the doctor profile loader.
+\end{itemize}
+
+By centralising patient selection and API communication in services, multiple
+components can synchronise reactively without direct dependencies, reducing
+tight coupling and improving testability \cite{angularDocs}.
+
+% -----------------------------------------------------------
+\subsection{Error Handling and Resilience}
+% -----------------------------------------------------------
+
+The frontend implements a layered error-handling strategy. At the route level,
+a dedicated \texttt{GatewayErrorComponent} handles arbitrary HTTP error codes
+received as route parameters, rendering a contextual error page without
+exposing raw stack traces.
+
+At the component level, all API subscriptions include \texttt{error} handlers
+that set typed error state variables rendered as user-facing messages. The
+MedGraph's optimistic update pattern provides full rollback for all three node
+operation types: added nodes with temporary IDs are spliced from the data array
+on failure; edited nodes are restored from a \texttt{pendingEdits} snapshot
+map; deleted node trees are fully restored from a \texttt{pendingDeletes}
+collection. This ensures the visual state of the graph remains consistent with
+the backend at all times, even under intermittent network conditions.
+
+% -----------------------------------------------------------
+\subsection{Sequence Diagram}
+% -----------------------------------------------------------
+
+Figure~\ref{fig:medgraph-seq} illustrates the complete message-passing sequence
+for MedGraph node operations, encompassing the iframe initialisation handshake,
+optimistic add/edit/delete operations, backend confirmation and rollback paths,
+and mode switching between categorical and chronological views.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth, height=0.93\textheight, keepaspectratio=false]{Frontend/Images/seqDiagram.jpeg}
+    \caption{Sequence diagram illustrating the full MedGraph interaction
+    lifecycle: iframe initialisation, postMessage-based node operations,
+    backend confirmation, optimistic rollback on failure, and stateful
+    mode switching.}
     \label{fig:medgraph-seq}
 \end{figure}
 
+% -----------------------------------------------------------
 \subsection{Component Diagram}
+% -----------------------------------------------------------
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{Frontend/Images/compDiagram.jpeg}
-    \caption{Component diagram illustrating the architecture of the dashboard, MedGraph, MedGemma AI modules, application services, and backend integration.}
+    \caption{Component diagram illustrating the architecture of the dashboard,
+    MedGraph iframe boundary, AI chat module, application services, and
+    backend integration points.}
     \label{fig:component-diag}
 \end{figure}
 
+% -----------------------------------------------------------
+\subsection{Data Flow Diagram}
+% -----------------------------------------------------------
+
+Figure~\ref{fig:dataflow-diag} illustrates the complete data flow for a node
+CRUD operation, tracing the path from a user interaction inside the graph
+engine, through the \texttt{postMessage} boundary, into the Angular service
+layer, out to the FHIR backend, and back through the confirmation and rollback
+paths. This diagram complements the sequence diagram by focusing on data
+movement and state transitions rather than timing.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth, height=0.93\textheight, keepaspectratio=false]{Frontend/Images/dataflowDiagram.jpeg}
+    \caption{Data flow diagram for a MedGraph node CRUD operation. The flow
+    begins with a user interaction in the graph engine (iframe), passes through
+    the postMessage boundary into the Angular host, is forwarded to the FHIR
+    backend, and returns via a confirmation or error path. On success, the
+    temporary node ID is replaced with the persistent UUID. On failure, the
+    pending operation is rolled back from the corresponding state map.}
+    \label{fig:dataflow-diag}
+\end{figure}
+
+% -----------------------------------------------------------
 \subsection{Architectural Rationale}
 \label{subsec:architecture-rationale}
+% -----------------------------------------------------------
 
-The architectural decisions underlying the Patient Journey Dashboard were
-driven by three primary constraints:
+The architectural decisions underlying the CFI-Care frontend were driven by
+four primary constraints:
 
 \begin{enumerate}
-    \item \textbf{Visualization Complexity}: Medical journey graphs require custom layouts not supported by standard UI frameworks.
-    \item \textbf{Performance}: SVG-heavy rendering must be isolated from Angular’s change detection loop.
-    \item \textbf{Maintainability}: Clinical logic, UI logic, and rendering logic must evolve independently.
+    \item \textbf{Visualisation Complexity}: Medical journey graphs require
+          custom SVG layouts, zoom behaviours, and stateful interaction patterns
+          that are not supported by standard Angular UI libraries.
+    \item \textbf{Performance}: D3.js performs intensive DOM mutations that
+          would trigger excessive Angular change-detection cycles if executed
+          within the component tree.
+    \item \textbf{Maintainability}: Clinical logic, routing logic, FHIR
+          transformation logic, and graph rendering logic must evolve
+          independently without cross-cutting refactoring.
+    \item \textbf{Data Integrity}: Optimistic updates require a principled
+          rollback strategy at every operation type to prevent UI state from
+          diverging from persisted backend state.
 \end{enumerate}
 
-By separating MedGraph into a dedicated visualization boundary, the system
-adheres to the principle of separation of concerns while allowing future
-refactoring or replacement of the rendering engine without destabilizing the
-broader application \cite{componentFrontEnd2021}.
+The iframe isolation boundary directly addresses constraints 1 and 2. The
+service layer and domain model separation address constraint 3. The
+\texttt{pendingEdits} and \texttt{pendingDeletes} maps address constraint 4.
+Together, these decisions produce a system that is both clinically capable
+and structurally sound for continued development \cite{componentFrontEnd2021}.
 
+% -----------------------------------------------------------
+\subsection{Graph Logic Test Suite}
+\label{subsec:test-suite}
+% -----------------------------------------------------------
+
+To validate the correctness and robustness of the graph engine's JavaScript
+logic, a dedicated browser-based test suite was developed for the CFI-Care
+patient journey graph. The suite targets the pure JavaScript functions that
+govern the graph's data model and rendering pipeline, testing them directly
+in isolation from the graph's visual layer. This approach ensures that the
+core clinical logic, including node hierarchy management, branch state
+transitions, chronological sorting, filter evaluation, and recursive tree
+operations, is verified independently and reproducibly.
+
+\subsubsection{Test Architecture}
+
+Rather than loading the full graph interface during testing, the suite
+reconstructs a controlled mock environment in JavaScript that mirrors the
+graph's internal data structures and pure functions exactly. This allows every
+test to run deterministically in the browser without network dependencies,
+iframe loading times, or DOM rendering variability. The mock environment
+reproduces the twelve-node baseline dataset used throughout the system,
+covering all nine clinical categories, all three priority levels, all three
+normality values, and a representative branch with in-progress state.
+
+\subsubsection{Test Suites and Coverage}
+
+The suite is organised into five suites totalling 62 test cases, all of which
+pass with zero failures and zero warnings, completing in 22ms total. The five
+suites and their scope are as follows.
+
+\textbf{Functional Tests (21 cases)} validate the core data model and node
+operations. Tests verify that the dataset maintains a single root node with a
+\texttt{null} father, that all non-root nodes reference existing parents, that
+no circular parent references exist, and that all required fields are present
+and valid. Node operations are tested end-to-end: adding a node confirms the
+correct parent-child relationship is established; deleting a node via
+\texttt{deleteRecursive} confirms the target is removed and all descendants are
+removed recursively, while siblings are preserved. Branch logic tests confirm
+that \texttt{isNodeInRejectedBranch} and \texttt{isNodeInCompletedBranch}
+correctly traverse the ancestor chain for both discontinued and completed
+branch states, and that linker node detection operates on both the
+\texttt{category} field and the \texttt{\_linkedBranchId} flag.
+
+\textbf{Chronological View Tests (15 cases)} validate the
+\texttt{getChronologicalData} function that drives the D3.js timeline. Tests
+confirm that the full dataset passes through with default filters, that output
+nodes are sorted in non-decreasing date order, that main-timeline nodes receive
+\texttt{laneId = 0} and branch nodes receive \texttt{laneId > 0}, and that all
+members of a branch share the correct \texttt{branchStartId}. Filter
+correctness is verified across all three dimensions (category, priority,
+normality) individually, as well as date-range filtering and
+\texttt{isDiagnosis} suppression. Mutation tests confirm that newly added nodes
+appear in output and that deleted nodes are absent. A multi-branch test
+confirms that two independent diagnosis branches receive distinct lane
+identifiers.
+
+\textbf{Categorical View Tests (7 cases)} validate tree structure invariants
+required by the Treeviz rendering layer. Tests confirm that exactly one root
+node exists, that node depth is computed correctly (node~10 sits at depth~3),
+that sibling detection correctly identifies all five children of the root, that
+the \texttt{MAX\_EXPANDED = 2} concurrency limit evicts the oldest expanded
+branch when a third is activated, that linker nodes are excluded from the
+categorical view, that a virtual root is correctly inserted when multiple roots
+are present, and that the recursive collapse function removes all descendants
+from the visible set.
+
+\textbf{Boundary and Validation Tests (12 cases)} probe edge conditions and
+guard logic. Tests cover single-node and empty datasets, 500-character node
+titles, epoch-dated and far-future nodes (sorting to the correct ends of the
+timeline), deletion of the root node (removing all 12 nodes), case-sensitivity
+rejection of a malformed category value, leaf-node collection, and both
+guard-logic scenarios in which attempting to add a child to a node inside a
+discontinued or completed branch is correctly blocked.
+
+\textbf{Performance Tests (7 cases)} set explicit time budgets for all
+computationally intensive operations and warn if any budget is exceeded.
+\texttt{getChronologicalData} must complete in under 5ms averaged over 100
+iterations on the 12-node dataset, and under 30ms on a synthetically generated
+500-node dataset. \texttt{collectNodesRecursive} must average under 2ms over
+200 iterations. \texttt{isNodeInRejectedBranch} must average under 1ms over
+500 iterations on a 50-node deep chain. \texttt{deleteRecursive} on the full
+12-node tree must average under 1ms over 100 iterations. The triple-filter
+pipeline (category, priority, normality) on 500 nodes must average under 3ms
+over 50 iterations. A memory integrity test confirms that all read-only
+operations leave the original data array length unchanged across 50 iterations,
+detecting any inadvertent side effects.
+
+\subsubsection{Test Runner Interface}
+
+The test runner is implemented as a self-contained HTML application providing
+a live dashboard for executing and reviewing results, shown in
+Figure~\ref{fig:test_suite}. The interface includes a scoreboard displaying
+total, passed, failed, warned, and skipped counts alongside total execution
+time; a progress bar that fills as tests complete; a collapsible suite-by-suite
+result view with per-test status icons, descriptions, assertion messages, and
+individual execution times; a performance bar chart plotting each measured
+function against its budget threshold; and a scrollable log console with
+colour-coded pass, fail, warn, and info entries. An export button generates a
+Markdown report containing the full results table and log.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Frontend/Images/test_suite.png}
+    \caption{CFI-Care Graph Logic Test Suite dashboard after a full run.
+    All 62 tests across five suites pass with zero failures and zero warnings
+    in 22ms total. The scoreboard, per-suite result panels, performance bar
+    chart, and log console are visible.}
+    \label{fig:test_suite}
+\end{figure}
+
+% -----------------------------------------------------------
 \subsection{Summary}
+% -----------------------------------------------------------
 
-The CFI-Care frontend successfully transforms complex medical data into an
-interactive and extensible visualization system. By combining structured
-dashboards with intelligent graph-based representations, the frontend supports
-both high-level clinical overview and detailed event analysis. The design and
-architecture established in this phase provide a strong foundation for the
-backend integration and advanced decision-support features.
-
+The CFI-Care frontend successfully transforms fragmented clinical data into a
+coherent, interactive medical information system. Through a carefully layered
+Angular architecture, a semantically rich visualisation engine combining
+Treeviz and D3.js, an OTP-based patient access workflow, a full AI-assisted
+clinical chat interface, and a practitioner scheduling system, the frontend
+addresses the complete spectrum of clinical interaction requirements. The
+dual-view Patient Journey Dashboard, with its categorical tree and
+chronological timeline, provides clinicians with both structural and temporal
+analytical perspectives from a single, seamlessly navigable interface. The
+built-in tutorial system, optimistic update strategy, dark mode support, and
+branch state management together reflect a commitment to usability, resilience,
+and clinical safety that underpins every design decision made during this phase
+of development.

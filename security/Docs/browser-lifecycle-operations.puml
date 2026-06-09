@@ -1,0 +1,59 @@
+@startuml Browser Operational Lifecycle and Revocation
+autonumber
+skinparam actorStyle AWESOME
+
+skinparam BoxPadding 10
+
+actor "Practitioner" as User
+participant "Angular Application" as UI
+participant "Nginx Gateway" as Nginx
+participant "oauth2-proxy" as Proxy
+participant "Node.js BFF" as BFF
+participant "Redis Cache" as Redis
+participant "Keycloak IdP" as KC
+participant "HAPI FHIR Server" as FHIR
+
+== 1. API Scoped Request & Silent Token Refresh ==
+User -> UI : Initiate Clinical Resource Access Request
+UI -> Nginx : GET the needed api endpoint
+Nginx -> Proxy : Evaluate Cookie Expiration
+
+alt Access Token Nearing Expiry Window
+    Proxy -> KC : POST /token (Execute Refresh via Refresh Token)
+    KC --> Proxy : Return Refreshed Token Cluster
+    Proxy -> Proxy : Re-encrypt Storage Context into Updated Cookie
+end
+
+Proxy -> Nginx : Inject Bearer Access Token Header
+Nginx -> BFF : Proxied Request + Bearer Token Context
+BFF -> BFF : Perform Consent & Scope Checks
+
+alt Capability Present in Memory Cache
+    BFF -> Redis : Query Patient Data Cache
+    Redis --> BFF : Return Valid Authorization Capability
+else Cache Miss / Direct Query Required
+    BFF -> FHIR : Forward Authorized Request
+    activate FHIR
+    FHIR --> BFF : Return Medical Record JSON
+    deactivate FHIR
+    BFF -> Redis : Persist Record inside Cache
+end
+
+BFF --> Nginx : Return Response Data
+Nginx --> UI : Forward Response
+UI -> User : Render Medical Data Interface View
+
+== 2. Multi-Tiered Synchronized Global Logout ==
+User -> UI : Trigger "Logout of All Devices"
+UI -> Nginx : POST /auth/logout-global
+Nginx -> Proxy : Clear Gateway Session Cookie
+Proxy -> Nginx : Clear-Cookie Instruction Headers
+Nginx -> BFF : Route Invalidation Hook Context
+BFF -> KC : POST /admin/realms/{realm}/users/{id}/logout
+KC --> BFF : User Sessions Invalidated
+BFF -> Redis : Flush Active Sessions ma User IDtching User ID
+BFF --> Nginx : Global Logout Resolved (200 OK)
+Nginx --> UI : Forward Acknowledgement
+' UI -> UI : Purge Client Cryptographic Buffers
+UI -> User : Redirect to authentication page
+@enduml
