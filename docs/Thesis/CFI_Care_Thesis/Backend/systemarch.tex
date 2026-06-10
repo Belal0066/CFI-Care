@@ -14,9 +14,13 @@ identity management.
 The application operates through a strict separation of concerns. The
 Presentation Layer is an Angular-based Single Page Application (SPA) that
 serves as the user interface. It does not communicate directly with the data
-stores. Instead, all client requests are intercepted by an Nginx Reverse Proxy,
-which handles SSL/TLS termination and routes traffic to the appropriate
-internal services.
+stores. Instead, all client requests are first intercepted by an Nginx Reverse Proxy,
+which handles SSL/TLS termination. Before any request reaches application
+logic, it passes through an OAuth2-Proxy layer that enforces OpenID Connect
+(OIDC) authentication against the Keycloak identity provider. Unauthenticated
+or unauthorized requests are rejected at this boundary without ever reaching
+the Node.js or FHIR layers. Authenticated requests are then routed to the
+appropriate internal services.
 
 The core of the backend processing is handled by the Node.js Application
 Server. This server acts as the primary API gateway, implementing business
@@ -28,10 +32,9 @@ session management are handled by Redis instances.
 
 \begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}[c][12cm]{\textwidth}
+    \fbox{\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
             \centering
-            % \vspace{5cm}
-            \includegraphics[width=0.95\textwidth]{Backend/Images/SystemArchitecture.drawio.png}
+            \includegraphics[width=\linewidth]{Backend/Images/SystemArchitecture.drawio.png}
         \end{minipage}}
     \caption{High-Level Container Architecture showing the interaction between the Nginx proxy, application services, and data persistence layers.}
     \label{fig:high_level_arch}
@@ -39,36 +42,81 @@ session management are handled by Redis instances.
 
 \subsection{Node.js Application Server}
 
-The Node.js server, built with the Express.js framework, serves as the
+The Node.js server, built with the Express.js 5.1.0 framework, serves as the
 middleware layer that bridges the gap between the user interface and the
 standardized medical records. It is designed with a modular layered
-architecture to ensure scalability and maintainability.
+architecture to ensure scalability and maintainability. The server accepts
+request bodies up to 60\,MB in size, accommodating binary document uploads
+alongside standard JSON payloads.
 
 \subsubsection{Middleware and Security}
 Upon receiving a request, the server passes it through a comprehensive
 middleware stack. Security headers are applied using Helmet to prevent common
 web vulnerabilities. Cross-Origin Resource Sharing (CORS) is configured to
-restrict access to authorized domains. Crucially, the server implements rate
-limiting to protect API endpoints from abuse and utilizes a Redis-backed
-session store to manage user authentication states efficiently.
+restrict access to authorized domains. The server implements per-IP rate
+limiting backed by Redis: authentication and logout endpoints allow up to
+5~requests per 10~minutes in production (100~in development), the registration
+endpoint permits 3~requests per hour in production (100~in development), and
+the general API allows 100~requests per 10~minutes in production (1000~in
+development). A Redis-backed session store manages user authentication states
+efficiently, with sessions expiring after one hour of inactivity. Multi-device
+session tracking is provided by a dedicated \texttt{userSessions} module that
+records active sessions per user, enabling per-device logout and concurrent
+session control.
 
 \subsubsection{Routing and Services}
-The application is divided into specific route modules corresponding to
-healthcare domains. Dedicated endpoints manage Patients, Practitioners,
-Encounters, and Episodes of Care. A specialized "History Graph" module handles
-the retrieval and processing of graph visualization data.
+The application exposes 25~route modules grouped by clinical domain, each
+following a controller--service--FHIR-proxy layered pattern. The FHIR resource modules cover the following 25 resource types:
+\begin{center}\small
+\begin{tabular}{lll}
+\texttt{patient} & \texttt{practitioner} & \texttt{practitionerRole} \\
+\texttt{encounter} & \texttt{episodeOfCare} & \texttt{condition} \\
+\texttt{observation} & \texttt{procedure} & \texttt{medicationRequest} \\
+\texttt{diagnosticReport} & \texttt{allergyIntolerance} & \texttt{immunization} \\
+\texttt{imagingStudy} & \texttt{documentReference} & \texttt{composition} \\
+\texttt{binary} & \texttt{appointment} & \texttt{schedule} \\
+\texttt{slot} & \texttt{organization} & \texttt{location} \\
+\texttt{healthcareService} & \texttt{device} & \texttt{relatedPerson} \\
+\texttt{historyGraph} & & \\
+\end{tabular}
+\end{center}
+Three additional route modules handle the consent and access-grant system:
+\begin{itemize}
+    \item \textbf{practitioner-grants} --- allows practitioners to query the
+          patients who have granted them access.
+    \item \textbf{caregiver-grants} --- provides caregivers a view of their
+          delegated patient relationships.
+    \item \textbf{patient-grants} --- lets patients review active grants and
+          revoke access at any time.
+\end{itemize}
+These modules integrate with \texttt{Grant\_Storage\_Redis.js}, which persists
+scoped access grants (\texttt{read}, \texttt{write}, or \texttt{*}) with
+configurable expiration. \texttt{Handshake\_storage\_redis.js} manages the OTP
+handshake state machine in the dedicated \texttt{redisotp} instance. The full JIT Consent protocol driving these endpoints is documented
+in the Security chapter. A \texttt{Caller\_Role\_resolver} service determines
+at runtime whether an authenticated caller is acting as a practitioner,
+caregiver, or patient, feeding the grant validation logic accordingly.
+Additional routes expose Firebase Cloud Messaging token registration, a
+Prometheus metrics endpoint, and authentication flows. Back-channel logout from
+Keycloak is handled by a dedicated route that tears down the server-side
+session when the identity provider initiates a global sign-out. Dynamic role
+assignment---such as elevating a user to the Caregiver role during a delegated
+consent flow---is performed at runtime by the \texttt{Role\_assignment} module
+against the Keycloak Admin API. A separate provisioning route handles new-user
+registration, mapping the Keycloak client identity to the correct FHIR resource
+type (Patient or Practitioner) on first login.
 
 Beneath the routing layer lies the service layer, which contains the core
 business logic. These services act as proxies to the FHIR server, transforming
-raw FHIR JSON into formats optimized for the frontend, such as the D3.js
-visualizations. They also handle document processing tasks, such as converting
-base64 strings to PDF files for binary storage.
+raw FHIR JSON into structured formats optimized for the frontend. They also
+handle document processing tasks, such as converting base64 strings to PDF
+files for binary storage.
 
 \begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}[c][12cm]{\textwidth}
+    \fbox{\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
             \centering
-            \includegraphics[width=0.95\textwidth]{Backend/Images/InternalNodeJsArch.png}
+            \includegraphics[width=\linewidth]{Backend/Images/InternalNodeJsArch.png}
         \end{minipage}}
     \caption{Internal layered architecture of the Node.js Application Server, detailing the middleware stack and service distribution.}
     \label{fig:nodejs_layers}
@@ -80,9 +128,10 @@ The system utilizes a polyglot persistence strategy, employing different
 database technologies for specific use cases to maximize performance.
 
 \subsubsection{Relational Data}
-The primary storage engine is PostgreSQL. It is divided into two logical
+The primary storage engine is PostgreSQL, hosted on Neon.tech (a
+cloud-hosted PostgreSQL service, region eu-central-1). It is divided into two logical
 segments. The first segment supports the HAPI FHIR server, storing all standard
-clinical resources (like Patients and Observations) in a highly structured
+clinical resources (such as Patients and Observations) in a highly structured
 format managed by Hibernate. The second segment supports the Keycloak identity
 provider, storing user credentials and realm configurations.
 
@@ -94,17 +143,26 @@ system to map standard FHIR Encounters into a Directed Acyclic Graph (DAG),
 enabling the visualization of a patient's journey through time with causal
 links between medical events.
 
-\subsubsection{Caching and Auditing}
-Redis is utilized for ephemeral data storage. One instance is dedicated to
-storing user sessions, ensuring fast authentication checks. A second Redis
-instance operates in Append-Only File (AOF) mode to store audit logs, providing
-a persistent and high-speed trail of system activities.
+\subsubsection{Caching, Sessions, and Auditing}
+Redis is deployed as four independent stores. The first instance
+(\texttt{redisStore}) backs the Express session store and acts as the general
+FHIR resource cache, serving the \texttt{cacheHelper} middleware with a uniform
+60-second TTL across all resource types. The second instance
+(\texttt{redisAudit}) operates in Append-Only File (AOF) mode with
+\texttt{appendfsync everysec}, providing a persistent audit trail of all
+security events including logins, grant issuances, and access-denied decisions,
+retained for 90~days. The third instance (\texttt{redisotp}), also in AOF mode,
+is dedicated exclusively to OTP codes and handshake state during the JIT
+consent workflow, keeping consent data isolated from session and audit traffic.
+A fourth, externally hosted Redis Cloud instance (RedisLabs) is used as a
+patient-data cache, isolated from the Docker network and providing geographic
+redundancy for read-heavy patient record queries.
 
 \begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}[c][12cm]{\textwidth}
+    \fbox{\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
             \centering
-            \includegraphics[width=1\textwidth]{Backend/Images/PatientsDatabaseSchema.png}
+            \includegraphics[width=\linewidth]{Backend/Images/PatientsDatabaseSchema.png}
         \end{minipage}}
     \caption{Entity-Relationship Diagram (ERD) illustrating the integration of custom graph tables with the standard FHIR resource table.}
     \label{fig:database_schema}
@@ -120,26 +178,30 @@ specific functionality: authentication verification, input validation, business
 logic execution, data transformation, and response formatting.
 
 \subsubsection{Request Ingress and Authentication}
-A request originates from the Angular frontend as an HTTPS request, typically
-including a Bearer token in the Authorization header. The request first reaches
-the Nginx reverse proxy, which acts as the external-facing gateway. Nginx
-terminates the TLS/SSL connection, decrypts the HTTPS payload, and forwards the
-unencrypted request to the Node.js server over the private Docker network.
-Before the request reaches application logic, it passes through the Helmet
-middleware, which applies security headers to prevent common web
-vulnerabilities such as XSS (Cross-Site Scripting), CSRF (Cross-Site Request
-Forgery), and clickjacking. The CORS middleware then validates that the request
-originates from an authorized frontend domain; requests from unauthorized
-origins are rejected immediately.
+A request originates from the Angular frontend or mobile application as an
+HTTPS request. The request first reaches the Nginx reverse proxy, which acts
+as the external-facing gateway. Nginx terminates the TLS/SSL connection,
+decrypts the HTTPS payload, and forwards the request to the OAuth2-Proxy
+layer over the private Docker network.
 
-The next critical middleware validates the JWT token embedded in the
-Authorization header. The Node.js server maintains a cached set of public keys
-(JWKS) from Keycloak, updated periodically to handle key rotations. The token
-is cryptographically verified against these keys. If verification succeeds, the
-token claims (user ID, roles, permissions) are extracted and attached to the
-request context. If verification fails---due to an invalid signature, expired
-token, or missing token---the middleware returns a 401 Unauthorized response,
-and the request is rejected before reaching downstream services.
+The OAuth2-Proxy is the primary authentication gatekeeper of the system. It
+validates the OIDC session or Bearer token against Keycloak's published public
+key set (JWKS), handling token introspection and session cookie management. If
+the request carries no valid session or token, OAuth2-Proxy returns a
+\texttt{401 Unauthorized} response directly, without the request ever
+reaching the Node.js server. Only requests that pass this OIDC enforcement
+layer are forwarded upstream to the Node.js application.
+
+Once a request reaches Node.js, it passes through the application middleware
+stack. The Helmet middleware applies security headers to prevent common web
+vulnerabilities such as XSS (Cross-Site Scripting), CSRF (Cross-Site Request
+Forgery), and clickjacking. The CORS middleware validates that the request
+originates from an authorized frontend domain; requests from unauthorized
+origins are rejected immediately. The Node.js layer then performs its own
+role and scope validation: the token claims (user ID, roles, permissions)
+passed through by OAuth2-Proxy are verified against resource-level access
+control rules, enforcing \ac{RBAC} and consent-grant policies before any
+business logic executes.
 
 \subsubsection{Concrete Example: Patient Data Retrieval}
 Consider a clinician's request to retrieve a patient's full medical history.
@@ -152,12 +214,13 @@ system design), and the authenticated user's roles are verified to confirm they
 have permission to access that patient's data (enforcing \ac{HIPAA} privacy
 principles).
 
-Before querying the database, the controller checks the Tier 1 cache (managed
-by cacheHelper). The middleware generates a deterministic cache key from the
-request URL: \texttt{cache:patients:patientId:\{id\}}. If a valid cache entry
-exists, the cached patient data is immediately returned with a 200 OK response,
+Before querying the database, the controller checks the Redis cache (managed by
+the \texttt{cacheHelper} middleware). The middleware generates a deterministic
+cache key from the request URL and patient scope, for example
+\texttt{patient:\{id\}}. If a valid cache entry exists (TTL not yet elapsed),
+the cached patient data is immediately returned with a 200 OK response,
 bypassing all downstream processing. This cache hit path typically completes in
-20-50 milliseconds.
+20--50 milliseconds.
 
 If a cache miss occurs, the request proceeds to the PatientService layer. The
 service constructs a FHIR query and forwards it to the HAPI FHIR server via an
@@ -170,15 +233,15 @@ The PatientService receives the FHIR response and performs transformation
 operations: extracting relevant fields, formatting dates to match frontend
 expectations, computing derived values (e.g., age from birthdate), and
 sanitizing sensitive information if necessary. The transformed data is then
-stored in the Redis cache with a 1-hour TTL for future requests. Finally, the
-response is serialized to JSON and returned to the frontend with a 200 OK
-status code and appropriate cache headers to guide browser-side caching.
+stored in the Redis cache with a 60-second TTL for future requests. Finally,
+the response is serialized to JSON and returned to the frontend with a 200 OK
+status code.
 
 \begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}[c][14cm]{\textwidth}
+    \fbox{\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
             \centering
-            \includegraphics[width=1\textwidth]{Backend/Images/seqDiagram1.png}
+            \includegraphics[width=\linewidth]{Backend/Images/seqDiagram1.png}
             % \vspace{6cm}
             % \textbf{FIGURE INSTRUCTION:} \\
             % \textit{Create a Request/Response Flow Sequence Diagram for Patient Data Retrieval.} \\
@@ -235,11 +298,14 @@ rules and temporal windows, and creates appropriate edges in the
 node\_relations table. This graph construction may take several hundred
 milliseconds to several seconds depending on the patient's history size.
 
-Concurrently, multiple cache entries are invalidated. The patient-specific Tier
-2 graph cache is cleared immediately, ensuring that the next graph
-visualization request triggers a fresh reconstruction. The Tier 1 cache entry
-for the \texttt{/api/patients/\{patientId\}} endpoint is also invalidated,
-forcing a fresh FHIR server query for updated patient data.
+Concurrently, all cache entries scoped to the affected patient are invalidated
+from Redis, ensuring the next read of any of these resources triggers a fresh
+server query rather than returning stale data:
+\begin{itemize}
+  \item \texttt{patient:\{patientId\}}
+  \item \texttt{encounters:patient:\{patientId\}}
+  \item \texttt{historyGraph:patient:\{patientId\}:*}
+\end{itemize}
 
 Finally, the EncounterService returns the newly created encounter resource to
 the frontend with a 201 Created status code. The response includes the
@@ -248,9 +314,9 @@ in subsequent requests.
 
 \begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}[c][16cm]{\textwidth}
+    \fbox{\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
             \centering
-            \includegraphics[width=0.3\textwidth]{Backend/Images/seqDiagram2.png}
+            \includegraphics[width=0.9\linewidth]{Backend/Images/seqDiagram2.png}
             % \vspace{7cm}
             % \textbf{FIGURE INSTRUCTION:} \\
             % \textit{Create an Encounter Creation and Graph Update Flow Diagram.} \\
@@ -414,14 +480,24 @@ impact clinicians' ability to deliver care.
 
 \subsection{Security and Infrastructure Layer}
 
-The infrastructure is secured through a centralized Identity and Access
-Management (IAM) system using Keycloak. Keycloak handles all OAuth 2.0 and
-OpenID Connect flows, issuing JSON Web Tokens (JWT) that the Node.js backend
-validates against a public key set (JWKS).
+The infrastructure is secured through a layered identity and access management
+stack. Keycloak serves as the central Identity Provider (IdP), managing all
+OAuth~2.0 and OpenID Connect (OIDC) flows, issuing signed JSON Web Tokens
+(JWT) for authenticated sessions, and maintaining realm, client, and role
+configurations for the CFI-Care realm.
+
+Sitting between Nginx and all upstream application services is an OAuth2-Proxy
+instance. OAuth2-Proxy acts as the enforcement point for OIDC authentication:
+every inbound request is validated against Keycloak's JWKS endpoint before
+it reaches the Node.js or FHIR layers. This architectural placement means that
+unauthenticated requests are rejected at the network edge without consuming
+any application-tier resources. OAuth2-Proxy also manages session cookies and
+token refresh flows, relieving the application layer of low-level OIDC
+plumbing.
 
 All components are containerized using Docker and orchestrated via Docker
 Compose. The environment is isolated within a private bridge network, with
-Nginx acting as the sole entry point. Nginx enforces SSL/TLS encryption using
-locally generated certificates, ensuring that all data in transit is encrypted.
-Containers are configured with read-only file system mounts and strict
-privilege limitations to minimize the security attack surface.
+Nginx acting as the sole external entry point. Nginx enforces SSL/TLS
+encryption using locally generated certificates, ensuring that all data in
+transit is encrypted. Containers are configured with strict privilege
+limitations to minimize the security attack surface.

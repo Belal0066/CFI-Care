@@ -66,7 +66,7 @@ resets previously selected dates to prevent invalid slots.
 \end{itemize}
 
 \begin{verbatim}
-// Code Snippet: Verifying Booking Reset Logic (booking_provider_test.dart)
+// Verifying Booking Reset Logic (booking_provider_test.dart)
 test('Selecting a doctor should reset Date and Time', () {
   // Arrange: Set a date first
   provider.setTimeSlot(DateTime(2026, 1, 1), '10:00 AM');
@@ -86,7 +86,10 @@ This module interacts with native platform channels (File Picker, Image
 Picker). Testing it requires intercepting these platform calls.
 \begin{itemize}
     \item \textbf{Validation Logic:} We verified that the \texttt{isValid} getter returns \texttt{false} unless both a "Title" and a "File" are present, preventing users from submitting incomplete forms.
-    \item \textbf{Platform Mocking:} Since Unit Tests run on a computer (not a phone), calls to \texttt{getApplicationDocumentsDirectory} would normally crash. We used \texttt{MethodChannel} mocking to intercept these calls and return a temporary directory on the test machine.
+    \item \textbf{Platform Mocking:} Since Unit Tests run on a computer (not a phone), calls to
+    \texttt{getApplicationDocumentsDirectory} would normally crash.\newline
+    We used \texttt{MethodChannel} mocking to intercept these calls and return a
+    temporary directory on the test machine.
 \end{itemize}
 
 \subsubsection{Medical History Timeline (MajorEventProvider)}
@@ -98,7 +101,7 @@ sub-nodes.
 \end{itemize}
 
 \begin{verbatim}
-// Code Snippet: Mocking Repository Responses (major_event_provider_test.dart)
+// Mocking Repository Responses (major_event_provider_test.dart)
 test('fetchEvents success updates list and loading state', () async {
   // Arrange: Stub the repo to return a dummy list immediately
   when(mockRepo.getMajorEvents())
