@@ -20,11 +20,11 @@ This pipeline ensures that only validated requests with appropriate scopes are p
 \end{itemize}
 
 
-The enforcement of this multi-tiered middleware hierarchy guarantees that malformed inputs or missing credential headers are caught. 
+The enforcement of this multi-tiered middleware hierarchy guarantees that malformed inputs or missing credential headers are caught.
 This behavior was mapped via negative testing sequences \texttt{SEC-API-001} through \texttt{SEC-API-011}, proving structural verification resilience against forged tokens (see Section~\ref{sec:testing_results}).
 Furthermore, live request manipulations intercepted via Burpsuite confirmed active perimeter isolation (Fig~\ref{fig:burp-cookie-auth})
 
-\subsection{\ac{CBAC}}
+\subsection{\texorpdfstring{\ac{CBAC}}{CBAC}}
 Unlike role-based permissions which are stored in a central directory, a capability is a key that bundles the resource address and the permitted operations into a single unit stored in the system.
 While RBAC is used for basic application navigation, the actual access to medical data is Capability-Based, 
 % Meaning, holding a specific role isn't enough to access specific sources, a Capability must be obtained first, 
@@ -35,7 +35,7 @@ access is mediated via the acquisition of an ephemeral Capability Token,
 as detailed in the JIT Consent protocol (Section \ref{sec:JIT})
 
 
-\subsection{The \ac{JIT} Consent Handshake Protocol}\label{sec:JIT}
+\subsection{The \texorpdfstring{\ac{JIT}}{JIT} Consent Handshake Protocol}\label{sec:JIT}
 \subsubsection{Concept: Separating Identity from Intent}
 
 The JIT protocol enforces a strict Separation of Concerns: Keycloak handles Authentication (Identity Verification) and Role Mapping (RBAC), 
@@ -93,9 +93,14 @@ To implement the JIT Consent Handshake Protocol and manage the complete lifecycl
 the system exposes structured routers in the backend, listed in detail here \ref{tab:api-matrix}. 
 These endpoints -like all API endpoints- are strictly protected by token verification middleware.
 
-% \begin{center}
-\begin{longtable}{|p{4.8cm}|p{2cm}|p{2.8cm}|p{4.5cm}|}
+\begin{center}
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{|p{5cm}|p{2.2cm}|p{3.2cm}|p{3.9cm}|}
 \caption{API Endpoints used for the protocol} \label{tab:api-matrix} \\
+\hline
+\textbf{Endpoint \& Method} & \textbf{Actor} & \textbf{Payload Parameters} & \textbf{Primary Action} \\ \hline
+\endfirsthead
+\multicolumn{4}{l}{\tablename~\thetable{} \textit{(continued)}} \\
 \hline
 \textbf{Endpoint \& Method} & \textbf{Actor} & \textbf{Payload Parameters} & \textbf{Primary Action} \\ \hline
 \endhead
@@ -137,7 +142,7 @@ Queries active transaction states, automatically prunes expired identifiers from
 \texttt{GET /api/handshakes/} \newline \texttt{status/:handshakeId} & 
 Practitioner \newline / Caregiver & 
 \texttt{handshakeId} (Param) \newline \texttt{patientId} (Query) & 
-Evaluates polling state transitions (Pending/Approved/Expired). \\ \hline
+Evaluates polling state transitions (Pending, Approved, or Expired). \\ \hline
 
 \hline
 \multicolumn{4}{|l|}{\textbf{2. Patient Access Delegation Control}} \\ \hline
@@ -174,9 +179,9 @@ Queries active delegated profiles out of the \ac{FHIR} server, drops expired gra
 Patient & 
 \texttt{\{fcmToken\}} & 
 Binds individual devices to matching user contexts in the backend. \\ \hline
-
 \end{longtable}
-% \end{center}
+\setlength{\tabcolsep}{6pt}
+\end{center}
 % \label{tab:api-matrix}
 
 The structural logic governing OTP lifespans was evaluated across 15 unit tests (\texttt{HANDSHAKE-001} to \texttt{HANDSHAKE-014}), this automated verification proved that cross-patient transaction hijacking variants are successfully trapped and audited, these tests are described at section~\ref{sec:logical-sec-testing-coverage}.
@@ -197,7 +202,7 @@ The verification of the OTP is an atomic operation -as displayed in the followin
 \subsubsection{State Transition and Key Lifecycle}
 The security of the handshake is maintained by transitioning through specific states in the high-performance cache, as outlined in Table \ref{tab:redis-states}.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \begin{tabular}{|l|l|l|l|}
 \hline
@@ -212,7 +217,7 @@ Final Grant & \texttt{grant:\{type\}:\{reqId\}:\{patId\}} & Variable & JIT Autho
 
 
 
-\subsection{Dynamic \ac{JIT} Consent \& Capability-Based Access Lifecycle}\label{sec:JIT}
+\subsection{Dynamic \texorpdfstring{\ac{JIT}}{JIT} Consent \& Capability-Based Access Lifecycle}\label{sec:JIT-lifecycle}
 
 A core innovation of the CFI-Care platform is the dynamic consent model, 
 allowing patients to delegate temporary access to their caregivers or practitioners. 

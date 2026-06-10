@@ -136,4 +136,53 @@ feat(auth): add Keycloak-based RBAC
 * Configure billing alerts and quotas for cloud resources.
 * Keep PRs small and focused (1 feature/bug per PR).
 
+---
+## 🔹 Git-Crypt
+
+we use `git-crypt` to secure sensitive environment variables. Secrets are encrypted using GPG asymmetric keys (mmkn azwed symmetic key yb2a fallback option)
+
+---
+
+#### **For Windows Users**
+
+1. Download `git-crypt.exe` from [oholovko/git-crypt-windows](https://github.com/oholovko/git-crypt-windows/releases).
+2. Add the `.exe` to your system: C:\Program Files\Git\cmd
+3. Install [Gpg4win](https://gpg4win.org/) to manage GPG keys.
+4. Open Kleopatra GUI, File → New OpenPGP Key Pair
+5. Use your GitHub email and a passphrase (ay 7aga teftkerha)
+6. Export it (yourname_public.asc file)
+7. *Send `userid_public.asc` to the Project Admin (ana 3ady).*
+
+#### **For Linux Engineers**
+
+```bash
+sudo apt update && sudo apt install git-crypt gpg -y
+# Generate key
+gpg --full-generate-key
+# Export
+gpg --export -a "your-email@example.com" > yourname_public.asc
+```
+
+---
+
+
+## Unlocking the Repo
+```bash
+git pull
+
+git-crypt unlock
+
+```
+
+
+*Your `.env` file is now decrypted locally and ready for use.*
+
+
+---
+
+## ⚠️ Important Rules
+
+* **Never** add `.env` to `.gitignore`. Git-crypt needs to track the file to encrypt it.
+* **Verify Encryption:** Run `git-crypt status` before pushing. It should say `encrypted: .env`.
+* **Locking:** To re-encrypt files on disk (for security checks wla 7aga), run `git-crypt lock`.
 

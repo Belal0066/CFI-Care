@@ -1,0 +1,14 @@
+# node:20-alpine
+FROM node@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c
+
+WORKDIR /app
+
+COPY src/package*.json ./
+
+RUN npm install
+
+COPY src/ ./
+
+EXPOSE 4200
+
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0"]

@@ -1,0 +1,226 @@
+.page-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.page-header { margin-bottom: 24px; }
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.page-desc {
+  font-size: 13px;
+  color: #666;
+}
+
+/* States */
+.loading-state, .error-state, .empty-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #555;
+  background: #f7f9fc;
+  border: 1px solid #e0e7ef;
+}
+
+.error-state { color: #c0392b; background: #fdecea; border-color: #f5c6c6; }
+
+.empty-state {
+  flex-direction: column;
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 15px;
+}
+
+.empty-state i { font-size: 36px; color: #1E6ED3; margin-bottom: 8px; }
+
+.btn-retry {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #c0392b;
+  color: #c0392b;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Request list */
+.request-list { display: flex; flex-direction: column; gap: 16px; }
+
+.request-card {
+  background: #fff;
+  border: 1px solid #dde3ec;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Done banners */
+.done-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.done-banner.approved { background: #e8f5e9; color: #2e7d32; }
+.done-banner.denied   { background: #fdecea; color: #c0392b; }
+
+/* Card header */
+.card-header-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  background: #ddeaf9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E6ED3;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.practitioner-id {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 2px;
+  font-family: monospace;
+}
+
+.request-time { font-size: 12px; color: #888; margin: 0; }
+
+/* Duration */
+.duration-row { margin-bottom: 18px; }
+
+.duration-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.duration-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-duration {
+  background: #f1f4f8;
+  border: 1px solid #dde3ec;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #2e2e2e;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-duration:hover { background: #ddeaf9; border-color: #1E6ED3; color: #1E6ED3; }
+
+.duration-input {
+  width: 72px;
+  border: 1px solid #dde3ec;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  color: #2e2e2e;
+}
+
+.duration-input:focus { border-color: #1E6ED3; }
+
+.duration-unit { font-size: 12px; color: #888; }
+
+/* Actions */
+.action-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-deny {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid #e53e3e;
+  color: #e53e3e;
+  border-radius: 9px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-deny:hover:not(:disabled) { background: #fdecea; }
+.btn-deny:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-approve {
+  flex: 2;
+  background: #1E6ED3;
+  border: none;
+  color: #fff;
+  border-radius: 9px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-approve:hover:not(:disabled) { background: #1558b0; }
+.btn-approve:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Spinners */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid #1E6ED3;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+.spinner-sm {
+  width: 12px; height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
