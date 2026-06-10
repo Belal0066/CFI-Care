@@ -573,7 +573,7 @@ The system defines four distinct event types, each triggering a different UI res
 \centering
 \caption{Notification Events and Actions}
 \label{tab:notification_events}
-\begin{tabular}{|l|l|l|p{6cm}|}
+\begin{tabular}{|p{2.5cm}|p{3.8cm}|p{2.2cm}|p{5.5cm}|}
 \hline
 \textbf{Event Type} & \textbf{Trigger} & \textbf{Recipient} & \textbf{Action} \\ \hline
 grant\_request & Doctor submits patient's OTP & Patient & Orange snackbar and refresh pending doctor requests \\ \hline
@@ -604,7 +604,7 @@ The notification subsystem supports three application states:
 \centering
 \caption{Notification Handling by Application State}
 \label{tab:notification_states}
-\begin{tabular}{|l|l|p{5cm}|}
+\begin{tabular}{|p{2.8cm}|p{7cm}|p{4cm}|}
 \hline
 \textbf{Application State} & \textbf{Handler} & \textbf{Purpose} \\ \hline
 Foreground & \texttt{FirebaseMessaging.onMessage.listen()} & Display snackbars and refresh providers \\ \hline
