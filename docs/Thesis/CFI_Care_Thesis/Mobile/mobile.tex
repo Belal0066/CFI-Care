@@ -573,7 +573,7 @@ The system defines four distinct event types, each triggering a different UI res
 \centering
 \caption{Notification Events and Actions}
 \label{tab:notification_events}
-\begin{tabular}{|p{2.5cm}|p{3.8cm}|p{2.2cm}|p{5.5cm}|}
+\begin{tabular}{|l|l|l|p{6cm}|}
 \hline
 \textbf{Event Type} & \textbf{Trigger} & \textbf{Recipient} & \textbf{Action} \\ \hline
 grant\_request & Doctor submits patient's OTP & Patient & Orange snackbar and refresh pending doctor requests \\ \hline
@@ -600,16 +600,26 @@ If a caregiver updates the patient's data, a notification is sent to the patient
 
 \subsubsection{Application State Signal Handlers}
 The notification subsystem supports three application states:
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Notification Handling by Application State}
 \label{tab:notification_states}
-\begin{tabular}{|p{2.8cm}|p{7cm}|p{4cm}|}
+\begin{tabular}{|l|l|p{3cm}|}
 \hline
-\textbf{Application State} & \textbf{Handler} & \textbf{Purpose} \\ \hline
-Foreground & \texttt{FirebaseMessaging.onMessage.listen()} & Display snackbars and refresh providers \\ \hline
-Background & \texttt{FirebaseMessaging.onMessageOpenedApp.listen()} & Handle notification tap events \\ \hline
-Terminated & \texttt{getInitialMessage()} & Process notifications after application launch \\ \hline
+\textbf{Application State} & \textbf{Handler} & \textbf{Purpose} \\
+\hline
+Foreground &
+\texttt{FirebaseMessaging.onMessage.listen()} &
+Display snackbars and refresh providers \\
+\hline
+Background &
+\texttt{FirebaseMessaging.onMessageOpenedApp.listen()} &
+Handle notification tap events \\
+\hline
+Terminated &
+\texttt{getInitialMessage()} &
+Process notifications after application launch \\
+\hline
 \end{tabular}
 \end{table}
 Background and terminated notification flows share a common message handler responsible for refreshing application state after the user opens the notification.
@@ -646,180 +656,5 @@ External stakeholders are the primary users of the system. Their interaction dri
     \item \textbf{System Benefits:} Instant graph parsing accelerates diagnostic insight discovery, removing classic informational overhead when treating incoming clinical cases.
 \end{itemize}
 
-\subsubsection{Internal Stakeholders}
-Internal stakeholders are responsible for the technical construction,
-maintenance, and security of the platform.
-
-\paragraph{1.Developers}
-% \newline
-\textbf{Interaction:}
-\begin{itemize}
-    \item \textbf{Frontend Implementation:} Responsible for building the cross-platform mobile interface using the Flutter framework.
-    \item \textbf{API Integration:} They implement the communication layer that sends authentication requests and data queries to the backend.
-    \item \textbf{UX/UI Design:} They translate the complex "Medical History Tree" concept into a user-friendly mobile timeline.
-          % \end{itemize}
-          % % \textbf{Interaction:}
-          % \begin{itemize}
-    \item \textbf{Authentication Flow:} They manage the identity management integration. The Flutter app sends credentials to the Node.js backend, which acts as an intermediary to communicate with \textbf{Keycloak} for secure Single Sign-On (SSO) and token validation.
-    \item \textbf{Data Orchestration:} They maintain the Node.js middleware that fetches data from the \textbf{FHIR Server} and formats it for the mobile client.
-    \item \textbf{Standardization:} They ensure that all medical data stored and retrieved adheres to HL7 FHIR standards for interoperability.
-\end{itemize}
-
-\section{System Sequence Diagram}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\textwidth]{Mobile/Images/Sequence_family_patient.png}
-    \caption{Sequence Diagram for Mobile Application}
-    \label{fig:Sequence Diagram for Mobile Application}
-\end{figure}
-\section{System Requirements Specification}
-The requirements for an application can be divided into three categories:
-functional requirements, non-functional requirements, and optional
-requirements. In this section all 3 requirements will be discussed.
-
-\subsection{Functional Requirements}
-The functional requirements define the specific behaviors and functions of the
-mobile application.
-
-\subsubsection{Patient Capabilities}
-\begin{itemize}
-    \item \textbf{FR-01 Document Management:} The system shall allow patients to upload, categorize, and tag medical documents (e.g., Lab Results, Radiography) into their personal repository.
-    \item \textbf{FR-02 History Visualization:} The application shall present medical history as a "Major Events" timeline. Each event must be expandable to reveal detailed encounter notes and attached files.
-    \item \textbf{FR-03 Access Control Management:}
-          \begin{itemize}
-              \item The system shall notify patients of incoming access requests from doctors.
-              \item Patients shall be able to grant \textit{Read-Only} or \textit{Read-Write}
-                    permissions.
-              \item Patients shall be able to define the duration of access and revoke permissions
-                    immediately at any time.
-          \end{itemize}
-\end{itemize}
-
-\subsubsection{Family \& Caregiver Capabilities}
-\begin{itemize}
-    \item \textbf{FR-04 Monitoring Dashboard:} Authorized family members shall have a read-only view of the patient’s medical timeline to monitor health trends.
-    \item \textbf{FR-05 Proxy Booking:} Unlike doctors, family members shall have the authority to search for providers and schedule appointments on behalf of the patient.
-\end{itemize}
-
-\subsection{Non-Functional Requirements}
-\begin{itemize}
-    % \item \textbf{NFR-01 Security \& Privacy:} All Protected Health Information (PHI) must be encrypted in transit and at rest. Authentication shall be handled via Keycloak OIDC (OpenID Connect) to ensure secure session management.
-    \item \textbf{NFR-01 Interoperability:} The application must parse and render data compliant with HL7 FHIR standards to ensure seamless integration with the Node.js backend.
-          % \item \textbf{NFR-02 Localization:} To serve the local demographic, the interface must fully support Arabic (RTL) and English (LTR) languages.
-    \item \textbf{NFR-02 Performance:} The medical history timeline uses "Lazy Loading" to ensure the application remains responsive even for patients with extensive medical records.
-\end{itemize}
-
-\subsection{Optional Requirements (Future Scope)}
-\begin{itemize}
-    \item \textbf{OR-01 Medication Adherence System:} Automated push notifications to remind patients of medication schedules derived from their prescriptions.
-    \item \textbf{OR-02 Wearable Device Sync:} Integration with native health APIs (Google Fit / Apple Health) to import real-time vitals like heart rate and step count.
-\end{itemize}
-% \section{Use Cases}
-% \subsection{Recent Documents and save documents}
-% \subsection{SignIn and SignUp pages:}
-% \subsection{Notifications from doctors to access}
-% notification from family members to access
-% \subsection{book appointments}
-\section{Use Cases}
-This section describes the primary interactions between the users (Actors) and
-the mobile application system.
-
-\subsection{SignIn and SignUp Pages}
-\textbf{Actors:} Patient, Family Member \\
-\textbf{Description:} The entry point for identifying users and securing the session. Given the sensitive nature of medical data, this process integrates with Keycloak for secure identity management.
-\begin{itemize}
-    \item \textbf{Sign Up:} New users register by providing personal details (Name, National ID, Email) and creating a secure password. The system creates a new FHIR Patient resource on the backend upon successful registration.
-    \item \textbf{Sign In:} Registered users authenticate using their credentials. Upon success, the app retrieves a secure access token to authorize subsequent API requests.
-\end{itemize}
-
-\subsection{Document Management}
-Figure \ref{fig:Documents Management Use Case} illustrates the patient's
-interactions with their personal medical history data.
-\begin{enumerate}
-    \item \textbf{View Document List:} The user requests to see their existing medical files. This action requires the system to query the database using the user's secure authentication token.
-    \item \textbf{Upload Document:} The user adds new records to their profile. This involves selecting a file and assigning title.
-    \item \textbf{Scan Document:} The user adds scans new records to their profile. This involves giving camera permission and scan the file and assigning title. Scanned Documents can be accessed through file manager in the phone.
-    \item \textbf{Refresh List:} Upon a successful upload, the system automatically triggers a refresh of the document view to reflect the new entry immediately.
-\end{enumerate}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width= 1\textwidth]{Mobile/Images/Document_manager_usecase.png}
-    \caption{Documents Management Use Case}
-    \label{fig:Documents Management Use Case}
-\end{figure}
-\subsection{Medical History Navigation}
-Figure \ref{fig:History Navigation Use Case} illustrates how a patient can
-navigation to explore a their medical history.
-\begin{enumerate}
-    \item \textbf{View Major Events (Dashboard):} The entry point where the patient views high-level summaries of their active medical contexts (e.g., Cardiac Workup).
-          \begin{figure}[H]
-              \centering
-              \includegraphics[width=0.3\textwidth]{Mobile/Images/Home Page.jpeg}
-              \caption{Major Events}
-              \label{fig:Major Events}
-          \end{figure}
-    \item \textbf{View Event Nodes:} By selecting a specific major event, the user extends their interaction to view a chronological list of related encounters (the "Nodes").
-          \begin{figure}[H]
-              \centering
-              \includegraphics[width=0.3\textwidth]{Mobile/Images/Node_list.jpeg}
-              \caption{List of Nodes}
-              \label{fig:List of Nodes}
-          \end{figure}
-    \item \textbf{View Encounter Details:} Selecting a specific node allows the user to inspect the full clinical details of that visit.
-    \item \textbf{View Attached Documents:} Within the details view, the user can optionally retrieve and view specific medical files (PDFs/Images) associated with that encounter.
-          \begin{figure}[H]
-              \centering
-              \includegraphics[width=0.3\textwidth]{Mobile/Images/node_details.jpeg}
-              \caption{Node Details}
-              \label{fig:Node Details}
-          \end{figure}
-\end{enumerate}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\textwidth]{Mobile/Images/medical_hirstory_usecase.png}
-    \caption{History Navigation Use Case}
-    \label{fig:History Navigation Use Case}
-\end{figure}
-
-% \subsection{Access Control Notifications}
-% \textbf{Actors:} Patient, Doctor (Trigger), Family Member (Trigger) \\
-% \textbf{Description:} The core collaborative feature where the patient manages who can view their data.
-% \begin{itemize}
-%     \item \textbf{Doctor Access Request:} When a doctor initiates a request via the Web Interface, the patient receives a real-time push notification. The patient can tap the notification to view the doctor's profile and choose to \textit{Approve} (setting a duration and permission level) or \textit{Deny} the request.
-%     \item \textbf{Family Access Invite:} A family member can request to follow a patient, or a patient can send an invite. The patient must explicitly confirm this relationship to allow the family member to view their "Major Events" timeline.
-% \end{itemize}
-\subsection{Appointment Booking}
-Figure \ref{fig:Booking Appointments Usecase} depicts the functional
-capabilities available to the Patient during the scheduling process.
-\begin{enumerate}
-    \item \textbf{Core Functionality:} The primary goal is the \textit{Book Appointment} use case. To complete this, the system mandates several included steps: searching for a specialist, selecting a valid time slot, and confirming the details.
-    \item \textbf{Optional Extension:} The \textit{Attach Documents} use case is modeled as an extension. It is not required to complete a booking but provides optional value (sending scans/PDFs) upon successful completion.
-    \item \textbf{Actors:} The \textit{Patient} is the primary initiator. The \textit{Family Member} also inherits these capabilities, allowing them to perform the same actions on behalf of the patient.
-\end{enumerate}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{Mobile/Images/use_case_book_appointments.png}
-    \caption{Booking Appointments Usecase}
-    \label{fig:Booking Appointments Usecase}
-\end{figure}
-
-% % \section{Sequence Diagram: Access Control and Permissions}
-% % Figure \ref{fig:access_control_sequence} details the asynchronous communication flow for managing data privacy.
-% % \begin{enumerate}
-% %     \item \textbf{Doctor Request Flow:} The process begins externally when a doctor requests access via the Web Interface. The Backend triggers a push notification service (e.g., Firebase) to alert the patient. The patient then retrieves the doctor's profile and submits a structured permission object (Scope + Duration).
-% %     \item \textbf{Family Linking Flow:} Similar to the doctor's request, a family member initiates a "Follow Request." The patient must explicitly confirm the relationship to authorize the read-only monitoring view.
-% % \end{enumerate}
-\section{My Profile Update}
-Figure \ref{fig:My Profile Use Case} details the data consistency mechanism.
-\begin{enumerate}
-    \item \textbf{Local Commit:} When the user saves changes, the application first updates the local SQLite database. This ensures the user interface is responsive and works even with poor internet connectivity.
-    \item \textbf{Remote Synchronization:} Immediately following the local commit, the application initiates an asynchronous API call to update the backend server.
-    \item \textbf{Consistency Check:} Upon a successful server response, the application confirms the synchronization status, ensuring the patient's data is consistent across all platforms.
-\end{enumerate}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\textwidth]{Mobile/Images/My-Profile-usecase.png}
-    \caption{My Profile Use Case}
-    \label{fig:My Profile Use Case}
-\end{figure}
+\subsubsection{Internal Engineering Stakeholders}
+Internal stakeholders are responsible for the technical construction, maintenance, and security of the platform.
