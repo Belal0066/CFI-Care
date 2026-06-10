@@ -1,0 +1,131 @@
+services:
+
+  # nodejs-vault-agent:
+  #   image: hashicorp/vault:1.21.2
+  #   env_file:
+  #     - ./.env.vault
+  #   command: vault agent -config=/etc/vault/agent/nodejs-agent.hcl
+  #   volumes:
+  #     - ../../../security/Containers/services/nodejs/vault/agent:/etc/vault/agent:ro
+  #     - ../../../security/Containers/services/nodejs/vault/role:/etc/vault/role
+  #     - ../../../security/Containers/services/nodejs/vault/templates:/etc/vault/templates:ro
+  #     - ./secrets:/etc/nodejs
+  #   networks:
+  #     - nginx-network
+
+
+  backend:
+    container_name: nodejs
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: cfi-backend
+    env_file:
+      - ./.env
+      # - ./secrets/.env
+    restart: unless-stopped
+    #for frontend
+    ports:
+      - "3000:3000" 
+
+    # entrypoint: ["/bin/sh", "-lc"]
+    # command:
+    #   [
+    #     "while [ ! -f /app/.env ]; do sleep 1; done &&
+    #     set -a &&
+    #     . /app/.env &&
+    #     set +a &&
+    #     exec node index.js",
+    #   ]
+
+    # can't set dependencies on external containers , so i added "dependency" in script  
+      
+    # depends_on:
+    #   # - vault
+    #   - nodejs-nodejs-vault-agent
+    #   redisStore:
+    #     condition: service_healthy
+    networks:
+      - nginx-network
+
+    volumes:
+      - ../../../security/Containers/static:/security/Containers/static:ro
+      - ../../../security/Containers/certs/rootCA.pem:/etc/ssl/certs/rootCA.pem:ro
+      # - ./secrets/.env:/app/.env:ro
+
+
+
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  redisstore:
+    container_name: redisStore
+    build:
+      context: ../../../security/Containers/services/redis
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # ports:
+    #   - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_data:/data
+    networks:
+      - nginx-network
+
+  redisaudit:
+    container_name: redisAudit
+    build:
+      context: ../../../security/Containers/services/redis
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # ports:
+    #   - 6380:6379
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--notify-keyspace-events", "KEgz"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_audit_data:/data
+    networks:
+      - nginx-network
+
+
+  redisotp:
+      container_name: redisotp
+      build:
+        context: ../../../security/Containers/services/redis
+        dockerfile: Dockerfile
+      restart: unless-stopped
+      # ports:
+      #   - 6381:6379
+      command: redis-server --appendonly yes --appendfsync everysec
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+      volumes:
+        - redis_otp_data:/data
+      networks:
+        - nginx-network
+
+
+volumes:
+  redis_otp_data:
+    driver: local
+  redis_audit_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  nginx-network:
+      
+    name: containers_nginx-network
+    external: true

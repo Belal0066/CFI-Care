@@ -38,8 +38,8 @@ The Nginx API Gateway serves as the single entry point for all traffic, acting a
 
 \paragraph{Transport Layer Security (TLS)}
 TLS is terminated at the Nginx edge. All traffic on port 80 is forcibly redirected to port 443, 
-ensuring that every byte in transit is encrypted. 
-Since we're more focused on the development phase, self-signed certificates are utilized, with a planned transition to CA-signed certificates (Let’s Encrypt) for production.
+ensuring that every byte in transit is encrypted, preventing \ac{MITM} interception.
+Since we’re more focused on the development phase, self-signed certificates are utilized, with a planned transition to CA-signed certificates (Let’s Encrypt) for production.
 
 \paragraph{Proxy Hardening and Header Management}
 Nginx is configured to set \newline \texttt{X-Forwarded-*} headers, allowing the internal BFF service to correctly identify client IP addresses and protocol types. 
@@ -57,8 +57,8 @@ The application runtime security model hardens the \ac{BFF} by sealing the clien
 %     \item \textbf{CORS:} Configured to restrict \ac{API} access strictly to the Angular frontend's origin. By enabling \texttt{withCredentials: true}, the system supports secure, cross-origin cookie transmission without exposing tokens to the client-side JavaScript.
 % \end{itemize}
 
-    \item \textbf{Downstream Policy Enforcement:} Security header mutations managed via Helmet mandate strict runtime isolation, injecting deterministic \texttt{SAMEORIGIN} framing definitions and multi-layered context restrictions to prevent hostile browser-side script execution.
-    \item \textbf{Transport Mandates:} Downstream clients are bound to continuous transport security using long-duration \texttt{Strict-Transport-Security} (HSTS) responses, effectively eliminating protocol downgrading risks.
+    \item \textbf{Downstream Policy Enforcement:} Security header mutations managed via Helmet mandate strict runtime isolation, injecting deterministic \texttt{SAMEORIGIN} framing definitions and \ac{CSP}-enforced multi-layered context restrictions to prevent hostile browser-side script execution.
+    \item \textbf{Transport Mandates:} Downstream clients are bound to continuous transport security using long-duration \ac{HSTS} responses, effectively eliminating protocol downgrading risks.
     \item \textbf{Origin Pinning:} \ac{CORS} configuration explicitly mirrors and isolates valid Angular UI boundaries, using a strict origin policy alongside the \texttt{withCredentials} flag to prevent client-side script interception of application token assets.
 \end{itemize}
 

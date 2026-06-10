@@ -1,0 +1,62 @@
+<div class="page-wrapper">
+  <div class="page-header">
+    <h4 class="page-title">Active Access Grants</h4>
+    <p class="page-desc">Practitioners currently authorised to view your records.</p>
+    <button class="btn-refresh" (click)="load()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+  </div>
+
+  <div class="loading-state" *ngIf="loading">
+    <span class="spinner"></span>
+    <span>Loading grants...</span>
+  </div>
+
+  <div class="error-state" *ngIf="error && !loading">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ error }}</span>
+    <button class="btn-retry" (click)="load()">Retry</button>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !error && activeCount === 0">
+    <i class="bi bi-shield-check"></i>
+    <p>No active grants. No practitioners can access your records right now.</p>
+  </div>
+
+  <div class="grant-list" *ngIf="!loading && !error">
+    <div class="grant-card" *ngFor="let item of items">
+
+      <div class="revoked-banner" *ngIf="item.revoked">
+        <i class="bi bi-shield-x"></i> Access revoked
+      </div>
+
+      <ng-container *ngIf="!item.revoked">
+        <div class="card-top">
+          <div class="avatar"><i class="bi bi-person-badge"></i></div>
+          <div class="grant-info">
+            <p class="practitioner-id">{{ item.requesterId }}</p>
+            <p class="grant-sub">
+              <span class="badge-active">Active</span>
+              &nbsp;Expires in {{ minutesRemaining(item.expiresAt) }} min
+            </p>
+          </div>
+          <button class="btn-revoke" (click)="revoke(item)" [disabled]="item.revoking">
+            <span class="spinner-sm" *ngIf="item.revoking"></span>
+            <span *ngIf="!item.revoking">Revoke</span>
+          </button>
+        </div>
+
+        <div class="scopes-row">
+          <span class="scope-chip" *ngFor="let s of item.scopes">{{ s }}</span>
+        </div>
+
+        <div class="time-row">
+          <span class="time-label">Granted</span>
+          <span>{{ item.createdAt | date:'medium' }}</span>
+          <span class="time-sep">·</span>
+          <span class="time-label">Expires</span>
+          <span>{{ item.expiresAt | date:'medium' }}</span>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+</div>

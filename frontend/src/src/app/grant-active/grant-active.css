@@ -1,0 +1,222 @@
+.page-wrapper {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  flex: 1 0 100%;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.page-desc {
+  flex: 1 0 100%;
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.btn-refresh {
+  background: transparent;
+  border: 1px solid #dde3ec;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #555;
+  transition: background 0.15s;
+}
+
+.btn-refresh:hover { background: #f1f4f8; }
+
+/* States */
+.loading-state, .error-state, .empty-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #555;
+  background: #f7f9fc;
+  border: 1px solid #e0e7ef;
+}
+
+.error-state { color: #c0392b; background: #fdecea; border-color: #f5c6c6; }
+
+.empty-state {
+  flex-direction: column;
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.empty-state i { font-size: 36px; color: #2e7d32; margin-bottom: 8px; }
+
+.btn-retry {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #c0392b;
+  color: #c0392b;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Grant list */
+.grant-list { display: flex; flex-direction: column; gap: 16px; }
+
+.grant-card {
+  background: #fff;
+  border: 1px solid #dde3ec;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.revoked-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #888;
+  background: #f1f4f8;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* Card top row */
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  background: #ddeaf9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E6ED3;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.grant-info { flex: 1; min-width: 0; }
+
+.practitioner-id {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 4px;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+.badge-active {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.btn-revoke {
+  background: #fff;
+  border: 1.5px solid #e53e3e;
+  color: #e53e3e;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-revoke:hover:not(:disabled) { background: #fdecea; }
+.btn-revoke:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Scopes */
+.scopes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.scope-chip {
+  background: #f1f4f8;
+  border: 1px solid #dde3ec;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #444;
+}
+
+/* Time row */
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  flex-wrap: wrap;
+}
+
+.time-label { font-weight: 600; color: #555; }
+.time-sep { color: #ccc; }
+
+/* Spinners */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid #1E6ED3;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+.spinner-sm {
+  width: 12px; height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

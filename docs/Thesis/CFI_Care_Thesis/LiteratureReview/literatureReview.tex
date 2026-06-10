@@ -164,25 +164,25 @@ backbone for this project.
 
 \section{Authentication and Authorization Standards}
 
-\subsection{\ac{OAuth} 2.1 and OpenID Connect (OIDC)}
+\subsection{\texorpdfstring{\ac{OAuth}}{OAuth} 2.1 and OpenID Connect (OIDC)}
 Modern web and mobile security paradigms have transitioned toward the \ac{OAuth} 2.1 consolidation framework, 
 which deprecates inherently insecure vectors -such as the Resource Owner Password Credentials grant- due to the risks associated with client-side credential handling \cite{rfc6749}. 
 The standard explicitly mandates the Authorization Code Flow combined with dynamic cryptographic extensions for native applications, and delegates browser session management to secure edge boundaries. 
 OpenID Connect (OIDC) \cite{oidc} extends this framework by introducing an identity layer via ID tokens, enabling robust Single Sign-On (SSO) capabilities. 
 Within decoupled health architectures, this project leverages gatekeeper abstractions to securely manage token translation scopes out-of-band.
 
-\subsection{JSON Web Tokens (\ac{JWT})}
+\subsection{JSON Web Tokens (\texorpdfstring{\ac{JWT}}{JWT})}
 \ac{JWT}s \cite{rfc7519} are cryptographically signed structural tokens that encode user identity claims, access scopes, and session longevity attributes (e.g \texttt{iss}, \texttt{aud}, \texttt{exp}). 
 Utilizing asymmetric signing algorithms (such as RS256) allows distributed microservices and backend API workers to perform stateless signature validation against an Identity Provider's JSON Web Key Sets (JWKS), 
 removing the performance overhead of database lookups. 
 
-\subsection{\ac{PKCE}}
+\subsection{\texorpdfstring{\ac{PKCE}}{PKCE}}
 \ac{PKCE} \cite{rfc7636} mitigates authorization code interception attacks on public and native clients by introducing a dynamic cryptographic secret exchange loop. 
 By validating a high-entropy \texttt{code\_verifier} against a pre-computed \texttt{code\_challenge}, the protocol ensures that malicious actors tracking custom OS deep links cannot intercept or exchange leaked authorization codes for active token clusters \cite{rfc9700}.
 
 \section{Healthcare Security and Integration Standards}
 
-\subsection{\ac{FHIR} and \ac{SMART} on \ac{FHIR}} 
+\subsection[FHIR and SMART on FHIR]{\texorpdfstring{\ac{FHIR}}{FHIR} and \texorpdfstring{\ac{SMART}}{SMART} on \texorpdfstring{\ac{FHIR}}{FHIR}}
 The \ac{FHIR} specification \cite{fhirhl7} provides structural consistency for healthcare models, 
 but relies on external security profiles for transactional protection. 
 The \ac{SMART} on \ac{FHIR} framework \cite{smart_fhir} addresses this by mapping \ac{OAuth} 2.0 access scopes directly to granular medical resources (e.g \texttt{patient/Observation.read}, \texttt{user/Condition.write}). 

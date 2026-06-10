@@ -1,0 +1,203 @@
+services:
+  nginx:
+    container_name: nginx
+    build:
+      context: ./services/nginx
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # - 80:80
+      - 443:443
+
+      #dev only?
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # volumes:
+    #   - '${PWD}/services/nginx/conf/ssl.conf:/etc/nginx/conf/ssl.conf'
+    #   - '${PWD}/services/nginx/conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template'
+    #   - '${PWD}/certs:/etc/nginx/certs'
+    # # depends_on:
+    # #   - oauth2-proxy
+    volumes:
+      - "./services/nginx/conf/ssl.conf:/etc/nginx/conf/ssl.conf"
+      - "./services/nginx/conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template"
+      - "./certs:/etc/nginx/certs"
+
+    networks:
+      - nginx-network
+
+  redis:
+    container_name: redis
+    build:
+      context: ./services/redis
+      dockerfile: Dockerfile
+    command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 10s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - cache:/data
+    networks:
+      - nginx-network
+
+  oauth2-proxy:
+    container_name: oauth2-proxy
+    build:
+      context: ./services/oauth2-proxy
+      dockerfile: Dockerfile
+
+    # '--skip-auth-preflight=true',
+
+    command: [
+        # 'signin-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_in',
+        # 'signout-url=https://${OAUTH2_PROXY_HOSTNAME}/sign_out',
+        "--proxy-prefix=/oauth2",
+        "--skip-provider-button=true",
+        "--standard-logging=true",
+        "--auth-logging=true",
+        "--request-logging=true",
+      ]
+
+    # entrypoint: ["/bin/sh", "-lc"]
+    # command:
+    #   [
+    #     "while [ ! -f /etc/oauth/.env.oauth ];
+    #     do sleep 1; done &&
+    #     set -a && . /etc/oauth/.env.oauth && set +a &&
+    #     exec oauth2-proxy
+    #     --proxy-prefix=/oauth2
+    #     --skip-provider-button=true
+    #     --standard-logging=true
+    #     --auth-logging=true
+    #     --request-logging=true",
+    #   ]
+
+    restart: unless-stopped
+    # ports:
+    #   - 4180:4180
+    environment:
+      # https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview
+
+      # General Provider options
+      OAUTH2_PROXY_CLIENT_ID: ${CLIENT_ID}
+      # OAUTH2_PROXY_CLIENT_SECRET: ${CLIENT_SECRET}
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: true
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${PROTOCOL}://${OAUTH2_PROXY_HOSTNAME}/${KEYCLOAK_REALM_PATH}
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: OpenID Connect
+      OAUTH2_PROXY_SCOPE: ${SCOPE}
+      # login
+      # OAUTH2_PROXY_LOGIN_URL: ${PROTOCOL}://${KC_HOSTNAME}/${KEYCLOAK_REALM_PATH}/protocol/openid-connect/auth
+      # # idk for now
+      # OAUTH2_PROXY_SKIP_OIDC_DISCOVERY: true
+      OAUTH2_PROXY_SKIP_OIDC_DISCOVERY: false
+      # OAUTH2_PROXY_LOGIN_URL: ${PROTOCOL}://${KC_HOSTNAME}/${KEYCLOAK_REALM_PATH}/protocol/openid-connect/auth
+
+      OAUTH2_PROXY_REDEEM_URL: ${PROTOCOL}://${KC_INTERNAL_HOSTNAME}/${KEYCLOAK_REALM_PATH}/protocol/openid-connect/token
+      OAUTH2_PROXY_OIDC_JWKS_URL: ${PROTOCOL}://${KC_INTERNAL_HOSTNAME}/${KEYCLOAK_REALM_PATH}/protocol/openid-connect/certs
+      OAUTH2_PROXY_PROFILE_URL: ${PROTOCOL}://${KC_INTERNAL_HOSTNAME}/${KEYCLOAK_REALM_PATH}/protocol/openid-connect/userinfo
+
+      # Cookie Options
+      # OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST: true
+      OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST: false
+      OAUTH2_PROXY_SKIP_CLAIMS_FROM_PROFILE_URL: true
+      # OAUTH2_PROXY_COOKIE_EXPIRE: 30m
+      OAUTH2_PROXY_COOKIE_HTTPONLY: true
+      OAUTH2_PROXY_COOKIE_NAME: ${COOKIE_NAME}
+      # OAUTH2_PROXY_COOKIE_REFRESH: 25m
+      OAUTH2_PROXY_COOKIE_SAMESITE: "none"
+      # OAUTH2_PROXY_COOKIE_SECRET: ${COOKIE_SECRET}
+      OAUTH2_PROXY_COOKIE_SECURE: true
+      OAUTH2_PROXY_PASS_REFRESH_TOKEN: true
+
+      # Header options
+      OAUTH2_PROXY_PASS_ACCESS_TOKEN: true
+      OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER: true
+      OAUTH2_PROXY_PROXY_HEADERS: xforwarded
+      OAUTH2_PROXY_SET_AUTHORIZATION_HEADER: true
+      OAUTH2_PROXY_SET_XAUTHREQUEST: true
+
+      # Logging options
+      OAUTH2_PROXY_ERRORS_TO_INFO_LOG: true
+      OAUTH2_PROXY_REQUEST_LOGGING: true
+      OAUTH2_PROXY_SILENCE_PING_LOGGING: true
+
+      # Page Template options
+      OAUTH2_PROXY_SHOW_DEBUG_ON_ERROR: true
+
+      # Proxy options
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_REDIRECT_URL: ${PROTOCOL}://${OAUTH2_PROXY_HOSTNAME}/oauth2/callback
+      OAUTH2_PROXY_REVERSE_PROXY: true
+      # See: https://github.com/oauth2-proxy/oauth2-proxy/issues/809
+      OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS: false
+      # OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: true
+      OAUTH2_PROXY_PASS_REQS_TO_UPSTREAM: "true"
+
+      #remove at prod
+      OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: true
+
+      OAUTH2_PROXY_WHITELIST_DOMAINS: ${OAUTH2_PROXY_HOSTNAME}:${OAUTH2_PROXY_PORT},${KC_HOSTNAME},${OAUTH2_PROXY_HOSTNAME}
+
+      # Server options
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:${OAUTH2_PROXY_PORT}
+
+      # Session options
+      OAUTH2_PROXY_REDIS_CONNECTION_URL: redis://redis
+      OAUTH2_PROXY_SESSION_STORE_TYPE: redis
+
+      #remove at prod
+      # Upstreams configuration
+      OAUTH2_PROXY_SSL_UPSTREAM_INSECURE_SKIP_VERIFY: true
+      # OAUTH2_PROXY_UPSTREAMS: http://hapi-fhir:8080/
+
+      TRUST_X_AUTH_HEADERS: true
+
+    env_file:
+      - ./.env
+      # - ./secrets/oauth/.env.oauth
+
+    volumes:
+      - ./secrets/oauth:/etc/oauth:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      # oauth-vault-agent:
+      #   condition: service_healthy
+      # kc.localhost:
+      #   condition: service_healthy
+    networks:
+      - nginx-network
+
+  # oauth-vault-agent:
+  #   image: hashicorp/vault:1.21.2
+  #   env_file:
+  #     - ./.env.vault
+  #   command: vault agent -config=/etc/vault/agent/oauth-agent.hcl
+  #   networks:
+  #     - nginx-network
+  #   volumes:
+  #     - ./services/oauth2-proxy/vault/agent:/etc/vault/agent:ro
+  #     - ./services/oauth2-proxy/vault/role:/etc/vault/role
+  #     - ./services/oauth2-proxy/vault/templates:/etc/vault/templates:ro
+  #     - ./secrets/oauth:/etc/oauth
+
+networks:
+  nginx-network:
+    driver: bridge
+
+volumes:
+  # postgres_data:
+  #   driver: local
+  cache:
+    driver: local
+
+# configs:
+#   hapi:
+#     file: ./hapi.application.yaml

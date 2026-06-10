@@ -1,0 +1,303 @@
+<div class="appointment-test-container">
+    <div class="header">
+        <h1>Doctor Schedule Management</h1>
+        <p class="subtitle">Manage schedules and time slots for doctors</p>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages">
+        <div class="alert alert-success" *ngIf="message">
+            <strong>✓</strong> {{ message }}
+            <button class="close-btn" (click)="clearMessages()">×</button>
+        </div>
+        <div class="alert alert-error" *ngIf="errorMessage">
+            <strong>✗</strong> {{ errorMessage }}
+            <button class="close-btn" (click)="clearMessages()">×</button>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tabs">
+        <button [class.active]="activeTab === 'practitioners'" (click)="activeTab = 'practitioners'">
+            👨‍⚕️ Doctors
+        </button>
+        <button [class.active]="activeTab === 'schedules'" (click)="activeTab = 'schedules'">
+            📅 Manage Schedules
+        </button>
+        <button [class.active]="activeTab === 'slots'" (click)="activeTab = 'slots'">
+            🕐 Manage Slots
+        </button>
+        <button [class.active]="activeTab === 'appointments'" (click)="activeTab = 'appointments'">
+            📋 View Appointments
+        </button>
+    </div>
+
+    <!-- Practitioners Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'practitioners'">
+        <div class="card">
+            <div class="card-header">
+                <h2>Select Doctor</h2>
+                <button class="btn btn-primary" (click)="loadPractitioners()">
+                    🔄 Refresh
+                </button>
+            </div>
+
+            <div class="loading" *ngIf="loadingPractitioners">Loading practitioners...</div>
+
+            <div class="practitioners-grid" *ngIf="!loadingPractitioners">
+                <div *ngFor="let practitioner of practitioners" class="practitioner-card"
+                    [class.selected]="selectedPractitionerId === practitioner.id"
+                    (click)="selectPractitioner(practitioner.id)">
+                    <div class="practitioner-icon">👨‍⚕️</div>
+                    <h3>{{ practitioner.name }}</h3>
+                    <p class="title">{{ practitioner.title }}</p>
+                    <span class="badge badge-info">{{ practitioner.specialty || 'General' }}</span>
+                    <p class="id">ID: {{ practitioner.id }}</p>
+                </div>
+            </div>
+
+            <div class="empty-state" *ngIf="!loadingPractitioners && practitioners.length === 0">
+                No practitioners found
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedules Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'schedules'">
+        <div class="card">
+            <div class="card-header">
+                <h2>Schedules for Selected Doctor</h2>
+                <div class="button-group">
+                    <button class="btn btn-success" (click)="toggleScheduleForm()" [disabled]="!selectedPractitionerId">
+                        ➕ {{ showScheduleForm ? 'Cancel' : 'Add Schedule' }}
+                    </button>
+                    <button class="btn btn-primary" (click)="loadSchedules()" [disabled]="!selectedPractitionerId">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-box" *ngIf="!selectedPractitionerId">
+                ℹ️ Please select a doctor first
+            </div>
+
+            <!-- Create Schedule Form -->
+            <div class="form-container" *ngIf="showScheduleForm && selectedPractitionerId">
+                <h3>Create New Schedule</h3>
+                <form (ngSubmit)="createSchedule()">
+                    <div class="form-group">
+                        <label for="startDate">Start Date & Time</label>
+                        <input type="datetime-local" id="startDate" [(ngModel)]="newSchedule.startDate" name="startDate"
+                            required class="input-field" />
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date & Time</label>
+                        <input type="datetime-local" id="endDate" [(ngModel)]="newSchedule.endDate" name="endDate"
+                            required class="input-field" />
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" [(ngModel)]="newSchedule.active" name="active" />
+                            Active Schedule
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">Create Schedule</button>
+                        <button type="button" class="btn btn-secondary" (click)="toggleScheduleForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="loading" *ngIf="loadingSchedules">Loading schedules...</div>
+
+            <div class="table-container" *ngIf="!loadingSchedules && schedules.length > 0">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Active</th>
+                            <th>Actors</th>
+                            <th>Planning Horizon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let schedule of schedules" [class.selected-row]="selectedScheduleId === schedule.id"
+                            (click)="selectedScheduleId = schedule.id">
+                            <td>{{ schedule.id }}</td>
+                            <td>
+                                <span [class]="schedule.active ? 'badge-success' : 'badge-danger'">
+                                    {{ schedule.active ? '✓ Active' : '✗ Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div *ngFor="let actor of schedule.actor">
+                                    {{ actor.reference }}
+                                </div>
+                            </td>
+                            <td>
+                                <div *ngIf="schedule.planningHorizon">
+                                    <div>Start: {{ formatDate(schedule.planningHorizon.start) }}</div>
+                                    <div>End: {{ formatDate(schedule.planningHorizon.end) }}</div>
+                                </div>
+                                <span *ngIf="!schedule.planningHorizon">N/A</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" *ngIf="!loadingSchedules && schedules.length === 0 && selectedPractitionerId">
+                No schedules found for this practitioner
+            </div>
+        </div>
+    </div>
+
+    <!-- Slots Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'slots'">
+        <div class="card">
+            <div class="card-header">
+                <h2>Time Slots</h2>
+                <div class="button-group">
+                    <button class="btn btn-success" (click)="toggleSlotForm()"
+                        [disabled]="!selectedPractitionerId || schedules.length === 0">
+                        ➕ {{ showSlotForm ? 'Cancel' : 'Add Slot' }}
+                    </button>
+                    <button class="btn btn-primary" (click)="loadSlots()" [disabled]="!selectedPractitionerId">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-box" *ngIf="!selectedPractitionerId">
+                ℹ️ Please select a doctor first
+            </div>
+
+            <div class="info-box" *ngIf="selectedPractitionerId && schedules.length === 0 && !showSlotForm">
+                ⚠️ Please create a schedule first before adding slots
+            </div>
+
+            <!-- Create Slot Form -->
+            <div class="form-container" *ngIf="showSlotForm && selectedPractitionerId">
+                <h3>Create New Time Slot</h3>
+                <form (ngSubmit)="createSlot()">
+                    <div class="form-group">
+                        <label for="scheduleId">Select Schedule</label>
+                        <select id="scheduleId" [(ngModel)]="newSlot.scheduleId" name="scheduleId" required
+                            class="input-field">
+                            <option value="">-- Select Schedule --</option>
+                            <option *ngFor="let schedule of schedules" [value]="schedule.id">
+                                Schedule {{ schedule.id }} ({{ schedule.active ? 'Active' : 'Inactive' }})
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDateTime">Start Date & Time</label>
+                        <input type="datetime-local" id="startDateTime" [(ngModel)]="newSlot.startDateTime"
+                            name="startDateTime" required class="input-field" />
+                    </div>
+                    <div class="form-group">
+                        <label for="endDateTime">End Date & Time</label>
+                        <input type="datetime-local" id="endDateTime" [(ngModel)]="newSlot.endDateTime"
+                            name="endDateTime" required class="input-field" />
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" [(ngModel)]="newSlot.status" name="status" class="input-field">
+                            <option value="free">Free</option>
+                            <option value="busy">Busy</option>
+                            <option value="busy-unavailable">Busy-Unavailable</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">Create Slot</button>
+                        <button type="button" class="btn btn-secondary" (click)="toggleSlotForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="loading" *ngIf="loadingSlots">Loading slots...</div>
+
+            <div class="slots-grid" *ngIf="!loadingSlots && slots.length > 0">
+                <div *ngFor="let slot of slots" class="slot-card" [class.selected]="selectedSlotId === slot.id"
+                    [class.disabled]="slot.status !== 'free'"
+                    (click)="slot.status === 'free' ? selectedSlotId = slot.id : null">
+                    <div class="slot-header">
+                        <span [class]="getSlotStatusClass(slot.status)" class="badge">
+                            {{ slot.status }}
+                        </span>
+                    </div>
+                    <div class="slot-time">
+                        <div>🕐 {{ formatDate(slot.start) }}</div>
+                        <div class="time-separator">to</div>
+                        <div>{{ formatDate(slot.end) }}</div>
+                    </div>
+                    <div class="slot-id">ID: {{ slot.id }}</div>
+                    <div class="slot-schedule">Schedule: {{ slot.schedule.reference || 'N/A' }}</div>
+                </div>
+            </div>
+
+            <div class="empty-state" *ngIf="!loadingSlots && slots.length === 0 && selectedPractitionerId">
+                No slots found for this doctor
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointments Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'appointments'">
+        <div class="card">
+            <div class="card-header">
+                <h2>Doctor's Appointments</h2>
+                <button class="btn btn-primary" (click)="loadAppointments()" [disabled]="!selectedPractitionerId">
+                    🔄 Refresh
+                </button>
+            </div>
+
+            <div class="info-box" *ngIf="!selectedPractitionerId">
+                ℹ️ Please select a doctor first
+            </div>
+
+            <div class="loading" *ngIf="loadingAppointments">Loading appointments...</div>
+
+            <div class="appointments-container" *ngIf="!loadingAppointments && appointments">
+                <div class="appointment-summary">
+                    <h3>Total Entries: {{ appointments.entry?.length || 0 }}</h3>
+                </div>
+
+                <div class="table-container" *ngIf="appointments.entry && appointments.entry.length > 0">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Participants</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let entry of appointments.entry">
+                                <td>{{ entry.resource?.id }}</td>
+                                <td>
+                                    <span [class]="getAppointmentStatusClass(entry.resource?.status)" class="badge">
+                                        {{ entry.resource?.status }}
+                                    </span>
+                                </td>
+                                <td>{{ formatDate(entry.resource?.start) }}</td>
+                                <td>{{ formatDate(entry.resource?.end) }}</td>
+                                <td>
+                                    <div *ngFor="let participant of entry.resource?.participant">
+                                        {{ participant.actor?.reference }} ({{ participant.status }})
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-state" *ngIf="!appointments.entry || appointments.entry.length === 0">
+                    No appointments found for this doctor
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

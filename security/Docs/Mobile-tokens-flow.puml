@@ -12,18 +12,18 @@
 ' participant FHIR
 ' participant RevocationService
 ' ==User Registration Flow==
-' ' User -> MobileApplication : Registration request 
+' ' User -> MobileApplication : Registration request
 ' ' MobileApplication -> Keycloak : Registration request
 ' ' Keycloak -> MobileApplication : Accept registration request
 ' ' MobileApplication -> Keycloak : Submit registration details
 ' ' Keycloak -> Keycloak : Create user account
 ' ' MobileApplication -> nginx : Patient profile data form
 ' ' nginx -> NodeJS : Forward profile data
-' User -> App : Registration request 
+' User -> App : Registration request
 ' ' App -> App : Input registration details in custom form
 ' App -> nginx : POST /auth/register with credentials
 ' nginx -> NodeJS : Forward to backend
-' NodeJS -> Keycloak : Create user 
+' NodeJS -> Keycloak : Create user
 ' Keycloak -> NodeJS : User created
 ' NodeJS -> nginx : 201 Created
 ' nginx -> App : Registration success
@@ -44,19 +44,19 @@
 ' ' Keycloak -> MobileApplication : Authorization code (Authz code Flow)
 ' ' MobileApplication -> Keycloak : exchange code for tokens (with PKCE verifier)
 ' ' Keycloak -> MobileApplication : Access token , Refresh token , ID token
-' ' MobileApplication -> MobileApplication : store tokens securely 
+' ' MobileApplication -> MobileApplication : store tokens securely
 ' ' MobileApplication -> User : display main page
 
 ' User -> App : Login request on login page
 ' App -> App : Generate code_verifier + code_challenge (PKCE)
 ' App -> App : Input credentials in custom login form
-' App -> nginx : POST /auth/mobile/authorize 
-' nginx -> NodeJS : Forward to backend 
+' App -> nginx : POST /auth/mobile/authorize
+' nginx -> NodeJS : Forward to backend
 ' NodeJS -> NodeJS : Validate input
-' NodeJS -> Keycloak : Authenticate user 
+' NodeJS -> Keycloak : Authenticate user
 ' Keycloak -> NodeJS : User authenticated
 ' NodeJS -> Keycloak : Create authorization code bound to code_challenge
-' Keycloak -> NodeJS : Authorization code 
+' Keycloak -> NodeJS : Authorization code
 ' NodeJS -> Keycloak : Exchange code with code_verifier + client_secret
 ' Keycloak -> NodeJS : Access token, Refresh token, ID token
 ' NodeJS -> nginx : Return tokens to client
@@ -108,7 +108,7 @@
 ' ' MobileApplication -> nginx : POST /auth/logout { sessionId or accessToken }
 ' ' nginx -> NodeJS : /auth/logout -> call RevocationService
 ' ' RevocationService -> Redis : DEL oauth2_proxy:session:<id>
-' ' RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token) 
+' ' RevocationService -> Keycloak : POST /protocol/openid-connect/revoke (token)
 ' ' NodeJS -> MobileApplication : 200 OK
 ' ' MobileApplication -> User : Signed out (this device)
 

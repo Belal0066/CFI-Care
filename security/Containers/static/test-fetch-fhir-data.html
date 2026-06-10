@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Patient Data</title>
+
+</head>
+
+<body>
+    <div class="table-container">
+        <div class="controls">
+            <!-- <div>Patient ID: <strong id="patientIdDisplay">1</strong></div> -->
+            <button id="signOutBtn" style="margin-right:8px;">Sign out</button>
+            <div id="status">Idle</div>
+        </div>
+
+        <table id="patients" class="interactive-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <!-- <th>Gender</th> -->
+                    <th>Birth Date</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function formatName(nameArray) {
+            if (!Array.isArray(nameArray) || nameArray.length === 0) return '';
+            const n = nameArray[0];
+            const given = Array.isArray(n.given) ? n.given.join(' ') : (n.given);
+            const family = n.family;
+            return (given + ' ' + family).trim();
+        }
+
+        function renderPatient(resource) {
+            const tbody = document.querySelector('#patients tbody');
+            tbody.innerHTML = '';
+            if (!resource) return;
+
+            const id = resource.id;
+            const name = formatName(resource.name);
+            // const gender = resource.gender ;
+            const birthDate = resource.birthDate;
+
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${id}</td>
+                <td>${name}</td>
+                <td>${birthDate}</td>
+                <td>${(resource.telecom && resource.telecom.find(t => t.system === 'email')?.value) || ''}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        async function fetchAndRenderPatient() {
+            const status = document.getElementById('status');
+            status.textContent = 'Loading...';
+            try {
+                if (!localStorage.getItem('flowStart')) {
+                    localStorage.setItem('flowStart', Date.now());
+                }
+
+                const who = await fetch('/auth/whoami', { credentials: 'include' });
+                if (who.status === 401) {
+                    status.textContent = 'not authorized. redirecting to sign-in...';
+                    try { localStorage.setItem('flowRedirect', Date.now()); } catch (e) { }
+                    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.location.href = '/auth/login?returnTo=' + returnTo;
+                    return;
+                }
+                if (!who.ok) {
+                    status.textContent = 'Could not determine current user: ' + who.status;
+                    return;
+                }
+                const whoData = await who.json();
+                const sub = whoData.sub;
+                const email = whoData.email;
+
+                if (!sub) {
+                    status.textContent = ' no sub , redirecting to login.';
+                    window.location.href = '/auth/login';
+                    return;
+                }
+
+                const res = await fetch('/api/patients/' + encodeURIComponent(sub), { credentials: 'include' });
+                if (res.status === 404) {
+                    const target = '/test-fhir-form.html?email=' + encodeURIComponent(email || '') + '&sub=' + encodeURIComponent(sub);
+                    window.location.href = target;
+                    return;
+                }
+
+                if (res.status === 401) {
+                    status.textContent = 'not authorized. redirecting to sign-in...';
+                    try { localStorage.setItem('flowRedirect', Date.now()); } catch (e) { }
+                    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.location.href = '/auth/login?returnTo=' + returnTo;
+                    return;
+                }
+
+                if (!res.ok) {
+                    status.textContent = 'err fetching resource: ' + res.status;
+                    return;
+                }
+                const data = await res.json();
+                console.debug('fetched data:', data);
+
+                const resource = data;
+
+                if (!resource) {
+                    status.textContent = 'No resource found in response :(';
+                    renderPatient(null);
+                    return;
+                }
+
+                renderPatient(resource);
+                status.textContent = 'Loaded';
+                try {
+                    const start = Number(localStorage.getItem('flowStart')) || 0;
+                    if (start > 0) {
+                        const totalMs = Date.now() - start;
+                        console.info('Full auth+fetch+display duration (ms):', totalMs);
+                        const patientId = resource && resource.id;
+                        fetch('/timing', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ flow: 'auth+fetch+display', durationMs: totalMs, patientId, userAgent: navigator.userAgent })
+                        }).catch(() => { });
+                        localStorage.removeItem('flowStart');
+                        localStorage.removeItem('flowRedirect');
+                    }
+                } catch (err) {
+                    console.warn('Failed to compute/send flow timing', err && err.message);
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').textContent = 'Fetch error: ' + err.message;
+            }
+        }
+
+        // const PATIENT_ID = '1';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('signOutBtn').addEventListener('click', async () => {      //(ev) => {
+                try {
+                    // const returnTo = window.location.origin + '/';
+                    // window.location.href = '/auth/logout?returnTo=' + encodeURIComponent(returnTo);
+                    //  const resp = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+
+                    // if (resp && resp.ok) {
+                    //     const j = await resp.json().catch(() => null);
+                    //     if (j && j.logoutUrl) {
+                    //         window.location.href = j.logoutUrl;
+                    //         return;
+                    //     }
+                    // }
+                    window.location.href = '/auth/logout';
+                    // await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+                    // await fetch('/auth/logout', { method: 'GET' });
+                    // await fetch('/oauth2/sign_out', {
+                    //     method: 'POST',
+                    //     credentials: 'include',
+                    //     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    //     body: 'returnTo=' + encodeURIComponent(window.location.origin + '/')
+                    // });
+                } catch (e) {
+                    console.error('sign out redirect failed:', e && e.message);
+                } 
+                // finally {
+                //     window.location.href = '/';
+                // }
+
+
+                // try {
+                //     const returnTo = window.location.origin + '/';
+                //     const form = document.createElement('form');
+                //     form.method = 'POST';
+                //     form.action = '/oauth2/sign_out?returnTo=' + encodeURIComponent(returnTo);
+                //     form.style.display = 'none';
+                //     document.body.appendChild(form);
+
+                //     form.submit();
+                // } catch (e) {
+                //     console.error('sign out fetch failed:', e && e.message);
+                // }
+
+
+            });
+
+            fetchAndRenderPatient();
+        });
+    </script>
+</body>
+
+</html>

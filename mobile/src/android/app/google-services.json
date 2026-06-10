@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "236089077569",
+    "project_id": "notifications-medflow",
+    "storage_bucket": "notifications-medflow.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:236089077569:android:f274a1256f66d13bb97bc0",
+        "android_client_info": {
+          "package_name": "com.example.medflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcSkV_Ru3S_gWNdP-95J8gNcCdnfLPgPM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
