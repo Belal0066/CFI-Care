@@ -1,65 +1,74 @@
 \chapter{Introduction}
 \label{chap:intro}
 \section{The Global Digital Health Revolution}
-\hspace*{2em}Healthcare is shifting from reactive treatment toward proactive, data-driven prevention. 
-The global digital health market was valued at roughly USD 288 billion in 2024 
-and is projected to approach USD 946 billion by 2030, growing at more than 22\% annually. 
-This acceleration is powered by mobile health, telemedicine, and Artificial Intelligence (AI), 
-which promise cheaper, faster, and more effective care. 
-Yet adoption is uneven: while leading systems deploy AI for personalized care, 
-many \ac{LMICs} still struggle with basic record keeping because of weak infrastructure, unclear policy, and fragmented data.
+\hspace*{2em}Healthcare delivery is undergoing a fundamental structural transition, shifting away from reactive, episode-based treatment models toward proactive, data-driven preventive strategies. 
+% The global digital health market was valued at approximately USD 312 billion in 2024 
+% and is projected to reach USD 2.19 trillion by 2034, maintaining a compound annual growth rate (CAGR) exceeding 21\% \cite{global_market_insights_2025, marketsandmarkets_2025}.
+Reflecting this massive global scale, the digital health ecosystem is projected to expand rapidly at a compound annual growth rate (CAGR) exceeding 21\%, scaling from a 2024 multi-billion dollar baseline toward a trillion-dollar global valuation over the next decade \cite{global_market_insights_2025, marketsandmarkets_2025}.
+This infrastuctural acceleration is powered by mobile health, telemedicine frameworks, and Artificial Intelligence (AI), 
+which collectively offer the potential to deliver more cost-effective, rapid and more effective patient care. 
+Yet the global adoption curve remains uneven: while advanced healthcare systems deploy machine learning models for personalized care, 
+many \ac{LMICs} are restricted to rudimentary record keeping due to fragile technical infrastructure, ambiguous regulatory policies, and localized data environments.
 
 \section{The Situation in Egypt}
-\hspace*{2em}Egypt, home to over 106 million people and the largest healthcare market in MENA, 
-has improved outcomes but faces a persistent data void. 
-Records in many Public Health Centers (PHCs) remain paper-based, locked in filing rooms, and rarely interoperable across facilities. 
-Digital systems that do exist often operate in silos, so a patient moving between providers loses continuity of care. 
-Data quality is frequently incomplete or error-prone, and patients seldom provide formal written consent, reflecting limited trust and awareness of data value. 
-This fragmentation prevents AI from learning accurate patterns and delivering benefits to Egyptian patients.
+\hspace*{2em}Egypt, home to over 116 million people \cite{world_bank_pop_2024} and the largest healthcare market in the \ac{MENA} region, 
+has achieved measurable improvements in baseline public health outcomes, but faces a persistent medical data void.
+According to the World Health Organization's benchmark National Health Accounts evaluation, operational workflows across a vast majority 
+of Public Health Centers (PHCs) remain paper-based, physically archived within isolated filing repositories and lacking interoperability across facilities \cite{who_egypt_nha}.
+% Patient data workflows across a vast majority of Public Health Centers (PHCs) remain paper-based, physically archived within filing rooms, and lacking interoperability across facilities. 
+Because these existing tracking models are fundamentally fragmented,
+digital systems that do exist often operate in silos, causing an immediate disruption in the continuity of care whenever a patient migrates between distinct healthcare providers. 
+Furthermore, clinical datasets within these systems are frequently incomplete or error-prone, while the lack of formal written consent reflects a deficiency in institutional trust and awareness of data value. 
+Ultimately, this severe informational fragmentation prevents advanced AI models from training on accurate patterns and delivering the benefits of modern clinical decision support to Egyptian patients.
 
 \section{Problem Statement}\label{sec:problem_statement}
-When a patient sees multiple specialists, their medical records scatter across
-disconnected systems. Radiology images sit at one hospital, lab results at
-another, prescriptions at a third. Clinicians piece together incomplete
-histories from memory or phone calls. Patients have no way to track their own
-health trends over time. Care coordination breaks down because nobody has the
-full picture. Egypt needs modern, AI-enabled healthcare but lacks the
-foundational data ecosystem. The core challenges are:
+In multi-specialty healthcare environments, a patient's clinical data is typically partitioned across decoupled administrative boundaries. 
+Diagnostic imaging data resides within a specific outpatient facility, lab results at
+another and prescriptions remain isolated at a third. 
+Consequently, clinicians are forced to piece together incomplete
+histories from possibly fallible patient recollections or unstructured immediate consultations. 
+% From an interface perspective, conventional electronic systems present these histories in flat, tabular structures 
+% that lack interconnected temporal mapping, inducing an overload of work and forcing medical staff to diagnose using incomplete timelines.
+Care coordination breaks down because no single provider possesses an exhaustive temporal view of the patient's record.
+To resolve these architectural flaws and establish an environment viable for automated clinical reasoning,
+Egyptian healthcare needs a modernized strategy that mitigates five core technical vulnerabilities:
+% AI-enabled healthcare but lacks the
+% foundational data ecosystem. The core challenges are:
 \begin{itemize}
-      \item \textbf{Data Fragmentation:} Records are scattered across non-interoperable environments with no single longitudinal home.
+      \item \textbf{Data Fragmentation:} Records are scattered across non-interoperable environments with no unified home.
       \item \textbf{Analog Dominance:} Paper-first practices impede automated text parsing, 
       secure remote sharing -patients cannot easily access or share their own histories- and historic pattern analysis. %longitudinal tracking and lossless sharing.
       % \item \textbf{Lack of Control:} Patients cannot easily access or share their own histories.
       \item \textbf{Absence of Clinical Data Visualizations:} Traditional systems lack an interconnected mapping of complex patient histories, 
       forcing clinicians to make decisions using incomplete timelines.
-      \item \textbf{Privacy and Consent Gaps:} The lack of standardized, auditable consent flows that safeguard data distribution.
-      \item \textbf{Missed AI Opportunities:} Absent or inaccessible digital data blocks safe clinical decision support 
+      \item \textbf{Privacy and Consent Gaps:} The lack of standardized, auditable consent flows that safeguard data distribution between patients, practitioners and proxies.
+      \item \textbf{Missed AI Opportunities:} Absent or inaccessible digital data blocks safe clinical decision support tools
       such as Retrieval-Augmented Generation (RAG).
 \end{itemize}
 
 \section{The Proposed Solution: CFI-Care (Collaborative Flow of Intelligence for Care)}
 \hspace*{2em}To resolve these structural vulnerabilities, 
-this work presents \textit{CFI Care}: an AI-powered, collaborative, patient-centric health record platform 
-that unifies diverse medical streams into a single secure ecosystem while keeping patients in control.
-Unlike conventional EHR models, \textit{CFI Care} re-engineers data ingestion, 
+this work presents \textit{CFI-Care}: an AI-powered, collaborative, patient-centric health record platform 
+that centralizes diverse medical streams into a single secure ecosystem while keeping patient data autonomy.
+Unlike conventional EHR models, \textit{CFI-Care} re-engineers data ingestion, 
 session representation, and access management through an integrated multi-tier paradigm:
 \begin{itemize}
       \item \textbf{Unified Records:} Consolidates data from disparate sources into a single, 
       secure repository with timeline visualization.
-      \item \textbf{Medical History Graphs:} Replaces flat tables with an interactive, 
+      \item \textbf{Medical History Graphs:} Replaces conventional flat tables with an interactive, 
       multidimensional graph (inspired by distributed version control systems such as git), 
       which allows clinicians to trace complex diagnostic branching paths, 
-      concurrent chronic disease developments, and subsequent treatment plan merges. 
-      This gives medical teams a holistic overview of clinical data  %Tracks evolving treatment plans as a medical history graph to reveal branches, merges, and longitudinal trends.
-      \item \textbf{Dynamic Access Control framework:} Implements a dynamic authorization middleware protocol and \ac{RBAC}, 
-      empowering patients to issue time-bound, auditable consent to data access grants to specific practitioners or caregivers, tracking all state transitions in a secure pipeline.
-      \item \textbf{AI Integration (RAG):} Grounds generative summaries and answers in the patient's own records to support safer diagnostics and triage.
-      \item \textbf{Mobile Digitization:} A camera scanner digitizes legacy paper reports, crowdsourcing data ingestion despite PHC device constraints.
+      concurrent chronic disease developments, and subsequent treatment plan merges, 
+      supplying medical teams with a comprehensive, holistic overview of clinical data  %Tracks evolving treatment plans as a medical history graph to reveal branches, merges, and longitudinal trends.
+      \item \textbf{Dynamic Access Control framework:} Implements a dynamic authorization middleware protocol integrated with \ac{RBAC}, 
+      empowering patients to issue time-bound, auditable consent to data access grants to specific practitioners or caregivers, while tracking all state transitions in a secure pipeline.
+      \item \textbf{AI Integration (RAG):} Grounds generative summaries, recommendations, and clinical responses within the patient's own records to support safer diagnostics and triage.
+      \item \textbf{Mobile Digitization:} A camera scanner digitizes legacy paper reports, crowdsourcing data ingestion despite institutional hardware limitations.
 \end{itemize}
 
 \section{System Integration and Prototype Realization}
 \hspace*{2em}A core contribution of this thesis is the concrete development, 
-engineering, and validation of a fully operational end-to-end \textit{CFI Care} platform prototype 
+engineering, and validation of a fully operational end-to-end \textit{CFI-Care} platform prototype 
 realized through a modern, distributed architecture composed of:
 \begin{enumerate}
     \item A responsive web application built with \textbf{Angular}, providing clinicians with complex graphical rendering capabilities via D3.js timelines and sandboxed iframe operations.
@@ -69,7 +78,7 @@ realized through a modern, distributed architecture composed of:
 
 
 \section{Thesis Objectives}
-This thesis aims to design, implement, and validate the CFI Care platform to modernize health data
+This thesis aims to design, implement, and validate the CFI-Care platform to modernize health data
 management in Egypt.
 
 The specific engineering and research milestones comprise:
@@ -78,10 +87,10 @@ The specific engineering and research milestones comprise:
       \item \textbf{Isolating Systemic Barriers:} Documenting the structural challenges within Egypt's healthcare sector, specifically regarding
             infrastructure gaps and consent practices.
       \item \textbf{Engineering a multi-tiered system topology:} Designing and compiling a secure, scalable, and usable architecture for patient-centric
-            records and clinician workflows.
-      \item \textbf{Enforcing Zero-Trust Access Mechanics:} Implementing robust RBAC and \ac{JIT} consent middleware framework capable of safeguarding private patient data while
-            allowing them to delegate temporary access to it when needed.
-      \item \textbf{Constructing Grounded Medical Intelligence Services:} Engineering AI (RAG) services that can interpret medical records and deliver
+            record storage and complex clinician workflows.
+      \item \textbf{Enforcing Zero-Trust Access Mechanics:} Implementing robust RBAC and dynamic consent middleware framework capable of safeguarding private medical profiles while
+            facilitating temporary, delegated data access.
+      \item \textbf{Constructing Grounded Medical Intelligence Services:} Engineering AI (RAG) services that capable of semantic medical record translation and the delivery of
             actionable insights.
       \item \textbf{Empowering Edge Ingestion and Ownership:} Implementing computer-vision and layout-analysis pipelines on portable devices and empowering patients with tools for data ownership, appointments, caregiver
             sharing, and mobile digitization.
@@ -90,10 +99,10 @@ The specific engineering and research milestones comprise:
 \section{Thesis Structure}
 \begin{itemize}
       \item Chapter~\ref{chap:intro}: Introduction to the global digital health revolution,
-            Egypt's healthcare challenges, and the CFI Care solution.
+            Egypt's healthcare challenges, and the CFI-Care solution.
       \item Chapter~\ref{chap:LiteratureReview}: Standards (HL7/FHIR), governance,
             authentication, and security foundations.
-      \item Chapter~\ref{chap:ProposedDesignArchitecture}: CFI Care system architecture
+      \item Chapter~\ref{chap:ProposedDesignArchitecture}: CFI-Care system architecture
             including backend, frontend, and mobile components.
       \item Chapter~\ref{chap:Security}: Defense-in-depth security architecture with OAuth
             2.0, JWT Tokens, RBAC, Rate Limiting on API endpoints, and audit logging.
