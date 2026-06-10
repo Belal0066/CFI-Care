@@ -21,7 +21,7 @@
 ' == Mobile Login Flow (Future work) ==
 ' User -> MobileApp : Enter credentials
 ' MobileApp -> MobileApp : Generate code_verifier + code_challenge (PKCE)
-' MobileApp -> nginx : POST /auth/mobile/authorize 
+' MobileApp -> nginx : POST /auth/mobile/authorize
 ' nginx -> BFF : forward request
 ' BFF -> BFF : Validate input (email, password)
 ' BFF -> Keycloak : Authenticate user with credentials
@@ -84,7 +84,7 @@
 ' BFF -> nginx : 200 OK
 ' nginx -> Browser : Session cleared
 
-' else Global Logout 
+' else Global Logout
 ' MobileApp -> nginx : POST /auth/logout-all
 ' nginx -> BFF : forward request with Bearer token
 ' BFF -> Keycloak : Revoke refresh tokens / user sessions (admin endpoint)

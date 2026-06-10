@@ -1,0 +1,39 @@
+# version: "3"
+services:
+  hapi-fhir-jpaserver-start:
+    build: .
+    container_name: hapi-fhir-jpaserver-start
+    restart: on-failure
+    # environment:
+    env_file:
+      - ./.env
+    networks:
+      - nginx-network
+
+    # ports:
+      # - "8080:8080"
+    volumes:
+      - hapi-fhir-data:/data
+
+
+  hapi-fhir-postgres:
+    image: postgres:15-alpine
+    container_name: hapi-fhir-postgres
+    restart: always
+    networks:
+      - nginx-network
+
+    volumes:
+      - hapi-fhir-postgres:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+      
+volumes:
+  hapi-fhir-postgres:
+  hapi-fhir-data:
+
+networks:
+  nginx-network:
+      
+    name: containers_nginx-network
+    external: true

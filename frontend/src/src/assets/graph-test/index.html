@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h3>Legacy iframe loaded</h3>
+  <button onclick="sendTest()">Send NODE_CLICKED</button>
+
+  <script>
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "PING") {
+        window.parent.postMessage({ type: "PONG" }, "*");
+      }
+    });
+
+    function sendTest() {
+      window.parent.postMessage({
+        type: "NODE_CLICKED",
+        payload: { nodeId: "test-node-1" }
+      }, "*");
+    }
+  </script>
+</body>
+</html>

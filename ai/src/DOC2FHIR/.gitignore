@@ -1,0 +1,69 @@
+# === Virtual environments ===
+.venv/
+venv/
+env/
+env.bak/
+*/.venv/
+*/venv/
+
+OCR/.venv/
+
+# === Python caches / build artifacts ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Installer / pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# === Test / type-check caches ===
+.pytest_cache/
+.mypy_cache/
+
+# === IDE / editor config ===
+.vscode/
+
+
+# === Environment files ===
+.env
+.env.*
+secrets.env
+local_settings.py
+
+# === Logs and runtime files ===
+*.log
+logs/
+run_logs/
+.gateway_runtime/
+
+# === Project outputs, uploads, large models ===
+outputs/
+uploads/
+OCR/outputs/
+OCR/uploads/
+
+OCR/models/
+
+*.gguf
+
+# === Jupyter ===
+.ipynb_checkpoints/
+
+# === System files ===
+.DS_Store
+Thumbs.db
+
+# === Other user-specific or temporary files ===
+*.swp
+*~
+
+# Keep this file
+/.gitignore

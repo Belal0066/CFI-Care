@@ -1,0 +1,2 @@
+FROM /home/belal/CFI-Care/ai/src/DOC2FHIR/Mapper/models/unsloth-gemma-4-e4b-it-gguf/gemma-4-E4B-it-Q4_K_M.gguf
+

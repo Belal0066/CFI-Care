@@ -1,4 +1,5 @@
 /node_modules
+# firebase-service-account.json
 
 # .env
 
@@ -19,3 +20,5 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+/secrets

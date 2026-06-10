@@ -3,11 +3,11 @@
 
 The core component responsible for standardizing healthcare data within the
 CFI-Care system is the FHIR Server. This server is implemented using the HAPI
-FHIR JPA Server Starter framework. It is built upon the Java Spring Boot
-ecosystem and provides a fully compliant implementation of the FHIR Release 5
-(R5) standard. This choice ensures that all clinical data, regardless of its
-source, adheres to international interoperability protocols and persists
-reliably within the database.
+FHIR JPA Server Starter framework \textbf{version 8.4.0}. It is built upon
+the Java 17 Spring Boot ecosystem and provides a fully compliant implementation
+of the FHIR Release 5 (R5) standard. This choice ensures that all clinical
+data, regardless of its source, adheres to international interoperability
+protocols and persists reliably within the database.
 
 To tailor the server for the specific needs of this project, several important
 configuration changes were applied to the default setup. To maintain a
@@ -20,12 +20,14 @@ developers to inspect the API structure and test endpoints directly through a
 web interface.
 
 The persistence layer is powered by a PostgreSQL database connected via the
-Hibernate JPA engine. Specific configurations were applied to the Hibernate
-settings to optimize performance. The system uses the dedicated
-\texttt{HapiFhirPostgresDialect} to ensure efficient SQL generation.
-Additionally, the database schema management is configured to automatically
-update the table structures upon server startup, ensuring that the database
-remains synchronized with the code.
+Hibernate JPA engine. Database connection pooling is managed by
+\textbf{HikariCP 5.0.1}, which maintains a pool of up to 20 concurrent
+connections, minimizing connection overhead under high clinical load. Specific
+configurations were applied to the Hibernate settings to optimize performance.
+The system uses the dedicated \texttt{HapiFhirPostgresDialect} to ensure
+efficient SQL generation. Additionally, the database schema management is
+configured to automatically update the table structures upon server startup,
+ensuring that the database remains synchronized with the code.
 
 % \begin{figure}[htbp]
 %     \centering
@@ -50,7 +52,10 @@ like PDF files.
 
 For deployment, the server utilizes a secure multi-stage Docker build process.
 The first stage uses Maven to compile the application code and generate the
-necessary artifacts. The final runtime image is built upon a "distroless" Java
-17 base image. This approach significantly reduces the final container size and
-improves security by removing unnecessary operating system tools and shells
-from the production environment.
+necessary artifacts. The final runtime image is built upon a ``distroless''
+Java 17 base image. This approach significantly reduces the final container
+size and improves security by removing unnecessary operating system tools and
+shells from the production environment. The repository also ships Helm charts
+(\texttt{charts/hapi-fhir-jpaserver/}), making the server deployable to a
+Kubernetes cluster without additional configuration, supporting horizontal
+scaling for higher-load production environments.
