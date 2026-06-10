@@ -573,14 +573,16 @@ The system defines four distinct event types, each triggering a different UI res
 \centering
 \caption{Notification Events and Actions}
 \label{tab:notification_events}
-\begin{tabular}{|l|l|l|p{6cm}|}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|p{2.5cm}|p{3.8cm}|p{2.2cm}|p{5.5cm}|}
 \hline
 \textbf{Event Type} & \textbf{Trigger} & \textbf{Recipient} & \textbf{Action} \\ \hline
 grant\_request & Doctor submits patient's OTP & Patient & Orange snackbar and refresh pending doctor requests \\ \hline
 family\_request & Caregiver submits patient's OTP & Patient & Purple snackbar and refresh pending family requests \\ \hline
 grant\_approved & Patient approves any request & Requester & Green snackbar, refresh accessible members, and navigate to Profile tab \\ \hline
 data\_updated & Patient or caregiver edits health data & The other party & Blue-grey snackbar notification \\ \hline
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \paragraph{Access Request Handshakes (\texttt{grant\_request} / \texttt{family\_request})}
