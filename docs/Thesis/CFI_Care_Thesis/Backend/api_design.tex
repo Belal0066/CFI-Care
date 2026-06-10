@@ -25,14 +25,15 @@ message and a specific error code, rather than exposing raw server stack
 traces.
 
 \subsection{FHIR-Compliant Endpoints}
-A significant portion of the API is dedicated to proxying standard FHIR
-resources. Endpoints such as \texttt{/api/patients} and
-\texttt{/api/encounters} act as a validation and caching layer sitting in front
-of the HAPI FHIR server. When the frontend requests patient details, the
-Node.js server intercepts this call, validates the parameters, and then
-forwards the request to the underlying Java server. The response is strictly
-strictly compliant with the FHIR R5 standard, ensuring that the data structure
-remains interoperable with other external healthcare systems.
+The majority of the API is dedicated to proxying standard FHIR resources.
+All 25~clinical route modules (covering patients, encounters, conditions,
+observations, procedures, medications, diagnostics, documents, scheduling, and
+administrative resources) act as a validation and caching layer sitting in
+front of the HAPI FHIR server. When a client requests any of these resources,
+the Node.js server intercepts the call, validates the parameters, applies
+role-based access control, and forwards the request to the underlying Java
+server. The response is strictly compliant with the FHIR R5 standard, ensuring
+that the data structure remains interoperable with external healthcare systems.
 
 \subsection{Custom History Graph Endpoints}
 Beyond standard FHIR resources, the API exposes specialized endpoints designed
@@ -45,22 +46,97 @@ needing to perform heavy data processing in the browser.
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|l|p{5cm}|}
+    \small
+    \begin{tabular}{|l|l|p{6.2cm}|}
         \hline
-        \textbf{Method} & \textbf{Endpoint}              & \textbf{Description}                                           \\
+        \textbf{Category} & \textbf{Base Path} & \textbf{Resources / Notes} \\
         \hline
         \hline
-        GET             & \texttt{/api/patients}         & Retrieve list of patients with pagination support              \\
+        \multicolumn{3}{|l|}{\textit{Core Clinical Records}} \\
         \hline
-        POST            & \texttt{/api/patients}         & Register a new patient with FHIR validation                    \\
+        Patients           & \texttt{/api/patients}             & CRUD; paginated list, FHIR-validated creation \\
         \hline
-        GET             & \texttt{/api/encounters/:id}   & Get specific encounter details including clinical observations \\
+        Encounters         & \texttt{/api/encounters}           & Clinical encounters; triggers graph update on POST \\
         \hline
-        GET             & \texttt{/api/historyGraph/:id} & Get patient history graph nodes and causal relationships       \\
+        Conditions         & \texttt{/api/conditions}           & Diagnoses scoped to patient \\
         \hline
-        POST            & \texttt{/auth/login}           & Authenticate user and obtain JWT token via Keycloak            \\
+        Observations       & \texttt{/api/observations}         & Lab results, vitals, measurements \\
+        \hline
+        Procedures         & \texttt{/api/procedures}           & Surgical and clinical procedures \\
+        \hline
+        Medication Requests & \texttt{/api/medicationRequests}  & Prescriptions \\
+        \hline
+        Diagnostic Reports & \texttt{/api/diagnosticReports}    & Lab panels and imaging reports \\
+        \hline
+        Allergy Intolerances & \texttt{/api/allergies}          & Allergy and adverse reaction records \\
+        \hline
+        Immunizations      & \texttt{/api/immunizations}        & Vaccination history \\
+        \hline
+        Imaging Studies    & \texttt{/api/imagingStudies}       & DICOM study references \\
+        \hline
+        \hline
+        \multicolumn{3}{|l|}{\textit{Documents \& Compositions}} \\
+        \hline
+        Document References & \texttt{/api/documentReferences}  & Metadata for uploaded documents \\
+        \hline
+        Binary             & \texttt{/api/binary}               & Raw file storage (PDFs, images) \\
+        \hline
+        Compositions       & \texttt{/api/compositions}         & Clinical notes and summaries \\
+        \hline
+        \hline
+        \multicolumn{3}{|l|}{\textit{Care Management}} \\
+        \hline
+        Episodes of Care   & \texttt{/api/episodeOfCare}        & Groups encounters into care episodes \\
+        \hline
+        \hline
+        \multicolumn{3}{|l|}{\textit{Scheduling}} \\
+        \hline
+        Appointments       & \texttt{/api/appointments}         & Booking and management \\
+        \hline
+        Schedules          & \texttt{/api/schedules}            & Practitioner availability windows \\
+        \hline
+        Slots              & \texttt{/api/slots}                & Bookable time units within a schedule \\
+        \hline
+        \hline
+        \multicolumn{3}{|l|}{\textit{People \& Organisations}} \\
+        \hline
+        Practitioners      & \texttt{/api/practitioners}        & Healthcare provider profiles \\
+        \hline
+        Practitioner Roles & \texttt{/api/practitionerRoles}    & Role and specialty assignments \\
+        \hline
+        Related Persons    & \texttt{/api/relatedPersons}       & Caregivers and family members \\
+        \hline
+        Organizations      & \texttt{/api/organizations}        & Healthcare institutions \\
+        \hline
+        Locations          & \texttt{/api/locations}            & Clinical sites and rooms \\
+        \hline
+        Healthcare Services & \texttt{/api/healthcareServices}  & Service offerings per location \\
+        \hline
+        Devices            & \texttt{/api/devices}              & Medical devices and wearables \\
+        \hline
+        \hline
+        \multicolumn{3}{|l|}{\textit{Custom \& Platform Endpoints}} \\
+        \hline
+        History Graph      & \texttt{/api/historyGraph/:id}     & Returns DAG of patient medical journey \\
+        \hline
+        Practitioner Grants & \texttt{/api/practitioner-grants} & Consent grant management for practitioners \\
+        \hline
+        Caregiver Grants   & \texttt{/api/caregiver-grants}     & Consent grant management for caregivers \\
+        \hline
+        Patient Grants     & \texttt{/api/patient-grants}       & Patient-side grant review and revocation \\
+        \hline
+        Handshakes         & \texttt{/api/handshakes}           & JIT consent OTP handshake flow \\
+        \hline
+        FCM Tokens         & \texttt{/api/FCM}                  & Firebase Cloud Messaging token registration \\
+        \hline
+        Metrics            & \texttt{/metrics}                  & Prometheus metrics endpoint \\
+        \hline
+        \hline
+        \multicolumn{3}{|l|}{\textit{Authentication}} \\
+        \hline
+        Login / Session    & \texttt{/auth}                     & Keycloak OAuth 2.0 session management \\
         \hline
     \end{tabular}
-    \caption{Key REST API Endpoints provided by the Node.js Backend.}
+    \caption{Complete REST API surface of the Node.js Backend, grouped by domain.}
     \label{tab:api_endpoints}
 \end{table}

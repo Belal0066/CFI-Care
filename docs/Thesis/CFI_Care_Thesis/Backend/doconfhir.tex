@@ -1,0 +1,75 @@
+\section{Document Ingestion Pipeline (DOC2FHIR)}\label{sec:doc2fhir}
+
+A significant challenge in real-world clinical settings is the prevalence of
+paper-based or scanned medical records that exist outside the FHIR ecosystem.
+To bridge this gap, CFI-Care integrates a dedicated Document-to-FHIR
+(DOC2FHIR) pipeline that automatically converts scanned medical documents into
+structured FHIR R5 resources, making them immediately available within the
+patient's record without manual data entry.
+
+\subsection{Pipeline Overview}
+
+The pipeline operates as a sequence of three independent microservices
+orchestrated by a central gateway. A document upload from the mobile or web
+client triggers the pipeline, which processes the document asynchronously and
+delivers the resulting FHIR bundle to the Node.js backend's
+\texttt{/api/binary} endpoint, where it is persisted as a Binary FHIR
+resource linked to the relevant patient record.
+
+\begin{enumerate}
+    \item \textbf{Gateway} (FastAPI, port~8001) --- accepts uploads, manages
+          the job lifecycle, and coordinates the downstream stages.
+    \item \textbf{OCR Service} (PaddleOCR, port~7862) --- extracts text and
+          layout metadata from the scanned PDF\@.
+    \item \textbf{Mapper} (Gemma~4 via llama.cpp, port~8070) --- transforms
+          normalized OCR text into a validated FHIR R5 bundle.
+\end{enumerate}
+
+\subsection{Gateway Orchestrator}
+
+The gateway is the single entry point for document uploads. It exposes a
+\texttt{POST /v1/documents/upload} endpoint that accepts a multipart payload
+containing the PDF file, the target patient identifier, a document
+identifier, and an upload timestamp. Upon receipt, the gateway writes the
+file to a local runtime directory and creates a job record in an embedded
+SQLite database, assigning the job an initial state of \texttt{QUEUED}.
+
+An asynchronous background worker thread manages the job state machine,
+advancing each job through the following states: \texttt{QUEUED} (awaiting
+processing capacity), \texttt{OCR\_PROCESSING} (text extraction in
+progress), \texttt{MAPPING} (FHIR bundle generation in progress),
+\texttt{COMPLETED} (bundle delivered to the Node.js backend), and
+\texttt{FAILED} (unrecoverable error; job written to a dead-letter directory
+for inspection).
+
+The gateway implements per-stage timeouts and a GPU semaphore to prevent
+concurrent Mapper requests from exhausting inference resources. Clients may
+poll job status via \texttt{GET /v1/documents/\{job\_id\}/status} and
+retrieve the final bundle via \texttt{GET /v1/documents/\{job\_id\}/result}
+once the job reaches the \texttt{COMPLETED} state.
+
+\subsection{OCR Service}
+
+The OCR service is a GPU-accelerated inference endpoint built on PaddleOCR,
+supplemented by a YOLOv8 layout detection model for identifying regions of
+interest within clinical documents---headers, tables, body text, and
+signatures. The service accepts a PDF file and returns normalized text
+alongside layout metadata that records the spatial position and
+classification of each detected region. This structural context is forwarded
+to the Mapper alongside the extracted text to improve FHIR field assignment
+accuracy.
+
+\subsection{Mapper (AI-Assisted FHIR Conversion)}
+
+The Mapper service runs a medically fine-tuned Gemma~4 language model served
+through \texttt{llama.cpp}, exposing an OpenAI-compatible HTTP API on
+port~8070. The service receives normalized OCR text and structural metadata
+and applies a domain-specific system prompt engineered to extract clinical
+entities---diagnoses, medications, lab values, dates, practitioner names, and
+patient identifiers---and organize them into a valid FHIR R5 Bundle.
+
+The generated bundle is validated against the FHIR R5 schema before being
+returned to the gateway. Bundles that fail schema validation are flagged as
+\texttt{FAILED} and written to the dead-letter directory rather than being
+delivered to the Node.js backend, preventing malformed resources from
+entering the clinical record.

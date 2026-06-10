@@ -1,0 +1,59 @@
+
+
+<!-- BACKEND -->
+<!-- <div class="patient-list">
+  <ul>
+    <li *ngFor="let patient of patients"
+        (click)="onPatientClick(patient)"
+        class="patient-item">
+
+      <div class="patient-info">
+        <div class="patient-name">
+          {{ patient.name }}
+        </div>
+
+        <div class="patient-updated">
+          Updated {{ patient.lastUpdated | date:'mediumDate' }}
+        </div>
+      </div>
+
+      <span class="patient-age">
+        {{ patient.age }}y
+      </span>
+    </li>
+  </ul>
+</div> -->
+
+
+<div class="patient-list">
+  <div class="empty-list" *ngIf="patients.length === 0">
+    <i class="bi bi-search"></i>
+    <p>No patients found.</p>
+  </div>
+  <ul>
+    <li *ngFor="let patient of patients"
+        (click)="onPatientClick(patient)"
+        class="patient-item"
+        [class.selected]="patient.id === selectedId">
+
+      <!-- Diagnosis tag top-right -->
+      <span class="diagnosis-tag" *ngIf="patient.primaryDiagnosis">
+        <i class="bi bi-activity"></i> {{ patient.primaryDiagnosis }}
+      </span>
+
+      <div class="patient-info">
+        <div class="patient-name">
+          <span class="status-dot" [class.green]="getStatus(patient.lastUpdated) === 'green'"
+                                   [class.yellow]="getStatus(patient.lastUpdated) === 'yellow'"></span>
+          {{ patient.name }}
+        </div>
+        <div class="patient-updated">
+          Updated {{ patient.lastUpdated | date:'mediumDate' }}
+        </div>
+      </div>
+      <span class="patient-age">
+        Age {{ patient.age }}
+      </span>
+    </li>
+  </ul>
+</div>

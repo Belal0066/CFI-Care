@@ -23,7 +23,7 @@ end box
 User -> Client : submit registration data
 Client -> KC : Initiate Registration Request
 KC -> KC : Execute ALTCHA Proof-of-Work & Email OTP SPIs
-KC -> KC : create user, map their role and store credentials 
+KC -> KC : create user, map their role and store credentials
 
 == Event-Driven Provisioning ==
 KC -> Listener : "REGISTER" event
@@ -35,7 +35,7 @@ Listener -> BFF : Post to the registration endpoint
 activate BFF
 BFF -> BFF : Parse token claims (iss, aud, RS256)
 BFF -> BFF : Verify token against Keycloak's JWKS Endpoint
-BFF -> BFF : check client_id 
+BFF -> BFF : check client_id
 
 alt Allowed browser client mapping
   BFF -> FHIR : Create Practitioner resource
