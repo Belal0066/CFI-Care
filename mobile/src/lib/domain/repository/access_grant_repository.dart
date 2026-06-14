@@ -25,6 +25,7 @@ class AccessGrantRepository {
       final list = body['pending'] as List<dynamic>? ?? [];
       return list
           .map((e) => PendingGrant.fromJson(e as Map<String, dynamic>))
+          .where((g) => g.requesterType == 'practitioner')
           .toList();
     }
     throw Exception('Failed to fetch pending grants: ${response.body}');

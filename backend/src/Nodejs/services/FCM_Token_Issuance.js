@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireApiAuth } = require('../middleware/requireApiAuth');
 
+const redis = require('../utils/redisOTPCli');
 // Called by Flutter after login — stores device FCM token in Redis
 router.post('/fcm-token', requireApiAuth, async (req, res) => {
   try {

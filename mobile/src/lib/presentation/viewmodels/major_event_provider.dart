@@ -27,8 +27,11 @@ class MajorEventProvider with ChangeNotifier {
 
   // --- ACTIONS ---
 
-  Future<void> fetchEvents() async {
-    final patientId = Session.fhirPatientId ?? Session.currentUserId;
+  // Pass [overridePatientId] to load events for a proxy (caregiver) session.
+  Future<void> fetchEvents({String? overridePatientId}) async {
+    final patientId = overridePatientId ??
+        Session.fhirPatientId ??
+        Session.currentUserId;
     if (patientId == null || patientId.isEmpty) {
       _eventsError = 'No patient session';
       notifyListeners();

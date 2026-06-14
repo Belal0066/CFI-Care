@@ -1,4 +1,5 @@
 const EOCService = require("./eocService");
+const { notifyDataUpdate: _notifyDataUpdate } = require("../services/notifyDataUpdate");
 
 const getEncountersByEpisodeOfCareId = async (req, res) => {
   try {
@@ -21,6 +22,11 @@ const createEpisodeOfCareWithSpecificId = async (req, res) => {
       await EOCService.createEpisodeOfCareWithSpecificId(eocData);
     console.log("New EpisodeOfCare created successfully.");
     res.status(201).json(newEOCResource);
+
+    // Fire-and-forget: notify relevant parties of the data update
+    const patientRef = eocData?.patient?.reference || '';
+    const patientId = patientRef.startsWith('Patient/') ? patientRef.slice(8) : patientRef;
+    if (patientId) _notifyDataUpdate(req, patientId).catch(() => {});
   } catch (error) {
     console.error("Controller Error:", error.message);
     res.status(500).json({ error: error.message });
@@ -48,6 +54,10 @@ const updateEpisodeOfCare = async (req, res) => {
     const eocData = req.body;
     const updatedEOC = await EOCService.updateEpisodeOfCare(id, eocData);
     res.status(200).json(updatedEOC);
+
+    const patientRef = eocData?.patient?.reference || updatedEOC?.patient?.reference || '';
+    const patientId = patientRef.startsWith('Patient/') ? patientRef.slice(8) : patientRef;
+    if (patientId) _notifyDataUpdate(req, patientId).catch(() => {});
   } catch (error) {
     console.error("Controller Error:", error.message);
     if (error.message.includes("not found")) {
