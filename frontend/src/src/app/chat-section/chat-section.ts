@@ -5,14 +5,21 @@ import { Subscription } from 'rxjs';
 import { AiChatService } from '../services/ai-chat/ai-chat.service';
 
 
+type ConfidenceScore = { label: string; value: number; level: string; textValue?: string };
+
 type ChatMessage = {
   text?: string;
+  renderedHtml?: string;
+  thoughtHtml?: string;
+  confidenceScores?: ConfidenceScore[];
   type: 'incoming' | 'outgoing' | 'error';
   files?: { name: string; url: string; type: string }[];
   liked?: boolean | null;
   confidence?: number;
-  citations?: { title: string; url: string }[];
+  citations?: { title: string; url: string; summary?: string }[];
   isStreaming?: boolean;
+  streamWords?: string[];
+  streamBuffer?: string;
 };
 
 
@@ -47,12 +54,32 @@ export class ChatSection implements OnInit, OnDestroy {
     'RAG':  'rag'
   };
 
+  ingestState: 'idle' | 'loading' | 'success' | 'error' = 'idle';
+  private ingestResetTimer?: ReturnType<typeof setTimeout>;
+
+  runIngest() {
+    if (this.ingestState === 'loading') return;
+    clearTimeout(this.ingestResetTimer);
+    this.ingestState = 'loading';
+
+    fetch('/ai/ingest', { method: 'POST' })
+      .then(r => {
+        this.ingestState = r.ok ? 'success' : 'error';
+      })
+      .catch(() => {
+        this.ingestState = 'error';
+      })
+      .finally(() => {
+        this.ingestResetTimer = setTimeout(() => { this.ingestState = 'idle'; }, 3000);
+      });
+  }
+
   isBranch = false;
   branchOriginId = '';
   branchFromPoint = 0;
 
   citationsPanelOpen = false;
-  activeCitations: { title: string; url: string }[] = [];
+  activeCitations: { title: string; url: string; summary?: string }[] = [];
 
   editingSessionId: string | null = null;
   editingTitle = '';
@@ -96,6 +123,7 @@ export class ChatSection implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.streamSub?.unsubscribe();
+    clearTimeout(this.ingestResetTimer);
   }
 
   private buildHistory(): { role: 'user' | 'assistant'; content: string }[] {
@@ -107,14 +135,16 @@ export class ChatSection implements OnInit, OnDestroy {
       }));
   }
 
-  private parseCitations(contextItems: any[]): { title: string; url: string }[] {
+  private parseCitations(contextItems: any[]): { title: string; url: string; summary?: string }[] {
     return contextItems.map((c: any) => {
       const raw = c.content ?? '';
-      const urlMatch  = raw.match(/'url':\s*'(https?:\/\/[^']+)'/);
+      const urlMatch   = raw.match(/'url':\s*'(https?:\/\/[^']+)'/);
       const titleMatch = raw.match(/'title':\s*'([^']+)'/);
+      const summaryMatch = raw.match(/\*\*Summary:\*\*\s*([\s\S]*?)(?:\n\n|\*\*Source Detail|$)/);
       return {
-        title: titleMatch?.[1] ?? c.source ?? 'Source',
-        url:   urlMatch?.[1] ?? ''
+        title:   titleMatch?.[1] ?? c.title ?? c.source ?? 'Source',
+        url:     urlMatch?.[1] ?? c.url ?? '',
+        summary: summaryMatch?.[1]?.trim() || (raw && !raw.includes('**') ? raw.trim() : undefined)
       };
     });
   }
@@ -154,6 +184,7 @@ export class ChatSection implements OnInit, OnDestroy {
       next: event => {
         if (event.type === 'token') {
           placeholder.text = (placeholder.text ?? '') + event.content;
+          this.appendStreamWords(placeholder);
           this.scrollToBottom();
         } else if (event.type === 'context' && Array.isArray(event.content) && event.content.length > 0) {
           placeholder.citations = this.parseCitations(event.content);
@@ -161,12 +192,19 @@ export class ChatSection implements OnInit, OnDestroy {
       },
       error: () => {
         placeholder.text = 'Failed to get a response. Please try again.';
+        placeholder.renderedHtml = undefined;
         placeholder.type = 'error';
         placeholder.isStreaming = false;
         this.scrollToBottom();
       },
       complete: () => {
+        const { html, thoughtHtml, scores } = this.processResponse(placeholder.text ?? '');
+        placeholder.renderedHtml = html;
+        placeholder.thoughtHtml  = thoughtHtml;
+        placeholder.confidenceScores = scores;
         placeholder.isStreaming = false;
+        placeholder.streamWords = undefined;
+        placeholder.streamBuffer = undefined;
         this.scrollToBottom();
       }
     });
@@ -330,6 +368,7 @@ export class ChatSection implements OnInit, OnDestroy {
       next: event => {
         if (event.type === 'token') {
           placeholder.text = (placeholder.text ?? '') + event.content;
+          this.appendStreamWords(placeholder);
           this.scrollToBottom();
         } else if (event.type === 'context' && Array.isArray(event.content) && event.content.length > 0) {
           placeholder.citations = this.parseCitations(event.content);
@@ -337,12 +376,19 @@ export class ChatSection implements OnInit, OnDestroy {
       },
       error: () => {
         placeholder.text = 'Failed to get a response. Please try again.';
+        placeholder.renderedHtml = undefined;
         placeholder.type = 'error';
         placeholder.isStreaming = false;
         this.scrollToBottom();
       },
       complete: () => {
+        const { html, thoughtHtml, scores } = this.processResponse(placeholder.text ?? '');
+        placeholder.renderedHtml = html;
+        placeholder.thoughtHtml  = thoughtHtml;
+        placeholder.confidenceScores = scores;
         placeholder.isStreaming = false;
+        placeholder.streamWords = undefined;
+        placeholder.streamBuffer = undefined;
         this.scrollToBottom();
       }
     });
@@ -400,6 +446,170 @@ export class ChatSection implements OnInit, OnDestroy {
     this.activeSessionId = id;
     this.messages = structuredClone(s.messages);
     this.citationsPanelOpen = false;
+  }
+
+  private processResponse(raw: string): { html: string; thoughtHtml: string; scores: ConfidenceScore[] } {
+    let body = raw.trim();
+    const scores: ConfidenceScore[] = [];
+
+    // Strip leading "thought" marker emitted by some models
+    if (/^thought[\r\n]/.test(body)) {
+      body = body.slice(body.indexOf('\n') + 1).trim();
+    }
+
+    // Extract and remove Confidence Assessment block
+    const confIdx = body.lastIndexOf('*Confidence Assessment:*');
+    if (confIdx > -1) {
+      const confBlock = body.slice(confIdx);
+      body = body.slice(0, confIdx).trim();
+      const re = /[-•]\s*\*{0,2}([^:*\n]+?)\*{0,2}:\s*(?:([^\d(]+?)\s*\()?([\d.]+)(?:\s*[-–]\s*|\s+\(?)(\w+)/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(confBlock)) !== null) {
+        scores.push({ label: m[1].trim(), textValue: m[2]?.trim() || undefined, value: parseFloat(m[3]), level: m[4] });
+      }
+    }
+
+    // Remove redundant "Cited Responses" block
+    const citIdx = body.lastIndexOf('**Cited Responses:**');
+    if (citIdx > -1) body = body.slice(0, citIdx).trim();
+
+    // Clean up trailing separators
+    body = body.replace(/\n?---+\s*$/, '').trim();
+
+    // Split thought from answer: answer starts at first occurrence of known answer markers
+    const answerRe = /(?:Based on the provided context|Final Answer Construction:|According to the provided context|From the provided context)/;
+    const splitAt = body.search(answerRe);
+
+    let thoughtHtml = '';
+    let answerBody = body;
+
+    if (splitAt > 0) {
+      const thoughtText = body.slice(0, splitAt).trim();
+      answerBody = body.slice(splitAt).trim();
+      if (thoughtText) thoughtHtml = this.renderMarkdown(thoughtText);
+    }
+
+    return { html: this.renderMarkdown(answerBody), thoughtHtml, scores };
+  }
+
+  trackByIdx(index: number): number { return index; }
+
+  private appendStreamWords(msg: ChatMessage): void {
+    const allWords = (msg.text ?? '').match(/\S+\s*/g) ?? [];
+    const lastIsPartial = allWords.length > 0 && !/\s$/.test(allWords[allWords.length - 1]);
+    const completeWords = lastIsPartial ? allWords.slice(0, -1) : allWords;
+    const prevCount = msg.streamWords?.length ?? 0;
+    if (completeWords.length > prevCount) {
+      msg.streamWords = [...(msg.streamWords ?? []), ...completeWords.slice(prevCount)];
+    }
+    msg.streamBuffer = lastIsPartial ? allWords[allWords.length - 1] : '';
+  }
+
+  boldify(text: string): string {
+    return this.inlineFmt(text);
+  }
+
+  renderMarkdown(text: string | undefined): string {
+    if (!text) return '';
+
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const inlineFmt = this.inlineFmt.bind(this);
+
+    const lines = text.split('\n');
+    let html = '';
+    let inCode = false;
+    let inUl  = false;
+    let inOl  = false;
+
+    const closeList = () => {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+    };
+
+    // Peek ahead past blank lines to find the next non-empty line
+    const nextNonBlank = (from: number) => {
+      let j = from;
+      while (j < lines.length && lines[j].trim() === '') j++;
+      return j < lines.length ? lines[j].trim() : '';
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // ── fenced code block ───────────────────────────────────────────────
+      if (line.startsWith('```')) {
+        if (!inCode) {
+          closeList();
+          const lang = line.slice(3).trim();
+          html += `<pre><code${lang ? ` class="language-${lang}"` : ''}>`;
+          inCode = true;
+        } else {
+          html += '</code></pre>';
+          inCode = false;
+        }
+        continue;
+      }
+      if (inCode) { html += esc(line) + '\n'; continue; }
+
+      // ── headings ────────────────────────────────────────────────────────
+      const h3 = line.match(/^### (.+)/);
+      const h2 = line.match(/^## (.+)/);
+      const h1 = line.match(/^# (.+)/);
+      if (h1) { closeList(); html += `<h1>${inlineFmt(h1[1])}</h1>`; continue; }
+      if (h2) { closeList(); html += `<h2>${inlineFmt(h2[1])}</h2>`; continue; }
+      if (h3) { closeList(); html += `<h3>${inlineFmt(h3[1])}</h3>`; continue; }
+
+      // ── horizontal rule ─────────────────────────────────────────────────
+      if (/^---+$/.test(line.trim())) { closeList(); html += '<hr>'; continue; }
+
+      // ── unordered list ──────────────────────────────────────────────────
+      const ulm = line.match(/^[\-\*•]\s+(.*)/);
+      if (ulm) {
+        if (inOl) { html += '</ol>'; inOl = false; }
+        if (!inUl) { html += '<ul>'; inUl = true; }
+        html += `<li>${inlineFmt(ulm[1])}</li>`;
+        continue;
+      }
+
+      // ── ordered list ────────────────────────────────────────────────────
+      const olm = line.match(/^\d+\.\s+(.*)/);
+      if (olm) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (!inOl) { html += '<ol>'; inOl = true; }
+        html += `<li>${inlineFmt(olm[1])}</li>`;
+        continue;
+      }
+
+      // ── blank line ──────────────────────────────────────────────────────
+      if (line.trim() === '') {
+        // Don't close a list when blank lines appear between list items
+        if (inUl && /^[\-\*•]\s+/.test(nextNonBlank(i + 1))) continue;
+        if (inOl && /^\d+\.\s+/.test(nextNonBlank(i + 1))) continue;
+        closeList();
+        continue;
+      }
+
+      // ── paragraph ───────────────────────────────────────────────────────
+      closeList();
+      html += `<p>${inlineFmt(line)}</p>`;
+    }
+
+    closeList();
+    if (inCode) html += '</code></pre>';
+    return html;
+  }
+
+  private inlineFmt(s: string): string {
+    s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    s = s.replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>');
+    s = s.replace(/\*(.+?)\*/g,         '<em>$1</em>');
+    s = s.replace(/_(.+?)_/g,           '<em>$1</em>');
+    s = s.replace(/`([^`]+)`/g,         '<code>$1</code>');
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    return s;
   }
 
   filterConversations() {

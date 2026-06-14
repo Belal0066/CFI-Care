@@ -4,7 +4,7 @@ export const environment = {
   apiUrl: '/api',
   authUrl : '/auth',
   aiUrl: '/ai',
-  aiMock: true,   // set to false when AI server is live
+  aiMock: false,
   keycloakHost: 'https://${LOCAL_HOSTNAME}/keycloak',
   appDashboardUrl: 'https://${LOCAL_HOSTNAME}/dashboard'
 };

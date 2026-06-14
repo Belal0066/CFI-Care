@@ -9,6 +9,7 @@
     "target": "http://100.117.76.20:8001",
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "pathRewrite": { "^/ai": "" }
   }
 }

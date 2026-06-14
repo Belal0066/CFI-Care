@@ -42,23 +42,23 @@ const MOCK_RESPONSES: Record<string, { context: any[]; text: string }> = {
 • IV access and oxygen supplementation as needed
 
 **Clinical Note:**
-Always reassess within 30 minutes of initial evaluation and escalate to cardiology if troponin is elevated.`
+Always reassess within 30 minutes of initial evaluation and escalate to cardiology if troponin is elevated.`,
   },
 
   mcp: {
     context: [
       {
         source: 'PubMed — Drug Interaction Study',
-        content: `**Summary:** Aspirin interacts with P2Y12 inhibitors through enhanced antiplatelet mechanisms, significantly increasing bleeding risk when used in dual antiplatelet therapy.\n\n**Source Detail:**\n{'title': 'Dual Antiplatelet Therapy: Balancing Efficacy and Bleeding Risk', 'pmid': '29084738', 'url': 'https://pubmed.ncbi.nlm.nih.gov/29084738/', 'abstract': 'Dual antiplatelet therapy with aspirin and a P2Y12 inhibitor is the standard of care after ACS...'}`
+        content: `**Summary:** Aspirin interacts with P2Y12 inhibitors through enhanced antiplatelet mechanisms, significantly increasing bleeding risk when used in dual antiplatelet therapy.\n\n**Source Detail:**\n{'title': 'Dual Antiplatelet Therapy: Balancing Efficacy and Bleeding Risk', 'pmid': '29084738', 'url': 'https://pubmed.ncbi.nlm.nih.gov/29084738/', 'abstract': 'Dual antiplatelet therapy with aspirin and a P2Y12 inhibitor is the standard of care after ACS...'}`,
       },
       {
         source: 'PubMed — Clinical Trial',
-        content: `**Summary:** Apixaban demonstrated superior stroke prevention compared to aspirin in patients with subclinical atrial fibrillation with a history of TIA, at the cost of increased major bleeding events.\n\n**Source Detail:**\n{'title': 'Apixaban versus Aspirin for Stroke Prevention in Subclinical AF', 'pmid': '39862882', 'url': 'https://pubmed.ncbi.nlm.nih.gov/39862882/', 'abstract': 'In the ARTESiA trial, apixaban reduced stroke or systemic embolism compared with aspirin...'}`
+        content: `**Summary:** Apixaban demonstrated superior stroke prevention compared to aspirin in patients with subclinical atrial fibrillation with a history of TIA, at the cost of increased major bleeding events.\n\n**Source Detail:**\n{'title': 'Apixaban versus Aspirin for Stroke Prevention in Subclinical AF', 'pmid': '39862882', 'url': 'https://pubmed.ncbi.nlm.nih.gov/39862882/', 'abstract': 'In the ARTESiA trial, apixaban reduced stroke or systemic embolism compared with aspirin...'}`,
       },
       {
         source: 'PubMed — Oncology Research',
-        content: `**Summary:** Aspirin inhibits arachidonic acid metabolism in ARID1A-deficient colorectal cancer, enhancing immunotherapy efficacy through CD8+ T cell activation.\n\n**Source Detail:**\n{'title': 'Targeting Arachidonic Acid Metabolism Enhances Immunotherapy in ARID1A-Deficient CRC', 'pmid': '39652583', 'url': 'https://pubmed.ncbi.nlm.nih.gov/39652583/', 'abstract': 'ARID1A deficiency is mutated in approximately 10% of colorectal cancers...'}`
-      }
+        content: `**Summary:** Aspirin inhibits arachidonic acid metabolism in ARID1A-deficient colorectal cancer, enhancing immunotherapy efficacy through CD8+ T cell activation.\n\n**Source Detail:**\n{'title': 'Targeting Arachidonic Acid Metabolism Enhances Immunotherapy in ARID1A-Deficient CRC', 'pmid': '39652583', 'url': 'https://pubmed.ncbi.nlm.nih.gov/39652583/', 'abstract': 'ARID1A deficiency is mutated in approximately 10% of colorectal cancers...'}`,
+      },
     ],
     text: `**1. Clinical Summary**
 
@@ -78,7 +78,7 @@ Aspirin is an antiplatelet agent with several clinically significant interaction
 
 **3. Key Considerations**
 
-Always individualize therapy based on the patient's comorbidities, bleeding risk profile, and concurrent medications.`
+Always individualize therapy based on the patient's comorbidities, bleeding risk profile, and concurrent medications.`,
   },
 
   rag: {
@@ -108,21 +108,23 @@ Diabetes is a chronic metabolic disorder characterized by persistent hyperglycem
 * Lifestyle modification (diet, exercise, weight control)
 * Pharmacotherapy: Metformin first-line for Type 2; insulin for Type 1
 * Regular monitoring of HbA1c, renal function, lipids, and retinal status
-* Target HbA1c < 7% for most non-pregnant adults`
-  }
+* Target HbA1c < 7% for most non-pregnant adults`,
+  },
 };
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
 export class AiChatService {
-
   streamChat(payload: ChatPayload): Observable<ChatEvent> {
     const env = environment as any;
-    const useMock: boolean = env.aiMock ?? true;
-    const aiUrl:   string  = env.aiUrl  ?? '/ai';
+    const useMock: boolean = env.aiMock ?? false;
+    const aiUrl: string = env.aiUrl ?? '/chat';
 
-    console.group(`%c[AI Chat] ▶ Request (mode: ${payload.mode}${useMock ? ' · MOCK' : ''})`, 'color:#4A90E2;font-weight:bold');
+    console.group(
+      `%c[AI Chat] ▶ Request (mode: ${payload.mode}${useMock ? ' · MOCK' : ''})`,
+      'color:#4A90E2;font-weight:bold',
+    );
     console.log('Payload:', JSON.parse(JSON.stringify(payload)));
     console.groupEnd();
 
@@ -134,79 +136,125 @@ export class AiChatService {
 
     return source$.pipe(
       tap({
-        next: event => {
+        next: (event) => {
           if (event.type === 'context') {
-            console.log('%c[AI Chat] ◈ Context', 'color:#F5A623;font-weight:bold', event.content);
+            console.log(
+              '%c[AI Chat] ◈ Context',
+              'color:#F5A623;font-weight:bold',
+              event.content,
+            );
           } else if (event.type === 'token') {
             assembled += event.content;
           }
         },
-        error: err => {
+        error: (err) => {
           console.error('[AI Chat] ✖ Error:', err);
         },
         complete: () => {
-          console.group('%c[AI Chat] ✔ Complete', 'color:#417505;font-weight:bold');
+          console.group(
+            '%c[AI Chat] ✔ Complete',
+            'color:#417505;font-weight:bold',
+          );
           console.log('Full response:', assembled);
           console.groupEnd();
-        }
-      })
+        },
+      }),
     );
   }
 
   // ── Real SSE fetch ──────────────────────────────────────────────────────────
 
-  private fetchStream(payload: ChatPayload, aiUrl: string): Observable<ChatEvent> {
-    return new Observable(observer => {
+  private fetchStream(
+    payload: ChatPayload,
+    aiUrl: string,
+  ): Observable<ChatEvent> {
+    return new Observable((observer) => {
       const controller = new AbortController();
+      const endpoint = `${aiUrl}/chat`;
 
-      fetch(`${aiUrl}/chat`, {
+      console.group('%c[AI Fetch] ► Sending request', 'color:#4A90E2;font-weight:bold');
+      console.log('URL:', endpoint);
+      console.log('Payload:', JSON.parse(JSON.stringify(payload)));
+      console.groupEnd();
+
+      fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        signal: controller.signal
+        signal: controller.signal,
       })
-      .then(response => {
-        if (!response.ok) {
-          observer.error(new Error(`HTTP ${response.status}: ${response.statusText}`));
-          return;
-        }
+        .then((response) => {
+          console.log(`%c[AI Fetch] ◈ Response: HTTP ${response.status} ${response.statusText}`,
+            response.ok ? 'color:#417505;font-weight:bold' : 'color:#D0021B;font-weight:bold');
 
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+          if (!response.ok) {
+            const err = new Error(`HTTP ${response.status}: ${response.statusText}`);
+            console.error('[AI Fetch] ✖ Non-OK response:', err.message);
+            observer.error(err);
+            return;
+          }
 
-        const pump = (): Promise<void> =>
-          reader.read().then(({ done, value }) => {
-            if (done) { observer.complete(); return; }
+          console.log('%c[AI Fetch] ✔ Stream opened, reading chunks…', 'color:#417505');
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() ?? '';
+          const reader = response.body!.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let chunkCount = 0;
 
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith('data:')) continue;
+          const pump = (): Promise<void> =>
+            reader.read().then(({ done, value }) => {
+              if (done) {
+                console.log(`%c[AI Fetch] ✔ Stream complete (${chunkCount} chunks)`, 'color:#417505;font-weight:bold');
+                observer.complete();
+                return;
+              }
 
-              const data = trimmed.slice(5).trim();
-              if (data.startsWith('[DONE')) { observer.complete(); return; }
+              chunkCount++;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() ?? '';
 
-              try {
-                observer.next(JSON.parse(data) as ChatEvent);
-              } catch { /* skip malformed */ }
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('data:')) continue;
+
+                const data = trimmed.slice(5).trim();
+                if (data.startsWith('[DONE')) {
+                  console.log('%c[AI Fetch] ✔ [DONE] signal received', 'color:#417505;font-weight:bold');
+                  observer.complete();
+                  return;
+                }
+
+                try {
+                  const parsed = JSON.parse(data) as ChatEvent;
+                  console.log('[AI Fetch] ◈ JSON chunk:', parsed);
+                  observer.next(parsed);
+                } catch (parseErr) {
+                  console.warn('[AI Fetch] ⚠ Malformed SSE chunk skipped:', data, parseErr);
+                }
+              }
+
+              return pump();
+            });
+
+          pump().catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error('[AI Fetch] ✖ Stream read error:', err);
+              observer.error(err);
             }
-
-            return pump();
           });
-
-        pump().catch(err => {
-          if (err.name !== 'AbortError') observer.error(err);
+        })
+        .catch((err) => {
+          if (err.name !== 'AbortError') {
+            console.error('%c[AI Fetch] ✖ Network/CORS error — could not reach endpoint', 'color:#D0021B;font-weight:bold', err);
+            observer.error(err);
+          }
         });
-      })
-      .catch(err => {
-        if (err.name !== 'AbortError') observer.error(err);
-      });
 
-      return () => controller.abort();
+      return () => {
+        console.log('%c[AI Fetch] ⏹ Request aborted', 'color:#9B9B9B');
+        controller.abort();
+      };
     });
   }
 
@@ -215,7 +263,7 @@ export class AiChatService {
   private mockStream(mode: string): Observable<ChatEvent> {
     const mock = MOCK_RESPONSES[mode] ?? MOCK_RESPONSES['auto'];
 
-    return new Observable(observer => {
+    return new Observable((observer) => {
       let cancelled = false;
 
       const emit = async () => {
@@ -236,9 +284,11 @@ export class AiChatService {
         if (!cancelled) observer.complete();
       };
 
-      emit().catch(err => observer.error(err));
+      emit().catch((err) => observer.error(err));
 
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     });
   }
 
@@ -253,7 +303,8 @@ export class AiChatService {
         // Break longer words into 2–4 char chunks occasionally
         let i = 0;
         while (i < w.length) {
-          const chunkSize = Math.random() > 0.6 ? 1 : Math.floor(Math.random() * 3) + 2;
+          const chunkSize =
+            Math.random() > 0.6 ? 1 : Math.floor(Math.random() * 3) + 2;
           tokens.push(w.slice(i, i + chunkSize));
           i += chunkSize;
         }
@@ -263,7 +314,7 @@ export class AiChatService {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private randomDelay(): number {
