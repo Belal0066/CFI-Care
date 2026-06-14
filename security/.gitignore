@@ -1,0 +1,40 @@
+# security files
+
+*/certs/
+*/.secrets/
+# development-realm.json
+# realms.json
+# .env
+Plan.md
+
+test-login.html
+sign_in.html
+route.html
+
+# login/
+# css/
+
+decode_jwt.py
+
+*.json
+!vault-config.template.json
+!realm.*
+
+/test_mobile/*
+
+
+# keycloak fhir prov
+
+**/target/
+**/*.class
+
+test-summary*
+
+.env.test
+
+**/role_id
+**/secret_id
+
+**/hashicorp
+
+**/secrets

@@ -1,0 +1,31 @@
+\subsection{MarkDown to FHIR: LLM-Powered Data Mapper}
+\label{sec:data_mapper}
+
+The extraction of raw text via OCR, while foundational, is fundamentally insufficient for achieving algorithmic clinical interoperability. To bridge the semantic gap between raw text and actionable data, a Mapper was our choice. It is an LLM mapping pipeline explicitly designed to ingest the semi-structured OCR-generated Markdown and synthesize it into strictly structured, standards-compliant (FHIR) JSON payloads. By leveraging a locally hosted, quantized Gemma-4 model (a separate model from the MedGemma 1.5-4b-it reasoning engine used in the main RAG pipeline), the mapper guarantees deterministic execution, data sovereignty, and robust offline capability, effectively mitigating the privacy risks associated with cloud-based LLM APIs.
+
+\subsection{Mapper Architecture and Workflow}
+\label{subsec:mapper_architecture}
+
+The analytical mapping pipeline comprises several specialized sub-components, operating sequentially to ensure both semantic accuracy and structural integrity:
+
+\begin{itemize}
+    \item \textbf{Input Data (Structured Markdown):} The pipeline ingests digitized documents originating from the upstream OCR module. The Markdown format is intentionally utilized to preserve the spatial hierarchy and tabular relationships reconstructed during visual layout analysis, providing critical structural context to the language model.
+    \item \textbf{Local LLM Engine:} A standalone \texttt{llama-server} instance processes the input texts utilizing a custom-quantized model (\texttt{gemma-4-E4B-it-Q4\_K\_M.gguf}). This local, quantized deployment strategy ensures that computationally intensive natural language understanding can be executed on edge infrastructure without exposing Protected Health Information (PHI) to external networks.
+    \item \textbf{Prompt Templates:} A highly specific instruction prompts strictly constrains the generative model. These templates guide the LLM to exclusively extract predefined clinical features and synthesize valid FHIR JSON constructs, anchored completely to the provided Markdown context.
+    \item \textbf{Validation Layer:} A deterministic Python-based validation script intercepts the generated payloads. It evaluates the raw LLM output against the official FHIR schema, functioning as a vital gatekeeper to enforce structural and clinical compliance prior to downstream integration.
+\end{itemize}
+
+\subsection{Prompt Engineering and Extraction Strategy}
+\label{subsec:prompt_engineering}
+
+Transforming unstructured clinical narratives into structured JSON demands control over the LLM's output distribution. The system implements a rigorous hybrid of zero-shot and few-shot prompting techniques. 
+
+The prompts are analytically engineered to compel the model to perform Named Entity Recognition (NER) and relationship mapping simultaneously. The model identifies patient demographics, active conditions, clinical encounters, and discrete observations (e.g., vital signs, specific lab values). Crucially, the model is instructed to map these abstract entities precisely to their corresponding ontologies within the HL7 FHIR framework (e.g., embedding an identified symptom into a \texttt{Condition} resource).
+
+\subsection{Data Validation and Schema Enforcement}
+\label{subsec:mapper_validation}
+
+One major risk of using Generative AI in healthcare is "hallucination," where the model may create information that looks correct but is actually wrong, or produce invalid output. To reduce this risk, the system uses a rule-based schema validation layer. 
+
+Before any extracted payload is permitted entry into the Node.js backend databases, it undergoes  programmatic validation against FHIR JSON schema (\texttt{fhir.schema.json}). This critical validation checkpoint guarantees three aspects: the mandatory inclusion of required FHIR fields (such as resource types and patient identifiers), the structural validity of nested arrays, and strict adherence to HL7 scalar data types. This fail-safe prevents data corruption.
+

@@ -1,0 +1,99 @@
+@startuml Practitioner Patient Consent Granting
+skinparam actorStyle AWESOME
+autonumber
+
+
+actor Practitioner
+participant Browser
+
+participant RAG
+
+
+participant nginx
+' participant oauth2Proxy
+
+' participant Keycloak
+
+participant "Backend" as NJS
+
+participant "Patient Data Redis" as PDR
+database FHIR
+
+database "Consent Redis" as AR
+
+database "Consent Grant Database" as ADB
+
+' database "FCM Token Database" as TDB
+
+' participant RAGRedis as RR
+
+participant FastAPI as FAPI
+
+participant AuditLog
+
+' participant Firebase
+
+' participant "Application" as App
+' actor "Patient \n(Data Owner)"  as Patient 
+
+
+== Dr opens patient graph==
+Browser->FAPI: start processing patient data
+note left of Browser : forwards Consent grant token
+' FAPI -> nginx : Rqe patient data (with Consent token)
+' nginx -> FAPI : Forward req 
+
+' NJS -> ADB : Verify active Consent grant
+note left of AR : Read only access?
+FAPI -> AR : Query Consent grant redis for token
+alt cache hit 
+AR -> FAPI : Consent grant still in cache 
+FAPI -> FAPI : proceed 
+else cache miss
+FAPI -> ADB : check DB for Consent grant
+    alt mapping found
+    ADB-> FAPI : Consent grant given (with valid TTL)
+    FAPI -> FAPI : proceed 
+
+    
+
+' alt Valid active grant
+' ADB -> NJS : grant still active
+    else Consent revoked or expired
+    ADB -> FAPI : No active grant token
+    FAPI -> nginx : Return unauthorized
+    ' nginx -> RAG : Forward unauthorized
+    nginx -> Browser : Display access denied
+    end
+end 
+
+FAPI -> PDR : Get patient data
+alt cache hit
+PDR -> FAPI : Return patient data
+FAPI -> RAG : forward data
+
+else cache miss
+FAPI -> NJS : inform backend of missing data
+
+end
+
+
+FAPI -> AuditLog : Log RAG access
+' note right of AuditLog :{PractitionerId, patientId, timestamp, queryType, consentId}
+
+' FAPI -> nginx : Forward data
+' nginx -> RAG : Forward data
+
+
+==LLM queries==
+Practitioner -> Browser : Ask question about patient
+Browser -> FAPI : Send query with question
+note left of Browser : query could include session change
+
+FAPI -> FAPI : Process query
+FAPI -> Browser : Return response
+note left of FAPI : server sent event
+Browser -> Practitioner : Display answer
+
+
+@enduml

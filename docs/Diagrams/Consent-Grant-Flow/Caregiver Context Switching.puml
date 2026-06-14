@@ -1,0 +1,43 @@
+@startuml Caregiver Context Switching & Delegation
+skinparam actorStyle AWESOME
+autonumber
+
+actor "User (Caregiver)" as U1
+participant "Application" as App
+participant "Backend" as BE
+database "Caregiver Consent Database" as DB
+database "FHIR" as FHIR
+participant "Audit Log Cache" as Audit
+
+== Phase 1: Context Switching ==
+U1 -> App: Selects Dependent (Patient) from "Managed Dependents"
+note left of App: activePatientId handled through state management
+App -> App: Set activePatientId = Patient_ID
+App -> App: Switch UI to "Caregiver View"
+
+== Phase 2: Authorized Request ==
+U1 -> App: View Patient's Records
+App -> BE: GET /clinical/observations
+note right: Header: Subject-Patient-ID = Patient_ID\nAuthorization: Bearer <User_JWT>
+
+BE -> BE: extract User_ID from JWT
+BE -> BE: extract Patient_ID from Header
+
+BE -> DB: Is there an active 'caregiver' grant?
+DB -> BE: Return Grant
+
+alt Authorized
+    BE -> FHIR: GET /<patient_data_API>?patient=Patient_ID
+    FHIR -> BE: Return Data
+    BE -> App: 200 OK (Data for Patient)
+    BE -> Audit: Log ACCESS_ALLOWED 
+else Unauthorized
+    BE -> App: 403 Forbidden
+    BE -> Audit: Log ACCESS_DENIED 
+end
+
+== Phase 3: Switching Back ==
+U1 -> App: Tap "Return to my Profile"
+App -> App: Clear activePatientId
+App -> App: Reset UI to "Patient View"
+@enduml

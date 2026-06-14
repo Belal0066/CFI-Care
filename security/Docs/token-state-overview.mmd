@@ -1,0 +1,30 @@
+stateDiagram-v2
+    direction TB
+
+    state "Unauthenticated Layer" as Unauth {
+        direction LR
+        [*] --> Entry : Initialize App
+        Entry --> Verified : Resolve OIDC + PKCE
+    }
+
+    state "Active Cryptographic Session" as Active {
+        direction LR
+        [*] --> Valid : Token Ingestion
+        Valid --> Resource : Match Scopes (JWKS)
+        Valid --> Expired : Token Expiry Window
+        Expired --> Valid : Token Refresh Grant
+    }
+
+    state "Session Termination Tier" as Invalidation {
+        state "Per-Session Logout" as Single
+        state "Global Revocation" as Global
+    }
+
+    [*] --> Unauth
+    Unauth --> Active : Issue Token Cluster
+    
+    Active --> Single : POST /auth/logout
+    Active --> Global : POST /auth/logout-global
+    
+    Single --> Unauth : Clear Local Cache
+    Global --> Unauth : Flush Downstream Redis + Keycloak Mappings

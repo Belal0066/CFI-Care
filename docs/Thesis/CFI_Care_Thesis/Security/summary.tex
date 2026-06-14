@@ -1,0 +1,51 @@
+
+\section{Summary and Conclusion}\label{sec:security-summary}
+
+The security framework developed for CFI-Care establishes a robust, \textbf{defense-in-depth} architecture that addresses the unique challenges of healthcare information systems. 
+By distributing security concerns across the API gateway, a specialized Backend-for-Frontend, and a centralized Identity Provider, the system ensures that \ac{PHI} is protected at every layer of the stack.
+
+The implementation successfully achieves several critical security milestones:
+\begin{itemize}
+    \item \textbf{Unified Identity Management:} Through the integration of Keycloak, the platform manages complex user lifecycles, including automated \ac{FHIR} resource provisioning via custom event 
+    listeners and secure email verification SPIs.
+    \item \textbf{Multi-Client Authentication:} The architecture provides seamless security continuity,
+     supporting gateway-managed \ac{OIDC} sessions for web browsers and native, hardware-backed token storage for mobile devices via PKCE-enhanced flows.
+    \item \textbf{Granular Authorization:} Beyond standard role-based access, the system introduces a dynamic patient-to-doctor consent mechanism, 
+    allowing for time-bound, revocable access to sensitive medical records.
+    \item \textbf{Operational Integrity:} Hardened infrastructure configurations, including TLS termination,
+     security-focused HTTP headers,  a Redis-backed audit trail and centralized secrets management using Vault agents ensure the platform meets modern standards for accountability, non-repudiation and secrets isolation.
+\end{itemize}
+
+At its current state, CFI-Care provides a functional and secure foundation ready for clinical validation. 
+The identified future work -specifically the integration of standard-based consent documents and independent resource-level enforcement on the \ac{FHIR} server- will serve to further align the platform with international healthcare security regulations and large-scale production requirements.
+
+
+
+% CFI-Care implements a defense-in-depth security architecture across multiple
+% layers:
+
+
+% \paragraph{Browser Access (Gateway OIDC + BFF Session Metadata)}
+% Browser authentication is enforced at nginx/\texttt{oauth2-proxy}. The BFF
+% keeps minimal session metadata for user context and global logout coordination.
+
+% \paragraph{API Layer (Middleware + Validation)}
+% Every protected API request flows through bearer JWT verification, then
+% scope/role enforcement.
+% % Input validation prevents injection attacks. 
+% Audit logs capture authentication events for forensic analysis.
+
+
+% \paragraph{Current State}
+% The implementation is functional and ready for incremental hardening:
+% \begin{itemize}
+%     % \item All authentication endpoints are secured with rate limiting and input validation.
+%     \item Browser authentication continuity is maintained through gateway-managed OIDC
+%           session handling.
+%     \item Mobile authentication is implemented with Authorization Code + PKCE, secure
+%           token storage, and refresh/retry handling.
+%     \item Registration provisioning is automated via Keycloak Event Listener to BFF
+%           provisioning endpoint.
+%     \item Per-session and global logout are fully functional.
+%     \item Audit trails are captured and retained for 90 days.
+% \end{itemize}

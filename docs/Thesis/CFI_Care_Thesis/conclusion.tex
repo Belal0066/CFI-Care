@@ -1,0 +1,90 @@
+\chapter{Conclusion and Future Work}\label{chap:conclAndFutureWork}
+
+\section{Conclusion}
+
+This thesis addressed a major challenge in healthcare systems in Egypt and other developing countries: medical records are often scattered across different healthcare providers. Patient can visit the same doctor but in different hospitals, and each hospital may have its own system for storing medical records, but do not have the data from other institutions. This fragmentation makes it difficult for healthcare professionals to access a complete view of a patient's medical history, which can lead to missed opportunities for early intervention.
+Data still is stored on paper, difficult to access, and not easily shared with healthcare providers. These issues make it harder for healthcare professionals to obtain a complete view of a patient's medical history and limit the use of modern AI technologies in healthcare.
+
+To address these challenges, this thesis designed and implemented \textbf{CFI-Care}, a patient-centered healthcare platform that brings medical information together in one secure system while giving patients control over their own data.
+
+The proposed system tackles the key problems mentioned in the Introduction (see Section~\ref{sec:problem_statement}):
+
+\subsubsection{Results}
+The main contribution of this work is the integration of these features into a single platform consisting of web, mobile, and backend components. By combining interoperability standards,
+ secure data sharing, patient-controlled consent, healthcare visualization, document digitization, and AI-powered doctor assistance,
+  CFI-Care demonstrates a practical approach to modern healthcare management.
+
+The system was tested ,and the results showed that the different components work correctly together and support the intended functionality of the platform.
+
+\begin{itemize}
+
+\item \textbf{Elimination of fragmented healthcare records:} The FHIR R4-compliant server successfully consolidates patient records from disparate sources into a single longitudinal store.
+ Backend end-to-end tests confirmed that patient creation, encounter retrieval, and related-data bundling all pass.
+
+\item \textbf{LLM-powered Markdown-to-FHIR mapping:} A locally hosted, quantized
+Gemma-4 model maps OCR Markdown into schema-validated FHIR JSON, achieving perfect
+extraction on clean and realistic inputs and 84.21\% precision in the worst case
+across a 56-test suite.
+\item \textbf{AI-powered RAG and OCR pipeline:} The AI components demonstrated strong performance across retrieval, summarization, and document processing tasks.
+ The RAG system achieved a mean Recall@10 of 0.88,
+  a Mean Reciprocal Rank (MRR) of 0.68,
+   and a precision score of 0.75, while maintaining 100\% faithfulness across all evaluation queries.
+    Retrieval operations were completed with a mean latency of 0.155 ms,
+     and end-to-end generation of clinical summaries required 8--12 seconds at a throughput of 40--50 tokens per second.
+      Additionally, the OCR pipeline achieved 100\% precision, recall, and F$_1$-score on clean datasets,
+       while maintaining 84.21\% precision under real-world pipeline conditions.
+\item \textbf{Interactive tree-based visualization of patient medical history:} The interactive medical history graph, backed by a PostgreSQL timeline store, delivers a complete navigable view of a patient's diagnostic progression.
+ Integration tests verified node and edge creation, branching logic, cache-aware readback, and invalid-category rejection.
+
+\item \textbf{Enhanced privacy and consent management:} OIDC/PKCE authentication, role-based access control, OTP-based consent handshakes, and XSRF-TOKEN enforcement were all validated.
+ A comparative Nessus scan between March 2026 and June 2026 confirmed that all identified vulnerabilities---missing HSTS headers,
+  permissive cookie attributes, and absent XSRF protection---were fully remediated.
+
+\end{itemize}
+\section{Expected Impact}
+
+CFI-Care provides a foundation for improving healthcare record management in Egypt and other developing countries. By using open standards such as FHIR, OAuth 2.0, and OpenID Connect, the platform can be expanded in the future and integrated with other healthcare systems.
+
+The platform also promotes patient involvement by allowing individuals to manage access to their own healthcare information. This can improve trust, transparency, and collaboration between patients and healthcare providers.
+
+Although CFI-Care is currently a prototype and further development is required before large-scale deployment, the project demonstrates that a secure, interoperable, patient-centered, and AI-enabled healthcare system can be successfully implemented using modern technologies. 
+The work provides a strong foundation for future research and development in digital healthcare solutions.
+
+
+\section{Future Work}
+
+\subsection{System Security}
+
+\paragraph{Architecture Hardening and Lifecycle Maturity}
+The current implementation provides a robust baseline for secure health data exchange, Meanwhile, 
+future iterations will focus on advancing this prototype toward enterprise-grade maturity:
+
+\begin{itemize}
+    \item \textbf{Transition to Hardware-Backed Key Orchestration:} While the current LUKS-based storage encryption provides comprehensive at-rest protection, 
+    the next phase will integrate an external Key Management Service (KMS) or Hardware Security Module (HSM), 
+    which will decouple cryptographic key material from the host file system, enabling programmatic key rotation, tamper-evident audit logging, and ephemeral secret injection.
+    \item \textbf{Automated Infrastructure Hardening (IaC):} Move from manual container management to Infrastructure-as-Code (IaC) via hardened Kubernetes (K8s) manifests, to enable the enforcement of \textit{Pod Security Admissions} and ensure least-privilege runtime enforcement.
+    \item \textbf{Identity Provider Federation and mTLS:} Scale the identity architecture by transitioning from standard OIDC/OIDC-proxy patterns to mTLS (Mutual TLS) service-to-service authentication; requiring certificate-based validation for all internal API traffic should eliminate the reliance on network-level isolation, establishing a true Zero-Trust architecture.
+    \item \textbf{Production Lifecycle Orchestration:} Migrate the current static TLS configuration to automated lifecycle management (using the Let's Encrypt providers) integrated directly into the ingress gateway ensuring consistent, zero-touch certificate rotation across production environments , eliminating manual maintenance and preventing expiry-related downtime.
+\end{itemize}
+
+\subsection{Mobile Application}
+
+\subsubsection{Patient adding an Episode of Care}
+Currently our system only allows doctors to create an episode of care for a patient. 
+In the future, we plan to allow patients to create their own episodes of care, which will enable them to track their health conditions and share their health data with their doctors.
+This will empower patients to take a more active role in their healthcare and improve patient engagement.
+
+\paragraph{Technical Implementation}
+After an appointment, patients are prompted to upload any requested follow-up medical records, 
+such as laboratory results or imaging scans, to the Episode of Care associated with the appointment. 
+The Episode of Care is initially created by the physician and serves as a centralized repository for all documents related to the patient's condition. 
+This will allow doctors to have a more comprehensive view of the patient's health and make more informed decisions about their care.
+
+% \subsection{unit and widget testing and mockito}
+% image picker 
+% \subsection{How to monetize the application}
+% https://www.udacity.com/enrollment/ud518
+
+% \bibliography{sample}
+% \bibliographystyle{ieeetr}

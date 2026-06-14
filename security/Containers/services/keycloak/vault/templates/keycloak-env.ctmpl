@@ -1,0 +1,3 @@
+{{- with secret "secret/data/dev/keycloak/provisioner" -}}
+KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_CLIENT_SECRET={{ .Data.data.KC_SPI_EVENTS_LISTENER_FHIR_PROVISIONER_LISTENER_CLIENT_SECRET }}
+{{- end }}

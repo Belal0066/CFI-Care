@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DOC2FHIR Full Pipeline Console</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --sky: #f0f9ff;
+      --paper: #fcfcfb;
+      --line: #d6e2ef;
+      --accent: #1d4ed8;
+      --accent2: #0f766e;
+      --muted: #475569;
+      --ok: #166534;
+      --bad: #991b1b;
+      --warn: #9a3412;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Trebuchet MS", "Gill Sans", "Lucida Grande", sans-serif;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0% 0%, #dbeafe 0, transparent 36%),
+        radial-gradient(circle at 100% 100%, #dcfce7 0, transparent 32%),
+        linear-gradient(120deg, #f8fafc 0%, #f1f5f9 50%, #ecfeff 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .shell {
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: 0.2px;
+    }
+
+    .sub {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 12px 20px rgba(15, 23, 42, 0.04);
+    }
+
+    .card h3 {
+      margin: 2px 0 10px;
+      font-size: 16px;
+    }
+
+    .toolbar, .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .wide { width: 100%; }
+
+    .tabs {
+      display: inline-flex;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .tab {
+      border: 0;
+      background: transparent;
+      color: #1e3a8a;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #1d4ed8;
+      color: #fff;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 12px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button.secondary { background: var(--accent2); }
+    button.ghost { background: #334155; }
+    button.warn { background: #b45309; }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: "Courier New", "Lucida Console", monospace;
+    }
+
+    .mono {
+      font-family: "Courier New", "Lucida Console", monospace;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.4;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 70px;
+      max-height: 340px;
+      overflow: auto;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .phase-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .phase-pill {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      background: #f8fafc;
+    }
+
+    .phase-pill.done { border-color: #86efac; color: var(--ok); background: #f0fdf4; }
+    .phase-pill.active { border-color: #93c5fd; color: #1d4ed8; background: #eff6ff; }
+    .phase-pill.failed { border-color: #fca5a5; color: var(--bad); background: #fef2f2; }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+    }
+
+    .hide { display: none; }
+
+    @media (max-width: 980px) {
+      .grid, .grid-3, .split {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>DOC2FHIR Full Pipeline Console</h1>
+    <p class="sub">Test end-to-end flow: ingestion -> OCR -> Mapper -> Downstream, plus validation and observability.</p>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Ingestion Mode">
+          <button id="tabUpload" class="tab active" type="button">Form Upload</button>
+          <button id="tabSqs" class="tab" type="button">SQS Ingest</button>
+        </div>
+        <span id="liveStatus" class="status-badge">Idle</span>
+        <button id="refreshHealthBtn" class="ghost" type="button">Refresh Health</button>
+        <button id="refreshMetricsBtn" class="ghost" type="button">Refresh Metrics</button>
+      </div>
+    </div>
+
+    <div id="uploadPanel" class="card">
+      <h3>Upload Mode</h3>
+      <div class="row">
+        <input id="pdfFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp" />
+      </div>
+      <div class="row">
+        <textarea id="metadata" placeholder='{"patient_id":"P123","source":"ui"}'>{"source":"ui","path":"form-upload"}</textarea>
+      </div>
+      <div class="toolbar">
+        <button id="uploadBtn" class="secondary" type="button">Submit Upload</button>
+      </div>
+    </div>
+
+    <div id="sqsPanel" class="card hide">
+      <h3>SQS Mode</h3>
+      <div class="grid">
+        <input id="sqsMessageId" placeholder="message_id (optional, auto-generated if empty)" />
+        <input id="sqsFilename" placeholder="filename (e.g. sample.pdf)" value="sample.pdf" />
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <textarea id="sqsMetadata" placeholder='{"source":"sqs-ui"}'>{"source":"sqs-ui","path":"sqs"}</textarea>
+      </div>
+      <div class="toolbar">
+        <button id="loadFileToSqsBtn" type="button">Load File As Base64</button>
+        <button id="submitSqsBtn" class="secondary" type="button">Submit SQS Ingest</button>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <textarea id="sqsBase64" placeholder="pdf_base64 payload"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Job Control</h3>
+      <div class="grid">
+        <input id="jobId" placeholder="job_id" />
+        <input id="pollMs" placeholder="auto poll interval ms" value="2000" />
+      </div>
+      <div class="toolbar" style="margin-top:10px;">
+        <button id="pollBtn" type="button">Poll Status</button>
+        <button id="loadResultBtn" type="button">Load Result</button>
+        <button id="autoPollBtn" class="warn" type="button">Start Auto Poll</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Pipeline Phases</h3>
+      <div id="phaseRow" class="phase-row"></div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <h3>Job Status</h3>
+        <div id="status" class="mono"></div>
+      </div>
+      <div class="card">
+        <h3>Service Health (F/G Readiness)</h3>
+        <div id="health" class="mono"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Stage Metrics</h3>
+        <div id="stageMetrics" class="mono"></div>
+      </div>
+      <div class="card">
+        <h3>Gateway Metrics</h3>
+        <div id="globalMetrics" class="mono"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>FHIR Validation</h3>
+        <div id="validation" class="mono"></div>
+      </div>
+      <div class="card">
+        <h3>Event Timeline</h3>
+        <div id="eventTimeline" class="mono"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>FHIR Bundle</h3>
+        <textarea id="fhir" readonly></textarea>
+      </div>
+      <div class="card">
+        <h3>Raw Events</h3>
+        <textarea id="events" readonly></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const healthEl = document.getElementById('health');
+    const stageMetricsEl = document.getElementById('stageMetrics');
+    const validationEl = document.getElementById('validation');
+    const fhirEl = document.getElementById('fhir');
+    const eventsEl = document.getElementById('events');
+    const metricsEl = document.getElementById('globalMetrics');
+    const phaseRowEl = document.getElementById('phaseRow');
+    const eventTimelineEl = document.getElementById('eventTimeline');
+    const liveStatusEl = document.getElementById('liveStatus');
+
+    const uploadPanel = document.getElementById('uploadPanel');
+    const sqsPanel = document.getElementById('sqsPanel');
+    const tabUpload = document.getElementById('tabUpload');
+    const tabSqs = document.getElementById('tabSqs');
+
+    let autoPollTimer = null;
+
+    function pretty(obj) { return JSON.stringify(obj, null, 2); }
+
+    function setLiveStatus(text, tone) {
+      liveStatusEl.textContent = text;
+      liveStatusEl.style.borderColor = tone || '#bfdbfe';
+    }
+
+    function switchMode(mode) {
+      const uploadActive = mode === 'upload';
+      uploadPanel.classList.toggle('hide', !uploadActive);
+      sqsPanel.classList.toggle('hide', uploadActive);
+      tabUpload.classList.toggle('active', uploadActive);
+      tabSqs.classList.toggle('active', !uploadActive);
+    }
+
+    function messageId() {
+      return `msg_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    }
+
+    function mapPhaseState(payload) {
+      const state = (payload?.state || '').toLowerCase();
+      const hasEvents = Array.isArray(payload?.events) ? payload.events : [];
+
+      const phase = {
+        AB: 'idle',
+        C: 'idle',
+        D: 'idle',
+        E: 'idle',
+        FG: 'idle'
+      };
+
+      if (state) {
+        phase.AB = 'done';
+        phase.FG = 'done';
+      }
+
+      const states = hasEvents.map(e => (e.state || '').toLowerCase());
+      if (states.some(s => s.includes('ocr'))) phase.C = 'done';
+      if (states.some(s => s.includes('mapper') || s.includes('fhir'))) phase.D = 'done';
+      if (states.some(s => s.includes('downstream'))) phase.E = 'done';
+
+      if (state.includes('ocr')) phase.C = 'active';
+      if (state.includes('mapper')) phase.D = 'active';
+      if (state.includes('downstream')) phase.E = 'active';
+      if (state === 'queued') phase.AB = 'active';
+
+      if (['failed', 'server_busy', 'timeout', 'downstream_error'].includes(state)) {
+        if (phase.E === 'active' || phase.E === 'done') {
+          phase.E = 'failed';
+        } else if (phase.D === 'active' || phase.D === 'done') {
+          phase.D = 'failed';
+        } else if (phase.C === 'active' || phase.C === 'done') {
+          phase.C = 'failed';
+        } else {
+          phase.AB = 'failed';
+        }
+      }
+
+      return phase;
+    }
+
+    function renderPhases(payload) {
+      const phase = mapPhaseState(payload || {});
+      const phaseDefs = [
+        ['A/B Ingestion + Persistence', phase.AB],
+        ['C OCR', phase.C],
+        ['D Mapper/Callback', phase.D],
+        ['E Downstream', phase.E],
+        ['F/G Queue+Observability', phase.FG],
+      ];
+
+      phaseRowEl.innerHTML = phaseDefs.map(([label, cls]) => {
+        return `<span class="phase-pill ${cls}">${label}</span>`;
+      }).join('');
+    }
+
+    function renderTimeline(events) {
+      const list = Array.isArray(events) ? events : [];
+      if (!list.length) {
+        eventTimelineEl.textContent = 'No events yet.';
+        return;
+      }
+
+      const lines = list.map(e => {
+        const ts = e.created_at || '-';
+        const st = e.state || 'unknown';
+        const detail = e.detail || '';
+        return `[${ts}] ${st} :: ${detail}`;
+      });
+      eventTimelineEl.textContent = lines.join('\n');
+    }
+
+    async function refreshGlobalMetrics() {
+      const res = await fetch('/v1/metrics');
+      const payload = await res.json();
+      metricsEl.textContent = pretty(payload);
+    }
+
+    async function refreshHealth() {
+      const res = await fetch('/v1/health');
+      const payload = await res.json();
+      healthEl.textContent = pretty(payload);
+    }
+
+    async function uploadPdf() {
+      const file = document.getElementById('pdfFile').files[0];
+      if (!file) return alert('Choose a file first');
+      const metadataRaw = document.getElementById('metadata').value || '{}';
+
+      const form = new FormData();
+      form.append('file', file);
+      form.append('metadata', metadataRaw);
+
+      const res = await fetch('/v1/document/upload', { method: 'POST', body: form });
+      const payload = await res.json();
+      if (!res.ok) return alert(pretty(payload));
+
+      document.getElementById('jobId').value = payload.job_id;
+      statusEl.textContent = pretty(payload);
+      renderPhases(payload);
+      setLiveStatus(`Queued: ${payload.job_id}`, '#93c5fd');
+    }
+
+    async function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Failed to read file.'));
+        reader.onload = () => {
+          const text = String(reader.result || '');
+          const comma = text.indexOf(',');
+          resolve(comma >= 0 ? text.slice(comma + 1) : text);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function loadFileToSqs() {
+      const file = document.getElementById('pdfFile').files[0];
+      if (!file) return alert('Select a file first in Upload Mode picker.');
+      const b64 = await fileToBase64(file);
+      document.getElementById('sqsBase64').value = b64;
+      if (!document.getElementById('sqsFilename').value.trim()) {
+        document.getElementById('sqsFilename').value = file.name || 'sample.pdf';
+      }
+      if (!document.getElementById('sqsMessageId').value.trim()) {
+        document.getElementById('sqsMessageId').value = messageId();
+      }
+      setLiveStatus('SQS payload prepared', '#93c5fd');
+    }
+
+    async function submitSqs() {
+      const message_id = document.getElementById('sqsMessageId').value.trim() || messageId();
+      const filename = document.getElementById('sqsFilename').value.trim() || 'sample.pdf';
+      const pdf_base64 = document.getElementById('sqsBase64').value.trim();
+      const metadataRaw = document.getElementById('sqsMetadata').value || '{}';
+
+      if (!pdf_base64) return alert('Provide pdf_base64 or click "Load File As Base64".');
+
+      let metadata = {};
+      try {
+        metadata = JSON.parse(metadataRaw);
+      } catch (err) {
+        alert(`Invalid SQS metadata JSON: ${err.message}`);
+        return;
+      }
+
+      const res = await fetch('/v1/document/sqs/ingest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_id,
+          filename,
+          pdf_base64,
+          metadata,
+          correlation_id: `ui_${message_id}`,
+        })
+      });
+
+      const payload = await res.json();
+      if (!res.ok) return alert(pretty(payload));
+
+      document.getElementById('jobId').value = payload.job_id;
+      statusEl.textContent = pretty(payload);
+      renderPhases(payload);
+      setLiveStatus(`SQS queued: ${payload.job_id}`, '#93c5fd');
+    }
+
+    async function pollStatus() {
+      const jobId = document.getElementById('jobId').value.trim();
+      if (!jobId) return alert('Enter job_id');
+      const res = await fetch(`/v1/document/status/${jobId}`);
+      const payload = await res.json();
+      statusEl.textContent = pretty(payload);
+      renderPhases(payload);
+
+      const state = (payload.state || '').toLowerCase();
+      if (state === 'completed') {
+        setLiveStatus('Completed', '#86efac');
+      } else if (['failed', 'server_busy', 'downstream_error', 'timeout'].includes(state)) {
+        setLiveStatus(`Ended: ${state}`, '#fca5a5');
+      } else {
+        setLiveStatus(`Running: ${state || 'unknown'}`, '#93c5fd');
+      }
+
+      return payload;
+    }
+
+    async function loadResult() {
+      const jobId = document.getElementById('jobId').value.trim();
+      if (!jobId) return alert('Enter job_id');
+
+      const res = await fetch(`/v1/document/result/${jobId}`);
+      const payload = await res.json();
+      if (!res.ok) return alert(pretty(payload));
+
+      statusEl.textContent = pretty(payload.job);
+      stageMetricsEl.textContent = pretty(payload.stage_metrics || {});
+      validationEl.textContent = pretty(payload.fhir_validation || {});
+      fhirEl.value = pretty(payload.fhir_bundle || {});
+      eventsEl.value = pretty(payload.events || []);
+      renderTimeline(payload.events || []);
+      renderPhases({ ...(payload.job || {}), events: payload.events || [] });
+    }
+
+    async function toggleAutoPoll() {
+      const btn = document.getElementById('autoPollBtn');
+
+      if (autoPollTimer) {
+        clearInterval(autoPollTimer);
+        autoPollTimer = null;
+        btn.textContent = 'Start Auto Poll';
+        setLiveStatus('Auto poll stopped', '#bfdbfe');
+        return;
+      }
+
+      const intervalMs = Number(document.getElementById('pollMs').value || '2000');
+      const safeMs = Number.isFinite(intervalMs) && intervalMs >= 500 ? intervalMs : 2000;
+
+      btn.textContent = 'Stop Auto Poll';
+      setLiveStatus(`Auto polling every ${safeMs}ms`, '#93c5fd');
+
+      autoPollTimer = setInterval(async () => {
+        try {
+          const payload = await pollStatus();
+          if (!payload) return;
+
+          const state = (payload.state || '').toLowerCase();
+          if (['completed', 'failed', 'server_busy', 'downstream_error', 'timeout'].includes(state)) {
+            clearInterval(autoPollTimer);
+            autoPollTimer = null;
+            btn.textContent = 'Start Auto Poll';
+            await loadResult();
+          }
+        } catch (err) {
+          setLiveStatus(`Polling error: ${err.message}`, '#fca5a5');
+        }
+      }, safeMs);
+    }
+
+    tabUpload.addEventListener('click', () => switchMode('upload'));
+    tabSqs.addEventListener('click', () => switchMode('sqs'));
+
+    document.getElementById('uploadBtn').addEventListener('click', uploadPdf);
+    document.getElementById('pollBtn').addEventListener('click', pollStatus);
+    document.getElementById('loadResultBtn').addEventListener('click', loadResult);
+    document.getElementById('refreshHealthBtn').addEventListener('click', refreshHealth);
+    document.getElementById('refreshMetricsBtn').addEventListener('click', refreshGlobalMetrics);
+    document.getElementById('loadFileToSqsBtn').addEventListener('click', loadFileToSqs);
+    document.getElementById('submitSqsBtn').addEventListener('click', submitSqs);
+    document.getElementById('autoPollBtn').addEventListener('click', toggleAutoPoll);
+
+    renderPhases({});
+    renderTimeline([]);
+    refreshHealth();
+    refreshGlobalMetrics();
+  </script>
+</body>
+</html>

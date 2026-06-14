@@ -1,0 +1,131 @@
+\section{Mobile App Testing}\label{sec:MobileAppTesting}
+
+\subsection{Unit Testing}
+Unit testing is the process of verifying the correctness of a single function,
+method, or class in isolation. It is considered the foundation of the testing
+pyramid. The primary goal is to ensure that the business logic and algorithms
+function as expected under a variety of conditions without any interaction with
+the User Interface (UI) or external dependencies such as databases or web
+servers \cite{flutterunittest}.
+
+As described by Torres \cite{torres2024testing}, unit tests help ensure that
+specific pieces of logic produce the expected output given a particular input.
+These tests are characterized by their execution speed and low maintenance
+cost. In Flutter, unit tests typically utilize the \texttt{test} package to
+define expectations and assertions for Dart classes.
+
+\subsection{Widget Testing}
+Widget testing, often referred to as component testing in other frameworks,
+sits between unit and integration testing. A widget test verifies the behavior
+of a single widget or a small group of widgets \cite{flutterwidgettest}.
+
+According to Bharti \cite{bharti2024widget}, the objective of widget testing is
+to ensure UI reliability and quality by asserting that the widget's visual
+layout is rendered correctly and that it responds appropriately to user
+interactions, such as button taps or text entry.
+
+Unlike unit tests, widget tests require a simulated environment. The Flutter
+framework provides the \texttt{WidgetTester} utility, which allows developers
+to build and interact with widgets in a test environment that is significantly
+faster than a full UI system but complex enough to render the widget tree
+\cite{flutterwidgettest}.
+
+\subsection{Integration Testing}
+Integration testing involves testing the application as a complete system. This
+methodology validates that all individual components—including the UI, business
+logic, and external services—work together correctly \cite{torres2024testing}.
+
+These tests simulate a real user's journey through the application, such as
+logging in, navigating through screens, and performing data updates. Because
+integration tests typically run on real devices or emulators to capture
+accurate performance data and visual rendering, they are generally slower and
+more resource-intensive than unit or widget tests.
+\subsection{Testing Architecture and Tools}
+We utilized the following standard Flutter testing libraries:
+\begin{itemize}
+    \item \textbf{flutter\_test}: The core framework used to write and run assertions.\cite{flutter_testing_docs}
+    \item \textbf{mockito}: Used to simulate external dependencies. Since our ViewModels depend on Repositories and Plugins, we created "Mock" objects to return controlled dummy data during tests.\cite{mockito_pub}
+    \item \textbf{build\_runner}: Used to automatically generate the Mock classes using the \texttt{@GenerateMocks} annotation, ensuring our test mocks stay up-to-date with our actual interfaces.\cite{build_runner_pub}
+    \item \textbf{WidgetTester}: Provided by the \texttt{flutter\_test} package, this allows us to build and interact with widgets in a test environment without running the full app on an emulator.\cite{flutter_widgettester}
+    \item \textbf{network\_image\_mock}: Since widget tests run in a restrictive environment without real internet access, standard \texttt{Image.network} widgets would fail. We used this package to wrap our tests and mock successful image loads.\cite{tigerasks2024provider, network_image_mock}
+    \item \textbf{Provider Injection}: Many of our widgets rely on \newline\texttt{ChangeNotifierProvider}. In tests, we injected "Mock Providers" (created with Mockito) to supply controlled data and verify that buttons trigger the correct business logic.\cite{tigerasks2024provider}
+\end{itemize}
+
+\subsection{Unit Testing Implementation}
+To ensure the reliability of the application's business logic and maintain a
+stable codebase, we implemented a comprehensive Unit Testing strategy. This
+strategy focused on verifying the behavior of our \textbf{ViewModels} in isolation from the UI and external dependencies (such as the
+backend API or local device storage).
+
+\subsubsection{Booking Logic (BookingProvider)}
+The booking process involves complex state management where selecting a doctor
+resets previously selected dates to prevent invalid slots.
+\begin{itemize}
+    \item \textbf{Scenario Tested:} We verified that selecting a new doctor automatically clears the \texttt{selectedDate} and \texttt{selectedTime} to enforce valid scheduling.
+    \item \textbf{Optimistic Updates:} We tested the \texttt{confirmBooking} method to ensure that once the repository returns success, the local appointment list updates immediately without requiring a full page refresh.
+\end{itemize}
+
+\begin{verbatim}
+// Verifying Booking Reset Logic (booking_provider_test.dart)
+test('Selecting a doctor should reset Date and Time', () {
+  // Arrange: Set a date first
+  provider.setTimeSlot(DateTime(2026, 1, 1), '10:00 AM');
+  
+  // Act: Select a new doctor
+  provider.selectDoctor(createDummyDoctor());
+
+  // Assert: Doctor is set, but time/date are wiped (null)
+  expect(provider.selectedDoctor, isNotNull);
+  expect(provider.selectedDate, null);
+  expect(provider.selectedTime, null);
+});
+\end{verbatim}
+
+\subsubsection{Document Uploads (DocumentAddViewModel)}
+This module interacts with native platform channels (File Picker, Image
+Picker). Testing it requires intercepting these platform calls.
+\begin{itemize}
+    \item \textbf{Validation Logic:} We verified that the \texttt{isValid} getter returns \texttt{false} unless both a "Title" and a "File" are present, preventing users from submitting incomplete forms.
+    \item \textbf{Platform Mocking:} Since Unit Tests run on a computer (not a phone), calls to
+    \texttt{getApplicationDocumentsDirectory} would normally crash.\newline
+    We used \texttt{MethodChannel} mocking to intercept these calls and return a
+    temporary directory on the test machine.
+\end{itemize}
+
+\subsubsection{Medical History Timeline (MajorEventProvider)}
+This provider handles fetching the patient's "Major Events" and their
+sub-nodes.
+\begin{itemize}
+    \item \textbf{State Management:} We tested the \texttt{fetchEvents} method to ensure the \texttt{isLoading} boolean correctly toggles to \texttt{true} when the call starts and \texttt{false} when data is received.
+    \item \textbf{Data Clearing:} We verified that fetching details for a new event correctly clears the old data from the previous event to prevent showing stale information.
+\end{itemize}
+
+\begin{verbatim}
+// Mocking Repository Responses (major_event_provider_test.dart)
+test('fetchEvents success updates list and loading state', () async {
+  // Arrange: Stub the repo to return a dummy list immediately
+  when(mockRepo.getMajorEvents())
+      .thenAnswer((_) async => [createDummyEvent()]);
+
+  // Act: Trigger the fetch
+  final future = provider.fetchEvents();
+  
+  // Assert: Loading should be true while fetching
+  expect(provider.isLoadingEvents, true);
+
+  await future;
+
+  // Assert: Data is populated and loading is false
+  expect(provider.events.length, 1);
+  expect(provider.isLoadingEvents, false);
+});
+\end{verbatim}
+
+\subsubsection{Test Coverage Results}
+By isolating the ViewModels and mocking the repositories, we achieved high test
+coverage for the application's core logic. This approach allowed us to:
+\begin{enumerate}
+    \item \textbf{Identify Edge Cases:} We caught issues where invalid form submissions were possible before implementing the validation checks.
+    \item \textbf{Refactor Safely:} We could optimize the \texttt{BookingProvider} logic with confidence, knowing the tests would fail if we broke the "reset date" functionality.
+    \item \textbf{Improve Efficiency:} Running these unit tests takes less than 2 seconds, compared to manual testing which would require navigating through the entire app.
+\end{enumerate}
