@@ -120,167 +120,64 @@ function requirePatientContext(options = {}) {
       const resourceType = req.baseUrl?.split("/")[2] || "Unknown";
       const action = methodToAction(req.method);
 
-      // caregiver
-
-      const isCaregiver = hasAnyRole(roles, caregiverRoles);
-      if (isCaregiver) {
-        const grant = await getGrantByRequesterAndPatient(reqId, patientId);
-
-
-        if (!grant) {
-          await logSecurityEvent("access", "ACCESS_DENIED", req, {
-            actorType: "caregiver",
-            patientId,
-            requesterId: reqId,
-            reason: "No active caregiver grant found",
-            action,
-            resourceType,
-          });
-          return res.status(403).json({
-            error: "Forbidden: no active caregiver grant",
-          });
-        }
-
-        if (!isGrantActive(grant)) {
-          await logSecurityEvent("access", "CONSENT_GRANT_INVALID", req, {
-            actorType: "caregiver",
-            patientId,
-            requesterId: reqId,
-            reason: "Grant expired",
-            action,
-            resourceType,
-          });
-          return res.status(403).json({
-            error: "Forbidden: caregiver grant is inactive",
-          });
-        }
-
-        // if (!relationRaw) {
-        //   await logSecurityEvent("access", "ACCESS_DENIED", req, {
-        //     actorType: "caregiver",
-        //     patientId,
-        //     requesterId: reqId,
-        //     reason: "No active caregiver relationship",
-        //     action,
-        //     resourceType,
-        //   });
-        //   return res.status(403).json({
-        //     error: "Forbidden: no active caregiver relationship",
-        //   });
-        // }
-
-        // const relation = JSON.parse(relationRaw);
-        // const action = methodToAction(req.method);
-
-        if (!isActionAllowed(relation.permissions, action)) {
-          await logSecurityEvent("access", "ACCESS_DENIED", req, {
-            actorType: "caregiver",
-            patientId,
-            requesterId: reqId,
-            reason: `Caregiver lacks ${action} permission`,
-            // relationshipId: relation.relationshipId,
-            action,
-            resourceType,
-          });
-          return res.status(403).json({
-            error: "Forbidden: caregiver permission denied for this operation",
-          });
-        }
-
-        req.accessContext = {
-          type: "caregiver_delegated",
-          reqId,
-          patientId,
-          relationship: relation,
-        };
-
-        await logSecurityEvent("access", "ACCESS_ALLOWED", req, {
-          actorType: "caregiver",
-          patientId,
-          requesterId: reqId,
-          // relationshipId: relation.relationshipId,
-          action,
-          resourceType,
-          reason: "Valid caregiver permission",
-        });
-
-        return next();
-      }
-
-      const isPractitioner = hasAnyRole(roles, practitionerRoles);
-      if (!isPractitioner) {
-        await logSecurityEvent("access", "ACCESS_DENIED", req, {
-          actorType: "unknown",
-          patientId,
-          requesterId: reqId,
-          reason: "Not admin, patient owner, caregiver, or practitioner",
-          action,
-          resourceType,
-        });
-        return res.status(403).json({
-          error:
-            "Forbidden: not admin, not patient owner, not caregiver, not practitioner",
-        });
-      }
-
+      // Grant-first check: look up any active Redis grant for this (requester, patient) pair.
+      // This works for both practitioners and caregivers, and crucially handles caregivers
+      // whose Keycloak JWT still shows "patient" role (before token refresh after onboarding).
       const grant = await getGrantByRequesterAndPatient(reqId, patientId);
 
       if (!grant) {
         await logSecurityEvent("access", "CONSENT_GRANT_NOT_FOUND", req, {
-          actorType: "practitioner",
+          actorType: "unknown",
           patientId,
           requesterId: reqId,
-          reason: "No valid grant found",
+          reason: "No active grant found for requester",
           action,
           resourceType,
         });
         return res.status(403).json({
-          error: "Forbidden: no active patient consent grant",
+          error: "Forbidden: no active consent grant",
         });
       }
 
       if (!isGrantActive(grant)) {
         await logSecurityEvent("access", "CONSENT_GRANT_INVALID", req, {
-          actorType: "practitioner",
+          actorType: grant.requesterType || "unknown",
           patientId,
           requesterId: reqId,
-          // grantId: grant?.grantId,
           reason: "Grant expired",
           action,
           resourceType,
         });
         return res.status(403).json({
-          error: "Forbidden: patient consent grant is inactive",
+          error: "Forbidden: consent grant is inactive or expired",
         });
       }
 
       if (!isActionAllowed(grant.scopes, action)) {
         await logSecurityEvent("access", "ACCESS_DENIED", req, {
-          actorType: "practitioner",
+          actorType: grant.requesterType || "unknown",
           patientId,
           requesterId: reqId,
-          reason: `Practitioner lacks ${action} permission`,
-          // relationshipId: relation.relationshipId,
+          reason: `Requester lacks ${action} permission`,
           action,
           resourceType,
         });
         return res.status(403).json({
-          error: "Forbidden: practitioner permission denied for this operation",
+          error: "Forbidden: grant does not permit this operation",
         });
       }
 
       req.accessContext = {
-        type: "practitioner_delegated",
+        type: `${grant.requesterType || "delegated"}_delegated`,
         reqId,
         patientId,
         grant,
       };
 
-      await logSecurityEvent("access", "CONSENT_GRANT_VALID", req, {
-        actorType: "practitioner",
+      await logSecurityEvent("access", "ACCESS_ALLOWED", req, {
+        actorType: grant.requesterType || "unknown",
         patientId,
         requesterId: reqId,
-        // grantId: grant.grantId,
         resourceType,
         action,
         reason: "Valid grant found, access allowed",

@@ -34,6 +34,15 @@ async function getPatientById(patientId, accessToken) {
     const response = await fhirApi.get(`/Patient/${patientId}`, config);
     const data = response.data;
 
+    // TODO REMOVE DIAGNOSTIC
+    console.log('[DIAG GET-RESP]', JSON.stringify({
+      id: data?.id,
+      versionId: data?.meta?.versionId,
+      name: data?.name,
+      bloodType: (data?.extension || []).find(e => (e.url || '').endsWith('/blood-type'))?.valueString,
+    }));
+    // END DIAGNOSTIC
+
     await setInCache(cacheKey, data, CACHE_EXPIRATION.PATIENT);
 
     return data;
@@ -93,11 +102,29 @@ async function createPatientWithSpecificId(patientData) {
 
   console.log(`Attempting to PUT patient to /Patient/${patientId}`);
 
+  // TODO REMOVE DIAGNOSTIC
+  console.log('[DIAG PUT-BODY]', JSON.stringify({
+    id: fhirPatientResource.id,
+    name: fhirPatientResource.name,
+    bloodType: (fhirPatientResource.extension || []).find(e => (e.url || '').endsWith('/blood-type'))?.valueString,
+    extCount: (fhirPatientResource.extension || []).length,
+  }));
+  // END DIAGNOSTIC
+
   try {
     const response = await fhirApi.put(
       `/Patient/${patientId}`,
       fhirPatientResource,
     );
+
+    // TODO REMOVE DIAGNOSTIC
+    console.log('[DIAG PUT-RESP]', JSON.stringify({
+      id: response.data?.id,
+      versionId: response.data?.meta?.versionId,
+      name: response.data?.name,
+      bloodType: (response.data?.extension || []).find(e => (e.url || '').endsWith('/blood-type'))?.valueString,
+    }));
+    // END DIAGNOSTIC
 
     // Invalidate patient caches after successful creation/update
     await invalidatePatientCache(patientId);
