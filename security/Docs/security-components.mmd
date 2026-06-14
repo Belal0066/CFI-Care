@@ -1,0 +1,131 @@
+graph TB
+    subgraph Edge["Perimeter & Edge Clients"]
+        Browser["Browser (Web Frontend)"]
+        MobileApp["Mobile App (Flutter)"]
+        OPN["OPNsense Firewall<br/>-----------------------<br/>NAT Enforcement<br/>Exposes TCP/443 Only<br/>Isolates Management VLAN"]
+    end
+
+    subgraph Gateway["API Gateway"]
+        nginx["nginx<br/>-----------------------<br/>TLS termination (443)<br/>HTTPS redirect (80→443)<br/>Forwarded headers"]
+        O2P["oauth2-proxy<br/>Browser OIDC session<br/>Cookie management"]
+    end
+
+    subgraph BFF["Backend-for-Frontend"]
+        NodeJS["NodeJS (BFF)<br/>------------------------<br/>Express-session middleware<br/>Rate limiting (Redis-backed)<br/>JWT verification (JWKS)<br/>Scope & Consent validation<br/>Helmet Security Headers<br/>Audit logging"]
+    end
+
+    subgraph Secrets["Infrastructure Secrets"]
+        Vault["HashiCorp Vault<br/>-----------------------<br/>Centralized Secrets Engine"]
+        Agent["Vault Sidecar Agents<br/>-----------------------<br/>Renders Runtime Envs"]
+    end
+
+    subgraph Identity["Identity Layer"]
+        Keycloak["Keycloak<br/>------------------------<br/>OIDC Provider<br/>User Management<br/>RBAC & SMART Scopes<br/>JWKS endpoint"]
+        Listener["Registration SPI<br/>Captures REGISTER event<br/>Triggers Provisioning"]
+    end
+
+    subgraph Storage["Encrypted Persistence & State"]
+        Postgres["Keycloak Postgres DB<br/>(Identity Store)"]
+        PostgresFHIR["HAPI FHIR Postgres DB<br/>(Clinical Store)"]
+        Redis["Sessions Redis<br/>(Stateful tracking)"]
+        RedisOTP["Grants Redis<br/>(Active Grants & Temporary Handshakes)"]
+        RedisAudit["Auditing Redis<br/>(90-day retention)"]
+    end
+
+    subgraph Resource["Resource Server"]
+        FHIR["HAPI FHIR<br/>(Medical Data)"]
+    end
+
+    %% Auth Flows
+    Browser --> OPN
+    MobileApp --> OPN
+    OPN -->|"Forward Traffic"| nginx
+
+    nginx <-->|"Browser Based Requests"| O2P
+    O2P <-->|"OIDC Auth Code + PKCE"| Keycloak
+
+    %% MobileApp -->|" OIDC Auth Code + PKCE"| nginx
+    nginx -->|"Forward mobile authentication requests"| Keycloak
+    %% MobileApp -->|"HTTPS (443) + Bearer Token"| nginx
+
+    %% Backend Logic
+    nginx -->|"Proxied Request + JWT Context"| NodeJS
+
+    Vault -.->|"Secure Key Provisioning"| Agent
+    Agent -.->|"Inject Env Configuration"| NodeJS
+    Agent -.->|"Inject Env Configuration"| Keycloak
+    Agent -.->|"Inject Env Configuration"| O2P
+    Agent -.->|"Inject Env Configuration"| FHIR
+
+    NodeJS -->|"Session & Token Storage"| Redis
+    NodeJS -->|"Security Event Logging"| RedisAudit
+    NodeJS -->|"Ephemeral Grant storage"| RedisOTP
+    NodeJS -->|"Refresh Token & Backchannel Calls"| Keycloak
+    NodeJS -->|"Authorized Scoped Resource Request"| FHIR
+
+    Keycloak -->|"Identity Persistence"| Postgres
+    Keycloak -->|"Emit Event"| Listener
+    FHIR -->|"Clinical Persistence"| PostgresFHIR
+    Listener -->|"Service Access Token"| Keycloak
+    Listener -->|"Post Authorized Provisioning Call"| NodeJS
+
+
+
+
+%% graph TB
+%%     subgraph Edge["Edge Clients"]
+%%         Browser["Browser"]
+%%         MobileApp["Mobile App"]
+%%     end
+
+%%     subgraph Gateway["API Gateway"]
+%%         nginx["nginx<br/>-----------------------<br/>TLS termination (443)<br/>HTTPS redirect (80→443)<br/>Proxy to BFF & Angular<br/>Forwarded headers"]
+%%         O2P["oauth2-proxy<br/>Browser OIDC session<br/>Cookie handling"]
+%%     end
+
+%%     subgraph BFF["Backend-for-Frontend"]
+%%         NodeJS["NodeJS (BFF)<br/>------------------------<br/>Express-session middleware<br/>Rate limiting (Redis-backed)<br/>Session checks<br/>JWT verification (JWKS)<br/>Scope validation<br/>Helmet (CSP, HSTS, X-Frame)<br/>CORS<br/>Audit logging"]
+%%     end
+
+%%     subgraph Identity["Identity & Storage"]
+%%         Keycloak["Keycloak<br/>------------------------<br/>OIDC/OAuth 2.0 provider<br/>User account management<br/>RBAC (realm/client roles)<br/>JWKS endpoint"]
+%%         Listener["Registration Event Listener<br/>Handles REGISTER event<br/>Calls provisioning endpoint"]
+%%     end
+
+%%     subgraph Storage["Storage"]
+%%      Postgres["Postgres<br/>------------------------<br/>Credentials storage"]
+%%         Redis["Sessions Redis<br/>------------------------<br/>Tracks user sessions"]
+%%         RedisAudit["Auditing Redis<br/>------------------------<br/>Events: LOGIN, LOGOUT, etc.<br/>90-day retention<br/>Queryable by user/event"]
+%%     end
+
+%%     subgraph Resource["Resource Server"]
+%%         FHIR["HAPI FHIR<br/>------------------------<br/>Enforces FHIR policies"]
+%%     end
+
+%%     %% Browser -->|"HTTPS (443)<br/>Session Cookie"| nginx
+%%     %% MobileApp -->|"HTTPS (443)<br/>Bearer Token"| nginx
+%%     %% nginx -->|"HTTP(s) internal<br/>Forwarded headers"| NodeJS
+
+%%     Browser -->|"Auth via gateway"| O2P
+%%     O2P -->|"OIDC Auth Code + PKCE"| Keycloak
+%%     O2P -->|"Auth result + token context"| nginx
+
+%%     MobileApp -->|"OIDC Auth Code + PKCE"| Keycloak
+%%     MobileApp -->|"HTTPS (443)<br/>Bearer Token"| nginx
+
+%%     nginx -->|"HTTPinternal<br/>Forwarded headers + bearer context"| NodeJS
+
+
+%%     NodeJS -->|"Store/Retrieve<br/>session tokens"| Redis
+%%     NodeJS -->|"Write audit events"| RedisAudit
+%%     NodeJS -->|"Password grant<br/>Token refresh<br/>Admin logout"| Keycloak
+%%     %% NodeJS -->|"Forward with<br/>Authorization header"| FHIR
+
+%%     Keycloak -->|"User accounts<br/>Roles, credentials"| Postgres
+%%     %% FHIR -->|"JWKS validation"| Keycloak
+
+%%     Keycloak -->|"REGISTER event"| Listener
+%%     Listener -->|"Client credentials grant"| Keycloak
+%%     Keycloak -->|"Service access token"| Listener
+%%     Listener -->|"Register in FHIR"| NodeJS
+%%      NodeJS -->|"Forward Registered data"| FHIR

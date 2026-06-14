@@ -1,0 +1,2224 @@
+const path = require("path");
+const axios = require("axios");
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+
+// Require Services
+const eocService = require("../episodeOfCare/eocService");
+const encounterService = require("../encounter/encounterService");
+const {
+  getFromCache,
+  setInCache,
+  invalidatePatientCache,
+  CACHE_EXPIRATION,
+} = require("../middleware/cacheHelper");
+
+// DB Setup
+const { Pool } = require("pg");
+const { randomUUID } = require("crypto");
+
+// FHIR client (generic) for non-Encounter resources
+const fhirApi = axios.create({
+  baseURL: process.env.FHIR_SERVER_URL,
+  headers: { "Content-Type": "application/fhir+json" },
+});
+
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+});
+
+pool
+  .query(
+    "ALTER TABLE encounter_nodes ADD COLUMN IF NOT EXISTS practitioner_id VARCHAR(255)",
+  )
+  .catch((err) =>
+    console.warn(
+      "[SCHEMA] Could not ensure practitioner_id column:",
+      err.message,
+    ),
+  );
+
+// Try to reuse an existing EpisodeOfCare for this patient so all nodes share one EOC
+async function getExistingEocForPatient(patientId) {
+  const res = await pool.query(
+    "SELECT encounter_fhir_id FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE AND category IN ('Consultation','FollowUp') ORDER BY created_at DESC LIMIT 5",
+    [patientId],
+  );
+
+  if (res.rows.length === 0) return null;
+
+  try {
+    return await Promise.any(
+      res.rows.map(async (row) => {
+        const enc = await encounterService.getEncounterById(
+          row.encounter_fhir_id,
+        );
+        const ref = enc?.episodeOfCare?.[0]?.reference;
+        if (!ref) throw new Error("no eoc");
+        return ref.replace("EpisodeOfCare/", "");
+      }),
+    );
+  } catch {
+    return null;
+  }
+}
+
+// ==========================================
+// VALIDATION & ERROR HANDLING
+// ==========================================
+
+const ALLOWED_CATEGORIES = new Set([
+  "Consultation",
+  "Lab",
+  "Imaging",
+  "Prescription",
+  "AISuggestion",
+  "FollowUp",
+  "Allergy",
+  "Historical",
+  "Linker",
+]);
+
+const ALLOWED_PRIORITIES = new Set(["Low", "Medium", "High"]);
+const ALLOWED_NORMALITIES = new Set([
+  "Pending",
+  "Normal",
+  "Abnormal",
+  "Unknown",
+]);
+
+function validateNodeData(nodeData) {
+  const errors = {};
+  if (!nodeData.category || !ALLOWED_CATEGORIES.has(nodeData.category)) {
+    errors.category = `Invalid category. Allowed: ${Array.from(ALLOWED_CATEGORIES).join(", ")}`;
+  }
+  if (nodeData.priority && !ALLOWED_PRIORITIES.has(nodeData.priority)) {
+    errors.priority = `Invalid priority. Allowed: ${Array.from(ALLOWED_PRIORITIES).join(", ")}`;
+  }
+  if (nodeData.normality && !ALLOWED_NORMALITIES.has(nodeData.normality)) {
+    errors.normality = `Invalid normality. Allowed: ${Array.from(ALLOWED_NORMALITIES).join(", ")}`;
+  }
+  if (!nodeData.text_1 && !nodeData.title) {
+    errors.title = "Either text_1 or title is required";
+  }
+  if (Object.keys(errors).length > 0) {
+    throw { statusCode: 400, errors };
+  }
+}
+
+function buildErrorResponse(errors, statusCode = 400) {
+  return { statusCode, errors, message: "Validation failed" };
+}
+
+// ==========================================
+// FHIR R5 MAPPING HELPERS
+// ==========================================
+
+const CATEGORY_RESOURCE_TYPE = {
+  Consultation: "Encounter",
+  Lab: "Observation",
+  Imaging: "ImagingStudy",
+  Prescription: "MedicationRequest",
+  AISuggestion: "Observation",
+  FollowUp: "Appointment",
+  Allergy: "AllergyIntolerance",
+  Historical: "Encounter", // treated as contextual encounter entry
+};
+
+const CATEGORY_TYPE_CODING = {
+  Consultation: { code: "11429006", display: "Consultation" },
+  Lab: { code: "108252007", display: "Laboratory findings" },
+  Imaging: { code: "363679005", display: "Imaging" },
+  Prescription: { code: "16076005", display: "Prescription of medication" },
+  AISuggestion: {
+    code: "702927004",
+    display: "Computer aided medical decision support",
+  },
+  FollowUp: { code: "390906007", display: "Follow-up encounter" },
+  Allergy: { code: "416098002", display: "Allergy screening" },
+  Historical: { code: "11429006", display: "Consultation" },
+};
+
+const CATEGORY_SERVICE_TYPE = {
+  Consultation: {
+    system: "http://snomed.info/sct",
+    code: "394802001",
+    display: "General medicine",
+  },
+  Lab: {
+    system: "http://snomed.info/sct",
+    code: "408467006",
+    display: "Laboratory service",
+  },
+  Imaging: {
+    system: "http://snomed.info/sct",
+    code: "394914008",
+    display: "Radiology service",
+  },
+  Prescription: {
+    system: "http://snomed.info/sct",
+    code: "310060005",
+    display: "Pharmacy service",
+  },
+  AISuggestion: {
+    system: "http://snomed.info/sct",
+    code: "408466002",
+    display: "Clinical decision support",
+  },
+  FollowUp: {
+    system: "http://snomed.info/sct",
+    code: "408443003",
+    display: "Follow-up service",
+  },
+  Allergy: {
+    system: "http://snomed.info/sct",
+    code: "408478003",
+    display: "Allergy service",
+  },
+  Historical: {
+    system: "http://snomed.info/sct",
+    code: "394802001",
+    display: "General medicine",
+  },
+};
+
+const RELATIONSHIP_TYPES = new Set([
+  "association",
+  "documents",
+  "derives_from",
+  "follows",
+  "references",
+  "contains",
+  "causes",
+]);
+
+function normalizeRelationshipType(value) {
+  if (!value) return "association";
+  if (!RELATIONSHIP_TYPES.has(value)) {
+    throw new Error(
+      `Invalid relationshipType '${value}'. Allowed values: ${Array.from(RELATIONSHIP_TYPES).join(", ")}`,
+    );
+  }
+  return value;
+}
+
+async function insertEdge(relationId, sourceId, targetId, relationshipType) {
+  await pool.query(
+    `INSERT INTO node_relations (relation_id, source_node_id, target_node_id, relationship_type, is_deleted, deleted_at)
+     VALUES ($1, $2, $3, $4, FALSE, NULL)
+     ON CONFLICT (relation_id) DO NOTHING`,
+    [relationId, sourceId, targetId, relationshipType],
+  );
+}
+
+function normalizeDate(dateValue) {
+  if (!dateValue) return new Date().toISOString();
+  if (dateValue instanceof Date) return dateValue.toISOString();
+  if (typeof dateValue === "string" && dateValue.includes("T")) {
+    return new Date(dateValue).toISOString();
+  }
+  return new Date(dateValue).toISOString();
+}
+
+// Safely format a value to YYYY-MM-DD without timezone drift
+function formatDateOnly(value) {
+  if (!value) return new Date().toISOString().split("T")[0];
+  if (typeof value === "string") {
+    return value.includes("T") ? value.split("T")[0] : value;
+  }
+
+  // For Date objects (or values coercible to Date) preserve the local calendar day
+  const asDate = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(asDate.getTime())) {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  const y = asDate.getFullYear();
+  const m = asDate.getMonth();
+  const d = asDate.getDate();
+  return new Date(Date.UTC(y, m, d)).toISOString().split("T")[0];
+}
+
+function mapNormalityToStatus(normality) {
+  switch (normality) {
+    case "Pending":
+      return "in-progress";
+    case "Normal":
+    case "Abnormal":
+      return "completed";
+    default:
+      return "in-progress";
+  }
+}
+
+function mapNormalityToObservationStatus(normality) {
+  switch (normality) {
+    case "Pending":
+      return "preliminary";
+    case "Normal":
+    case "Abnormal":
+      return "final";
+    default:
+      return "unknown";
+  }
+}
+
+function mapNormalityToInterpretation(normality) {
+  switch (normality) {
+    case "Normal":
+      return { code: "N", display: "Normal" };
+    case "Abnormal":
+      return { code: "A", display: "Abnormal" };
+    default:
+      return null;
+  }
+}
+
+function mapPriorityToActPriority(priority) {
+  const priorityMap = {
+    Low: { code: "R", display: "Routine" },
+    Medium: { code: "UR", display: "Urgent" },
+    High: { code: "EM", display: "Emergency" },
+  };
+  return priorityMap[priority] || priorityMap.Low;
+}
+
+function mapPriorityToEncounterClass(priority) {
+  if (priority === "High") {
+    return { code: "EMER", display: "emergency" };
+  }
+  if (priority === "Medium") {
+    return { code: "IMP", display: "inpatient encounter" };
+  }
+  return { code: "AMB", display: "ambulatory" };
+}
+
+// Escape text for inclusion inside XHTML narrative divs
+function escapeForXhtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+async function upsertFHIRResource(resource) {
+  if (!resource?.resourceType || !resource?.id) {
+    throw new Error("FHIR resource must include resourceType and id");
+  }
+
+  try {
+    const response = await fhirApi.put(
+      `/${resource.resourceType}/${resource.id}`,
+      resource,
+    );
+    return response.data;
+  } catch (error) {
+    const detail =
+      error.response?.data?.issue
+        ?.map((i) => i.diagnostics || i.code)
+        .join(", ") || error.message;
+    console.error(
+      `Failed to upsert ${resource.resourceType}/${resource.id}: ${detail}`,
+    );
+    throw new Error(
+      `FHIR upsert failed for ${resource.resourceType}/${resource.id}`,
+    );
+  }
+}
+
+async function deleteFHIRResource(resourceType, id) {
+  if (!resourceType || !id) return;
+  try {
+    await fhirApi.delete(`/${resourceType}/${id}`);
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return; // Already gone
+    }
+    console.error(`Failed to delete ${resourceType}/${id}:`, error.message);
+  }
+}
+
+function mapNodeToFHIRResources(
+  node,
+  patientId,
+  eocId,
+  isDiagnosis = false,
+  practitionerId = null,
+) {
+  const category = node.category || "Consultation";
+  const priority = node.priority || "Low";
+  const normality = node.normality || "Pending";
+  const eventDate = normalizeDate(
+    node.dateIssued || node.event_date || new Date(),
+  );
+  const title = (node.title || node.text_1 || "Untitled").trim();
+  const details = node.details || "";
+  const safeTitle = escapeForXhtml(title);
+  const safeDetails = escapeForXhtml(details);
+  const priorityObj = mapPriorityToActPriority(priority);
+  const encounterClass = mapPriorityToEncounterClass(priority);
+  const nodeId = node.id || `enc-${randomUUID()}`; // graph id aligns to Encounter id
+
+  const serviceTypeCoding =
+    CATEGORY_SERVICE_TYPE[category] || CATEGORY_SERVICE_TYPE.Consultation;
+
+  // Define buildEncounter helper function first
+  const buildEncounter = (typeCode, typeDisplay) => ({
+    resourceType: "Encounter",
+    id: nodeId,
+    status: mapNormalityToStatus(normality),
+    class: [
+      {
+        coding: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+            code: encounterClass.code,
+            display: encounterClass.display,
+          },
+        ],
+      },
+    ],
+    type: [
+      {
+        coding: [
+          {
+            system: "http://snomed.info/sct",
+            code: typeCode,
+            display: typeDisplay,
+          },
+        ],
+      },
+    ],
+    serviceType: [
+      {
+        concept: {
+          coding: [
+            {
+              system: serviceTypeCoding.system,
+              code: serviceTypeCoding.code,
+              display: serviceTypeCoding.display,
+            },
+          ],
+        },
+      },
+    ],
+    subject: { reference: `Patient/${patientId}` },
+    actualPeriod: {
+      start: eventDate,
+      end: eventDate,
+    },
+    ...(eocId
+      ? { episodeOfCare: [{ reference: `EpisodeOfCare/${eocId}` }] }
+      : {}),
+    reason: [
+      {
+        value: [
+          {
+            concept: {
+              coding: [
+                {
+                  system: "http://snomed.info/sct",
+                  code: "185349003",
+                  display: title,
+                },
+              ],
+              text: title,
+            },
+          },
+        ],
+      },
+    ],
+    text: {
+      status: "generated",
+      div: `<div xmlns="http://www.w3.org/1999/xhtml">Encounter: ${safeTitle}</div>`,
+    },
+  });
+
+  // Handle diagnosis: create Condition resource if isDiagnosis=true
+  if (isDiagnosis) {
+    const condition = {
+      resourceType: "Condition",
+      id: `cond-${nodeId}`,
+      clinicalStatus: {
+        coding: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
+            code: normality === "Abnormal" ? "active" : "resolved",
+            display: normality === "Abnormal" ? "Active" : "Resolved",
+          },
+        ],
+      },
+      verificationStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+            code: "confirmed",
+            display: "Confirmed",
+          },
+        ],
+      },
+      code: {
+        coding: [
+          {
+            system: "http://snomed.info/sct",
+            code: "404684003",
+            display: title,
+          },
+        ],
+        text: title,
+      },
+      subject: { reference: `Patient/${patientId}` },
+      onsetDateTime: eventDate,
+      recordedDate: eventDate,
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Condition: ${safeTitle}</div>`,
+      },
+      ...(details
+        ? {
+            note: [
+              {
+                text: details,
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const wrapperEncounter = buildEncounter("11429006", "Diagnosis Encounter");
+    return {
+      nodeId,
+      primaryResource: wrapperEncounter,
+      relatedResources: [condition],
+    };
+  }
+
+  if (category === "Consultation") {
+    return {
+      nodeId,
+      primaryResource: buildEncounter("11429006", "Consultation"),
+      relatedResources: [],
+    };
+  }
+
+  if (category === "Lab") {
+    const observationId = nodeId;
+    const interpretation = mapNormalityToInterpretation(normality);
+    const observation = {
+      resourceType: "Observation",
+      id: observationId,
+      status: mapNormalityToObservationStatus(normality),
+      category: [
+        {
+          coding: [
+            {
+              system:
+                "http://terminology.hl7.org/CodeSystem/observation-category",
+              code: "laboratory",
+              display: "Laboratory",
+            },
+          ],
+        },
+      ],
+      code: {
+        coding: [
+          {
+            system: "http://snomed.info/sct",
+            code: CATEGORY_TYPE_CODING.Lab.code,
+            display: title,
+          },
+        ],
+        text: title,
+      },
+      subject: { reference: `Patient/${patientId}` },
+      effectiveDateTime: eventDate,
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Observation: ${safeTitle}</div>`,
+      },
+      ...(details ? { valueString: details } : {}),
+      ...(interpretation
+        ? {
+            interpretation: [
+              {
+                coding: [
+                  {
+                    system:
+                      "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                    code: interpretation.code,
+                    display: interpretation.display,
+                  },
+                ],
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const diagnosticReport = {
+      resourceType: "DiagnosticReport",
+      id: `dr-${observationId}`,
+      status: observation.status === "preliminary" ? "partial" : "final",
+      category: [
+        {
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v2-0074",
+              code: "LAB",
+              display: "Laboratory",
+            },
+          ],
+        },
+      ],
+      code: {
+        coding: [
+          {
+            system: "http://loinc.org",
+            code: "LP29684-5",
+            display: "Laboratory report",
+          },
+        ],
+        text: title,
+      },
+      subject: { reference: `Patient/${patientId}` },
+      effectiveDateTime: eventDate,
+      result: [{ reference: `Observation/${observationId}` }],
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Laboratory Report: ${safeTitle}</div>`,
+      },
+      ...(details ? { conclusion: details } : {}),
+    };
+
+    const wrapperEncounter = buildEncounter(
+      CATEGORY_TYPE_CODING.Lab.code,
+      CATEGORY_TYPE_CODING.Lab.display,
+    );
+
+    return {
+      nodeId,
+      primaryResource: observation,
+      relatedResources: [diagnosticReport, wrapperEncounter],
+    };
+  }
+
+  if (category === "Imaging") {
+    const imagingId = nodeId;
+    const imagingStudy = {
+      resourceType: "ImagingStudy",
+      id: imagingId,
+      status: "available",
+      subject: { reference: `Patient/${patientId}` },
+      started: eventDate,
+      modality: [
+        {
+          coding: [
+            {
+              system: "http://dicom.nema.org/resources/ontology/DCM",
+              code: "CT",
+              display: "Computed Tomography",
+            },
+          ],
+        },
+      ],
+      description: title,
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">ImagingStudy: ${safeTitle}</div>`,
+      },
+    };
+
+    const diagnosticReport = {
+      resourceType: "DiagnosticReport",
+      id: `dr-${imagingId}`,
+      status: "final",
+      category: [
+        {
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v2-0074",
+              code: "RAD",
+              display: "Radiology",
+            },
+          ],
+        },
+      ],
+      code: {
+        coding: [
+          {
+            system: "http://loinc.org",
+            code: "18748-4",
+            display: "Diagnostic imaging study",
+          },
+        ],
+        text: title,
+      },
+      subject: { reference: `Patient/${patientId}` },
+      effectiveDateTime: eventDate,
+      study: [{ reference: `ImagingStudy/${imagingId}` }],
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Radiology Report: ${safeTitle}</div>`,
+      },
+      ...(details ? { conclusion: details } : {}),
+    };
+
+    const wrapperEncounter = buildEncounter(
+      CATEGORY_TYPE_CODING.Imaging.code,
+      CATEGORY_TYPE_CODING.Imaging.display,
+    );
+
+    return {
+      nodeId,
+      primaryResource: imagingStudy,
+      relatedResources: [diagnosticReport, wrapperEncounter],
+    };
+  }
+
+  if (category === "Prescription") {
+    const medicationRequest = {
+      resourceType: "MedicationRequest",
+      id: nodeId,
+      status: "active",
+      intent: "order",
+      subject: { reference: `Patient/${patientId}` },
+      authoredOn: eventDate,
+      medication: {
+        concept: {
+          text: title,
+        },
+      },
+      text: {
+        status: "generated",
+        div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">MedicationRequest: ${safeTitle}</div>`,
+      },
+      ...(details ? { note: [{ text: details }] } : {}),
+    };
+
+    const wrapperEncounter = buildEncounter(
+      CATEGORY_TYPE_CODING.Prescription.code,
+      CATEGORY_TYPE_CODING.Prescription.display,
+    );
+
+    return {
+      nodeId,
+      primaryResource: medicationRequest,
+      relatedResources: [wrapperEncounter],
+    };
+  }
+
+  if (category === "AISuggestion") {
+    const interpretation = mapNormalityToInterpretation(normality);
+    const aiObservation = {
+      resourceType: "Observation",
+      id: nodeId,
+      status: mapNormalityToObservationStatus(normality),
+      category: [
+        {
+          coding: [
+            {
+              system:
+                "http://terminology.hl7.org/CodeSystem/observation-category",
+              code: "procedure",
+              display: "Procedure",
+            },
+          ],
+        },
+      ],
+      code: {
+        coding: [
+          {
+            system: "http://snomed.info/sct",
+            code: CATEGORY_TYPE_CODING.AISuggestion.code,
+            display: CATEGORY_TYPE_CODING.AISuggestion.display,
+          },
+        ],
+        text: title,
+      },
+      subject: { reference: `Patient/${patientId}` },
+      effectiveDateTime: eventDate,
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">AI Suggestion: ${safeTitle}</div>`,
+      },
+      ...(details ? { valueString: details } : {}),
+      ...(interpretation
+        ? {
+            interpretation: [
+              {
+                coding: [
+                  {
+                    system:
+                      "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                    code: interpretation.code,
+                    display: interpretation.display,
+                  },
+                ],
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const wrapperEncounter = buildEncounter(
+      CATEGORY_TYPE_CODING.AISuggestion.code,
+      CATEGORY_TYPE_CODING.AISuggestion.display,
+    );
+
+    return {
+      nodeId,
+      primaryResource: aiObservation,
+      relatedResources: [wrapperEncounter],
+    };
+  }
+
+  if (category === "FollowUp") {
+    const followUpDate = new Date(eventDate).getTime();
+    const isFuture = followUpDate > Date.now();
+
+    if (isFuture) {
+      const startTime = new Date(eventDate).toISOString();
+      const endTime = new Date(
+        new Date(eventDate).getTime() + 30 * 60 * 1000,
+      ).toISOString();
+
+      const appointment = {
+        resourceType: "Appointment",
+        id: nodeId,
+        status: "booked",
+        appointmentType: {
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v2-0276",
+              code: "FOLLOWUP",
+              display: "Follow-up",
+            },
+          ],
+        },
+        description: title,
+        start: startTime,
+        end: endTime,
+        participant: [
+          {
+            actor: { reference: `Patient/${patientId}` },
+            status: "accepted",
+          },
+          ...(practitionerId
+            ? [
+                {
+                  actor: { reference: `Practitioner/${practitionerId}` },
+                  status: "accepted",
+                },
+              ]
+            : []),
+        ],
+        text: {
+          status: "generated",
+          div: `<div xmlns=\"http://www.w3.org/1999/xhtml\">Follow-up Appointment: ${safeTitle}</div>`,
+        },
+      };
+      const wrapperEncounter = buildEncounter(
+        CATEGORY_TYPE_CODING.FollowUp.code,
+        CATEGORY_TYPE_CODING.FollowUp.display,
+      );
+
+      return {
+        nodeId,
+        primaryResource: appointment,
+        relatedResources: [wrapperEncounter],
+      };
+    }
+
+    return {
+      nodeId,
+      primaryResource: buildEncounter(
+        CATEGORY_TYPE_CODING.FollowUp.code,
+        CATEGORY_TYPE_CODING.FollowUp.display,
+      ),
+      relatedResources: [],
+    };
+  }
+
+  if (category === "Allergy") {
+    const allergy = {
+      resourceType: "AllergyIntolerance",
+      id: nodeId,
+      clinicalStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+            code: "active",
+          },
+        ],
+      },
+      verificationStatus: {
+        coding: [
+          {
+            system:
+              "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+            code: "confirmed",
+          },
+        ],
+      },
+      code: {
+        text: title,
+      },
+      patient: { reference: `Patient/${patientId}` },
+      recordedDate: eventDate,
+      text: {
+        status: "generated",
+        div: `<div xmlns="http://www.w3.org/1999/xhtml">Allergy: ${safeTitle}</div>`,
+      },
+      ...(details ? { note: [{ text: details }] } : {}),
+    };
+
+    const wrapperEncounter = buildEncounter(
+      CATEGORY_TYPE_CODING.Allergy.code,
+      CATEGORY_TYPE_CODING.Allergy.display,
+    );
+
+    return {
+      nodeId,
+      primaryResource: allergy,
+      relatedResources: [wrapperEncounter],
+    };
+  }
+
+  if (category === "Linker" || node._linkedBranchId) {
+    return {
+      nodeId,
+      primaryResource: {
+        resourceType: "Encounter",
+        id: nodeId,
+        status: "completed",
+        class: [
+          {
+            coding: [
+              {
+                system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                code: "VR",
+                display: "virtual",
+              },
+            ],
+          },
+        ],
+        subject: { reference: `Patient/${patientId}` },
+        actualPeriod: { start: eventDate, end: eventDate },
+        type: [
+          {
+            coding: [
+              {
+                system: "http://snomed.info/sct",
+                code: "308335008",
+                display: title || "Branch Merge Event",
+              },
+            ],
+            text: details || "Case branch completed and merged.",
+          },
+        ],
+        text: {
+          status: "generated",
+          div: `<div xmlns="http://www.w3.org/1999/xhtml">Linker Encounter: ${safeTitle}</div>`,
+        },
+      },
+      relatedResources: [],
+    };
+  }
+  return {
+    nodeId,
+    primaryResource: buildEncounter("11429006", "Consultation"),
+    relatedResources: [],
+  };
+}
+
+async function persistMappedResources(mappedResources) {
+  const { primaryResource, relatedResources = [] } = mappedResources;
+
+  // Upsert primary resource first so HAPI reference validation passes for related resources
+  // (e.g. DiagnosticReport.result references Observation — must exist before DiagnosticReport is created)
+  const primaryResult = await upsertFHIRResource(primaryResource);
+
+  const relatedResults = await Promise.all(
+    relatedResources.map((res) => upsertFHIRResource(res)),
+  );
+
+  return { primaryResult, relatedResults };
+}
+
+async function InitalizeHistoryGraph(episodeOfCareData) {
+  if (!episodeOfCareData) {
+    throw new Error("Missing required argument: episodeOfCareData");
+  }
+
+  const episodeOfCare =
+    await eocService.createEpisodeOfCareWithSpecificId(episodeOfCareData);
+
+  if (!episodeOfCare || !episodeOfCare.data) {
+    throw new Error("Failed to create EpisodeOfCare: No data returned");
+  }
+
+  const eocdata = episodeOfCare.data;
+  const eocId = eocdata.id;
+  const patientRef =
+    episodeOfCare.data.patient && episodeOfCare.data.patient.reference;
+
+  let patientId = null;
+  if (patientRef) {
+    patientId = patientRef.split("/")[1];
+  }
+  return { eocId, patientId };
+}
+
+async function createheadNodeEncounter(patientId, eocId, nodeData) {
+  const pId = patientId || "pat-001";
+  const eId = eocId || "eoc-001";
+
+  if (!nodeData.id) nodeData.id = `enc-${randomUUID()}`;
+
+  const mappedResources = mapNodeToFHIRResources(nodeData, pId, eId);
+  // Ensure database uses the encounter-aligned id
+  nodeData.id = mappedResources.nodeId;
+
+  const createdFHIR = await persistMappedResources(mappedResources);
+
+  // 2. Insert into Graph (encounter_nodes)
+
+  const insertNodeQuery = `
+    INSERT INTO encounter_nodes 
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, branch_state, branch_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    ON CONFLICT (encounter_fhir_id) DO NOTHING
+  `;
+
+  const nodeValues = [
+    nodeData.id,
+    pId,
+    nodeData.title || nodeData.text_1 || "Untitled",
+    nodeData.category || "Consultation",
+    nodeData.priority || "Medium",
+    nodeData.normality || "Pending",
+    nodeData.dateIssued || new Date(),
+    nodeData.details || "",
+    nodeData.isDiagnosis || false,
+    nodeData.isManualBranch || false,
+    nodeData.branchState || "in_progress",
+    null, // branch_id is NULL for root nodes
+  ];
+
+  await pool.query(insertNodeQuery, nodeValues);
+
+  return {
+    primary: createdFHIR.primaryResult,
+    related: createdFHIR.relatedResults,
+  };
+}
+
+async function getGraphForPatient(patientId, options = {}) {
+  const {
+    eocId = null,
+    limit = null,
+    offset = 0,
+    filterCategory = null,
+    filterPriority = null,
+    filterNormality = null,
+    dateFrom = null,
+    dateTo = null,
+    sortBy = "event_date",
+    sortOrder = "DESC",
+  } = options;
+
+  try {
+    // If filtering by EOC, fetch encounter IDs for that EOC first
+    let eocEncounterIds = null;
+    if (eocId) {
+      try {
+        const encounters =
+          await eocService.getEncountersByEpisodeOfCareId(eocId);
+        eocEncounterIds = encounters.map((e) => e.id);
+      } catch (err) {
+        console.warn(
+          "Could not fetch EOC encounters for graph filter:",
+          err.message,
+        );
+      }
+      // If EOC has no encounters yet, return empty graph immediately
+      if (eocEncounterIds !== null && eocEncounterIds.length === 0) {
+        return { nodes: [], eocId, pagination: null };
+      }
+    }
+
+    let nodesQuery = `
+      SELECT
+        encounter_fhir_id, patient_id, title, category, priority,
+        normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id,
+        practitioner_id, created_at, updated_at, CASE WHEN is_deleted THEN deleted_at ELSE NULL END as deleted_at
+      FROM encounter_nodes
+      WHERE patient_id = $1
+        AND is_deleted = FALSE
+    `;
+
+    const params = [patientId];
+    let paramCount = 2;
+
+    if (eocEncounterIds !== null) {
+      nodesQuery += ` AND encounter_fhir_id = ANY($${paramCount})`;
+      params.push(eocEncounterIds);
+      paramCount++;
+    }
+
+    if (filterCategory) {
+      nodesQuery += ` AND category = $${paramCount}`;
+      params.push(filterCategory);
+      paramCount++;
+    }
+    if (filterPriority) {
+      nodesQuery += ` AND priority = $${paramCount}`;
+      params.push(filterPriority);
+      paramCount++;
+    }
+    if (filterNormality) {
+      nodesQuery += ` AND normality = $${paramCount}`;
+      params.push(filterNormality);
+      paramCount++;
+    }
+    if (dateFrom) {
+      nodesQuery += ` AND event_date >= $${paramCount}`;
+      params.push(dateFrom);
+      paramCount++;
+    }
+    if (dateTo) {
+      nodesQuery += ` AND event_date <= $${paramCount}`;
+      params.push(dateTo);
+      paramCount++;
+    }
+
+    const SORTABLE_COLUMNS = new Set([
+      "event_date",
+      "created_at",
+      "category",
+      "priority",
+      "normality",
+    ]);
+    const SORT_ORDERS = new Set(["ASC", "DESC"]);
+    const safeSortBy = SORTABLE_COLUMNS.has(sortBy) ? sortBy : "event_date";
+    const safeSortOrder = SORT_ORDERS.has(sortOrder?.toUpperCase())
+      ? sortOrder.toUpperCase()
+      : "DESC";
+
+    nodesQuery += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
+
+    if (limit) {
+      nodesQuery += ` LIMIT $${paramCount}`;
+      params.push(limit);
+      paramCount++;
+      nodesQuery += ` OFFSET $${paramCount}`;
+      params.push(offset);
+    }
+
+    const nodesRes = await pool.query(nodesQuery, params);
+
+    const edgesQuery = `
+      SELECT nr.source_node_id, nr.target_node_id, nr.relationship_type
+      FROM node_relations nr
+      JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id
+      WHERE en.patient_id = $1
+        AND nr.is_deleted = FALSE
+    `;
+    const edgesRes = await pool.query(edgesQuery, [patientId]);
+
+    const parentMap = {};
+    const relationshipMap = {};
+    edgesRes.rows.forEach((edge) => {
+      parentMap[edge.target_node_id] = edge.source_node_id;
+      relationshipMap[edge.target_node_id] = edge.relationship_type;
+    });
+
+    // Try to get the eocId from existing FHIR encounters (only when not already known)
+    let foundEocId = eocId || null;
+    if (!foundEocId) {
+      const encounterCandidates = nodesRes.rows.filter(
+        (row) => row.category === "Consultation" || row.category === "FollowUp",
+      );
+      if (encounterCandidates.length > 0) {
+        try {
+          foundEocId = await Promise.any(
+            encounterCandidates.map(async (row) => {
+              const enc = await encounterService.getEncounterById(
+                row.encounter_fhir_id,
+              );
+              const ref = enc?.episodeOfCare?.[0]?.reference;
+              if (!ref) throw new Error("no eoc");
+              return ref.replace("EpisodeOfCare/", "");
+            }),
+          );
+        } catch {
+          // No EOC reference found in any encounter
+        }
+      }
+    }
+
+    const formattedData = nodesRes.rows.map((row) => ({
+      id: row.encounter_fhir_id,
+      text_1: row.title || "Untitled Node",
+      father: parentMap[row.encounter_fhir_id] || null,
+      relationshipType: relationshipMap[row.encounter_fhir_id] || null,
+      category: row.category || "Consultation",
+      priority: row.priority || "Low",
+      normality: row.normality || "Normal",
+      dateIssued: formatDateOnly(row.event_date),
+      details: row.details || "",
+      isDiagnosis: row.is_diagnosis || false,
+      isManualBranch: row.is_manual_branch || false,
+      branchState: row.branch_state || "in_progress",
+      branchId: row.branch_id || null,
+      relatedResourceIds: row.related_resource_ids || {},
+      practitionerId: row.practitioner_id || null,
+      createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+      deletedAt: row.deleted_at ? new Date(row.deleted_at).toISOString() : null,
+    }));
+
+    const result = {
+      nodes: formattedData,
+      eocId: foundEocId,
+      pagination: limit
+        ? { limit, offset, total: nodesRes.rowCount + offset }
+        : null,
+    };
+
+    await setInCache(
+      `historyGraph:patient:${patientId}:${JSON.stringify(options)}`,
+      result,
+      CACHE_EXPIRATION.PATIENT,
+    );
+
+    return result;
+  } catch (error) {
+    console.error("Error fetching history graph:", error.message);
+    throw new Error("Could not fetch history graph for patient.");
+  }
+}
+
+// Create Mock Data for Testing
+async function seedSampleData(patientId, nodes) {
+  const eocId = `eoc-seed-${randomUUID()}`;
+
+  const eocData = {
+    resourceType: "EpisodeOfCare",
+    id: eocId,
+    status: "active",
+    type: [
+      {
+        coding: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/episodeofcare-type",
+            code: "hacc",
+            display: "Home and Community Care",
+          },
+        ],
+      },
+    ],
+    patient: { reference: `Patient/${patientId}` },
+  };
+
+  try {
+    await eocService.createEpisodeOfCareWithSpecificId(eocData);
+    console.log("Seed EOC Created:", eocId);
+  } catch (e) {
+    console.log("Note: EOC might already exist or failed:", e.message);
+    if (e.message.includes("Validation Failed")) return;
+  }
+
+  const nodeMap = [];
+
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    nodeMap[i] = n.id;
+
+    // 2. CREATE FHIR RESOURCES
+    const nodeWithDate = { ...n, dateIssued: n.date || n.dateIssued };
+    const mappedResources = mapNodeToFHIRResources(
+      nodeWithDate,
+      patientId,
+      eocId,
+    );
+    n.id = mappedResources.nodeId;
+
+    try {
+      await persistMappedResources(mappedResources);
+    } catch (e) {
+      console.error(
+        `Failed to create FHIR resource for node ${n.id}:`,
+        e.message,
+      );
+      continue;
+    }
+
+    // 3. INSERT INTO GRAPH TABLE
+    const insertNodeQuery = `
+      INSERT INTO encounter_nodes 
+      (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, branch_state, branch_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (encounter_fhir_id) DO NOTHING
+    `;
+
+    const eventDateValue =
+      nodeWithDate.dateIssued || n.date || n.dateIssued || new Date();
+
+    // Calculate branch_id for seed data
+    let seedBranchId = null;
+    if (n.father !== null && n.father !== undefined && nodeMap[n.father]) {
+      const parentId = nodeMap[n.father];
+      // Check if parent is a branch starter
+      const parentNode = nodes[n.father];
+      if (parentNode && (parentNode.isDiagnosis || parentNode.isManualBranch)) {
+        seedBranchId = parentId;
+      } else if (parentNode && parentNode.branchId) {
+        seedBranchId = parentNode.branchId;
+      }
+    }
+
+    await pool.query(insertNodeQuery, [
+      n.id,
+      patientId,
+      n.title,
+      n.category,
+      n.priority,
+      n.normality,
+      eventDateValue,
+      n.details,
+      n.isDiagnosis || false,
+      n.branchState || "in_progress",
+      seedBranchId,
+    ]);
+
+    // 4. CREATE RELATIONSHIP
+    if (n.father !== null && n.father !== undefined && nodeMap[n.father]) {
+      const parentId = nodeMap[n.father];
+      await insertEdge(
+        `rel-${randomUUID()}`,
+        parentId,
+        n.id,
+        normalizeRelationshipType(n.relationshipType),
+      );
+    }
+  }
+}
+
+// add new node to graph
+async function addNode(
+  patientId,
+  eocId,
+  nodeData,
+  parentNodeId = null,
+  practitionerId = null,
+) {
+  if (!patientId) throw new Error("patientId is required");
+  if (!nodeData) throw new Error("nodeData is required");
+  try {
+    validateNodeData(nodeData);
+  } catch (err) {
+    if (err.statusCode) throw err;
+    throw { statusCode: 400, errors: { nodeData: err.message } };
+  }
+
+  // Auto-create EpisodeOfCare if not provided or is 'auto'/'eoc-default'
+  let finalEocId = eocId;
+  if (!eocId || eocId === "auto" || eocId === "eoc-default") {
+    finalEocId = await getExistingEocForPatient(patientId);
+
+    if (!finalEocId) {
+      // Create a new EpisodeOfCare for this patient only if none exists
+      finalEocId = `eoc-${randomUUID()}`;
+      const eocData = {
+        id: finalEocId,
+        status: "active",
+        patient: { reference: `Patient/${patientId}` },
+      };
+      try {
+        await eocService.createEpisodeOfCareWithSpecificId(eocData);
+        console.log(`Created new EpisodeOfCare: ${finalEocId}`);
+      } catch (err) {
+        throw new Error(`Failed to create EpisodeOfCare: ${err.message}`);
+      }
+    }
+  }
+
+  // Generate ID if not provided or starts with 'temp-'
+  if (!nodeData.id || nodeData.id.startsWith("temp-")) {
+    nodeData.id = `enc-${randomUUID()}`;
+  }
+
+  // Normalize title field
+  const nodeTitle = nodeData.title || nodeData.text_1;
+
+  // Set defaults for optional fields
+  const priority = nodeData.priority || "Medium";
+  const normality = nodeData.normality || "Pending";
+  const category = nodeData.category;
+  const isLinkerNode = category === "Linker" || nodeData._isLinkerNode;
+  const details = nodeData.details || "";
+  const isDiagnosis = nodeData.isDiagnosis || false;
+  const isManualBranch = nodeData.isManualBranch || false;
+  const branchState = nodeData.branchState || "in_progress";
+
+  // Parse and format date
+  let eventDate = nodeData.dateIssued || new Date().toISOString();
+  if (typeof eventDate === "string" && !eventDate.includes("T")) {
+    eventDate = new Date(eventDate).toISOString();
+  } else if (!(eventDate instanceof Date)) {
+    eventDate = new Date(eventDate).toISOString();
+  }
+
+  // ALWAYS map to FHIR (Linkers become Virtual Encounters)
+  const mappedResources = mapNodeToFHIRResources(
+    {
+      id: nodeData.id,
+      text_1: nodeTitle,
+      title: nodeTitle,
+      category: category,
+      priority: priority,
+      normality: normality,
+      dateIssued: eventDate,
+      details: details,
+      _linkedBranchId: nodeData._linkedBranchId, // explicitly pass it
+    },
+    patientId,
+    finalEocId,
+    isDiagnosis,
+    practitionerId,
+  );
+
+  // Keep graph/node id aligned to Encounter id
+  nodeData.id = mappedResources.nodeId;
+
+  const buildRelatedResourceIds = (primaryResult, relatedResults = []) => {
+    const bucket = {};
+    if (primaryResult?.resourceType && primaryResult?.id) {
+      bucket[primaryResult.resourceType] = [primaryResult.id];
+    }
+    for (const r of relatedResults) {
+      if (r?.resourceType && r?.id) {
+        bucket[r.resourceType] = bucket[r.resourceType] || [];
+        bucket[r.resourceType].push(r.id);
+      }
+    }
+    return bucket;
+  };
+
+  // ALWAYS persist to FHIR
+  let createdResources = { primaryResult: null, relatedResults: [] };
+  try {
+    createdResources = await persistMappedResources(mappedResources);
+    console.log(
+      `FHIR ${mappedResources.primaryResource.resourceType} created with ID: ${nodeData.id}`,
+    );
+  } catch (err) {
+    throw new Error(`Failed to create FHIR resource: ${err.message}`);
+  }
+
+  const relatedResourceIds = buildRelatedResourceIds(
+    createdResources.primaryResult,
+    createdResources.relatedResults,
+  );
+
+  // Calculate branch ID:
+  // - If this is a branch starter (isDiagnosis or isManualBranch): branchId = NULL (it's the root)
+  // - If this has a parent:
+  //   - Check if parent is a branch starter: branchId = parent's ID
+  //   - Otherwise: branchId = parent's branchId (inherit)
+  // - If no parent and not a branch starter: branchId = NULL
+  let branchId = null;
+  if (parentNodeId && !isDiagnosis && !isManualBranch) {
+    const parentQuery = `
+      SELECT encounter_fhir_id, is_diagnosis, is_manual_branch, branch_id 
+      FROM encounter_nodes 
+      WHERE encounter_fhir_id = $1
+    `;
+    const parentResult = await pool.query(parentQuery, [parentNodeId]);
+    if (parentResult.rows.length > 0) {
+      const parent = parentResult.rows[0];
+      // If parent is a branch starter, child's branchId = parent's ID
+      if (parent.is_diagnosis || parent.is_manual_branch) {
+        branchId = parent.encounter_fhir_id;
+      } else {
+        // Otherwise inherit parent's branchId
+        branchId = parent.branch_id;
+      }
+    }
+  }
+
+  const insertNodeQuery = `
+    INSERT INTO encounter_nodes
+    (encounter_fhir_id, patient_id, title, category, priority, normality, event_date, details, is_diagnosis, is_manual_branch, related_resource_ids, branch_state, branch_id, practitioner_id, is_deleted, deleted_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, FALSE, NULL)
+    ON CONFLICT (encounter_fhir_id) DO UPDATE SET
+      title = EXCLUDED.title,
+      category = EXCLUDED.category,
+      priority = EXCLUDED.priority,
+      normality = EXCLUDED.normality,
+      event_date = EXCLUDED.event_date,
+      details = EXCLUDED.details,
+      is_diagnosis = EXCLUDED.is_diagnosis,
+      is_manual_branch = EXCLUDED.is_manual_branch,
+      related_resource_ids = EXCLUDED.related_resource_ids,
+      branch_state = EXCLUDED.branch_state,
+      branch_id = EXCLUDED.branch_id,
+      practitioner_id = COALESCE(EXCLUDED.practitioner_id, encounter_nodes.practitioner_id),
+      is_deleted = FALSE,
+      deleted_at = NULL,
+      updated_at = NOW()
+    RETURNING *
+  `;
+
+  const nodeValues = [
+    nodeData.id,
+    patientId,
+    nodeTitle,
+    category,
+    priority,
+    normality,
+    eventDate,
+    details,
+    isDiagnosis,
+    isManualBranch,
+    relatedResourceIds,
+    branchState,
+    branchId,
+    practitionerId,
+  ];
+
+  let dbNodeResult;
+  try {
+    dbNodeResult = await pool.query(insertNodeQuery, nodeValues);
+    console.log(`Node inserted into encounter_nodes table: ${nodeData.id}`);
+  } catch (err) {
+    throw new Error(`Failed to insert node into database: ${err.message}`);
+  }
+
+  const relationshipType = normalizeRelationshipType(nodeData.relationshipType);
+
+  if (parentNodeId) {
+    const parentCheckQuery =
+      "SELECT encounter_fhir_id FROM encounter_nodes WHERE encounter_fhir_id = $1";
+    const parentCheckResult = await pool.query(parentCheckQuery, [
+      parentNodeId,
+    ]);
+
+    if (parentCheckResult.rows.length === 0) {
+      throw new Error(
+        `Parent node with ID ${parentNodeId} does not exist in the database`,
+      );
+    }
+
+    const relationId = `rel-${randomUUID()}`;
+
+    try {
+      await insertEdge(relationId, parentNodeId, nodeData.id, relationshipType);
+      console.log(
+        `Relationship created: ${parentNodeId} -> ${nodeData.id} (${relationId})`,
+      );
+    } catch (err) {
+      throw new Error(`Failed to create node relationship: ${err.message}`);
+    }
+  }
+
+  await invalidatePatientCache(patientId);
+  await getGraphForPatient(patientId).catch((err) =>
+    console.warn("Cache refresh failed after addNode:", err.message),
+  );
+
+  const now = new Date().toISOString();
+  return {
+    id: nodeData.id,
+    text_1: nodeTitle,
+    father: parentNodeId || null,
+    relationshipType,
+    category: category,
+    priority: priority,
+    normality: normality,
+    dateIssued: eventDate.split("T")[0],
+    details: details,
+    isDiagnosis: isDiagnosis,
+    isManualBranch: isManualBranch,
+    branchState: branchState,
+    branchId: branchId,
+    eocId: finalEocId,
+    fhirResource: isLinkerNode
+      ? null
+      : {
+          primary: createdResources.primaryResult,
+          related: createdResources.relatedResults,
+        },
+    relatedResourceIds,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+async function updateNode(patientId, nodeId, updatedData, newParentNodeId) {
+  if (!patientId) throw new Error("patientId is required");
+  if (!nodeId) throw new Error("nodeId is required");
+  if (!updatedData) throw new Error("updatedData is required");
+  try {
+    validateNodeData(updatedData);
+  } catch (err) {
+    if (err.statusCode) throw err;
+    throw { statusCode: 400, errors: { updatedData: err.message } };
+  }
+
+  const title = updatedData.text_1 || updatedData.title;
+  const category = updatedData.category;
+  const priority = updatedData.priority || "Medium";
+  const normality = updatedData.normality || "Pending";
+  const details = updatedData.details || "";
+  const isDiagnosis = updatedData.isDiagnosis || false;
+  const isManualBranch = updatedData.isManualBranch || false;
+  const branchState = updatedData.branchState || "in_progress";
+  const isLinkerNode = category === "Linker" || updatedData._isLinkerNode;
+  const relationshipType =
+    updatedData.relationshipType !== undefined
+      ? normalizeRelationshipType(updatedData.relationshipType)
+      : null;
+
+  if (!title) throw new Error("title/text_1 is required");
+  if (!category) throw new Error("category is required");
+
+  let eventDate = updatedData.dateIssued || new Date().toISOString();
+  if (typeof eventDate === "string" && !eventDate.includes("T")) {
+    eventDate = new Date(eventDate).toISOString();
+  } else if (!(eventDate instanceof Date)) {
+    eventDate = new Date(eventDate).toISOString();
+  }
+
+  // Preserve EpisodeOfCare reference for encounter-based categories
+  let eocId = null;
+  if (category === "Consultation" || category === "FollowUp") {
+    try {
+      const existingEncounter = await encounterService.getEncounterById(nodeId);
+      if (existingEncounter?.episodeOfCare?.[0]?.reference) {
+        eocId = existingEncounter.episodeOfCare[0].reference.replace(
+          "EpisodeOfCare/",
+          "",
+        );
+      }
+    } catch (err) {
+      console.log("Could not retrieve eocId from FHIR:", err.message);
+    }
+  }
+
+  // Get existing category and branchState to detect changes
+  const existingNodeQuery = await pool.query(
+    "SELECT category, event_date, branch_state FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
+    [nodeId, patientId],
+  );
+
+  if (existingNodeQuery.rowCount === 0) {
+    throw new Error(`Node ${nodeId} not found for patient ${patientId}`);
+  }
+
+  const existingCategory = existingNodeQuery.rows[0].category;
+  const existingEventDate = existingNodeQuery.rows[0].event_date;
+  const existingBranchState = existingNodeQuery.rows[0].branch_state;
+
+  // If category changed, delete old FHIR resources first
+  if (existingCategory !== category) {
+    console.log(
+      `Category changed from ${existingCategory} to ${category} for node ${nodeId}. Deleting old FHIR resources...`,
+    );
+    const oldResourceInfos = resolveResourceIdentifiers(
+      existingCategory,
+      nodeId,
+      existingEventDate,
+    );
+
+    for (const info of oldResourceInfos) {
+      try {
+        await deleteFHIRResource(info.resourceType, info.id);
+        console.log(
+          `Deleted old FHIR ${info.resourceType} ${info.id} due to category change`,
+        );
+      } catch (err) {
+        console.warn(
+          `Failed to delete old FHIR ${info.resourceType} ${info.id}:`,
+          err.message,
+        );
+      }
+    }
+  }
+
+  // Update FHIR resources (category-aware), except for Linker nodes which are DB-only.
+  // Update FHIR resources (ALL nodes, including Linkers)
+  let relatedResourceIds = {};
+
+  const mappedResources = mapNodeToFHIRResources(
+    {
+      id: nodeId,
+      text_1: title,
+      title: title,
+      category: category,
+      priority: priority,
+      normality: normality,
+      dateIssued: eventDate,
+      details: details,
+      _linkedBranchId: updatedData._linkedBranchId,
+    },
+    patientId,
+    eocId,
+    isDiagnosis,
+  );
+
+  try {
+    await persistMappedResources(mappedResources);
+    console.log(
+      `FHIR ${mappedResources.primaryResource.resourceType} ${nodeId} updated successfully`,
+    );
+  } catch (err) {
+    throw new Error(`Failed to update FHIR resource ${nodeId}: ${err.message}`);
+  }
+
+  relatedResourceIds = {
+    [mappedResources.primaryResource.resourceType]: [
+      mappedResources.primaryResource.id,
+    ],
+  };
+  for (const r of mappedResources.relatedResources || []) {
+    if (r?.resourceType && r?.id) {
+      relatedResourceIds[r.resourceType] =
+        relatedResourceIds[r.resourceType] || [];
+      relatedResourceIds[r.resourceType].push(r.id);
+    }
+  }
+
+  // Get existing node data for reference
+  const existingNodeResult = await pool.query(
+    "SELECT branch_id FROM encounter_nodes WHERE encounter_fhir_id = $1 AND patient_id = $2",
+    [nodeId, patientId],
+  );
+
+  const existingNode = existingNodeResult.rows[0];
+
+  // Calculate new branch_id:
+  // - If this is a branch starter (isDiagnosis or isManualBranch): branch_id = NULL
+  // - If parent is provided and not a branch starter:
+  //   - If new parent is a branch starter: branch_id = new parent's ID
+  //   - Otherwise: branch_id = new parent's branch_id (inherit)
+  // - If newParentNodeId is undefined: keep existing branch_id
+  let newBranchId = existingNode?.branch_id || null;
+
+  if (isDiagnosis || isManualBranch) {
+    // Branch starters have NULL branch_id
+    newBranchId = null;
+  } else if (newParentNodeId !== undefined) {
+    if (newParentNodeId === null) {
+      // Becoming a root node
+      newBranchId = null;
+    } else {
+      // Has a parent, calculate branch_id
+      const newParentQuery = `
+        SELECT encounter_fhir_id, is_diagnosis, is_manual_branch, branch_id 
+        FROM encounter_nodes 
+        WHERE encounter_fhir_id = $1
+      `;
+      const newParentResult = await pool.query(newParentQuery, [
+        newParentNodeId,
+      ]);
+      if (newParentResult.rows.length > 0) {
+        const newParent = newParentResult.rows[0];
+        if (newParent.is_diagnosis || newParent.is_manual_branch) {
+          newBranchId = newParent.encounter_fhir_id;
+        } else {
+          newBranchId = newParent.branch_id;
+        }
+      }
+    }
+  }
+  // else: newParentNodeId === undefined, keep existing newBranchId
+
+  const updateQuery = `
+    UPDATE encounter_nodes
+    SET title = $1, category = $2, priority = $3, normality = $4, event_date = $5, details = $6, is_diagnosis = $7, is_manual_branch = $8, related_resource_ids = $9, branch_state = $10, branch_id = $11, updated_at = NOW()
+    WHERE encounter_fhir_id = $12 AND patient_id = $13
+    RETURNING encounter_fhir_id, branch_id
+  `;
+
+  const result = await pool.query(updateQuery, [
+    title,
+    category,
+    priority,
+    normality,
+    eventDate,
+    details,
+    isDiagnosis,
+    isManualBranch,
+    relatedResourceIds,
+    branchState,
+    newBranchId,
+    nodeId,
+    patientId,
+  ]);
+
+  if (result.rowCount === 0) {
+    throw new Error(`Node ${nodeId} not found for patient ${patientId}`);
+  }
+
+  // Delete linker nodes if branch state changed from "completed" to "in_progress"
+  if (
+    existingBranchState === "completed" &&
+    branchState === "in_progress" &&
+    (isDiagnosis || isManualBranch)
+  ) {
+    console.log(
+      `Branch state changed from completed to in_progress for node ${nodeId}. Deleting associated linker nodes...`,
+    );
+
+    try {
+      // Find all linker nodes that are descendants of this branch node
+      const linkerNodesQuery = `
+        SELECT DISTINCT nr.target_node_id
+        FROM node_relations nr
+        JOIN encounter_nodes en ON nr.target_node_id = en.encounter_fhir_id
+        WHERE nr.source_node_id = $1 
+          AND en.patient_id = $2
+          AND en.category = 'Linker'
+          AND en.is_deleted = FALSE
+      `;
+
+      const linkerResults = await pool.query(linkerNodesQuery, [
+        nodeId,
+        patientId,
+      ]);
+
+      for (const row of linkerResults.rows) {
+        try {
+          await deleteNode(patientId, row.target_node_id);
+          console.log(
+            `Deleted linker node ${row.target_node_id} due to branch state transition`,
+          );
+        } catch (err) {
+          console.warn(
+            `Failed to delete linker node ${row.target_node_id}:`,
+            err.message,
+          );
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to find/delete linker nodes: ${err.message}`);
+    }
+  }
+
+  // Get current parent relationship from database
+  let currentParentId = null;
+  const parentQuery = await pool.query(
+    "SELECT source_node_id FROM node_relations WHERE target_node_id = $1",
+    [nodeId],
+  );
+  if (parentQuery.rowCount > 0) {
+    currentParentId = parentQuery.rows[0].source_node_id;
+  }
+
+  console.log(
+    `updateNode: newParentNodeId=${newParentNodeId}, currentParentId=${currentParentId}`,
+  );
+
+  // Only update parent relationship if newParentNodeId is explicitly provided (not undefined)
+  // undefined = don't change, null = make it a root node, value = change parent
+  if (newParentNodeId !== undefined) {
+    console.log(
+      `Updating parent relationship for ${nodeId} to ${newParentNodeId}`,
+    );
+    await pool.query("DELETE FROM node_relations WHERE target_node_id = $1", [
+      nodeId,
+    ]);
+
+    if (newParentNodeId !== null) {
+      const parentCheck = await pool.query(
+        "SELECT encounter_fhir_id FROM encounter_nodes WHERE encounter_fhir_id = $1",
+        [newParentNodeId],
+      );
+      if (parentCheck.rowCount === 0) {
+        throw new Error(`Parent node ${newParentNodeId} does not exist`);
+      }
+
+      await insertEdge(
+        `rel-${randomUUID()}`,
+        newParentNodeId,
+        nodeId,
+        relationshipType || "association",
+      );
+    }
+    currentParentId = newParentNodeId;
+  } else {
+    console.log(
+      `Preserving parent relationship for ${nodeId}: ${currentParentId}`,
+    );
+  }
+
+  await invalidatePatientCache(patientId);
+  setImmediate(() => {
+    getGraphForPatient(patientId).catch((err) =>
+      console.warn("[CACHE REFRESH] Failed after updateNode:", err.message),
+    );
+  });
+
+  const now = new Date().toISOString();
+
+  // Get the final branchId that was stored
+  let finalBranchId = null;
+  if (result.rows.length > 0) {
+    finalBranchId = result.rows[0].branch_id;
+  }
+
+  return {
+    id: nodeId,
+    text_1: title,
+    father: currentParentId,
+    category,
+    priority,
+    normality,
+    dateIssued: eventDate.split("T")[0],
+    details,
+    isDiagnosis,
+    isManualBranch,
+    branchState,
+    branchId: finalBranchId,
+    relatedResourceIds,
+    relationshipType: relationshipType || undefined,
+    updatedAt: now,
+  };
+}
+
+// Helper: recursively collect descendants for deletion
+async function collectDescendants(nodeIds) {
+  const res = await pool.query(
+    `WITH RECURSIVE descendants AS (
+       SELECT nr.target_node_id
+       FROM node_relations nr
+       WHERE nr.source_node_id = ANY($1) AND nr.is_deleted = FALSE
+       UNION
+       SELECT nr.target_node_id
+       FROM node_relations nr
+       INNER JOIN descendants d ON nr.source_node_id = d.target_node_id
+       WHERE nr.is_deleted = FALSE
+     )
+     SELECT DISTINCT target_node_id FROM descendants`,
+    [nodeIds],
+  );
+
+  return [...nodeIds, ...res.rows.map((r) => r.target_node_id)];
+}
+
+async function fetchNodeMetadata(nodeIds) {
+  if (!nodeIds || nodeIds.length === 0) return {};
+  const res = await pool.query(
+    "SELECT encounter_fhir_id, category, event_date, related_resource_ids FROM encounter_nodes WHERE encounter_fhir_id = ANY($1)",
+    [nodeIds],
+  );
+  const map = {};
+  res.rows.forEach((row) => {
+    map[row.encounter_fhir_id] = {
+      category: row.category || "Consultation",
+      eventDate: row.event_date,
+      relatedResourceIds: row.related_resource_ids,
+    };
+  });
+  return map;
+}
+
+function resolveResourceIdentifiers(category, nodeId, eventDate) {
+  const resources = [];
+  const addEncounter = () =>
+    resources.push({ resourceType: "Encounter", id: nodeId });
+  switch (category) {
+    case "Lab":
+      addEncounter();
+      resources.push({ resourceType: "Observation", id: nodeId });
+      resources.push({
+        resourceType: "DiagnosticReport",
+        id: `dr-${nodeId}`,
+      });
+      break;
+    case "Imaging":
+      addEncounter();
+      resources.push({ resourceType: "ImagingStudy", id: nodeId });
+      resources.push({ resourceType: "DiagnosticReport", id: `dr-${nodeId}` });
+      break;
+    case "Prescription":
+      addEncounter();
+      resources.push({ resourceType: "MedicationRequest", id: nodeId });
+      break;
+    case "AISuggestion":
+      addEncounter();
+      resources.push({ resourceType: "Observation", id: nodeId });
+      break;
+    case "FollowUp": {
+      const ts = eventDate ? new Date(eventDate).getTime() : Date.now();
+      const isFuture = ts > Date.now();
+      if (isFuture) {
+        resources.push({ resourceType: "Appointment", id: nodeId });
+      }
+      addEncounter();
+      break;
+    }
+    case "Allergy":
+      addEncounter();
+      resources.push({ resourceType: "AllergyIntolerance", id: nodeId });
+      break;
+    default:
+      addEncounter();
+      break;
+  }
+  return resources;
+}
+
+// Delete a node and its descendants
+async function deleteNode(patientId, nodeId) {
+  if (!patientId) throw new Error("patientId is required");
+  if (!nodeId) throw new Error("nodeId is required");
+
+  // Collect node + descendants
+  const targets = await collectDescendants([nodeId]);
+  const metadataMap = await fetchNodeMetadata(targets);
+
+  // Build the full list of FHIR resources to delete across all targets, then delete in parallel
+  const globalSeen = new Set();
+  const allResourcesToDelete = [];
+  for (const targetId of targets) {
+    const meta = metadataMap[targetId] || { category: "Consultation" };
+    const addResource = (resourceType, id) => {
+      if (!resourceType || !id) return;
+      const key = `${resourceType}:${id}`;
+      if (globalSeen.has(key)) return;
+      globalSeen.add(key);
+      allResourcesToDelete.push({ resourceType, id });
+    };
+    Object.entries(meta.relatedResourceIds || {}).forEach(
+      ([resourceType, ids]) => {
+        (ids || []).forEach((id) => addResource(resourceType, id));
+      },
+    );
+    resolveResourceIdentifiers(meta.category, targetId, meta.eventDate).forEach(
+      (info) => addResource(info.resourceType, info.id),
+    );
+  }
+
+  const fhirDeleteResults = await Promise.all(
+    allResourcesToDelete.map(async (info) => {
+      try {
+        await deleteFHIRResource(info.resourceType, info.id);
+        console.log(
+          `FHIR ${info.resourceType} ${info.id} deleted successfully`,
+        );
+        return { id: info.id, resourceType: info.resourceType, success: true };
+      } catch (err) {
+        console.error(
+          `Failed to delete FHIR ${info.resourceType} ${info.id}:`,
+          err.message,
+        );
+        return {
+          id: info.id,
+          resourceType: info.resourceType,
+          success: false,
+          error: err.message,
+        };
+      }
+    }),
+  );
+
+  await pool.query(
+    "UPDATE node_relations SET is_deleted = TRUE, deleted_at = NOW() WHERE source_node_id = ANY($1) OR target_node_id = ANY($1)",
+    [targets],
+  );
+
+  // Soft delete encounters; fallback to hard delete on failure
+  try {
+    await pool.query(
+      "UPDATE encounter_nodes SET is_deleted = TRUE, deleted_at = NOW() WHERE patient_id = $1 AND encounter_fhir_id = ANY($2)",
+      [patientId, targets],
+    );
+  } catch (err) {
+    console.warn(
+      "Soft delete nodes failed, falling back to hard delete:",
+      err.message,
+    );
+    await pool.query(
+      "DELETE FROM encounter_nodes WHERE patient_id = $1 AND encounter_fhir_id = ANY($2)",
+      [patientId, targets],
+    );
+  }
+
+  await invalidatePatientCache(patientId);
+  setImmediate(() => {
+    getGraphForPatient(patientId).catch((err) =>
+      console.warn("[CACHE REFRESH] Failed after deleteNode:", err.message),
+    );
+  });
+
+  return { deleted: targets, fhirDeleteResults };
+}
+
+// Undelete a node and restore its edges (if soft deletes are supported)
+async function restoreNode(patientId, nodeId) {
+  if (!patientId) throw new Error("patientId is required");
+  if (!nodeId) throw new Error("nodeId is required");
+
+  try {
+    const result = await pool.query(
+      "UPDATE encounter_nodes SET is_deleted = FALSE, deleted_at = NULL WHERE patient_id = $1 AND encounter_fhir_id = $2 RETURNING encounter_fhir_id",
+      [patientId, nodeId],
+    );
+
+    if (result.rowCount === 0) {
+      throw { statusCode: 404, errors: { node: "Node not found" } };
+    }
+
+    // Restore edges
+    await pool.query(
+      "UPDATE node_relations SET is_deleted = FALSE, deleted_at = NULL WHERE (source_node_id = $1 OR target_node_id = $1)",
+      [nodeId],
+    );
+
+    await invalidatePatientCache(patientId);
+    setImmediate(() => {
+      getGraphForPatient(patientId).catch((err) =>
+        console.warn("[CACHE REFRESH] Failed after restoreNode:", err.message),
+      );
+    });
+
+    return {
+      success: true,
+      restored: nodeId,
+      message: "Node and related edges restored",
+    };
+  } catch (err) {
+    if (err.statusCode) throw err;
+    throw {
+      statusCode: 500,
+      errors: { restore: `Failed to restore node: ${err.message}` },
+    };
+  }
+}
+
+// Get graph analytics and metrics
+// getGraphStats is unused — commented out pending optimisation (fix #4)
+/*
+async function getGraphStats(patientId) {
+  if (!patientId) throw new Error("patientId is required");
+
+
+  try {
+    const totalNodesRes = await pool.query(
+      "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1",
+      [patientId],
+    );
+    const totalNodes = parseInt(totalNodesRes.rows[0].count, 10);
+
+    const activeNodesRes = await pool.query(
+      "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE",
+      [patientId],
+    );
+    const activeNodes = parseInt(activeNodesRes.rows[0].count, 10);
+
+    const deletedNodesRes = await pool.query(
+      "SELECT COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = TRUE",
+      [patientId],
+    );
+    const deletedNodes = parseInt(deletedNodesRes.rows[0].count, 10);
+
+    const totalEdgesRes = await pool.query(
+      "SELECT COUNT(*) as count FROM node_relations nr JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id WHERE en.patient_id = $1",
+      [patientId],
+    );
+    const totalEdges = parseInt(totalEdgesRes.rows[0].count, 10);
+
+    const hasSoftDelete = await checkEdgeSoftDeleteSupport();
+    let activeEdges = totalEdges;
+    let deletedEdges = 0;
+
+    if (hasSoftDelete) {
+      const activeEdgesRes = await pool.query(
+        "SELECT COUNT(*) as count FROM node_relations nr JOIN encounter_nodes en ON nr.source_node_id = en.encounter_fhir_id WHERE en.patient_id = $1 AND nr.is_deleted = FALSE",
+        [patientId],
+      );
+      activeEdges = parseInt(activeEdgesRes.rows[0].count, 10);
+      deletedEdges = totalEdges - activeEdges;
+    }
+
+    const categoryBreakdownRes = await pool.query(
+      "SELECT category, COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE GROUP BY category",
+      [patientId],
+    );
+
+    const categoryBreakdown = {};
+    categoryBreakdownRes.rows.forEach((row) => {
+      categoryBreakdown[row.category || "Unknown"] = parseInt(row.count, 10);
+    });
+
+    const priorityBreakdownRes = await pool.query(
+      "SELECT priority, COUNT(*) as count FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE GROUP BY priority",
+      [patientId],
+    );
+
+    const priorityBreakdown = {};
+    priorityBreakdownRes.rows.forEach((row) => {
+      priorityBreakdown[row.priority || "Unknown"] = parseInt(row.count, 10);
+    });
+
+    const ageRes = await pool.query(
+      "SELECT MIN(event_date) as oldest, MAX(event_date) as newest FROM encounter_nodes WHERE patient_id = $1 AND is_deleted = FALSE",
+      [patientId],
+    );
+
+    const oldest = ageRes.rows[0]?.oldest || null;
+    const newest = ageRes.rows[0]?.newest || null;
+
+    return {
+      patientId,
+      totalNodes,
+      activeNodes,
+      deletedNodes,
+      deletionRatio:
+        totalNodes > 0 ? (deletedNodes / totalNodes).toFixed(2) : 0,
+      totalEdges,
+      activeEdges,
+      deletedEdges,
+      categoryBreakdown,
+      priorityBreakdown,
+      oldestRecord: oldest ? new Date(oldest).toISOString() : null,
+      newestRecord: newest ? new Date(newest).toISOString() : null,
+    };
+  } catch (err) {
+    throw {
+      statusCode: 500,
+      errors: { stats: `Failed to fetch stats: ${err.message}` },
+    };
+  }
+}
+*/
+
+module.exports = {
+  InitalizeHistoryGraph,
+  createheadNodeEncounter,
+  getGraphForPatient,
+  seedSampleData,
+  addNode,
+  updateNode,
+  deleteNode,
+  restoreNode,
+  // getGraphStats, // commented out — unused
+  validateNodeData,
+  buildErrorResponse,
+  ALLOWED_CATEGORIES,
+  ALLOWED_PRIORITIES,
+  ALLOWED_NORMALITIES,
+};

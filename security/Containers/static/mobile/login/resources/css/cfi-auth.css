@@ -1,0 +1,865 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css");
+
+:root {
+  --cfi-primary: #1e88e5;
+  --cfi-primary-dark: #1976d2;
+  --cfi-text: #1f2937;
+  --cfi-muted: #6b7280;
+  --cfi-border: #c7cdd6;
+  --cfi-surface: #ffffff;
+}
+
+html,
+body,
+.login-pf {
+  background: #f3f4f6 !important;
+  min-height: 100%;
+  font-size: 20px !important;
+  color: var(--cfi-text);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+body {
+  margin: 0 !important;
+}
+
+#kc-content-wrapper,
+.login-pf-page,
+.card-pf {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+.cfi-form-register {
+  max-height: none;
+  overflow: visible !important;
+}
+
+#kc-register-form {
+  overflow-y: visible !important;
+  max-height: none !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  margin-bottom: max(50px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(50px, env(safe-area-inset-bottom, 0px));
+}
+
+#kc-register-form .form-group:last-child {
+  margin-bottom: max(50px, env(safe-area-inset-bottom, 0px));
+}
+#kc-header,
+#kc-header-wrapper,
+#kc-page-title {
+  display: none !important;
+}
+
+#kc-username,
+#kc-attempted-username,
+#reset-login,
+#reset-login a {
+  display: block;
+  text-align: center;
+}
+
+#kc-username,
+#kc-attempted-username {
+  color: var(--cfi-muted);
+  font-size: 34px !important;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+#reset-login {
+  margin: 0 0 14px;
+}
+
+#reset-login a {
+  color: var(--cfi-primary-dark);
+  text-decoration: none;
+  font-size: 32px !important;
+  font-weight: 600;
+}
+
+#kc-content,
+#kc-content-wrapper {
+  width: 100%;
+}
+
+#kc-content-wrapper {
+  max-width: 70%;
+  margin: 0 auto;
+}
+
+.login-pf-page {
+  width: min(92vw, 520px);
+  max-width: 520px;
+  margin: clamp(42px, 12vh, 140px) auto 24px;
+  padding: max(20px, env(safe-area-inset-top, 0px)) 10px 0;
+}
+
+.card-pf {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: none;
+  background: transparent;
+  padding: 14px 8px 20px;
+}
+
+.cfi-brand {
+  text-align: center;
+  padding-top: 8px;
+  margin-bottom: 24px;
+}
+
+.cfi-logo {
+  width: 244px;
+  height: 244px;
+  margin: 50px auto 20px;
+  border-radius: 50%;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cfi-logo-img {
+  width: 150%;
+  height: 150%;
+  object-fit: cover;
+}
+
+.cfi-title {
+  margin: 0;
+  color: var(--cfi-text);
+  font-size: 78px !important;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+.cfi-title2 {
+  margin: 0;
+  color: var(--cfi-text);
+  font-size: 55px !important;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.cfi-subtitle {
+  margin: 6px 0 0;
+  color: var(--cfi-muted);
+  font-size: 42px !important;
+}
+
+.cfi-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  padding: 7px;
+  margin: 18px 0 28px;
+}
+
+.cfi-tabs.cfi-tabs-single {
+  grid-template-columns: 1fr;
+}
+
+.cfi-tab {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 22px 16px;
+  border-radius: 999px;
+  color: #4b5563;
+  font-size: 36px !important;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.cfi-tab.active {
+  background: var(--cfi-primary);
+  color: #fff;
+  border-color: var(--cfi-primary);
+}
+
+.cfi-tab-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cfi-form .form-group {
+  margin-bottom: 22px;
+}
+
+.cfi-form label {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 40px !important;
+  margin-bottom: 9px;
+  display: inline-block;
+}
+
+#kc-content .cfi-brand,
+#kc-content .cfi-tabs,
+#kc-content .cfi-form,
+#kc-form-login,
+#kc-register-form {
+  width: 100% !important;
+}
+
+#kc-content .cfi-title {
+  font-size: 78px !important;
+}
+
+#kc-content .cfi-subtitle {
+  font-size: 42px !important;
+}
+
+#kc-content .cfi-tab {
+  font-size: 36px !important;
+}
+
+.cfi-form .form-control {
+  border: 2px solid #6b7280;
+  border-radius: 14px;
+  min-height: 102px;
+  padding: 24px 18px;
+  background: #fff;
+  color: #111827;
+  font-size: 48px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+#kc-form-login input[type="text"],
+#kc-form-login input[type="password"],
+#kc-form-login input[type="email"],
+#kc-register-form input[type="text"],
+#kc-register-form input[type="password"],
+#kc-register-form input[type="email"] {
+  width: 100% !important;
+  min-height: 102px !important;
+  border-radius: 14px !important;
+  border: 2px solid #6b7280 !important;
+  padding: 24px 18px !important;
+  font-size: 48px !important;
+  line-height: 1.3 !important;
+  box-sizing: border-box !important;
+}
+
+.cfi-form .form-control:focus {
+  border-color: var(--cfi-primary);
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.2);
+}
+
+#kc-form-login #username[readonly] {
+  background: #f5f6f8;
+  color: #4b5563;
+}
+
+.cfi-password-wrap {
+  position: relative;
+}
+
+.cfi-password-wrap .form-control {
+  padding-right: 98px !important;
+}
+
+.cfi-password-toggle {
+  position: absolute;
+  right: 35px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cfi-password-toggle .eye-open,
+.cfi-password-toggle .eye-closed {
+  font-size: 45px;
+  line-height: 1;
+}
+
+.cfi-password-toggle .eye-closed {
+  display: none;
+}
+
+.cfi-password-toggle.is-visible .eye-open {
+  display: none;
+}
+
+.cfi-password-toggle.is-visible .eye-closed {
+  display: inline;
+}
+
+.cfi-form .btn-primary {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  min-height: 94px;
+  background: var(--cfi-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 36px !important;
+  margin-top: 12px;
+}
+
+#kc-form-login .btn-primary,
+#kc-register-form .btn-primary,
+#kc-login,
+#kc-register {
+  width: 100% !important;
+  min-height: 94px !important;
+  border-radius: 14px !important;
+  font-size: 45px !important;
+}
+
+#kc-form-login label,
+#kc-register-form label {
+  font-size: 33px !important;
+}
+
+#kc-form-login .checkbox label,
+#kc-form-login label[for="rememberMe"] {
+  font-size: 32px !important;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#kc-form-login .checkbox {
+  font-size: 32px !important;
+}
+
+#kc-form-login #rememberMe {
+  width: 30px !important;
+  height: 30px !important;
+  margin: 0 !important;
+  accent-color: var(--cfi-primary);
+  flex: 0 0 auto;
+}
+
+.cfi-form .btn-primary:hover,
+.cfi-form .btn-primary:focus {
+  background: var(--cfi-primary-dark);
+}
+
+.cfi-help {
+  text-align: center;
+  margin-top: 12px;
+  color: var(--cfi-muted);
+  font-size: 36px;
+}
+
+.cfi-help a {
+  color: var(--cfi-primary-dark);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 38px;
+  margin:20px;
+}
+
+.alert {
+  border-radius: 10px;
+}
+
+.kc-feedback-text,
+#input-error-username,
+#input-error-password,
+#kc-content .kc-feedback-text {
+  display: block;
+  margin-top: 8px;
+  color: #9f1111 !important;
+  font-size: 30px !important;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+#kc-content .alert,
+#kc-content .alert-error,
+#kc-content .pf-c-alert,
+#kc-content .pf-c-alert__title,
+#kc-content .kc-feedback-text span {
+  color: #9f1111 !important;
+  font-size: 30px !important;
+  line-height: 1.35;
+}
+
+.cfi-inline-message {
+  width: 100%;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 4px 0 16px;
+  font-size: 35px !important;
+  line-height: 1.35;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.cfi-inline-info,
+.cfi-inline-success {
+  color: #1d4ed8;
+  background: #dbeafe;
+  border: 2px solid #93c5fd;
+}
+
+.cfi-inline-warning {
+  color: #383737;
+  background: #c6ddffbb;
+  border: 2px solid #99999873;
+}
+
+.cfi-inline-error {
+  color: #9f1111;
+  background: #fee2e2;
+  border: 2px solid #fca5a5;
+}
+
+.cfi-otp-list {
+  display: grid;
+  gap: 10px;
+}
+
+.cfi-otp-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid #c7cdd6;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 27px;
+  color: #1f2937;
+}
+
+.cfi-otp-item input[type="radio"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--cfi-primary);
+}
+
+.cfi-totp-steps {
+  margin: 0 0 18px;
+  padding-left: 34px;
+  color: #374151;
+}
+
+.cfi-totp-steps li {
+  margin-bottom: 12px;
+  font-size: 35px;
+  line-height: 1.35;
+}
+
+.cfi-totp-steps li p {
+  font-size: 40px;
+  line-height: 1.35;
+  margin: 0 0 10px;
+}
+
+.cfi-totp-apps,
+.cfi-totp-meta {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.cfi-totp-apps li,
+.cfi-totp-meta li {
+  font-size: 40px;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.cfi-totp-secret {
+  display: inline-block;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 8px 10px;
+  word-break: break-all;
+}
+
+#mode-manual,
+#mode-barcode {
+  font-size: 40px;
+  font-weight: 600;
+}
+
+#kc-totp-settings-form .checkbox,
+#kc-totp-settings-form .checkbox label {
+  font-size: 40px !important;
+}
+
+#kc-totp-settings-form .checkbox input[type="checkbox"] {
+  width: 30px;
+  height: 30px;
+}
+
+#kc-totp-secret-qr-code {
+  width: min(70vw, 260px);
+  max-width: 150%;
+  border-radius: 12px;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  padding: 6px;
+}
+
+#cfi-resend-countdown {
+  color: var(--cfi-muted);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+#cfi-resend-link[aria-disabled="true"] {
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+#cfi-scope-scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+#cfi-scope-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+#cfi-scope-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+#kc-select-try-another-way-form,
+.kc-login-tooltip,
+#kc-try-another-way {
+  display: none !important;
+}
+
+#kc-username, .instruction, #kc-page-title, a[href*="restartAuth"] { 
+        display: none !important; 
+      }
+      .cfi-mobile-codes-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+        counter-reset: item;
+      }
+      .cfi-mobile-codes-grid li {
+        background: rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 6px;
+        padding: 10px 8px;
+        color: #1e293b;
+        font-family: monospace;
+        font-size: 15px;
+        font-weight: 600;
+        text-align: center;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+      .cfi-mobile-codes-grid li::before {
+        counter-increment: item;
+        content: counter(item) ".";
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: normal;
+        min-width: 16px;
+        text-align: right;
+      }
+
+
+      #kc-username, .instruction, #kc-page-title, a[href*="restartAuth"] { 
+        display: none !important; 
+      }
+
+      /* Unified Code Card Container */
+      .cfi-codes-card {
+        background: #ffffff !important;
+        border: 2px solid var(--cfi-border) !important;
+        border-radius: 16px !important;
+        padding: 16px !important;
+        margin: 20px 0 16px 0 !important;
+      }
+      
+      .cfi-mobile-codes-grid {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        list-style-type: none !important;
+        counter-reset: item;
+      }
+      
+      .cfi-mobile-codes-grid li {
+        padding: 14px 8px !important;
+        font-family: monospace !important;
+        font-size: 32px !important; 
+        font-weight: 700 !important;
+        color: var(--cfi-text) !important;
+        text-align: center !important;
+        letter-spacing: 1px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 12px !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+      }
+
+      .cfi-mobile-codes-grid li:last-child {
+        border-bottom: none !important;
+      }
+
+      .cfi-mobile-codes-grid li::before {
+        counter-increment: item;
+        content: counter(item) ".";
+        color: var(--cfi-muted) !important;
+        font-size: 24px !important;
+        font-weight: 500 !important;
+        width: 32px;
+        text-align: right;
+      }
+
+      /* Prominent Horizontal Utility Row */
+      .cfi-utility-row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 12px !important;
+        margin-bottom: 28px !important;
+      }
+
+      .cfi-utility-row .btn {
+        min-height: 100px !important; 
+        font-size: 35px !important;  
+        background: #ffffff !important;
+        color: var(--cfi-text) !important;
+        border: 2px solid var(--cfi-border) !important;
+        font-weight: 600 !important;
+        padding: 0 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+      }
+
+      .cfi-utility-row .btn i {
+        font-size: 32px !important;
+      }
+
+      /* Clean Checkbox Alignment Layout */
+      .cfi-checkbox-container {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 14px !important;
+        margin: 28px 0 !important;
+        padding: 4px 0 !important;
+        text-align: left !important;
+      }
+
+      .cfi-checkbox-container input[type="checkbox"] {
+        margin-top: 6px !important;
+      }
+
+      .cfi-checkbox-container span {
+        line-height: 1.4 !important;
+      }
+
+      .cfi-form-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+        margin-top: 20px !important;
+      }
+
+      
+
+@media (max-width: 480px) {
+  .login-pf-page {
+    width: calc(100vw - 30px);
+    max-width: none;
+    margin: clamp(34px, 10vh, 110px) auto 18px;
+    padding: max(14px, env(safe-area-inset-top, 0px)) 6px 0;
+  }
+
+  .cfi-logo {
+    width: 210px;
+    height: 210px;
+  }
+
+  .card-pf {
+    padding: 12px 6px 18px;
+  }
+
+  #kc-content .cfi-title {
+    font-size: 68px !important;
+  }
+
+  #kc-content .cfi-subtitle {
+    font-size: 38px !important;
+  }
+
+  #kc-content .cfi-tab {
+    font-size: 33px !important;
+  }
+
+  #kc-form-login input[type="text"],
+  #kc-form-login input[type="password"],
+  #kc-form-login input[type="email"],
+  #kc-register-form input[type="text"],
+  #kc-register-form input[type="password"],
+  #kc-register-form input[type="email"] {
+    min-height: 96px !important;
+    font-size: 40px !important;
+  }
+
+  .cfi-password-wrap .form-control {
+    padding-right: 90px !important;
+  }
+
+  .cfi-password-toggle {
+    width: 46px;
+    height: 46px;
+    right: 20px;
+  }
+
+  .cfi-password-toggle .eye-open,
+  .cfi-password-toggle .eye-closed {
+    font-size: 26px;
+  }
+
+
+  #kc-form-login label,
+  #kc-register-form label {
+    font-size: 31px !important;
+  }
+
+  #kc-form-login .checkbox label,
+  #kc-form-login label[for="rememberMe"] {
+    font-size: 40px !important;
+  }
+
+  #kc-form-login .checkbox {
+    font-size: 30px !important;
+  }
+
+  #kc-form-login #rememberMe {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  #kc-username,
+  #kc-attempted-username {
+    font-size: 30px !important;
+  }
+
+  #reset-login a {
+    font-size: 28px !important;
+  }
+
+  .cfi-inline-message.cfi-inline-success {
+  max-width: 100%;
+  text-align: center;
+  margin: 10px auto 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  font-size: 33px !important;
+  line-height: 1.35;
+}
+
+.cfi-inline-message.cfi-inline-success p {
+  margin: 0;
+}
+
+.cfi-form .cfi-inline-message.cfi-inline-success {
+  margin-bottom: 6px;
+}
+
+  /* .cfi-help {
+    font-size: 35px;
+  }
+
+  .cfi-help a {
+    font-size: 35px;
+  } */
+
+  .kc-feedback-text,
+  #input-error-username,
+  #input-error-password,
+  #kc-content .kc-feedback-text {
+    font-size: 24px !important;
+    margin-top: 6px;
+  }
+
+  #kc-content .alert,
+  #kc-content .alert-error,
+  #kc-content .pf-c-alert,
+  #kc-content .pf-c-alert__title,
+  #kc-content .kc-feedback-text span {
+    font-size: 22px !important;
+  }
+
+  .cfi-inline-message {
+    font-size: 21px !important;
+    padding: 12px 14px;
+    margin: 2px 0 14px;
+  }
+
+  .cfi-otp-item {
+    font-size: 30px;
+    padding: 10px 12px;
+  }
+
+  .cfi-otp-item input[type="radio"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cfi-totp-steps li {
+    font-size: 30px;
+  }
+
+  .cfi-totp-steps li p {
+    font-size: 40px;
+  }
+
+  .cfi-totp-apps li,
+  .cfi-totp-meta li,
+  .cfi-totp-secret {
+    font-size: 40px;
+  }
+
+  #mode-manual,
+  #mode-barcode {
+    font-size: 40px;
+  }
+
+  #kc-totp-settings-form .checkbox,
+  #kc-totp-settings-form .checkbox label {
+    font-size: 30px !important;
+  }
+}

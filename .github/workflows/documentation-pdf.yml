@@ -1,0 +1,206 @@
+# .github/workflows/documentation-pdf.yml
+name: PDF Document Finalizer (PDF) v2.2
+# added [ler] option: Limited Execution Run (just rel reversed lol)
+on:
+  push:
+    branches: [Documentation]
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Get commit info
+      id: info
+      run: |
+        echo "date=$(date +'%Y-%m-%d-%H%M')" >> $GITHUB_OUTPUT
+        echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "committer=$(git log -1 --pretty=format:'%an' | tr ' ' '-' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        commit_msg=$(git log -1 --pretty=%B | tr -d '\n' | sed 's/"/\\"/g')
+        echo "commit_msg=$commit_msg" >> $GITHUB_OUTPUT
+        
+        # Check if [rel] is in commit message
+        if echo "${{ github.event.head_commit.message }}" | grep -iq '\[rel\]'; then
+          echo "create_release=true" >> $GITHUB_OUTPUT
+        else
+          echo "create_release=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Check if [ler] is in commit message (Skip Compile/Checks)
+        if echo "${{ github.event.head_commit.message }}" | grep -iq '\[ler\]'; then
+          echo "skip_checks=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip_checks=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Compile LaTeX document
+      if: steps.info.outputs.skip_checks != 'true'
+      id: latex_compile
+      continue-on-error: true
+      uses: xu-cheng/latex-action@v3
+      with:
+        root_file: bachelor.tex
+        working_directory: docs/Thesis/CFI_Care_Thesis
+        args: -pdf -file-line-error -interaction=nonstopmode -bibtex -f
+        extra_system_packages: "py-pygments"
+        latexmk_use_lualatex: false
+        latexmk_use_xelatex: false
+    
+    - name: Verify PDF was created
+      if: steps.info.outputs.skip_checks != 'true'
+      run: |
+        if [ ! -f docs/Thesis/CFI_Care_Thesis/bachelor.pdf ]; then
+          echo "❌ Error: PDF file was not generated!"
+          exit 1
+        fi
+        echo "✅ PDF generated successfully ($(stat -c%s docs/Thesis/CFI_Care_Thesis/bachelor.pdf) bytes)"
+        ls -lh docs/Thesis/CFI_Care_Thesis/bachelor.pdf
+    
+    - name: Create ZIP archive of thesis sources
+      if: steps.info.outputs.skip_checks != 'true'
+      run: |
+        cd docs/Thesis/CFI_Care_Thesis
+        zip -r ../CFI_Care_Thesis.zip . -x "*.aux" -x "*.log" -x "*.out" -x "*.toc" -x "*.bbl" -x "*.blg" -x "*.fls" -x "*.fdb_latexmk" -x "*.synctex.gz"
+        cd ../../..
+    
+    - name: Copy latest PDF and ZIP to docs root
+      if: steps.info.outputs.skip_checks != 'true'
+      run: |
+        cp docs/Thesis/CFI_Care_Thesis/bachelor.pdf docs/CFI_Care_Thesis_Latest.pdf
+        cp docs/Thesis/CFI_Care_Thesis.zip docs/CFI_Care_Thesis_Source.zip
+    
+    - name: Commit updated PDF and ZIP to docs
+      if: steps.info.outputs.skip_checks != 'true'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add docs/CFI_Care_Thesis_Latest.pdf docs/CFI_Care_Thesis_Source.zip
+        git diff --staged --quiet || git commit -m "docs: auto-update PDF and ZIP by ${{ steps.info.outputs.committer }} [skip ci]"
+        git push
+    
+    - name: Upload PDF as artifact (always)
+      if: steps.info.outputs.skip_checks != 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: "docs-${{ steps.info.outputs.date }}-${{ steps.info.outputs.committer }}-${{ steps.info.outputs.short_sha }}"
+        path: "docs/Thesis/CFI_Care_Thesis/bachelor.pdf"
+        retention-days: 30
+    
+    - name: Create release (conditional on [rel])
+      if: steps.info.outputs.create_release == 'true' && steps.info.outputs.skip_checks != 'true'
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: "docs-${{ steps.info.outputs.date }}-${{ steps.info.outputs.committer }}-${{ steps.info.outputs.short_sha }}"
+        name: "Documentation ${{ steps.info.outputs.date }}"
+        body: |
+          📄 **Documentation PDF Release**
+          
+          **Committer:** ${{ steps.info.outputs.committer }}
+          **Commit:** ${{ github.sha }}
+          **Date:** ${{ steps.info.outputs.date }}
+          
+          **Changes:**
+          ${{ github.event.head_commit.message }}
+        draft: false
+        prerelease: true
+        files: |
+          docs/Thesis/CFI_Care_Thesis/bachelor.pdf
+          docs/Thesis/CFI_Care_Thesis.zip
+    
+    - name: Notify on success
+      if: success()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const skipChecks = '${{ steps.info.outputs.skip_checks }}' === 'true';
+          const createRelease = '${{ steps.info.outputs.create_release }}' === 'true';
+          const artifactUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+          const releaseUrl = `https://github.com/${{ github.repository }}/releases/tag/docs-${{ steps.info.outputs.date }}-${{ steps.info.outputs.committer }}-${{ steps.info.outputs.short_sha }}`;
+          
+          if (skipChecks) {
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `⏩ **Skipped compilation and checks** via \`[ler]\` tag. No PDF generated.`
+            });
+            return;
+          }
+
+          let body = `✅ **PDF compiled successfully!**\n\n`;
+          body += `📦 [Download from artifacts](${artifactUrl})\n`;
+          body += `📄 Latest version committed to \`docs/CFI_Care_Thesis_Latest.pdf\`\n`;
+          body += `📦 Source ZIP updated at \`docs/CFI_Care_Thesis_Source.zip\`\n\n`;
+          
+          if (createRelease) {
+            body += `🚀 [Release created](${releaseUrl})`;
+          } else {
+            body += `ℹ️ No release created (add \`[rel]\` to commit message to create one)`;
+          }
+          
+          github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: body
+          });
+
+  handle-failure:
+    runs-on: ubuntu-latest
+    needs: [build-pdf]
+    if: failure()
+    permissions:
+      contents: write
+      issues: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Create issue for failed build
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue = await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `❌ Documentation PDF build failed - ${context.sha.substring(0, 7)}`,
+            body: `## LaTeX Compilation Failed: HATTFADA7 NOW!...
+            
+            **Branch:** \`Documentation\`
+            **Commit:** ${context.sha}
+            **Committer:** ${{ github.event.head_commit.author.name }}
+            **Time:** ${new Date().toISOString()}
+            
+            ### Commit Message
+            \`\`\`
+            ${{ github.event.head_commit.message }}
+            \`\`\`
+            
+            ### Action Required HELPPPPPP!
+            Review and fix the LaTeX errors, then push a correction.
+            
+            **Build logs:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ---
+            💡 *This issue was automatically created. It will not prevent further pushes, but please fix the errors :(*`,
+            labels: ['documentation', 'build-failure', 'needs-fix']
+          });
+          
+          await github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: `❌ **PDF compilation failed!**\n\nIssue created: #${issue.data.number}\n\nCheck logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+          });

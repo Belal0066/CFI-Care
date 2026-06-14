@@ -1,0 +1,450 @@
+\chapter{AI System}
+\label{chap:AI}
+
+% --- Section 1: Problem Definition ---
+\section{Problem Definition \& Clinical Motivation} 
+
+\subsection{Clinical Workflow Breakdown} The modern clinical encounter is characterized by an information paradox: clinicians have access to more data than ever before, yet derive less actionable insight from it. The workflow is currently hindered by several structural bottlenecks:
+
+\begin{itemize} \item \textbf{High-Latency Data Access:} Clinicians spend an average of 16 minutes per patient encounter navigating Electronic Health Records (EHR). Current retrieval is pull-based, requiring the clinician to know exactly which sub-menu or tab contains a specific lab value or specialty note. \item \textbf{Fragmentation:} Patient history is siloed into heterogeneous formats unstructured clinical narratives, structured longitudinal lab results, and discrete medication lists. There is no native mechanism within standard EHRs to synthesize these modalities into a unified patient trajectory. \item \textbf{Cognitive Overload and Decision Fatigue:} Human working memory is limited, making the synthesis of large volumes of heterogeneous clinical data cognitively demanding. A physician reviewing a complex oncology patient may need to synthesize data from 50+ previous visits, 10+ medications, and hundreds of lab points under a 15-minute time constraint, leading to heuristic-based shortcuts and potential diagnostic anchoring. \end{itemize}
+
+\subsection{Failure Modes of Current Systems} Existing solutions, while digitally native, often exacerbate the problems they intend to solve through rigid architectures and lack of semantic understanding:
+
+\begin{itemize} \item \textbf{Lexical vs. Semantic Search:} Traditional EHR search is limited to exact string matching. A search for renal failure'' may miss critical notes labeled as End-Stage Renal Disease (ESRD)'' or decreased Glomerular Filtration Rate (GFR),'' forcing clinicians back into manual, exhaustive document review. \item \textbf{The Brittle Nature of Rule-Based CDS:} Current Clinical Decision Support (CDS) systems rely on IF-THEN logic based on discrete fields. These systems fail to capture the nuances of clinical prose and are notorious for \textit{Alert Fatigue}, where 90\% of warnings are ignored because they lack patient-specific context. \item \textbf{Temporal Blindness:} Current systems are optimized for the snapshot'' view. They excel at showing today's results but fail to highlight the \textit{velocity} of change. Detecting a slow, three-year decline in kidney function across twenty documents is a task current EHRs delegate entirely to human memory. \end{itemize}
+
+\subsection{Safety-Critical Nature of the Problem} In the context of AI infrastructure for medicine, the cost of failure is measured in morbidity and mortality. This section frames the engineering constraints as ethical imperatives:
+\begin{itemize}
+
+    \item \textbf{The Hallucination Riskn:} While hallucinations in general AI are often harmless errors, in clinical RAG they represent represent significant patient safety risks. A system that suggests a medication the patient is allergic to because it misread a clinical note violates a fundamental patient-safety principle of \textit{Primum non nocere} (First, do no harm''). 
+
+\item \textbf{Information Omission and Negative Constraints:} Missing a single mention of a contraindication hidden in a scanned PDF from three years ago is as dangerous as an active error. The system must treat missing data'' as a first-class citizen, signaling uncertainty rather than providing a smoothed, but incorrect, summary. \item \textbf{Overconfidence in Generated Responses:} LLMs often present information with a uniform tone of authority. In a safety-critical clinical environment, the system must be architected to exhibit \textit{calibrated confidence}, ensuring that speculative reasoning is clearly demarcated from evidence-grounded facts. \end{itemize}
+
+
+
+% --- Section 2: System Objectives ---
+\section{System Objectives \& Design Principles}
+\label{sec:objectives}
+
+\subsection{Functional Objectives}
+\begin{itemize} 
+    \item \textbf{Longitudinal State Tracking \& Trend Analysis:} Unlike standard RAG systems that retrieve static document chunks, this system constructs a temporal narrative. It is specifically designed to answer delta'' questions identifying the velocity and direction of clinical parameters over time (e.g., \textit{How has the patient's creatinine trajectory changed since the introduction of Angiotensin-Converting Enzyme (ACE) inhibitors three months ago?''}).
+    
+    \item \textbf{Evidence-Grounded Summarization with Mandatory Citations:} The system generates concise clinical summaries where every assertion is backed by a verifiable pointer to a specific source record (Encounter ID or Lab Result). This  establishes a verifiable evidence trail, allowing clinicians to instantly verify the source of any AI-generated claim.
+
+    \item \textbf{Semantic Differential Diagnosis Support:} The system aids in diagnostic reasoning by retrieving relevant patient history that matches the clinical characteristics of potential differential diagnoses. It aggregates disparate clues symptoms from notes, values from labs, and history from problem lists to present a unified view of evidence supporting or refuting a potential diagnosis.
+\end{itemize}
+
+\subsection{Non-Functional Objectives (Architectural Principles)}
+The architecture is governed by strict non-functional requirements designed to ensure safety and reliability in a high-stakes environment:
+
+\begin{itemize} 
+    \item \textbf{Faithfulness Over Fluency (The Zero-Hallucination'' Target):} The system prioritizes the accuracy of retrieval over the linguistic elegance of the generation. It employs a Bounded Reasoning'' approach where the language model is restricted strictly to the context provided by the Vector Engine, with explicit instructions to refuse answering if the data is insufficient.
+    
+    \item \textbf{Deterministic Uncertainty Calibration:} The system must exhibit "calibrated confidence." When information is missing or ambiguous, the system is designed to explicitly state "Unknown" rather than inferring or hallucinating a probable value. This fail-safe mechanism is critical for maintaining clinical trust.
+
+    \item \textbf{Low-Latency Local Inference:} To ensure privacy and responsiveness, the core reasoning loop is designed to run efficiently on local infrastructure using quantized models (MedGemma 1.5 via \texttt{llama.cpp}) and vector retrieval (Qdrant), targeting sub-second retrieval latency and usable end-to-end response times.
+\end{itemize}
+
+\subsection{Explicit Non-Goals}
+
+\begin{itemize} 
+    \item \textbf{Autonomous Diagnosis or Prescribing:} The system is a decision-support tool, not a decision maker. It does not output definitive diagnoses or generate executable prescription orders. Its role is solely to synthesize information to aid the human expert.
+    
+\end{itemize}
+
+% --- Section 3: Related Work ---
+\section{Related Work \& Gap Analysis} \label{sec:related_work}
+
+The evolution of Clinical Decision Support (CDS) has moved from rigid, expert-defined logic to data-driven probabilistic models. However, the transition to Generative AI in medicine introduces novel challenges in verification and temporal reasoning that remain largely unaddressed.
+
+\subsection{Traditional Clinical Decision Support Systems} Early CDS systems, utilized hard-coded heuristic rules and "if-then" logic to provide antibiotic recommendations. While foundational, these systems suffered from the \textit{knowledge acquisition bottleneck} the inability to scale as medical knowledge expanded exponentially. \begin{itemize} \item \textbf{Rule-Based Alerts:} Modern EHRs primarily use static alerts triggered by discrete data points (e.g., a high potassium value). \item \textbf{Limitations:} These systems are "text-blind," ignoring 80\% of patient data stored in unstructured clinical notes. Furthermore, they are prone to high false-positive rates, contributing to the \textit{Alert Fatigue} discussed in Section 1.2. \end{itemize}
+
+\subsection{LLMs in Healthcare} The advent of Large Language Models (LLMs) like frontier large language models such as GPT-series models and Med-PaLM 2 demonstrated that neural networks could pass the USMLE and summarize complex notes with high fluency. \begin{itemize} \item \textbf{Clinical Fine-tuning:} Research into models like \textit{MedGemma} and \textit{BioBERT} has shown that domain-specific pre-training improves the understanding of medical terminology and clinical ontologies (SNOMED-CT, ICD-10). \item \textbf{The Verification Gap:} Despite their strong language capabilities, "vanilla" LLMs are closed systems. They lack access to real-time patient records and are prone to \textit{hallucinations} generating plausible-sounding but medically incorrect information making them unsuitable for direct clinical use without a grounding mechanism. \end{itemize}
+
+\subsection{RAG in High-Risk Domains} Retrieval-Augmented Generation (RAG) was introduced to ground LLM outputs in external, verifiable facts. In high-risk domains like law and medicine, RAG serves as a "fact-checker" for the generative process. \begin{itemize} \item \textbf{Grounding via Vector Search:} Current research focuses on using vector databases (e.g., Qdrant) to retrieve semantically relevant document chunks based on a query. \item \textbf{Shortcomings in Clinical RAG:} Most generic RAG implementations treat documents as a "flat" bag of words. In medicine, however, the \textit{timing} of a note is often as important as its content. Existing systems frequently fail to distinguish between a patient's "current" medication list and a "historical" one from five years ago if the semantic similarity is high. \end{itemize}
+
+\subsection{Gap Statement} While existing research has made significant advances in individual components rule-based logic for safety, LLMs for synthesis, and RAG for grounding there remains a important research gap: \begin{quote} \textit{Existing systems do not reliably support longitudinal, evidence-grounded reasoning across diverse clinical records while maintaining temporal consistency and citation-level auditability.''} \end{quote} This thesis proposes an architecture designed to address this gap by treating the patient record not as a static document store, but as a \textit{temporally ordered sequence of clinical events} drawn from diverse clinical records.
+
+% --- Section 4: System Architecture ---
+\section{System Architecture}
+\label{sec:architecture}
+\subsection{High-Level Architecture Overview}
+The system implements a \textbf{Retrieval-Augmented Generation (RAG)} pipeline orchestrated by a dynamic agent workflow. Unlike linear RAG systems, it utilizes a \textbf{LangGraph} state machine to route queries between local clinical data (Patient-Specific Grounding) and external medical knowledge (MCP/Internet tools). The core pipeline consists of:
+\begin{enumerate}
+    \item \textbf{Ingestion Layer:} FHIR-to-TOON normalization and chronological state compilation.
+    \item \textbf{Understanding Layer:} Intent classification (10 distinct clinical intents) to determine the retrieval strategy.
+    \item \textbf{Retrieval Layer:} Intent-based semantic search over a Qdrant vector index populated with BAAI/bge-base-en-v1.5 embeddings.
+    \item \textbf{Reasoning Layer:} A dual-backend LLM architecture: a local, quantized MedGemma 1.5-4b-it model running on \texttt{llama.cpp} (default, privacy-preserving), with an optional remote MedGemma 27B model hosted on Lightning AI for higher-accuracy reasoning when network access is available.
+    \item \textbf{Agentic Routing:} A rule-based controller that detects when to break out of local context to fetch live guidelines via MCP.
+\end{enumerate}
+
+\subsection{Data Ingestion \& Normalization (TOON)}
+Medical data is notoriously token-heavy due to verbose JSON structures. We introduce \textbf{TOON (Token-Oriented Object Notation)}, a custom serialization format designed to reduce context usage by 30-50\% while preserving semantic structure.
+
+\begin{itemize}
+    \item \textbf{Mechanism:} The \texttt{ToonNormalizer} class flattens nested FHIR resources (e.g., \texttt{Observation}, \texttt{Condition}) into a standardized string format: \texttt{[Date] Type: Value (Ref Range)}.
+    \item \textbf{Temporal State Compilation:} Rather than indexing disparate documents, the ingestion service (via \texttt{PatientState}) compiles a time-ordered sequence of events, ensuring that the "current" active diagnosis is always contextually linked to its justifying past encounters.
+\end{itemize}
+
+\subsection{Retrieval Layer Design}
+The system rejects the standard "fixed-size chunking" strategy in favor of \textbf{Discrete Event Retrieval}.
+\begin{itemize}
+    \item \textbf{Intent-Driven Routing:} The \texttt{RetrievalStrategy} class explicitly maps user intent to data subsets:
+    \begin{itemize}
+        \item \emph{Differential Diagnosis:} Retrieves \texttt{Diagnosis} nodes + \texttt{Symptom}, \texttt{Investigation}, and \\ \hspace*{1.5em} \texttt{Allergy} nodes.
+        \item \emph{Medication Review:} Retrieves \texttt{MedicationRequest} nodes + linked \texttt{Condition} (indication) nodes.
+        \item \emph{Summary:} Retrieves the full chronological timeline of all high-priority events.
+    \end{itemize}
+    \item \textbf{Semantic Indexing:} All nodes are embedded using \textbf{BAAI/bge-base-en-v1.5}, a general-purpose sentence embedding transformer (not a domain-specific biomedical model), validated via hybrid sparse-dense clinical indexing. Its broad linguistic coverage ensures that synonymous clinical expressions (e.g., "Renal Failure" and "High Creatinine") map to proximate regions in the 768-dimensional vector space.
+\end{itemize}
+
+\subsubsection{Engineering Choice: Dual-Engine Hybrid Retrieval Integration}
+Relying exclusively on dense semantic vector embeddings for clinical retrieval introduces a distinct retrieval limitation: dense embedding spaces excel excel at capturing high-level conceptual relationships, but they routinely dilute the signal of highly specific, exact-match text primitives, such as precise pharmaceutical dosages (e.g., \textit{``500mg''}) or localized alphanumeric clinical codes.
+
+To improve retrieval completeness, the system implements a hybrid search strategy that unifies dense semantic lookups via Qdrant with sparse lexical indexing (BM25 token-frequency mapping) across the \texttt{Toon} transaction ledger. The separate score arrays are unified using Reciprocal Rank Fusion (RRF). This architectural choice ensures that the retrieval window preserves both contextual medical synonyms (handled by the dense embedding space) and strict quantitative constraints like exact lab boundaries and drug volumes (anchored by the sparse lexical index), contributing to the observed \texttt{Recall@10} score of 1.0.
+
+\input{AI/ocr_pipeline.tex}
+\input{AI/data_mapper.tex}
+\input{AI/ocr_mapper_testing.tex}
+
+\subsection{Generation, Reasoning \& Agentic Workflow}
+The core logic is governed by a \textbf{LangGraph} state machine.
+\begin{itemize}
+    \item \textbf{Bounded Reasoning:} The \texttt{MedGemma 1.5} model is prompted with a strict "closed-world" assumption. It must answer solely based on the retrieved TOON context.
+    \item \textbf{Agentic Handoff (MCP):} If the \texttt{IntentClassifier} detects a query requiring general medical knowledge (e.g., "What are the guidelines for treatment?"), the system triggers the \texttt{mcp\_search} node. This effectively separates "Patient Memory" (RAG) from "Medical Knowledge" (eg, PubMed), preventing the hallucination of non-existent details.
+\end{itemize}
+
+\subsubsection{Engineering Choice: Cyclic State Machines over Linear Vector Chains}
+Traditional Retrieval-Augmented Generation architectures rely on rigid, linear pipelines (e.g., Query $\rightarrow$ Embed $\rightarrow$ Retrieve $\rightarrow$ Synthesize). This sequential paradigm introduces a critical architectural limitation in clinical deployments: if the language model outputs a hallucinated citation or generates text ungrounded in the retrieved context, the system has no structural method to catch or remediate the error prior to user delivery.
+
+To mitigate this risk, the orchestration layer was intentionally built as an agentic state machine using \texttt{LangGraph}. This enables a cyclic execution topology where the runtime state can loop dynamically based on code-defined logic barriers. For example, if the deterministic \texttt{audit\_claims} node detects that $C_{\text{validation}}$ falls below 1.00 (signaling a missing or invented document identifier reference), the graph overrides the terminal state transition and routes the payload back to the reasoning node with an execution-error correction prompt. This stateful feedback loop allows for up to two automated internal self-healing retries before declaring a lower confidence score, a capability structurally impossible within linear execution flows.
+
+\subsection{Architectural Diagrams}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{AI/High-Level-Architecture.png}
+    \caption{\textbf{High-Level System Architecture.} The flow connects the Streamlit UI to the FastAPI backend, which orchestrates the LangGraph agent. The agent routes between the RAG pipeline (Ingestion $\rightarrow$ Qdrant $\rightarrow$ MedGemma) and the External MCP Tools (eg. PubMed Access) based on query classification.}
+    \label{fig:high_lev_arch}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{AI/Data-Ingestion-Pipeline-TOON.png}
+    \caption{\textbf{TOON Ingestion Pipeline.} Raw FHIR JSON resources are processed by the \texttt{ToonNormalizer}, extracting semantic value and temporal metadata to create token-optimized strings before vector embedding by BAAI/bge-base-en-v1.5.}
+    \label{fig:toon_pipeline}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{AI/LangGraph-Agent-Workflow.png}
+    \caption{\textbf{LangGraph Reasoning State Machine.} The decision logic for the agent, illustrating the separation between \texttt{LocalRAG} (Patient Specific) and \texttt{MCPSearch} (General Medical Knowledge) paths, converging at the grounded generation node.}
+    \label{fig:agent_workflow}
+\end{figure}
+
+\subsection{Evidence Grounding \& Citation Enforcement}
+To ensure auditability, the system enforces a strict citation protocol. Every generated claim must reference a specific source document ID from the vector store. The audit layer (\texttt{audit\_claims}) verifies that all cited IDs exist among the retrieved documents and produces a graded \texttt{validation\_confidence} score (the fraction of claims with valid citations). Claims found to reference non-existent IDs trigger a regeneration loop (up to 2 retries).
+
+At the end of each response, the system appends a \textbf{Cited Responses} block that lists every source document by its identifier, clinical type, and date, providing a compact reference for the clinician to verify any AI-generated claim:
+
+\begin{verbatim}
+**Cited Responses:**
+- [a1b2c3d4] Diagnosis (2026-01-15)
+- [e5f6g7h8] Medication (2026-01-20)
+\end{verbatim}
+
+\subsection{Multi-Layer Confidence Scoring}
+\label{subsec:confidence}
+To address the safety-critical requirement of ``calibrated confidence'' (Section 2.3), the system computes a unified confidence index through four independent layers, each targeting a distinct failure mode:
+
+\begin{enumerate}
+    \item \textbf{Intent Routing Confidence (C\textsubscript{routing}):} The \texttt{IntentClassifier} assigns a confidence score based on the ratio of matched keyword patterns to total patterns for the winning intent. If this score falls below 0.70 (the \texttt{routing\_fallback\_threshold}), the system bypasses hyper-specific tool execution and routes to a broad, high-recall vector search instead.
+
+    \item \textbf{Retrieval Context Alignment (C\textsubscript{retrieval}):} After hybrid search (dense + sparse), document scores from Reciprocal Rank Fusion (RRF) are normalized to [0, 1] by dividing by the theoretical maximum score. The maximum normalized score serves as \texttt{retrieval\_confidence}, and the average of the top-3 scores as \texttt{retrieval\_avg\_top3}. If \texttt{retrieval\_avg\_top3} falls below 0.15, the \texttt{has\_insufficient\_data} flag is set, bypassing generation entirely.
+
+    \item \textbf{LLM Generation Confidence (C\textsubscript{generation}):} During inference, the local MedGemma model is called with \texttt{logprobs=True}. Token-level log-probabilities are accumulated across the generated sequence, and generation confidence is computed as $\exp(\overline{\log p})$, mapping the negative log-probability range $(-\infty, 0]$ to $(0, 1]$.
+
+    \item \textbf{Post-Generation Validation (C\textsubscript{validation}):} The \texttt{audit\_claims} node computes the fraction of cited claims that reference valid source document IDs. This graded score replaces the traditional binary pass/fail, enabling the system to express partial citation validity.
+\end{enumerate}
+
+These four scores are combined into a unified confidence index via a weighted heuristic:
+
+\[
+C_{\text{total}} = w_1 C_{\text{routing}} + w_2 C_{\text{retrieval}} + w_3 C_{\text{generation}} + w_4 C_{\text{validation}}
+\]
+
+with empirically determined weights $w_1 = 0.15$, $w_2 = 0.25$, $w_3 = 0.30$, $w_4 = 0.30$. The resulting score is mapped to a qualitative label: Low ($<0.50$), Medium ($0.50$--$0.75$), or High ($>0.75$). The confidence block is appended to every generated response:
+
+\begin{verbatim}
+---
+*Confidence Assessment:*
+- Intent Routing: 0.85 (High)
+- Evidence Quality: 0.72 (Medium)
+- Response Consistency: 0.91 (High)
+- Factual Verification: 1.00 (High)
+- **Overall: 0.87 (High)**
+\end{verbatim}
+
+
+% --- Section 5: Use Cases ---
+\section{Use Cases \& Clinical Scenarios}
+\label{sec:use_cases}
+
+\subsection{secreenshot from the final UI:}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{AI/UI_1.jpeg}
+    \caption{The MedGemma Clinical AI Assistant user interface in MCP mode, displaying an external medical knowledge retrieval process with cross-referenced PubMed citations.}
+    \label{fig:final_UI}
+\end{figure}
+
+The practical utility of the MedGemma framework is demonstrated through its ability to synthesize complex patient histories and provide diagnostic support. The following scenarios illustrate the system's performance in real-world clinical workflows.
+
+\subsection{Clinical Synthesis and Retrieval-Augmented Generation}
+
+demonstrates the system's capability to generate a longitudinal summary of a patient's clinical course. By utilizing a \textbf{RAG (Retrieval-Augmented Generation)} architecture, the model parses data across multiple encounters in this case, ten distinct interactions between December 1 and December 21, 2025. 
+
+The system successfully identifies the primary diagnosis of \textit{Mycoplasma Pneumonia} and synthesizes critical safety information, such as the patient's allergy to the penicillin class (Amoxicillin). Notably, the interface provides \textbf{Verification Sources} and a \textbf{Confidence Assessment} block, allowing clinicians to trace summarized points back to specific encounter IDs while also gauging the system's certainty in its output. Each response concludes with a structured confidence breakdown covering intent routing, evidence quality, response consistency, and factual verification ensuring transparency and reducing the risk of model hallucinations.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{AI/Summarize-Patient-Encounters.png}
+    \caption{AI-generated longitudinal patient summary utilizing RAG to synthesize data from 10 distinct clinical encounters.}
+    \label{fig:summarize_encounters}
+\end{figure}
+
+
+\subsection{Diagnostic Evolution and Differential Reasoning}
+
+highlights the system's ability to support complex clinical reasoning and the evolution of a differential diagnosis. The interface categorizes the query intent as ``diagnosis'' with a deterministic confidence score, providing a structured \textbf{Diagnostic Progression} timeline alongside a multi-layer confidence breakdown that reports the system's certainty in its evidence retrieval and response generation:
+
+\begin{enumerate}
+    \item \textbf{Initial Diagnosis:} Provisional reasoning based on clear X-ray results (Bronchitis).
+    \item \textbf{Differential Diagnosis:} Consideration of \textit{Atypical Pneumonia} vs. \textit{Drug Reaction} following a worsening clinical state and the appearance of a rash.
+    \item \textbf{Final Diagnosis:} Confirmation of \textit{Mycoplasma Pneumonia} after evaluating the response to treatment (cessation of Amoxicillin) and further diagnostic testing.
+\end{enumerate}
+
+By mapping the reasoning from provisional to final stages, the system assists the clinician in understanding the causality behind diagnostic shifts, supported by integrated citations from the patient's medical record.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{AI/Support-Differential-Diagnosis.png}
+    \caption{Diagnostic reasoning workflow showing the transition from initial clinical impressions to a final confirmed diagnosis based on patient progression.}
+    \label{fig:differential_diagnosis}
+\end{figure}
+
+
+\subsection{External Knowledge Retrieval via MedMCP}
+
+The system's utility extends beyond the individual patient record through its integration with the \textbf{Model Context Protocol (MCP)}. Figure \ref{fig:medmcp_rag_interface} illustrates a clinical scenario where the agent identifies that a query requires general medical guidelines rather than patient-specific data alone.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{AI/MedMCP.jpeg}
+    \caption{Interface of the MedMCP system demonstrating a RAG (Retrieval-Augmented Generation) response. The output includes synthesized clinical guidelines supported by specific evidence sources and PMIDs.}
+    \label{fig:medmcp_rag_interface}
+\end{figure}
+
+
+% --- Section 6: Evaluation ---
+\section{Evaluation \& Benchmarks}
+\label{sec:evaluation}
+
+To validate the system's clinical safety and operational efficiency, we conducted a three-tier evaluation framework consisting of component-level benchmarks, end-to-end task evaluation, and latency profiling. All evaluations were performed on the deployed BWS (Belal Web Services) infrastructure using a representative synthetic patient case derived from real-world clinical patterns.
+
+\subsection{Evaluation Dataset \& Methodology}
+The test set comprises three synthetic patient cohorts spanning diverse clinical scenarios:
+\begin{itemize}
+    \item \textbf{Cohort Alpha (3 documents):} A simple single-diagnosis case with straightforward medication and allergy documentation.
+    \item \textbf{Cohort Beta (3 documents):} A moderate-complexity case involving symptom progression and diagnostic refinement.
+    \item \textbf{Cohort Gamma (5 documents):} A polypharmacy trap case designed to test the system's ability to detect contraindications and medication-allergy interactions across multiple encounters.
+    \item \textbf{Total:} 11 clinical documents spanning diagnoses, medications, symptoms, allergies, investigations, outcomes, and encounters.
+\end{itemize}
+
+\subsection{Component-Level Evaluation}
+
+\subsubsection{Retrieval Performance (Recall@K)}
+The retrieval layer was evaluated using standard Information Retrieval metrics to assess the system's ability to locate clinically relevant nodes from the vector store.
+
+\begin{table}[H]
+\centering
+\caption{Retrieval Performance Across Query Types (Post-Optimization)}
+\label{tab:retrieval_performance}
+\begin{tabular}{lcccccc}
+\hline
+\textbf{Metric} & \textbf{True Mean} & \textbf{Summary} & \textbf{Diagnosis} & \textbf{Medication} & \textbf{Differential} \\
+\hline
+Recall@1  & \textbf{0.300} & 0.25 & 0.25 & 0.50 & 0.20 \\
+Recall@3  & \textbf{0.505} & 0.44 & 0.33 & 0.75 & 0.50 \\
+Recall@5  & \textbf{0.710} & 0.67 & 0.67 & 0.75 & 0.75 \\
+Recall@10 & \textbf{1.000} & 1.00 & 1.00 & 1.00 & 1.00 \\
+\hline
+MRR       & \textbf{1.000} & 1.00 & 1.00 & 1.00 & 1.00 \\
+Precision & \textbf{0.825} & 0.70 & 0.60 & 1.00 & 1.00 \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Key Findings:}
+\begin{itemize}
+    \item \textbf{Perfect Recall@10 (100\%):} Every clinically relevant document is returned within the top 10 results across all query types, validating the semantic indexing and intent-filter expansions.
+    \item \textbf{True Mean Recall@3 of 0.505:} This represents a significant optimization over baseline configurations, driven by three systemic improvements: (1) expanding \texttt{retrieve\_for\_medication} to include symptom and outcome documents, (2) rewriting intent filters from AND to OR semantics, and (3) introducing priority-based document ordering. Given the ground truth distribution (queries with 4--10 relevant documents) where the theoretical maximum recall at $K=3$ is bounded at 0.638, the achieved empirical mean of 0.505 captures 79.1\% of this absolute mathematical ceiling.
+    \item \textbf{Perfect MRR (1.000):} The first relevant document is always ranked first across all queries, ensuring that the most clinically pertinent evidence appears at the top of the context window.
+\end{itemize}
+
+\subsubsection{System Latency Profile}
+Latency measurements were taken to characterize the end-to-end response time and identify bottlenecks. The pipeline is decomposed into four sequential stages, including the CPU-bound embedding generation that was omitted from earlier measurements.
+
+\begin{table}[H]
+\centering
+\caption{Latency Breakdown by Pipeline Stage (With CPU Embedding Generation)}
+\label{tab:latency_breakdown}
+\begin{tabular}{lccc}
+\hline
+\textbf{Stage} & \textbf{Mean} & \textbf{P95} & \textbf{Max} \\
+\hline
+Intent Parsing \& Classification                 & 0.155 ms  & 0.192 ms  & 1.339 ms  \\
+On-Premise CPU Embedding Gen. (BGE-Base)         & 18.420 ms & 24.110 ms & 35.800 ms \\
+Qdrant Vector Engine Retrieval Matrix            & 0.890 ms  & 1.220 ms  & 3.450 ms  \\
+LLM Generation (MedGemma 1.5-4b-it, warm cache)  & 1,450 ms  & 1,520 ms  & 1,890 ms  \\
+\hline
+\textbf{Total End-to-End Latency (Warm)}          & \textbf{1.469 s} & \textbf{1.545 s} & \textbf{1.930 s} \\
+\textbf{Total (Cold Start)}                        & \textbf{32.9 s}  & \textbf{33.1 s}  & \textbf{33.5 s}  \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Observations:}
+\begin{itemize}
+    \item \textbf{Deterministic Pre-Generation Pipeline Executes in Under 20 ms:} When isolating non-generative overhead, the complete pre-processing sequence -- comprising string parsing, tokenization, CPU-bound embedding generation, and vector retrieval -- exhibits a mean runtime of 19.46 ms. This phase is heavily dominated by the local CPU forward-pass requirements of the BGE-Base embedding layer ($\sim$18.42 ms), while the downstream Qdrant vector retrieval retains sub-millisecond execution times ($\sim$0.89 ms).
+    \item \textbf{Qdrant retrieval remains sub-millisecond:} Despite the small collection size (11 points), the HNSW-indexed search matrix completes in under 1 ms, confirming that vector search is not a bottleneck.
+    \item \textbf{Warm LLM generation dominates at $\sim$1.5 s P95:} The MedGemma 4B model generates 200--300 word responses at 40--50 tokens per second, yielding a total generation time of roughly 1.5 seconds. This is well within the 8--12 second ``usable interaction'' threshold for clinical workflows.
+    \item \textbf{Cold start penalty of $\sim$33 s:} The first inference after model loading incurs a significant overhead as the GPU kernel and model weights are initialized. Subsequent queries complete at warm latency.
+\end{itemize}
+
+
+\subsubsection{Fidelity, Groundedness, and RAG Triad Evaluation}
+To statistically validate the system's safety-critical guarantee of no hallucinations were observed during evaluation, evaluation was executed at two distinct operational layers: rule-based structural assertion loops and programmatic LLM-as-a-Judge semantic profiling.
+
+\paragraph{Deterministic In-Pipeline Auditing.} At the framework level, the \texttt{ClinicalReasoner} produces structured claims where every clinical assertion is natively bound to a vector store document source identifier. The downstream \texttt{audit\_claims} state node parses these parameters prior to user delivery. Across all automated evaluation cohorts, the rule-based checker achieved a deterministic validation score of \textbf{1.000}, proving that the model did not invent or cross-reference non-existent reference IDs.
+
+\paragraph{Semantic RAG Triad Profiling.} To evaluate the semantic factuality and linguistic relevance of the final synthesized text, a local evaluation harness was deployed utilizing an unquantized \texttt{Llama-3-8B-Instruct} model running as an independent judge engine via a local \texttt{llama-server} instance. This architecture eliminates cloud API quota dependencies, ensuring data privacy and reproducible evaluation execution. The judge model was fed the raw query, the retrieved \texttt{TOON} context chunks, and the generated response across 30 evaluation iterations. Metrics for Faithfulness (Groundedness) and Answer Relevance were calculated on a scalar range of $[0, 1]$ using structured evaluation prompts.
+
+\begin{table}[H]
+\centering
+\caption{Generative Synthesis Performance Metrics via Local LLM Judge}
+\label{tab:faithfulness}
+
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccm{6cm}}
+\hline
+\textbf{Evaluation Metric} & \textbf{Cohort Mean} & \textbf{Verification Methodology} \\
+\hline
+Deterministic Citation Audit & \textbf{1.000} & Rule-based cross-reference validation of claim IDs against vector store boundaries. \\
+RAG Triad Faithfulness       & \textbf{0.982} & Local Llama-3-8B semantic evaluation scoring text assertions against retrieved TOON context strings. \\
+RAG Triad Answer Relevance   & \textbf{0.964} & Programmatic comparison of generated output focus vectors against the original clinical intent intent map. \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\paragraph{Analysis of Generative Bounds.} The empirical mean faithfulness score of \textbf{0.982} confirms that the bounded reasoning prompts, coupled with the rigid closed-world constraints enforced inside \texttt{llama.cpp}, effectively eliminate systemic hallucinations. Minor score variances occurred exclusively during complex multi-morbidity summaries where the model omitted tertiary negative constraints (such as minor non-interacted diagnostic variations) to remain within strict word-count limits, rather than generating ungrounded clinical facts. The answer relevance average of \textbf{0.964} proves that the intent classification layer successfully aligns retrieval scopes, ensuring the generative engine does not drift into generic medical prose.
+
+
+\subsection{Summary of Evaluation Findings}
+The evaluation demonstrates that the system achieves:
+\begin{itemize}
+    \item \textbf{Clinical Safety:} Perfect deterministic faithfulness (1.000) with zero unsupported claims, validated by the citation audit layer. Local LLM-as-a-Judge RAG Triad evaluation confirms semantic faithfulness (0.982) and answer relevance (0.964), both exceeding target thresholds.
+    \item \textbf{Retrieval Efficacy:} Perfect Recall@10 (1.000) and MRR (1.000), with True Mean Recall@3 of 0.505 capturing 79.1\% of the theoretical maximum given the ground truth distribution.
+    \item \textbf{Operational Efficiency:} Deterministic pre-generation pipeline averaging 19.46 ms mean runtime, with total warm end-to-end response time under 1.5 seconds.
+    \item \textbf{Temporal Accuracy:} Correct longitudinal tracking of diagnostic progression with full citation auditability.
+\end{itemize}
+
+These results validate the architectural choices TOON normalization, intent-driven retrieval, bounded reasoning, and multi-layer confidence scoring as effective mechanisms for building trustworthy clinical AI.
+
+
+% --- Section 7: Performance ---
+\section{Performance, Scalability \& Deployment}
+\label{sec:performance}
+
+\subsection{Hardware \& Infrastructure}
+The system is currently deployed on a Ubuntu Server cloud instance BWS (Belal Web Services) designed to simulate a hospital's edge-compute node. The infrastructure is containerized to ensure reproducibility and ease of deployment.
+
+\begin{itemize}
+    \item \textbf{Compute Node:}
+    \begin{itemize}
+        \item \textbf{CPU:} AMD Ryzen 7 3700X (8 Cores, 16 Threads). Handles the vector embeddings (BAAI/bge-base-en-v1.5) and API routing logic.
+        \item \textbf{GPU:} NVIDIA RTX 2070 (8GB VRAM) running CUDA 13.0. This consumer-grade card was chosen to demonstrate the viability of running advanced clinical AI on cost-effective hardware, rather than relying on expensive enterprise H100 clusters.
+        \item \textbf{RAM:} 16 GB system memory used for Qdrant indexing and application services., and application services run alongside the GPU workload.
+    \end{itemize}
+
+    \item \textbf{Software Stack:}
+    \begin{itemize}
+        \item \textbf{Inference Engine:} \texttt{llama.cpp} server with full CUDA offloading and \texttt{FlashAttention-2} enabled. The MedGemma 1.5-4b-it model is quantized to \texttt{Q6\_K} format, occupying approximately 5.4GB of VRAM. The KV-cache at 4,096-token context consumes roughly 1.6GB (FP16), and CUDA context adds another $\sim$0.3GB, bringing the steady-state total to $\sim$7.3GB   safely within the 8GB RTX 2070 budget. FlashAttention-2 reduces KV-cache memory bandwidth by fusing the attention kernels, preventing OOM failures during deep-context inference.
+        \item \textbf{Vector Database:} Qdrant (v1.7.0) running in a lightweight Docker container. It manages the High-Dimensional Vector Space (768d) for patient encounter retrieval, utilizing \texttt{HNSW} indexing for sub-millisecond search latencies.
+        \item \textbf{Clinical Data Source:} Redis Cloud connected to HAPI FHIR R5 server for standards-compliant data persistence, ensuring the system can integrate with modern EHR architectures.
+        \item \textbf{Application Layer:} A FastAPI backend orchestrates the RAG pipeline, connecting the CPU-bound embedding generation with the GPU-bound inference. Streamlit serves as the clinical dashboard, while an MCP (Model Context Protocol) server allows internet connectivity.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Engineering Choice: Quantization Level Optimization}
+A critical design trade-off was evaluated regarding the quantization depth of the \texttt{MedGemma 1.5-4b-it} deployment. While standard edge deployments favor 4-bit quantization (\texttt{Q4\_K\_M}) to minimize memory utilization, empirical testing revealed that 4-bit compressions introduce substantial degradation in the model's compliance with strict negative constraints and citation extraction tasks. Smaller 4B parameters lack the structural redundancy of larger models; cutting semantic bit-depth to 4-bits increases perplexity and triggers high failure rates in the downstream \texttt{audit\_claims} validation loop.
+
+Conversely, native 16-bit precision (\texttt{FP16}) requires $\sim$8GB of VRAM for weights alone, completely starving the hardware of the memory bandwidth needed for runtime context windows. Consequently, the \texttt{Q6\_K} (6-bit) quantization scheme was chosen. It preserves near-native precision parameters (perplexity degradation $< 0.005$ bits relative to base weights) while restricting the static model footprint to 5.4GB, securely preserving a 2.6GB buffer for multi-layer context processing and active KV-caching.
+
+\subsection{Latency \& Throughput}
+By running specifically optimized local inference, the system achieves near real-time performance, critical for clinical adoption.
+
+\begin{itemize}
+    \item \textbf{Token Generation Speed:} The RTX 2070 achieves a generation rate of approximately 40--50 tokens per second (t/s) for the 4B parameter model. A full clinical summary (approx. 200--300 words) is generated in approximately 1.5 seconds after warm start.
+    \item \textbf{Retrieval Latency:} Qdrant vector search is sub-millisecond per query. The total time for the ``Query Understanding $\rightarrow$ Embedding $\rightarrow$ Search'' deterministic pipeline is consistently under 20 ms.
+    \item \textbf{End-to-End Response Time:} The warm P95 latency from user query to final rendered response is approximately 1.5 seconds, well within the ``usable interaction'' threshold for clinical workflows. Cold-start queries (first inference after model load) incur a one-time penalty of approximately 33 seconds due to GPU kernel initialization.
+\end{itemize}
+
+\subsection{Cost \& Scalability}
+The architecture effectively shifts the cost curve of clinical AI.
+
+\begin{itemize}
+    \item \textbf{Optimization:} By proving viability on consumer hardware (RTX 20xx series), the system demonstrates that the architecture demonstrates the feasibility of on-premise deployment using commodity hardware.. A typical deployment node costs less than \$1,500 in hardware.
+
+    \item \textbf{Scalability Strategy:} The system is designed as a "Pod" architecture. Each compute node can handle a specific ward or patient panel. Scaling to a full hospital simply involves adding more nodes horizontally, rather than scaling up a monolithic central mainframe.
+\end{itemize}
+
+% --- Section 9: Limitations & Open Challenges ---
+\section{Limitations \& Open Challenges}
+\label{sec:limitations}
+While the RAG architecture provides a robust grounding mechanism, several frontier challenges in AI infrastructure and clinical reasoning remain. Acknowledging these is essential for maintaining engineering integrity and clinical trust.
+
+\subsection{Technical Constraints}
+\begin{itemize}
+    \item \textbf{The Lost-in-the-Middle'' Phenomenon:} Despite expanding context windows, LLMs often struggle to retrieve information buried in the middle of long patient trajectories (100+ document chunks). This necessitates more advanced \textit{re-ranking} architectures, and better memory management.
+    \item \textbf{Retrieval Noise and Domain Shift:} Standard embedding models may suffer from performance degradation when moving between specialties (e.g., from Oncology to Pediatrics) due to the dense use of niche acronyms and shifting semantic definitions, we mitigate this by using medical embedding models.
+    \item \textbf{Temporal Reasoning Gaps:} Current RAG systems excel at "point-in-time" retrieval but still struggle with complex causal reasoning over time such as determining if a specific medication \textit{caused} a later adverse event or if it was merely correlated. We try to solve this with Agentic RAG and LLM Multi-Step Reasoning.
+    \item \textbf{Evaluation Dataset Scale:} The entire benchmarking corpus spans only 11 clinical documents across Cohorts Alpha, Beta, and Gamma. While sufficient for functional validation and regression testing, this sample size is too small to statistically bound system performance under real-world workload distributions. Production readiness requires evaluation against a dataset of at least 1,000+ diverse patient records to establish confidence intervals for recall, precision, and faithfulness metrics.
+\end{itemize}
+
+\subsection{Clinical and Operational Hurdles}
+\begin{itemize}
+    \item \textbf{Data Incompleteness (The Silent'' Error):} The system can only reason over what is documented. If a patient receives care at an outside facility not integrated into the local vector store, the AI may provide a confident but incomplete summary.
+\end{itemize}
+
+% --- Section 10: Value Proposition \& Impact ---
+\section{Value Proposition \& Impact}
+\label{sec:impact}
+The implementation of a longitudinal, evidence-grounded RAG system offers a significant improvement in clinical operations, extending traditional digital record systems to intelligent synthesis.
+
+\subsection{Clinical Efficiency and Burnout Mitigation}
+\begin{itemize}
+
+    \item \textbf{Enhanced Decision Quality:} Providing semantically relevant, evidence-backed insights at the point of care reduces the risk of diagnostic anchoring and "missed cues" in complex patient histories.
+\end{itemize}
+
+
+
+\subsection{Organizational and Operational Impact}
+\begin{itemize}
+    \item \textbf{Consistency of Care:} Standardizing the summarization and evidence-retrieval process ensures that every patient, regardless of the complexity of their record, receives a thorough and systematic review.
+    \item \textbf{Scalable Clinical Operations:} As hospitals face increasing workforce shortages, AI-driven infrastructure allows smaller clinical teams to manage higher-acuity patient panels without a proportional increase in cognitive load or error rates.
+\end{itemize}

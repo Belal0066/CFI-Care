@@ -1,0 +1,62 @@
+
+graph LR
+    subgraph Edge["Edge Clients"]
+        Browser["Browser<br/>"]
+        MobileApp["Mobile App<br/>"]
+    end
+    
+    subgraph Gateway["API Gateway"]
+        nginx["nginx<br/>----------------------<br/>TLS termination<br/>HTTPS redirect<br/>Proxy routing<br/>"]
+        O2P["oauth2-proxy<br/>----------------------<br/>Browser OIDC session<br/>Cookie handling<br/>"]
+    end
+    
+    subgraph BFF["Backend-for-Frontend"]
+        NodeJS["NodeJS (BFF)<br/>----------------------<br/>Session mgmt<br/>Rate limiting<br/>JWT validation<br/>Scope enforcement<br/>"]
+    end
+    
+    %% subgraph Identity["Identity & Storage<br/>"]
+    %%     Keycloak["Keycloak<br/>----------------------<br/>OAuth/OIDC<br/>RBAC<br/>"]
+    %%     Listener["KC Event Listener<br/>----------------------<br/>Provisioning call<br/>"]
+    %%     Postgres["Postgres<br/>----------------------<br/>Credentails Storage<br/>"]
+    %%     Redis["Sessions Redis<br/>----------------------<br/>Sessions<br/>"]
+    %%     RedisAudit["Auditing Redis<br/>----------------------<br/>Audit<br/>"]
+    %% end
+
+     subgraph Identity["Identity"]
+        %% direction TB
+        Keycloak["Keycloak<br/>----------------------<br/>OAuth/OIDC<br/>RBAC<br/>"]
+        Listener["Registration Event Listener<br/>----------------------<br/>Provisioning call<br/>"]
+    end
+
+    subgraph Storage["Storage"]
+        %% direction TB
+        Postgres["Postgres<br/>----------------------<br/>Credentials storage<br/>"]
+        Redis["Sessions Redis<br/>----------------------<br/>Sessions tracking<br/>"]
+        RedisAudit["Auditing Redis<br/>----------------------<br/>Audit Logs<br/>"]
+    end
+    
+    subgraph Resource["Resource Server"]
+        FHIR["HAPI FHIR<br/>----------------------<br/>Database Handler<br/>"]
+    end
+    
+    %% Browser -->|"HTTPS<br/>Cookie"| nginx
+    %% MobileApp -->|"HTTPS<br/>Bearer"| nginx
+    Browser -->|"Auth via gateway"| O2P
+    O2P -->|"OIDC Auth Code + PKCE"| Keycloak
+    O2P -->|"Auth result + token context"| nginx
+
+    MobileApp -->|"OIDC Auth Code + PKCE"| Keycloak
+    MobileApp -->|"HTTPS<br/>Bearer"| nginx
+    
+    nginx --> NodeJS
+    
+    NodeJS --> Redis
+    NodeJS --> RedisAudit
+    NodeJS --> Keycloak
+    NodeJS --> FHIR
+    
+    Keycloak --> Postgres
+    %% FHIR --> Keycloak
+
+    Keycloak -->|"REGISTER event"| Listener
+    Listener -->|"Register in FHIR"| NodeJS

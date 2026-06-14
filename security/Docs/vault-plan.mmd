@@ -1,0 +1,51 @@
+flowchart LR
+  Vault[Central Vault Server]
+
+  subgraph NodeJS
+    NA[Vault Agent]
+    NPolicy[Policy: nodejs-read]
+    NPath[secret/dev/nodejs/*]
+    NOut[Rendered env]
+    NApp[NodeJS]
+    NA --> NOut --> NApp
+    NA --> NPath
+    NA --> NPolicy
+  end
+
+  subgraph Keycloak
+    KA[Vault Agent]
+    KPolicy[Policy: keycloak-read]
+    KPath[secret/dev/keycloak/*]
+    KOut[Rendered env.kc]
+    KApp[Keycloak]
+    KA --> KOut --> KApp
+    KA --> KPath
+    KA --> KPolicy
+  end
+
+  subgraph OAuth
+    OA[Vault Agent]
+    OPolicy[Policy: oauth-read]
+    OPath[secret/dev/oauth/*]
+    OOut[Rendered env.oauth]
+    OApp[oauth2-proxy]
+    OA --> OOut --> OApp
+    OA --> OPath
+    OA --> OPolicy
+  end
+
+  subgraph FHIR
+    FA[Vault Agent]
+    FPolicy[Policy: fhir-read]
+    FPath[secret/dev/fhir/*]
+    FOut[Rendered env.fhir]
+    FApp[HAPI FHIR]
+    FA --> FOut --> FApp
+    FA --> FPath
+    FA --> FPolicy
+  end
+
+  Vault --> NA
+  Vault --> KA
+  Vault --> OA
+  Vault --> FA

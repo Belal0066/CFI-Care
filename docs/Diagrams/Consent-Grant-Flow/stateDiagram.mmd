@@ -1,0 +1,8 @@
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> OTP_Active: /request-otp (SET NX)
+    OTP_Active --> Pending_Approval: /verify-otp (GETDEL)
+    OTP_Active --> Idle: TTL Expired (10m)
+    Pending_Approval --> Active_Grant: /create-grant (Approved)
+    Pending_Approval --> Idle: Decline grant request 
+    Active_Grant --> Idle: Manual revocation or TTL expired

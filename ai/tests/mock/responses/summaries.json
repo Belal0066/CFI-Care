@@ -1,0 +1,45 @@
+{
+  "description": "Example summaries for UI layout testing. Each entry is a Composition.section[].text.div with visible text ≤100 chars.",
+  "summaries": [
+    {
+      "label": "CBC — normal with lymphopenia",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>CBC results within normal limits, with lymphopenia (Lymphocyte 18%) as the key finding.</p></div>",
+      "visible_text": "CBC results within normal limits, with lymphopenia (Lymphocyte 18%) as the key finding."
+    },
+    {
+      "label": "CBC — all normal",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>CBC results are within normal limits — all parameters in range.</p></div>",
+      "visible_text": "CBC results are within normal limits — all parameters in range."
+    },
+    {
+      "label": "Liver function — mild elevation",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Liver enzymes mildly elevated (ALT 65, AST 72). Bilirubin normal. Suggest follow-up in 4 weeks.</p></div>",
+      "visible_text": "Liver enzymes mildly elevated (ALT 65, AST 72). Bilirubin normal. Suggest follow-up in 4 weeks."
+    },
+    {
+      "label": "Thyroid panel — abnormal",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>TSH elevated at 8.5 mIU/L, FT4 low (0.6 ng/dL). Consistent with primary hypothyroidism.</p></div>",
+      "visible_text": "TSH elevated at 8.5 mIU/L, FT4 low (0.6 ng/dL). Consistent with primary hypothyroidism."
+    },
+    {
+      "label": "Lipid panel — high cholesterol",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Total cholesterol 240 mg/dL, LDL 160 mg/dL. Requires lifestyle intervention and statin therapy.</p></div>",
+      "visible_text": "Total cholesterol 240 mg/dL, LDL 160 mg/dL. Requires lifestyle intervention and statin therapy."
+    },
+    {
+      "label": "Renal function — normal",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Serum creatinine 0.9 mg/dL, eGFR 92 mL/min. Normal renal function.</p></div>",
+      "visible_text": "Serum creatinine 0.9 mg/dL, eGFR 92 mL/min. Normal renal function."
+    },
+    {
+      "label": "Complete metabolic — abnormal glucose",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Fasting glucose 168 mg/dL, HbA1c 8.2%. Poorly controlled diabetes — review medication adherence.</p></div>",
+      "visible_text": "Fasting glucose 168 mg/dL, HbA1c 8.2%. Poorly controlled diabetes — review medication adherence."
+    },
+    {
+      "label": "Short emergency note",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>ECG normal sinus rhythm. No ischemic changes. Discharged with analgesics.</p></div>",
+      "visible_text": "ECG normal sinus rhythm. No ischemic changes. Discharged with analgesics."
+    }
+  ]
+}
