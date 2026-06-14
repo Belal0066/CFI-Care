@@ -1,4 +1,5 @@
 *.md
+!docs/*.md
 # Byte-compiled / cached files
 __pycache__/
 *.py[cod]
