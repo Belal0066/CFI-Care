@@ -46,8 +46,11 @@ class _MyProfileState extends State<MyProfile> {
   final Map<String, bool> _pendingResponding = {};
   final Map<String, TextEditingController> _durationControllers = {};
 
-  // Revoke state (per requesterId)
+  // Revoke state (per requesterId) — doctors
   final Map<String, bool> _revoking = {};
+
+  // Revoke state (per caregiverId) — family accessors
+  final Map<String, bool> _familyRevoking = {};
 
   PatientProvider? _patientProviderRef;
 
@@ -79,6 +82,16 @@ class _MyProfileState extends State<MyProfile> {
   // Track the current user's ID
   String? currentUserId;
 
+  // Tracks which proxy session we last loaded data for, so we reload on switch.
+  // 'UNSET' sentinel forces a load on first build.
+  String? _lastLoadedForProxy = 'UNSET';
+
+  // The patient ID whose data this screen should currently display.
+  // In proxy mode it's X's id; otherwise it's Y's own id. Used to reject
+  // profiles that arrive on the SHARED PatientProvider for a different patient
+  // (e.g. a background fetch of the caregiver's own profile by another screen).
+  String? _expectedProfileId;
+
   // Family request responding state (per handshakeId)
   final Map<String, bool> _familyResponding = {};
 
@@ -89,6 +102,9 @@ class _MyProfileState extends State<MyProfile> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _patientProviderRef = context.read<PatientProvider>();
       _patientProviderRef!.addListener(_syncFromFhir);
+      // Catch a fetch that may have already completed before the listener was
+      // registered (initState ordering race) — otherwise the form stays blank.
+      _syncFromFhir();
 
       final grantProvider = context.read<AccessGrantProvider>();
       grantProvider.fetchPendingGrants();
@@ -98,6 +114,7 @@ class _MyProfileState extends State<MyProfile> {
       final familyProvider = context.read<FamilyAccessProvider>();
       familyProvider.fetchAccessibleMembers();
       familyProvider.fetchPendingRequests();
+      familyProvider.fetchFamilyAccessors();
     });
   }
 
@@ -111,11 +128,46 @@ class _MyProfileState extends State<MyProfile> {
   }
 
   void _syncFromFhir() {
-    final profile = _patientProviderRef?.profile;
-    if (profile == null || !mounted) return;
+    if (!mounted) return;
+    final provider = _patientProviderRef;
+    if (provider == null) return;
+
+    // TODO REMOVE DIAGNOSTIC
+    debugPrint('[SYNC] fired: isLoading=${provider.isLoading} '
+        'profileId=${provider.profile?.patientId} expected=$_expectedProfileId '
+        'bt=${provider.profile?.bloodType} '
+        'edit=${editPersonal || editMedical || editEmergency}');
+    // END DIAGNOSTIC
+
+    // Still fetching — wait for the next notification.
+    if (provider.isLoading) return;
+
+    // Fetch finished. Clear spinner regardless of outcome so it never gets stuck.
+    // If profile is null (error or no data), stop loading and let the empty state show.
+    final profile = provider.profile;
+    if (profile == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
+    // The PatientProvider is shared app-wide. A background fetch by another screen
+    // (e.g. the caregiver's own profile) can replace provider.profile with a
+    // DIFFERENT patient. Ignore any profile that isn't the one we're displaying.
+    if (_expectedProfileId != null && profile.patientId != _expectedProfileId) {
+      // TODO REMOVE DIAGNOSTIC
+      debugPrint('[SYNC] REJECTED: ${profile.patientId} != $_expectedProfileId');
+      // END DIAGNOSTIC
+      return;
+    }
+
     // Don't overwrite in-progress edits
     if (editPersonal || editMedical || editEmergency) return;
+
+    // TODO REMOVE DIAGNOSTIC
+    debugPrint('[SYNC] APPLYING bloodType=${profile.bloodType}');
+    // END DIAGNOSTIC
     setState(() {
+      isLoading = false;
       if (profile.firstName.isNotEmpty) firstName = profile.firstName;
       if (profile.lastName.isNotEmpty) lastName = profile.lastName;
       if (profile.email.isNotEmpty) email = profile.email;
@@ -146,6 +198,38 @@ class _MyProfileState extends State<MyProfile> {
       return;
     }
 
+    if (!mounted) return;
+    final proxy = context.read<ProxySessionProvider>();
+
+    if (proxy.isProxying && proxy.proxyPatientId != null) {
+      // --- Proxy mode: show X's data from FHIR, not Y's local cache ---
+      _expectedProfileId = proxy.proxyPatientId;
+      // Reset edit states to prevent _syncFromFhir from being suppressed.
+      setState(() {
+        editPersonal = false;
+        editMedical = false;
+        editEmergency = false;
+        isLoading = true;
+        // Clear displayed fields so Y's old data isn't visible while loading
+        firstName = '';
+        lastName = '';
+        email = '';
+        personalInfo = {'Phone': '', 'Address': '', 'Date of Birth': '', 'Gender': ''};
+        medicalInfo = {
+          'Blood Type': '', 'Height (cm)': '', 'Weight (kg)': '',
+          'Allergies': '', 'Medical Conditions': '', 'Medications': '',
+          'Genetic Conditions': '', 'Chronic Diseases': '',
+        };
+        emergencyInfo = {'Emergency Contact': '', 'Insurance Provider': '', 'Policy Number': ''};
+      });
+      if (mounted) {
+        context.read<PatientProvider>().fetchProfile(proxy.proxyPatientId!);
+      }
+      return;
+    }
+
+    // --- Normal mode: load Y's own data from SQLite, then sync from FHIR ---
+    _expectedProfileId = currentUserId;
     final data = await DBHelper.getUserProfile(currentUserId!);
 
     if (data != null) {
@@ -180,9 +264,6 @@ class _MyProfileState extends State<MyProfile> {
       setState(() => isLoading = false);
     }
 
-    // Fetch from FHIR in the background — _syncFromFhir() will update UI when done.
-    // By the time DB operations complete, addPostFrameCallback has already run
-    // and the listener is registered.
     if (mounted) {
       context.read<PatientProvider>().fetchProfile(currentUserId!);
     }
@@ -190,6 +271,14 @@ class _MyProfileState extends State<MyProfile> {
 
   Future<void> _saveChanges() async {
     if (currentUserId == null) return;
+    if (!mounted) return;
+
+    // Capture context-dependent references before any await.
+    final proxy = context.read<ProxySessionProvider>();
+    final patientProvider = context.read<PatientProvider>();
+    final isProxy = proxy.isProxying && proxy.proxyPatientId != null;
+    // Use X's ID when proxying, Y's own ID otherwise
+    final targetId = isProxy ? proxy.proxyPatientId! : currentUserId!;
 
     final updateData = <String, dynamic>{
       'firstName': firstName,
@@ -212,45 +301,78 @@ class _MyProfileState extends State<MyProfile> {
       'policyNumber': emergencyInfo['Policy Number'],
     };
 
-    // Save locally first (fast, offline-safe)
-    await DBHelper.upsertProfile(currentUserId!, updateData);
+    // Only persist to Y's local SQLite when editing Y's OWN profile.
+    // Skip it in proxy mode — we never want X's data in Y's local cache.
+    if (!isProxy) {
+      await DBHelper.upsertProfile(currentUserId!, updateData);
+    }
 
-    // Sync to FHIR backend
     if (!mounted) return;
+
+    // SAFETY NET against data loss: the FHIR PUT is a FULL REPLACE, so any field
+    // not included is wiped. If the edit form failed to populate (e.g. a load
+    // race in proxy mode), saving the bare form would erase X's record.
+    // To prevent that, start from the last-fetched server profile for this exact
+    // patient and only override a field when the form actually has a value.
+    final base = (patientProvider.profile != null &&
+            patientProvider.profile!.patientId == targetId)
+        ? patientProvider.profile!
+        : PatientProfile(patientId: targetId);
+
+    String pick(String formValue, String baseValue) =>
+        formValue.trim().isNotEmpty ? formValue : baseValue;
+
     final profile = PatientProfile(
-      patientId: currentUserId!,
-      firstName: firstName,
-      lastName: lastName,
-      email: email,
-      phone: personalInfo['Phone'] ?? '',
-      address: personalInfo['Address'] ?? '',
-      dob: personalInfo['Date of Birth'] ?? '',
-      gender: personalInfo['Gender'] ?? '',
-      bloodType: medicalInfo['Blood Type'] ?? '',
-      height: medicalInfo['Height (cm)'] ?? '',
-      weight: medicalInfo['Weight (kg)'] ?? '',
-      allergies: medicalInfo['Allergies'] ?? '',
-      conditions: medicalInfo['Medical Conditions'] ?? '',
-      medications: medicalInfo['Medications'] ?? '',
-      geneticConditions: medicalInfo['Genetic Conditions'] ?? '',
-      chronicDiseases: medicalInfo['Chronic Diseases'] ?? '',
-      emergencyContact: emergencyInfo['Emergency Contact'] ?? '',
-      insuranceProvider: emergencyInfo['Insurance Provider'] ?? '',
-      policyNumber: emergencyInfo['Policy Number'] ?? '',
+      patientId: targetId,
+      firstName: pick(firstName, base.firstName),
+      lastName: pick(lastName, base.lastName),
+      email: pick(email, base.email),
+      phone: pick(personalInfo['Phone'] ?? '', base.phone),
+      address: pick(personalInfo['Address'] ?? '', base.address),
+      dob: pick(personalInfo['Date of Birth'] ?? '', base.dob),
+      gender: pick(personalInfo['Gender'] ?? '', base.gender),
+      bloodType: pick(medicalInfo['Blood Type'] ?? '', base.bloodType),
+      height: pick(medicalInfo['Height (cm)'] ?? '', base.height),
+      weight: pick(medicalInfo['Weight (kg)'] ?? '', base.weight),
+      allergies: pick(medicalInfo['Allergies'] ?? '', base.allergies),
+      conditions: pick(medicalInfo['Medical Conditions'] ?? '', base.conditions),
+      medications: pick(medicalInfo['Medications'] ?? '', base.medications),
+      geneticConditions: pick(medicalInfo['Genetic Conditions'] ?? '', base.geneticConditions),
+      chronicDiseases: pick(medicalInfo['Chronic Diseases'] ?? '', base.chronicDiseases),
+      emergencyContact: pick(emergencyInfo['Emergency Contact'] ?? '', base.emergencyContact),
+      insuranceProvider: pick(emergencyInfo['Insurance Provider'] ?? '', base.insuranceProvider),
+      policyNumber: pick(emergencyInfo['Policy Number'] ?? '', base.policyNumber),
     );
 
-    final ok = await context.read<PatientProvider>().saveProfile(profile);
-    if (mounted && !ok) {
+    final ok = await patientProvider.saveProfile(profile);
+    if (!mounted) return;
+    if (!ok) {
       Fluttertoast.showToast(
-        msg: 'Saved locally. Server sync failed — will retry next time.',
+        msg: isProxy
+            ? 'Failed to save. Please try again.'
+            : 'Saved locally. Server sync failed — will retry next time.',
         toastLength: Toast.LENGTH_LONG,
       );
+      return;
     }
+
+    // Re-fetch from the server so the UI reflects the persisted truth.
+    _expectedProfileId = targetId;
+    patientProvider.fetchProfile(targetId);
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
+    // Reload whenever the proxy session switches (Y→X or X→null)
+    final proxyId = context.watch<ProxySessionProvider>().proxyPatientId;
+    if (_lastLoadedForProxy != proxyId) {
+      _lastLoadedForProxy = proxyId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadProfile();
+      });
+    }
 
     if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -390,24 +512,30 @@ class _MyProfileState extends State<MyProfile> {
                   },
                 ),
 
-                // --- Logout ---
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: Text(
-                    'Logout',
-                    style: textTheme.titleMedium?.copyWith(color: Colors.red),
-                  ),
-                  onTap: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.clear();
-                    await context.read<AuthProvider>().logout();
-                    // if (context.mounted) {
-                    //   Navigator.pushAndRemoveUntil(
-                    //     context,
-                    //     MaterialPageRoute(builder: (_) => const SignInUp()),
-                    //     (r) => false,
-                    //   );
-                    // }
+                // --- Logout (hidden while viewing another patient's profile) ---
+                Consumer<ProxySessionProvider>(
+                  builder: (context, proxy, _) {
+                    if (proxy.isProxying) return const SizedBox.shrink();
+                    return ListTile(
+                      leading: const Icon(Icons.logout, color: Colors.red),
+                      title: Text(
+                        'Logout',
+                        style: textTheme.titleMedium?.copyWith(color: Colors.red),
+                      ),
+                      onTap: () async {
+                        final auth = context.read<AuthProvider>();
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.clear();
+                        await auth.logout();
+                        // if (context.mounted) {
+                        //   Navigator.pushAndRemoveUntil(
+                        //     context,
+                        //     MaterialPageRoute(builder: (_) => const SignInUp()),
+                        //     (r) => false,
+                        //   );
+                        // }
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 40),
@@ -422,6 +550,8 @@ class _MyProfileState extends State<MyProfile> {
   Widget _buildSharedAccessSection(TextTheme textTheme) {
     final grantProvider = context.watch<AccessGrantProvider>();
     final familyProvider = context.watch<FamilyAccessProvider>();
+    final proxy = context.watch<ProxySessionProvider>();
+
     return Column(
       children: [
         // Master Toggle Header
@@ -446,26 +576,38 @@ class _MyProfileState extends State<MyProfile> {
         if (showSharedAccess) ...[
           const Divider(),
 
-          // --- PENDING DOCTOR ACCESS REQUESTS ---
-          _buildPendingRequestsSection(grantProvider),
+          // --- PENDING DOCTOR ACCESS REQUESTS (only for own profile) ---
+          if (!proxy.isProxying) _buildPendingRequestsSection(grantProvider),
 
-          // --- PENDING FAMILY ACCESS REQUESTS (y's view) ---
-          _buildPendingFamilyRequestsSection(familyProvider),
+          // --- PENDING FAMILY ACCESS REQUESTS from other patients (only own profile) ---
+          if (!proxy.isProxying)
+            _buildPendingFamilyRequestsSection(familyProvider),
 
-          // --- SECTION 1: FAMILY I CAN ACCESS ---
-          _buildSubHeader("Family Members I Can Access"),
-          _buildFamilyOtpInput(familyProvider),
-          _buildFamilyMembersList(familyProvider),
+          // --- FAMILY MEMBERS I CAN PROXY-ACCESS (Y's list of X's) ---
+          if (!proxy.isProxying) ...[
+            _buildSubHeader("Family I Can Access"),
+            _buildFamilyOtpInput(familyProvider),
+            _buildFamilyMembersList(familyProvider),
+            const SizedBox(height: 16),
+            const Divider(),
+          ],
 
-          const SizedBox(height: 16),
-          const Divider(),
+          // --- FAMILY MEMBERS ACCESSING MY DATA (X's list of Y's) ---
+          if (!proxy.isProxying) ...[
+            _buildSubHeader("Family Accessing My Data"),
+            _buildFamilyAccessorsList(familyProvider),
+            const SizedBox(height: 16),
+            const Divider(),
+          ],
 
-          // --- SECTION 2: DOCTORS WITH ACTIVE ACCESS ---
-          _buildSubHeader("Doctors Accessing My Data"),
-          _buildActiveGrantsList(grantProvider),
+          // --- DOCTORS WITH ACTIVE ACCESS (only own profile) ---
+          if (!proxy.isProxying) ...[
+            _buildSubHeader("Doctors Accessing My Data"),
+            _buildActiveGrantsList(grantProvider),
+          ],
 
-          // --- OTP CARD ---
-          _buildCodeGeneratorCard(grantProvider),
+          // --- SHARE CODE (hidden when viewing another patient's profile) ---
+          if (!proxy.isProxying) _buildCodeGeneratorCard(grantProvider),
         ],
       ],
     );
@@ -843,6 +985,10 @@ class _MyProfileState extends State<MyProfile> {
                   ? 'Request sent — waiting for their approval'
                   : (provider.submitError ?? 'Failed. Try again.'),
             );
+            if (ok) {
+              // Refresh so the list is ready the moment X approves.
+              provider.fetchAccessibleMembers();
+            }
           }
         },
       ),
@@ -969,11 +1115,11 @@ class _MyProfileState extends State<MyProfile> {
 
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.purple.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Color(0xFFCE93D8)), // purple.shade300
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -985,11 +1131,11 @@ class _MyProfileState extends State<MyProfile> {
                       backgroundColor: Color(0xFFEDE7F6),
                       child: Icon(
                         Icons.person_outline,
-                        color: Colors.purple,
-                        size: 18,
+                        color: Color(0xFF7B1FA2), // purple.shade700
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,11 +1147,13 @@ class _MyProfileState extends State<MyProfile> {
                               color: Colors.black45,
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
                             req.requesterName,
                             style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1014,26 +1162,25 @@ class _MyProfileState extends State<MyProfile> {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                        horizontal: 12,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
+                        color: const Color(0xFFEDE7F6),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.purple.shade200),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Pending',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.purple.shade700,
+                          color: Color(0xFF7B1FA2), // purple.shade700
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(
@@ -1045,7 +1192,7 @@ class _MyProfileState extends State<MyProfile> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          minimumSize: const Size(0, 40),
+                          minimumSize: const Size(0, 44),
                         ),
                         child: responding
                             ? const SizedBox(
@@ -1056,21 +1203,28 @@ class _MyProfileState extends State<MyProfile> {
                                   color: Colors.red,
                                 ),
                               )
-                            : const Text('Deny', style: TextStyle(fontSize: 13)),
+                            : const Text(
+                                'Deny',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
                         onPressed: responding ? null : () => respond(true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
+                          backgroundColor: const Color(0xFF9C27B0), // purple
                           foregroundColor: Colors.white,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          minimumSize: const Size(0, 40),
+                          minimumSize: const Size(0, 44),
                         ),
                         child: responding
                             ? const SizedBox(
@@ -1083,7 +1237,10 @@ class _MyProfileState extends State<MyProfile> {
                               )
                             : const Text(
                                 'Approve',
-                                style: TextStyle(fontSize: 13),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                       ),
                     ),
@@ -1229,6 +1386,159 @@ class _MyProfileState extends State<MyProfile> {
                               setState(
                                 () => _revoking.remove(grant.requesterId),
                               );
+                              Fluttertoast.showToast(
+                                msg: ok
+                                    ? 'Access revoked'
+                                    : 'Failed to revoke. Try again.',
+                              );
+                            }
+                          },
+                    icon: isRevoking
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.red,
+                            ),
+                          )
+                        : const Icon(Icons.remove_circle_outline, size: 16),
+                    label: Text(
+                      isRevoking ? 'Revoking…' : 'Revoke Access',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      minimumSize: const Size(0, 40),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ----------------------------------------------------------------
+  // FAMILY — list of Y's who currently have access to X's data
+  // ----------------------------------------------------------------
+  Widget _buildFamilyAccessorsList(FamilyAccessProvider provider) {
+    if (provider.isLoadingAccessors) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (provider.accessorsError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, size: 16, color: Colors.red),
+            const SizedBox(width: 6),
+            const Expanded(
+              child: Text(
+                'Failed to load. Tap to retry.',
+                style: TextStyle(fontSize: 12, color: Colors.red),
+              ),
+            ),
+            TextButton(
+              onPressed: provider.fetchFamilyAccessors,
+              child: const Text('Retry', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+      );
+    }
+    if (provider.familyAccessors.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(bottom: 8),
+        child: Text(
+          'No family members are accessing your data.',
+          style: TextStyle(fontSize: 12, color: Colors.black45),
+        ),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: provider.familyAccessors.length,
+      itemBuilder: (context, index) {
+        final accessor = provider.familyAccessors[index];
+        final minsLeft = accessor.minutesRemaining;
+        final isRevoking = _familyRevoking[accessor.requesterId] ?? false;
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.purple.withValues(alpha: 0.1),
+                      child: Text(
+                        accessor.requesterName.isNotEmpty
+                            ? accessor.requesterName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: Colors.purple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            accessor.requesterName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${accessor.scopes.join(', ')} · ${minsLeft > 0 ? 'Active' : 'Expired'}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: minsLeft < 10 ? Colors.red : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: isRevoking
+                        ? null
+                        : () async {
+                            setState(() =>
+                                _familyRevoking[accessor.requesterId] = true);
+                            final ok = await provider
+                                .revokeFamilyAccessor(accessor.requesterId);
+                            if (mounted) {
+                              setState(() =>
+                                  _familyRevoking.remove(accessor.requesterId));
                               Fluttertoast.showToast(
                                 msg: ok
                                     ? 'Access revoked'

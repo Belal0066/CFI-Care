@@ -1,7 +1,13 @@
 class AppConfigValues {
+<<<<<<< HEAD
   static const apiBaseUrl = 'http://192.168.1.3:3000/api';
   static const keycloakIssuer =
       'https://192.168.1.3/keycloak/realms/CFI-Care';
+=======
+  static const apiBaseUrl = 'http://192.168.100.52:3000/api';
+  static const keycloakIssuer =
+      'https://192.168.100.52/keycloak/realms/CFI-Care';
+>>>>>>> feature/AI-Chat-mergingBranch
   static const keycloakClientId = 'flutter-app';
   static const keycloakRedirectUri = 'com.example.medflow:/oauthredirect';
   static const keycloakPostLogoutRedirectUri =

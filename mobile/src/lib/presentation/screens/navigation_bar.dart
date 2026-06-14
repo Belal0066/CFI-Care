@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import '../viewmodels/access_grant_provider.dart';
 import '../viewmodels/family_access_provider.dart';
 import '../viewmodels/proxy_session_provider.dart';
+import '../viewmodels/patient_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/services/datasources/api_service_booking.dart';
 
 class MyApp extends StatefulWidget {
@@ -104,7 +106,11 @@ class _MyAppState extends State<MyApp> {
     // Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (!mounted) return;
-      if (message.data['type'] == 'grant_request') {
+      final type = message.data['type'];
+      final title = message.notification?.title ?? '';
+      final body = message.notification?.body ?? '';
+
+      if (type == 'grant_request') {
         context.read<AccessGrantProvider>().fetchPendingGrants();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -113,7 +119,7 @@ class _MyAppState extends State<MyApp> {
             duration: Duration(seconds: 4),
           ),
         );
-      } else if (message.data['type'] == 'family_request') {
+      } else if (type == 'family_request') {
         context.read<FamilyAccessProvider>().fetchPendingRequests();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -122,10 +128,63 @@ class _MyAppState extends State<MyApp> {
             duration: Duration(seconds: 4),
           ),
         );
+      } else if (type == 'grant_approved') {
+        // Y's access was approved by X — refresh Y's accessible members list
+        // and navigate to Profile tab so Y can see X in the list immediately.
+        context.read<FamilyAccessProvider>().fetchAccessibleMembers();
+        setState(() => selectedIndex = 3);
+        _pageController.animateToPage(
+          3,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(body.isNotEmpty ? body : 'Your access request was approved'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else if (type == 'data_updated') {
+        // Re-fetch the currently-displayed profile so the change appears live.
+        final proxy = context.read<ProxySessionProvider>();
+        final patientProvider = context.read<PatientProvider>();
+        if (proxy.isProxying && proxy.proxyPatientId != null) {
+          patientProvider.fetchProfile(proxy.proxyPatientId!);
+        } else {
+          // Own profile: use the SAME id source as MyProfile._loadProfile.
+          SharedPreferences.getInstance().then((prefs) {
+            final id = prefs.getString('currentUserId');
+            if (id != null && id.isNotEmpty) patientProvider.fetchProfile(id);
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(body.isNotEmpty ? body : 'Health data was updated'),
+            backgroundColor: Colors.blueGrey,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else if (type == 'access_revoked') {
+        // X revoked Y's access. Drop X from Y's accessible list, and if Y is
+        // currently viewing X in proxy mode, exit back to Y's own profile.
+        final revokedPatientId = message.data['patientId'];
+        final proxy = context.read<ProxySessionProvider>();
+        if (proxy.isProxying && proxy.proxyPatientId == revokedPatientId) {
+          proxy.switchBack();
+        }
+        context.read<FamilyAccessProvider>().fetchAccessibleMembers();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(body.isNotEmpty ? body : 'Your access to a patient was revoked'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       } else if (message.notification != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message.notification!.title ?? 'New Message'),
+            content: Text(title.isNotEmpty ? title : 'New Message'),
             backgroundColor: Colors.blue,
           ),
         );
@@ -144,14 +203,44 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _handleMessage(RemoteMessage message) {
-    if (message.data['type'] == 'chat') {
-      // Example: Navigator.pushNamed(context, '/chat');
+    if (!mounted) return;
+    final type = message.data['type'];
+    if (type == 'grant_request') {
+      context.read<AccessGrantProvider>().fetchPendingGrants();
+    } else if (type == 'family_request') {
+      context.read<FamilyAccessProvider>().fetchPendingRequests();
+    } else if (type == 'grant_approved') {
+      context.read<FamilyAccessProvider>().fetchAccessibleMembers();
+    } else if (type == 'access_revoked') {
+      final revokedPatientId = message.data['patientId'];
+      final proxy = context.read<ProxySessionProvider>();
+      if (proxy.isProxying && proxy.proxyPatientId == revokedPatientId) {
+        proxy.switchBack();
+      }
+      context.read<FamilyAccessProvider>().fetchAccessibleMembers();
     }
-    if (message.data['type'] == 'grant_request') {
-      if (mounted) context.read<AccessGrantProvider>().fetchPendingGrants();
-    } else if (message.data['type'] == 'family_request') {
-      if (mounted) context.read<FamilyAccessProvider>().fetchPendingRequests();
+  }
+
+  // Profile tab index in the PageView below.
+  static const int _profileTabIndex = 3;
+
+  // Re-fetch the profile data whenever the user lands on the Profile tab.
+  // The PageView keeps MyProfile alive, so its initState only runs once and it
+  // would otherwise show stale data after another user edited this patient.
+  void _refreshProfileTab() {
+    if (!mounted) return;
+    final proxy = context.read<ProxySessionProvider>();
+    final patientProvider = context.read<PatientProvider>();
+    if (proxy.isProxying && proxy.proxyPatientId != null) {
+      patientProvider.fetchProfile(proxy.proxyPatientId!);
+      return;
     }
+    // Own profile: use the SAME id source as MyProfile._loadProfile
+    // (SharedPreferences 'currentUserId') so the _expectedProfileId guard matches.
+    SharedPreferences.getInstance().then((prefs) {
+      final id = prefs.getString('currentUserId');
+      if (id != null && id.isNotEmpty) patientProvider.fetchProfile(id);
+    });
   }
 
   @override
@@ -231,6 +320,7 @@ class _MyAppState extends State<MyApp> {
                     controller: _pageController,
                     onPageChanged: (index) {
                       setState(() => selectedIndex = index);
+                      if (index == _profileTabIndex) _refreshProfileTab();
                     },
                     children: const [
                       HomeScreen(),
@@ -252,6 +342,7 @@ class _MyAppState extends State<MyApp> {
                 currentIndex: selectedIndex,
                 onTap: (index) {
                   setState(() => selectedIndex = index);
+                  if (index == _profileTabIndex) _refreshProfileTab();
                   _pageController.animateToPage(
                     index,
                     duration: const Duration(milliseconds: 300),
