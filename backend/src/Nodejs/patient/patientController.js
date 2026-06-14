@@ -1,4 +1,5 @@
 const patientService = require("./patientService");
+const { notifyDataUpdate } = require("../services/notifyDataUpdate");
 // const toon = require("@toon-format/toon");
 // const toon = (...args) =>
 //   import('@toon-format/toon').then(({ default: toon }) => toon(...args));
@@ -92,6 +93,9 @@ const createPatientWithSpecificId = async (req, res) => {
 
     console.log("New patient created successfully.");
     res.status(201).json(newPatientResource);
+
+    // Fire-and-forget: notify relevant parties that patient data changed
+    notifyDataUpdate(req, id).catch(() => {});
   } catch (error) {
     console.error("Controller Error:", error.message);
     res.status(500).json({ error: error.message });

@@ -24,7 +24,7 @@ const {
 
 
 const { requireApiAuth } = require("../middleware/requireApiAuth");
-
+const { resolveRequesterType } = require("../services/Caller_Role_resolver");
 
 const regProvisioningRoutes = require("./regProvisioningRoute");
 
@@ -126,7 +126,9 @@ router.get('/me', requireApiAuth, (req, res) => {
     req.session.save(() => { });
   }
 
-  return res.json({ authenticated: true, user: { sub: userId, email } });
+  const role = resolveRequesterType(req.jwt || req.kauth?.token?.grant);
+
+  return res.json({ authenticated: true, user: { sub: userId, email, role } });
 
 });
 
