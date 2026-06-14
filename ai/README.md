@@ -3,10 +3,19 @@
 Two subsystems make up CFI-Care's AI capabilities. They aren't wired together in code today, but the working hypothesis (see [Architecture & Port Map](docs/ARCHITECTURE.md)) is that they're sequential stages of one pipeline: DOC2FHIR turns scanned documents into FHIR data, and the Clinical AI System reasons over that FHIR data.
 
 ## Table of Contents
+- [Engineering Review — Start Here](#engineering-review--start-here)
 - [DOC2FHIR — Document to FHIR Pipeline](#doc2fhir--document-to-fhir-pipeline)
 - [Clinical AI System — Agentic RAG Copilot](#clinical-ai-system--agentic-rag-copilot)
 - [Architecture & Port Map](#architecture--port-map)
 - [Testing](#testing)
+
+## Engineering Review — Start Here
+
+For a reviewer who wants to evaluate this system without reading every file line by line:
+
+- **[System Overview](docs/SYSTEM_OVERVIEW.md)** — problem statement, context diagram, container/service map with real caller→callee→timeout→retry data, end-to-end data flow for both subsystems, critical path, and system invariants (including which ones currently hold and which don't).
+- **[Failure Modes](docs/FAILURE_MODES.md)** — per-module tables: how each failure is detected, what the code actually does about it, user impact, recovery. Includes two verified, currently-live issues: an OCR/Gateway response-contract mismatch that silently corrupts input to the FHIR mapper, and a `/chat` endpoint that doesn't scope retrieval to a patient despite the retrieval code supporting it.
+- **[Architecture Decision Records](docs/adr/)** — real decisions only, each with alternatives considered and why they were rejected. Where no original rationale exists in the repo's history, the ADR says so explicitly rather than inventing one.
 
 ## DOC2FHIR — Document to FHIR Pipeline
 

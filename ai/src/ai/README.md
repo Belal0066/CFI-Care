@@ -76,7 +76,7 @@ Full annotated diagrams (including the LangGraph state machine with its confiden
 | Rate limiting, audit logging, monitoring | ❌ **Not implemented** |
 | Per-patient isolation on `/chat` (`mode="auto"`) | ⚠️ **Gap** — `FastAPI_Backend.py`'s agentic path hardcodes `patient_id: None` and `patient_state: {}` into the graph's initial state; `HybridRetriever` then falls back to an unfiltered search across the whole Qdrant collection rather than one patient's data. The retrieval code itself (`retrieve_patient_context` in `src/agent/graph/nodes.py`) correctly *accepts* a `patient_id`, this endpoint just never supplies one — safe only under the "one patient per collection" deployment assumption noted elsewhere in this doc, not enforced by the code. |
 
-This table is kept honest on purpose — see [`context.md`](context.md) for the full module-by-module breakdown, known bugs, and dead code, maintained as a living index rather than aspirational documentation.
+This table is kept honest on purpose — see [`context.md`](context.md) for the full module-by-module breakdown, known bugs, and dead code, maintained as a living index rather than aspirational documentation. For the system-wide view (including DOC2FHIR) and the reasoning behind key architectural choices, see [`../../docs/SYSTEM_OVERVIEW.md`](../../docs/SYSTEM_OVERVIEW.md), [`../../docs/FAILURE_MODES.md`](../../docs/FAILURE_MODES.md), and [`../../docs/adr/`](../../docs/adr/).
 
 ## Key Technical Decisions
 
