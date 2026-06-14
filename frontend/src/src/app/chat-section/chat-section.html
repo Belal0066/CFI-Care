@@ -75,6 +75,23 @@
               *ngFor="let m of responseModes"
               [class.active]="activeMode === m"
               (click)="activeMode = m">{{ m }}</button>
+
+      <button class="ingest-btn"
+              [class.ingest-loading]="ingestState === 'loading'"
+              [class.ingest-success]="ingestState === 'success'"
+              [class.ingest-error]="ingestState === 'error'"
+              [disabled]="ingestState === 'loading'"
+              (click)="runIngest()"
+              title="Update AI knowledge base">
+        <i class="bi"
+           [ngClass]="{
+             'bi-cloud-upload': ingestState === 'idle',
+             'bi-arrow-repeat': ingestState === 'loading',
+             'bi-check-circle': ingestState === 'success',
+             'bi-exclamation-circle': ingestState === 'error'
+           }"></i>
+        <span>{{ ingestState === 'loading' ? 'Updating…' : ingestState === 'success' ? 'Updated' : ingestState === 'error' ? 'Failed' : 'Update Data' }}</span>
+      </button>
     </div>
 
     <!-- Chat window -->
@@ -91,7 +108,45 @@
         </div>
 
         <div class="bubble-wrap">
-          <p *ngIf="msg.text || msg.isStreaming" [class.error]="msg.type === 'error'">{{ msg.text }}<span *ngIf="msg.isStreaming" class="typing-cursor">▍</span></p>
+          <!-- AI response: render as markdown -->
+          <div *ngIf="(msg.text || msg.isStreaming) && msg.type === 'incoming'"
+               class="md-bubble">
+
+            <!-- Collapsible reasoning chain -->
+            <details class="thought-details" *ngIf="msg.thoughtHtml && !msg.isStreaming">
+              <summary class="thought-summary">
+                <i class="bi bi-lightbulb"></i> Thinking process
+                <i class="bi bi-chevron-down thought-chevron"></i>
+              </summary>
+              <div class="thought-body md-body" [innerHTML]="msg.thoughtHtml"></div>
+            </details>
+
+            <!-- Streaming: word-by-word -->
+            <div *ngIf="msg.isStreaming" class="stream-words-wrap">
+              <span *ngFor="let w of msg.streamWords; trackBy: trackByIdx" class="stream-word">{{ w }}</span><span *ngIf="msg.streamBuffer" class="stream-word stream-partial">{{ msg.streamBuffer }}</span><span class="typing-cursor">▍</span>
+            </div>
+
+            <!-- Final answer (rendered after streaming completes) -->
+            <div *ngIf="!msg.isStreaming" class="md-body" [innerHTML]="msg.renderedHtml"></div>
+
+            <!-- Confidence scores footer -->
+            <div class="conf-footer" *ngIf="msg.confidenceScores && msg.confidenceScores.length">
+              <span class="conf-label">Confidence</span>
+              <span *ngFor="let s of msg.confidenceScores"
+                    class="conf-pill"
+                    [ngClass]="{
+                      'conf-pill-high':   s.level === 'High',
+                      'conf-pill-medium': s.level === 'Medium',
+                      'conf-pill-low':    s.level === 'Low'
+                    }"
+                    [title]="s.textValue ? s.label + ': ' + s.textValue : s.label">
+                {{ s.label }}: {{ s.textValue ? s.textValue + ' (' + (s.value * 100).toFixed(0) + '%)' : (s.value * 100).toFixed(0) + '%' }}
+              </span>
+            </div>
+          </div>
+          <!-- User message: plain text -->
+          <p *ngIf="(msg.text || msg.isStreaming) && msg.type !== 'incoming'"
+             [class.error]="msg.type === 'error'">{{ msg.text }}<span *ngIf="msg.isStreaming" class="typing-cursor">▍</span></p>
 
           <div class="bubble-files" *ngIf="msg.files && msg.files.length">
             <div class="bubble-file-item" *ngFor="let f of msg.files">
@@ -224,9 +279,10 @@
     </div>
     <div class="cit-list">
       <div class="cit-item" *ngFor="let c of activeCitations">
-        <a [href]="c.url" target="_blank">
-          <div class="cit-item-title">{{ c.title }}</div>
-          <div class="cit-item-url">{{ c.url }}</div>
+        <div class="cit-item-title">{{ c.title }}</div>
+        <p class="cit-item-summary" *ngIf="c.summary" [innerHTML]="boldify(c.summary)"></p>
+        <a *ngIf="c.url" [href]="c.url" target="_blank" class="cit-item-url">
+          {{ c.url }}
         </a>
       </div>
       <div *ngIf="!activeCitations.length" style="color:#7A8AA0; font-size:12.5px; text-align:center; padding-top:20px;">

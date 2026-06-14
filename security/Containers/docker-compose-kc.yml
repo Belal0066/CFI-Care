@@ -81,7 +81,6 @@ services:
         -Dkeycloak.migration.action=import
         -Dkeycloak.migration.provider=singleFile
         -Dkeycloak.migration.realmName=${KEYCLOAK_REALM_NAME}
-        -Dkeycloak.migration.strategy=OVERWRITE_EXISTING
         -Dkeycloak.migration.file=/opt/keycloak/data/import/realm.json
         --https-key-store-file=conf/server.keystore
         --https-key-store-password=password
