@@ -1,0 +1,95 @@
+{
+  "queries": [
+    {
+      "query_id": "demo_01_summarization",
+      "query": "Are there any important clinical trends in this case?",
+      "intent": "summary",
+      "difficulty": "easy",
+      "relevant_node_ids": [
+        "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+        "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+        "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+        "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+        "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+        "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+        "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+        "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+        "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+        "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4"
+      ],
+      "expected_entities": ["Mycoplasma Pneumonia", "Bronchitis", "Azithromycin"],
+      "evaluation_notes": "Summarization should retrieve all encounters to show full timeline"
+    },
+    {
+      "query_id": "demo_02_longitudinal",
+      "query": "How has the patient's diagnosis evolved over time?",
+      "intent": "diagnosis",
+      "difficulty": "medium",
+      "relevant_node_ids": [
+        "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+        "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+        "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+      ],
+      "expected_entities": ["Initial Diagnosis: Bronchitis", "Differential: Pneumonia", "Final Diagnosis: Mycoplasma Pneumonia"],
+      "evaluation_notes": "Must retrieve diagnosis progression nodes in chronological order"
+    },
+    {
+      "query_id": "demo_03_trend",
+      "query": "What was the treatment progression and its effectiveness?",
+      "intent": "medication",
+      "difficulty": "medium",
+      "relevant_node_ids": [
+        "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+        "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+        "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+        "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+      ],
+      "expected_entities": ["Amoxicillin", "Azithromycin", "improved", "penicillin allergy"],
+      "evaluation_notes": "Should show medication change (Amoxicillin failed -> Azithromycin worked) and outcome"
+    },
+    {
+      "query_id": "demo_04_differential",
+      "query": "What differential diagnoses were considered and why?",
+      "intent": "diagnosis",
+      "difficulty": "hard",
+      "relevant_node_ids": [
+        "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+        "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+        "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+        "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+        "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+        "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912"
+      ],
+      "expected_entities": ["Bronchitis", "Pneumonia", "Mycoplasma", "persistent cough", "X-ray", "PCR"],
+      "evaluation_notes": "Should retrieve initial diagnosis, symptoms, investigations, and final diagnosis with supporting evidence"
+    },
+    {
+      "query_id": "mcp_01_guidelines",
+      "query": "What are the current treatment guidelines for Mycoplasma Pneumonia?",
+      "intent": "mcp_guidelines",
+      "difficulty": "easy",
+      "relevant_node_ids": [],
+      "expected_mcp_classification": "D",
+      "expected_entities": ["Mycoplasma Pneumonia", "treatment", "guidelines"],
+      "evaluation_notes": "Should route to MCP, not local RAG. Expects PubMed guideline synthesis."
+    },
+    {
+      "query_id": "mcp_02_interaction",
+      "query": "Are there any drug interactions between Azithromycin and common medications?",
+      "intent": "mcp_interaction",
+      "difficulty": "medium",
+      "relevant_node_ids": [],
+      "expected_mcp_classification": "C",
+      "expected_entities": ["Azithromycin", "drug interactions"],
+      "evaluation_notes": "Should route to MCP, check OpenFDA and PubMed for interaction data."
+    }
+  ],
+  "metadata": {
+    "patient_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+    "total_nodes": 10,
+    "date_range": "2025-12-01 to 2025-12-21",
+    "primary_condition": "Mycoplasma Pneumonia",
+    "created_at": "2026-01-26",
+    "evaluation_purpose": "Component-level retrieval evaluation for thesis Section 3.6.1"
+  }
+}

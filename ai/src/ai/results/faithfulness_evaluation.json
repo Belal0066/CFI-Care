@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "evaluation_date": "2026-01-26",
+    "thesis_section": "3.6.2 End-to-End Task Evaluation - Faithfulness",
+    "evaluation_method": "Text overlap heuristic (upgradable to NLI)"
+  },
+  "aggregate_metrics": {
+    "total_queries": 4,
+    "total_claims": 9,
+    "total_supported_claims": 9,
+    "total_unsupported_claims": 0,
+    "overall_faithfulness_score": 1.0,
+    "overall_hallucination_rate": 0.0,
+    "mean_claims_per_query": 2.25,
+    "mean_faithfulness_score": 1.0
+  },
+  "per_query_results": [
+    {
+      "query": "Are there any important clinical trends in this case?",
+      "n_claims": 1,
+      "supported_claims": 1,
+      "unsupported_claims": 0,
+      "faithfulness_score": 1.0,
+      "hallucination_rate": 0.0,
+      "verification_details": [
+        {
+          "claim_index": 1,
+          "claim_text": "Active diagnosis: Final Diagnosis: Mycoplasma Pneumonia",
+          "cited_sources": [
+            "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 0.75,
+          "overlap_ratio": 0.75,
+          "matched_terms": 6,
+          "total_terms": 8
+        }
+      ]
+    },
+    {
+      "query": "How has the patient's diagnosis evolved over time?",
+      "n_claims": 3,
+      "supported_claims": 3,
+      "unsupported_claims": 0,
+      "faithfulness_score": 1.0,
+      "hallucination_rate": 0.0,
+      "verification_details": [
+        {
+          "claim_index": 1,
+          "claim_text": "Initial Diagnosis: Bronchitis",
+          "cited_sources": [
+            "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 5,
+          "total_terms": 5
+        },
+        {
+          "claim_index": 2,
+          "claim_text": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction",
+          "cited_sources": [
+            "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 9,
+          "total_terms": 9
+        },
+        {
+          "claim_index": 3,
+          "claim_text": "Final Diagnosis: Mycoplasma Pneumonia",
+          "cited_sources": [
+            "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 6,
+          "total_terms": 6
+        }
+      ]
+    },
+    {
+      "query": "What was the treatment progression and its effectiveness?",
+      "n_claims": 2,
+      "supported_claims": 2,
+      "unsupported_claims": 0,
+      "faithfulness_score": 1.0,
+      "hallucination_rate": 0.0,
+      "verification_details": [
+        {
+          "claim_index": 1,
+          "claim_text": "Prescribed Amoxicillin",
+          "cited_sources": [
+            "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 3,
+          "total_terms": 3
+        },
+        {
+          "claim_index": 2,
+          "claim_text": "Prescribed Azithromycin",
+          "cited_sources": [
+            "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 3,
+          "total_terms": 3
+        }
+      ]
+    },
+    {
+      "query": "What differential diagnoses were considered and why?",
+      "n_claims": 3,
+      "supported_claims": 3,
+      "unsupported_claims": 0,
+      "faithfulness_score": 1.0,
+      "hallucination_rate": 0.0,
+      "verification_details": [
+        {
+          "claim_index": 1,
+          "claim_text": "Initial Diagnosis: Bronchitis",
+          "cited_sources": [
+            "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 5,
+          "total_terms": 5
+        },
+        {
+          "claim_index": 2,
+          "claim_text": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction",
+          "cited_sources": [
+            "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 9,
+          "total_terms": 9
+        },
+        {
+          "claim_index": 3,
+          "claim_text": "Final Diagnosis: Mycoplasma Pneumonia",
+          "cited_sources": [
+            "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+          ],
+          "supported": true,
+          "reason": "text_overlap",
+          "confidence": 1.0,
+          "overlap_ratio": 1.0,
+          "matched_terms": 6,
+          "total_terms": 6
+        }
+      ]
+    }
+  ]
+}

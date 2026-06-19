@@ -1,0 +1,35 @@
+[
+  {
+    "original_query": "What diagnoses were considered?",
+    "intent": "diagnosis",
+    "rewritten_query": "What diagnoses were considered during this patient's episode of care (EOC: eoc-4c64...)? Include provisional, differential, and final diagnoses with dates and reasoning.",
+    "requires_diagnosis_filter": true,
+    "requires_temporal_ordering": false,
+    "requires_graph_expansion": false,
+    "date_range": null,
+    "patient_state_summary": "Active diagnosis: Final Diagnosis: Mycoplasma Pneumonia. Known allergies: Amoxicillin (penicillin-class). Current medications: Azithromycin. Clinical status: Improved",
+    "confidence": 0.2
+  },
+  {
+    "original_query": "Why was Mycoplasma Pneumonia the final diagnosis?",
+    "intent": "diagnosis",
+    "rewritten_query": "Why was Mycoplasma Pneumonia the final diagnosis? Explain the diagnostic reasoning during this patient's episode of care (EOC: eoc-4c64...), and why the final diagnosis (Final Diagnosis: Mycoplasma Pneumonia) was selected.",
+    "requires_diagnosis_filter": true,
+    "requires_temporal_ordering": false,
+    "requires_graph_expansion": false,
+    "date_range": null,
+    "patient_state_summary": "Active diagnosis: Final Diagnosis: Mycoplasma Pneumonia. Known allergies: Amoxicillin (penicillin-class). Current medications: Azithromycin. Clinical status: Improved",
+    "confidence": 0.4
+  },
+  {
+    "original_query": "What medications were prescribed?",
+    "intent": "medication",
+    "rewritten_query": "What medications were prescribed during this patient's episode of care (EOC: eoc-4c64...)? Include reasons for prescription, timing, and any changes. (Note: Patient has documented allergies to: Amoxicillin (penicillin-class))",
+    "requires_diagnosis_filter": false,
+    "requires_temporal_ordering": false,
+    "requires_graph_expansion": false,
+    "date_range": null,
+    "patient_state_summary": "Active diagnosis: Final Diagnosis: Mycoplasma Pneumonia. Known allergies: Amoxicillin (penicillin-class). Current medications: Azithromycin. Clinical status: Improved",
+    "confidence": 0.3333333333333333
+  }
+]

@@ -1,0 +1,172 @@
+[
+  {
+    "id": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+    "content": "HPI: Persistent cough and fatigue\n\nSymptoms are cough is dry, has lasted for 2 weeks and fatigue is moderate.",
+    "source_node_id": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-01T00:00:00",
+      "event_tag": "Symptom",
+      "category": "Consultation",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Abnormal",
+      "priority": "High",
+      "father_id": null,
+      "relationship_type": null
+    }
+  },
+  {
+    "id": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+    "content": "Chest X-Ray ordered\n\nTo rule out pneumonia or other lung conditions",
+    "source_node_id": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-02T00:00:00",
+      "event_tag": "Investigation",
+      "category": "Imaging",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Normal",
+      "priority": "Medium",
+      "father_id": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+    "content": "Initial Diagnosis: Bronchitis\n\nX-Ray clear, symptoms consistent with acute bronchitis",
+    "source_node_id": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-03T00:00:00",
+      "event_tag": "Diagnosis",
+      "category": "Consultation",
+      "is_diagnosis": true,
+      "diagnosis_type": "Provisional",
+      "normality": "Abnormal",
+      "priority": "High",
+      "father_id": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+    "content": "Prescribed Amoxicillin\n\nStandard antibiotic course for suspected bacterial bronchitis",
+    "source_node_id": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-04T00:00:00",
+      "event_tag": "Medication",
+      "category": "Prescription",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Normal",
+      "priority": "High",
+      "father_id": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+    "content": "HPI: Symptoms worsened, rash appeared\n\nSymptoms:\n- Increased coughing\n- Reports fever\n\nSigns:\n- New skin rash.",
+    "source_node_id": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-07T00:00:00",
+      "event_tag": "Symptom",
+      "category": "Consultation",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Abnormal",
+      "priority": "High",
+      "father_id": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+    "content": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction\n\nWorsening condition suggests initial diagnosis may be incomplete or incorrect. Rash could be an adverse reaction to Amoxicillin",
+    "source_node_id": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-08T00:00:00",
+      "event_tag": "Diagnosis",
+      "category": "Consultation",
+      "is_diagnosis": true,
+      "diagnosis_type": "Differential",
+      "normality": "Abnormal",
+      "priority": "High",
+      "father_id": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+    "content": "Adverse Drug Reaction to Amoxicillin confirmed\n\nRash identified as an allergic reaction to penicillin-class antibiotics",
+    "source_node_id": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-09T00:00:00",
+      "event_tag": "Allergy/Adverse",
+      "category": "Allergy",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Abnormal",
+      "priority": "High",
+      "father_id": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+    "content": "Final Diagnosis: Mycoplasma Pneumonia\n\nAmoxicillin stopped. Based on the persistent cough and confirmed drug allergy, Atypical Pneumonia is the most likely diagnosis. Further tests confirm Mycoplasma",
+    "source_node_id": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-10T00:00:00",
+      "event_tag": "Diagnosis",
+      "category": "Consultation",
+      "is_diagnosis": true,
+      "diagnosis_type": "Final",
+      "normality": "Abnormal",
+      "priority": "High",
+      "father_id": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+    "content": "Prescribed Azithromycin\n\nChanged antibiotic to Azithromycin which is effective against Atypical Pneumonia",
+    "source_node_id": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-11T00:00:00",
+      "event_tag": "Medication",
+      "category": "Prescription",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Normal",
+      "priority": "High",
+      "father_id": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+      "relationship_type": "association"
+    }
+  },
+  {
+    "id": "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+    "content": "Patient condition improved significantly\n\nCough has subsided, fatigue is gone. Treatment successful",
+    "source_node_id": "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+    "metadata": {
+      "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+      "date_issued": "2025-12-21T00:00:00",
+      "event_tag": "FollowUp/Outcome",
+      "category": "FollowUp",
+      "is_diagnosis": false,
+      "diagnosis_type": null,
+      "normality": "Normal",
+      "priority": "Medium",
+      "father_id": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+      "relationship_type": "association"
+    }
+  }
+]

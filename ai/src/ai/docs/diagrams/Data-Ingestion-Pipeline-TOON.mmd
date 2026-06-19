@@ -1,0 +1,67 @@
+---
+title: Data Ingestion Pipeline — TOON (Token-Oriented Object Notation)
+---
+
+flowchart LR
+    subgraph Sources["Data Sources"]
+        direction LR
+        JSON[("data.json<br/>Custom Nodes[]")]
+        FHIR[("HAPI FHIR Server<br/>Bundles / Resources")]
+    end
+
+    subgraph Stage1["Preprocessing"]
+        CPP[ClinicalPreprocessor<br/>Parse → Normalize Timestamps<br/>Map Categories → Classify<br/>Tag Events → Sort Chronologically<br/>Build Father-Child Adjacency]
+    end
+
+    subgraph Stage2["TOON Normalization"]
+        direction TB
+        TN[ToonNormalizer<br/>FHIR → LLM-Optimized Text<br/>30-50% Token Reduction]
+        INLINE[Inline Builder<br/>Custom Nodes → TOON String]
+    end
+
+    subgraph Stage3["Chunking"]
+        DC[DocumentChunker<br/>Sentence-Boundary Sliding Window<br/>chunk_size=400, overlap=50]
+    end
+
+    subgraph Stage4["Embedding"]
+        direction LR
+        DENSE["Dense<br/>bge-base-en-v1.5<br/>768-dim COSINE"]
+        SPARSE["Sparse<br/>SPLADE PP v1"]
+    end
+
+    subgraph Stage5["Vector Storage (Qdrant)"]
+        Q["clinical_snapshots<br/>text-dense + text-sparse<br/>Payload: toon_content, fhir_raw<br/>Boolean Flags: is_diagnosis,<br/>is_medication, is_allergy,<br/>is_symptom, is_outcome"]
+    end
+
+    subgraph Stage6["Patient State (Output)"]
+        PSC[PatientStateCompiler<br/>Active/Resolved/Differential Dx<br/>Allergies, Medications<br/>Clinical Status, Symptoms]
+        PS[("PatientState (Immutable)")]
+    end
+
+    subgraph Stage7["Graph Storage (Scaffolded)"]
+        GM[GraphMapper<br/>Cypher: MERGE + CREATE<br/>Nodes: Patient, Encounter,<br/>Observation, Condition<br/>Edges: HAS_ENCOUNTER,<br/>OBSERVED, DIAGNOSED]
+        TG[TemporallyIndexedClinicalGraph<br/>Edge Extraction]
+        FALKORDB["FalkorDB<br/>(Not Connected)"]
+    end
+
+    JSON --> CPP
+    FHIR --> CPP
+    CPP --> TN
+    CPP --> INLINE
+    TN --> DC
+    INLINE --> DC
+    DC --> DENSE
+    DC --> SPARSE
+    DENSE --> Q
+    SPARSE --> Q
+    CPP --> PSC
+    PSC --> PS
+    CPP --> GM
+    CPP --> TG
+    GM --> FALKORDB
+    TG --> FALKORDB
+
+    style FALKORDB fill:#888,stroke:#555,stroke-width:1px,stroke-dasharray: 5 5
+    style Stage7 fill:#f5f5f5,stroke:#999,stroke-width:1px,stroke-dasharray: 5 5
+
+    linkStyle 10,11 stroke:#999,stroke-dasharray: 5 5

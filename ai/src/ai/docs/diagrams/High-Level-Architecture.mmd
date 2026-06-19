@@ -1,0 +1,123 @@
+---
+title: High-Level Architecture — Clinical AI System (BWS)
+---
+
+graph TD
+    Clinician([Clinician])
+    Dashboard[Streamlit Dashboard]
+
+    Clinician <--> Dashboard
+    Dashboard <--> FastAPI
+
+    subgraph BWS [Core System — Belal Workstation Server]
+        FastAPI[FastAPI Backend]
+
+        subgraph ORCH [Orchestration Layer]
+            LGA{LangGraph Agent}
+            IC[Intent Classifier]
+            RLogic{Routing Logic}
+        end
+
+        subgraph IL [Ingestion Layer]
+            direction TB
+            DS[Data Sources]
+            JSN[Custom JSON<br/>data.json / nodes[]]
+            FHIR[FHIR R4<br/>HAPI Server / Bundles]
+            CPP[ClinicalPreprocessor<br/>Parse → Normalize → Classify<br/>Tag → Sort → Build Graph]
+            TN[ToonNormalizer<br/>FHIR → TOON String<br/>30-50% Token Reduction]
+            DC[DocumentChunker<br/>Sentence-Boundary Sliding<br/>Window: 400 / Overlap: 50]
+            EMB[Embedding<br/>Dense: bge-base-en-v1.5<br/>Sparse: SPLADE PP]
+            QDB[(Qdrant Vector DB<br/>clinical_snapshots)]
+            PSC[PatientStateCompiler<br/>Diagnoses · Medications<br/>Allergies · Status]
+            PS[(PatientState<br/>Immutable Snapshot)]
+            GK[GraphMapper<br/>Cypher Generation]
+            FDB[(FalkorDB<br/>Scaffolded / Not Connected)]
+
+            DS --> JSN
+            DS --> FHIR
+            JSN --> CPP
+            FHIR --> TN
+            CPP --> DC
+            CPP --> PSC
+            TN --> DC
+            PSC --> PS
+            DC --> EMB
+            EMB --> QDB
+            CPP --> GK
+            GK --> FDB
+        end
+
+        subgraph RL [Retrieval Layer]
+            HR[HybridRetriever<br/>Dense + Sparse Search<br/>RRF Fusion · Intent Filters]
+            CA[Context Assembly<br/>QueryContext · RetrievalContext<br/>Temporal + Graph Neighborhood]
+        end
+
+        subgraph REAS [Reasoning Layer]
+            CR[ClinicalReasoner<br/>Deterministic Reasoning<br/>CitedClaim · Data Sufficiency]
+            MCP[MCP Client]
+            MCPS[MCP Server<br/>PubMed · OpenFDA · MedlinePlus]
+            LLM[MedGemma<br/>Local: llama.cpp 4B GGUF<br/>Remote: Lightning AI 27B]
+        end
+    end
+
+    GC[Generation & Citation<br/>generate_response + audit_claims<br/>Self-Correction Loop]
+
+    FastAPI --> LGA
+    LGA --> IC
+    IC --> RLogic
+
+    RLogic -- Patient Query --> HR
+    RLogic -- General Med Query --> MCP
+
+    QDB <--> HR
+    PS --> CA
+    HR --> CA
+    CA --> CR
+    CR --> LLM
+
+    MCP <--> MCPS
+    MCPS --> LLM
+    MCP --> LLM
+
+    LLM --> GC
+    GC --> LGA
+
+    style BWS fill:#FFFFE0,stroke:#CCCC00,stroke-width:1px
+    style ORCH fill:none,stroke:#CCCC00,stroke-width:1px
+    style IL fill:none,stroke:#CCCC00,stroke-width:1px
+    style RL fill:none,stroke:#CCCC00,stroke-width:1px
+    style REAS fill:none,stroke:#CCCC00,stroke-width:1px
+
+    style MCP stroke-dasharray: 5 5
+    style MCPS stroke-dasharray: 5 5
+    style FDB fill:#E0E0E0,stroke:#999,stroke-width:1px,stroke-dasharray: 5 5
+
+    style Clinician fill:#E0F7FA,stroke:#00838F,stroke-width:2px
+    style Dashboard fill:#E3F2FD,stroke:#1E88E5,stroke-width:2px
+
+    style FastAPI fill:#FFF3E0,stroke:#FB8C00,stroke-width:2px
+    style LGA fill:#FFF3E0,stroke:#FB8C00,stroke-width:2px
+    style IC fill:#FFF3E0,stroke:#FB8C00,stroke-width:2px
+    style RLogic fill:#FFF3E0,stroke:#FB8C00,stroke-width:2px
+
+    style DS fill:#E8F5E9,stroke:#2E7D32,stroke-width:1px
+    style JSN fill:#E8F5E9,stroke:#2E7D32,stroke-width:1px
+    style FHIR fill:#E8F5E9,stroke:#2E7D32,stroke-width:1px
+    style CPP fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style TN fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style DC fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style EMB fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style QDB fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style PSC fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style PS fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+
+    style HR fill:#C8E6C9,stroke:#1B5E20,stroke-width:2px
+    style CA fill:#C8E6C9,stroke:#1B5E20,stroke-width:2px
+
+    style CR fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
+    style MCP fill:#ECEFF1,stroke:#37474F,stroke-width:2px
+    style MCPS fill:#ECEFF1,stroke:#37474F,stroke-width:2px
+    style LLM fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
+    style GC fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
+
+    linkStyle 12 stroke:#999,stroke-dasharray: 5 5
