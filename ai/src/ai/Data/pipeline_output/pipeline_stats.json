@@ -1,0 +1,8 @@
+{
+  "total_events": 10,
+  "vector_payloads": 10,
+  "graph_nodes": 10,
+  "graph_edges": 9,
+  "root_events": 1,
+  "diagnosis_events": 3
+}

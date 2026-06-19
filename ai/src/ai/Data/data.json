@@ -1,0 +1,240 @@
+{
+  "nodes": [
+    {
+      "id": "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+      "text_1": "Patient condition improved significantly",
+      "father": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+      "relationshipType": "association",
+      "category": "FollowUp",
+      "priority": "Medium",
+      "normality": "Normal",
+      "dateIssued": "2025-12-21",
+      "details": "Cough has subsided, fatigue is gone. Treatment successful",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b"
+        ]
+      },
+      "createdAt": "2026-01-25T09:59:26.676Z",
+      "updatedAt": "2026-01-25T09:59:26.676Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+      "text_1": "Prescribed Azithromycin",
+      "father": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+      "relationshipType": "association",
+      "category": "Prescription",
+      "priority": "High",
+      "normality": "Normal",
+      "dateIssued": "2025-12-11",
+      "details": "Changed antibiotic to Azithromycin which is effective against Atypical Pneumonia",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266"
+        ],
+        "MedicationRequest": [
+          "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266"
+        ]
+      },
+      "createdAt": "2026-01-25T09:58:23.727Z",
+      "updatedAt": "2026-01-25T09:58:23.727Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+      "text_1": "Final Diagnosis: Mycoplasma Pneumonia",
+      "father": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+      "relationshipType": "association",
+      "category": "Consultation",
+      "priority": "High",
+      "normality": "Abnormal",
+      "dateIssued": "2025-12-10",
+      "details": "Amoxicillin stopped. Based on the persistent cough and confirmed drug allergy, Atypical Pneumonia is the most likely diagnosis. Further tests confirm Mycoplasma",
+      "isDiagnosis": true,
+      "isManualBranch": true,
+      "relatedResourceIds": {
+        "Condition": [
+          "cond-enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+        ],
+        "Encounter": [
+          "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20"
+        ]
+      },
+      "createdAt": "2026-01-25T09:56:54.505Z",
+      "updatedAt": "2026-01-25T09:56:54.505Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+      "text_1": "Adverse Drug Reaction to Amoxicillin confirmed",
+      "father": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+      "relationshipType": "association",
+      "category": "Allergy",
+      "priority": "High",
+      "normality": "Abnormal",
+      "dateIssued": "2025-12-09",
+      "details": "Rash identified as an allergic reaction to penicillin-class antibiotics",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-81323a4e-0f87-4bea-83fa-addca75855f2"
+        ],
+        "AllergyIntolerance": [
+          "enc-81323a4e-0f87-4bea-83fa-addca75855f2"
+        ]
+      },
+      "createdAt": "2026-01-25T09:55:23.053Z",
+      "updatedAt": "2026-01-25T09:55:23.053Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+      "text_1": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction",
+      "father": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+      "relationshipType": "association",
+      "category": "Consultation",
+      "priority": "High",
+      "normality": "Abnormal",
+      "dateIssued": "2025-12-08",
+      "details": "Worsening condition suggests initial diagnosis may be incomplete or incorrect. Rash could be an adverse reaction to Amoxicillin",
+      "isDiagnosis": true,
+      "isManualBranch": true,
+      "relatedResourceIds": {
+        "Condition": [
+          "cond-enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115"
+        ],
+        "Encounter": [
+          "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115"
+        ]
+      },
+      "createdAt": "2026-01-25T09:53:47.883Z",
+      "updatedAt": "2026-01-25T09:53:47.883Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+      "text_1": "HPI: Symptoms worsened, rash appeared",
+      "father": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+      "relationshipType": "association",
+      "category": "Consultation",
+      "priority": "High",
+      "normality": "Abnormal",
+      "dateIssued": "2025-12-07",
+      "details": "Symptoms:\n- Increased coughing\n- Reports fever\n\nSigns:\n- New skin rash.",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917"
+        ]
+      },
+      "createdAt": "2026-01-25T09:52:44.345Z",
+      "updatedAt": "2026-01-25T09:54:11.882Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+      "text_1": "Prescribed Amoxicillin",
+      "father": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+      "relationshipType": "association",
+      "category": "Prescription",
+      "priority": "High",
+      "normality": "Normal",
+      "dateIssued": "2025-12-04",
+      "details": "Standard antibiotic course for suspected bacterial bronchitis",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c"
+        ],
+        "MedicationRequest": [
+          "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c"
+        ]
+      },
+      "createdAt": "2026-01-25T09:51:22.277Z",
+      "updatedAt": "2026-01-25T09:51:22.277Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+      "text_1": "Initial Diagnosis: Bronchitis",
+      "father": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+      "relationshipType": "association",
+      "category": "Consultation",
+      "priority": "High",
+      "normality": "Abnormal",
+      "dateIssued": "2025-12-03",
+      "details": "X-Ray clear, symptoms consistent with acute bronchitis",
+      "isDiagnosis": true,
+      "isManualBranch": true,
+      "relatedResourceIds": {
+        "Condition": [
+          "cond-enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538"
+        ],
+        "Encounter": [
+          "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538"
+        ]
+      },
+      "createdAt": "2026-01-25T09:50:28.075Z",
+      "updatedAt": "2026-01-25T09:50:28.075Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+      "text_1": "Chest X-Ray ordered",
+      "father": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+      "relationshipType": "association",
+      "category": "Imaging",
+      "priority": "Medium",
+      "normality": "Normal",
+      "dateIssued": "2025-12-02",
+      "details": "To rule out pneumonia or other lung conditions",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912"
+        ],
+        "ImagingStudy": [
+          "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912"
+        ],
+        "DiagnosticReport": [
+          "dr-enc-aa8da451-090d-4ddc-adf8-8019b2ba5912"
+        ]
+      },
+      "createdAt": "2026-01-25T09:31:10.467Z",
+      "updatedAt": "2026-01-25T09:31:10.467Z",
+      "deletedAt": null
+    },
+    {
+      "id": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+      "text_1": "HPI: Persistent cough and fatigue",
+      "father": null,
+      "relationshipType": null,
+      "category": "Consultation",
+      "priority": "High",
+      "normality": "Abnormal",
+      "dateIssued": "2025-12-01",
+      "details": "Symptoms are cough is dry, has lasted for 2 weeks and fatigue is moderate.",
+      "isDiagnosis": false,
+      "isManualBranch": false,
+      "relatedResourceIds": {
+        "Encounter": [
+          "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4"
+        ]
+      },
+      "createdAt": "2026-01-24T14:09:40.627Z",
+      "updatedAt": "2026-01-24T19:45:09.213Z",
+      "deletedAt": null
+    }
+  ],
+  "eocId": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e",
+  "pagination": null
+}

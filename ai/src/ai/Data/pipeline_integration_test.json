@@ -1,0 +1,151 @@
+{
+  "preprocessing": {
+    "total_events": 10,
+    "date_range": {
+      "earliest": "2025-12-01T00:00:00",
+      "latest": "2025-12-21T00:00:00"
+    },
+    "event_distribution": {
+      "FollowUp/Outcome": 1,
+      "Medication": 2,
+      "Diagnosis": 3,
+      "Allergy/Adverse": 1,
+      "Symptom": 2,
+      "Investigation": 1
+    }
+  },
+  "patient_state": {
+    "active_diagnosis": [
+      "Final Diagnosis: Mycoplasma Pneumonia"
+    ],
+    "allergies": [
+      "Amoxicillin (penicillin-class)"
+    ],
+    "medications": [
+      "Azithromycin"
+    ],
+    "clinical_status": "Improved"
+  },
+  "indexing": {
+    "total_documents": 10,
+    "diagnosis_count": 3,
+    "medication_count": 2
+  },
+  "query_results": [
+    {
+      "query": "What diagnoses were considered?",
+      "intent": "diagnosis",
+      "rewritten_query": "What diagnoses were considered during this patient's episode of care (EOC: eoc-4c64...)? Include provisional, differential, and final diagnoses with dates and reasoning.",
+      "retrieved_count": 3,
+      "top_docs": [
+        {
+          "date": "2025-12-03",
+          "text": "Initial Diagnosis: Bronchitis",
+          "event_tag": "Diagnosis"
+        },
+        {
+          "date": "2025-12-08",
+          "text": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction",
+          "event_tag": "Diagnosis"
+        },
+        {
+          "date": "2025-12-10",
+          "text": "Final Diagnosis: Mycoplasma Pneumonia",
+          "event_tag": "Diagnosis"
+        }
+      ]
+    },
+    {
+      "query": "Why was Mycoplasma Pneumonia diagnosed?",
+      "intent": "differential",
+      "rewritten_query": "Why was Mycoplasma Pneumonia diagnosed? Explain the differential diagnostic process during this patient's episode of care (EOC: eoc-4c64...), including what evidence supported or ruled out each diagnosis.",
+      "retrieved_count": 10,
+      "top_docs": [
+        {
+          "date": "2025-12-01",
+          "text": "HPI: Persistent cough and fatigue",
+          "event_tag": "Symptom"
+        },
+        {
+          "date": "2025-12-02",
+          "text": "Chest X-Ray ordered",
+          "event_tag": "Investigation"
+        },
+        {
+          "date": "2025-12-03",
+          "text": "Initial Diagnosis: Bronchitis",
+          "event_tag": "Diagnosis"
+        }
+      ]
+    },
+    {
+      "query": "What medications were prescribed and why?",
+      "intent": "medication",
+      "rewritten_query": "What medications were prescribed during this patient's episode of care (EOC: eoc-4c64...)? Include reasons for prescription, timing, and any changes. (Note: Patient has documented allergies to: Amoxicillin (penicillin-class))",
+      "retrieved_count": 3,
+      "top_docs": [
+        {
+          "date": "2025-12-04",
+          "text": "Prescribed Amoxicillin",
+          "event_tag": "Medication"
+        },
+        {
+          "date": "2025-12-11",
+          "text": "Prescribed Azithromycin",
+          "event_tag": "Medication"
+        },
+        {
+          "date": "2025-12-09",
+          "text": "Adverse Drug Reaction to Amoxicillin confirmed",
+          "event_tag": "Allergy/Adverse"
+        }
+      ]
+    },
+    {
+      "query": "Does the patient have any allergies?",
+      "intent": "allergy",
+      "rewritten_query": "Document all known allergies and adverse drug reactions during this patient's episode of care (EOC: eoc-4c64...). Known allergies: Amoxicillin (penicillin-class). Provide context about when and how these were identified.",
+      "retrieved_count": 10,
+      "top_docs": [
+        {
+          "date": "2025-12-01",
+          "text": "HPI: Persistent cough and fatigue",
+          "event_tag": "Symptom"
+        },
+        {
+          "date": "2025-12-02",
+          "text": "Chest X-Ray ordered",
+          "event_tag": "Investigation"
+        },
+        {
+          "date": "2025-12-03",
+          "text": "Initial Diagnosis: Bronchitis",
+          "event_tag": "Diagnosis"
+        }
+      ]
+    },
+    {
+      "query": "How did symptoms change over time?",
+      "intent": "change_tracking",
+      "rewritten_query": "How did symptoms change over time? Track the longitudinal changes during this patient's episode of care (EOC: eoc-4c64...), from initial presentation through current status (Improved).",
+      "retrieved_count": 10,
+      "top_docs": [
+        {
+          "date": "2025-12-01",
+          "text": "HPI: Persistent cough and fatigue",
+          "event_tag": "Symptom"
+        },
+        {
+          "date": "2025-12-02",
+          "text": "Chest X-Ray ordered",
+          "event_tag": "Investigation"
+        },
+        {
+          "date": "2025-12-03",
+          "text": "Initial Diagnosis: Bronchitis",
+          "event_tag": "Diagnosis"
+        }
+      ]
+    }
+  ]
+}

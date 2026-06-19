@@ -1,0 +1,228 @@
+{
+  "nodes": [
+    {
+      "id": "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+      "label": "FollowUp/Outcome",
+      "properties": {
+        "text": "Patient condition improved significantly",
+        "details": "Cough has subsided, fatigue is gone. Treatment successful",
+        "date": "2025-12-21T00:00:00",
+        "category": "FollowUp",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Normal",
+        "priority": "Medium",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+      "label": "Medication",
+      "properties": {
+        "text": "Prescribed Azithromycin",
+        "details": "Changed antibiotic to Azithromycin which is effective against Atypical Pneumonia",
+        "date": "2025-12-11T00:00:00",
+        "category": "Prescription",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Normal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+      "label": "Diagnosis",
+      "properties": {
+        "text": "Final Diagnosis: Mycoplasma Pneumonia",
+        "details": "Amoxicillin stopped. Based on the persistent cough and confirmed drug allergy, Atypical Pneumonia is the most likely diagnosis. Further tests confirm Mycoplasma",
+        "date": "2025-12-10T00:00:00",
+        "category": "Consultation",
+        "is_diagnosis": true,
+        "diagnosis_type": "Final",
+        "normality": "Abnormal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+      "label": "Allergy/Adverse",
+      "properties": {
+        "text": "Adverse Drug Reaction to Amoxicillin confirmed",
+        "details": "Rash identified as an allergic reaction to penicillin-class antibiotics",
+        "date": "2025-12-09T00:00:00",
+        "category": "Allergy",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Abnormal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+      "label": "Diagnosis",
+      "properties": {
+        "text": "Differential Diagnosis: Atypical Pneumonia vs. Drug Reaction",
+        "details": "Worsening condition suggests initial diagnosis may be incomplete or incorrect. Rash could be an adverse reaction to Amoxicillin",
+        "date": "2025-12-08T00:00:00",
+        "category": "Consultation",
+        "is_diagnosis": true,
+        "diagnosis_type": "Differential",
+        "normality": "Abnormal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+      "label": "Symptom",
+      "properties": {
+        "text": "HPI: Symptoms worsened, rash appeared",
+        "details": "Symptoms:\n- Increased coughing\n- Reports fever\n\nSigns:\n- New skin rash.",
+        "date": "2025-12-07T00:00:00",
+        "category": "Consultation",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Abnormal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+      "label": "Medication",
+      "properties": {
+        "text": "Prescribed Amoxicillin",
+        "details": "Standard antibiotic course for suspected bacterial bronchitis",
+        "date": "2025-12-04T00:00:00",
+        "category": "Prescription",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Normal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+      "label": "Diagnosis",
+      "properties": {
+        "text": "Initial Diagnosis: Bronchitis",
+        "details": "X-Ray clear, symptoms consistent with acute bronchitis",
+        "date": "2025-12-03T00:00:00",
+        "category": "Consultation",
+        "is_diagnosis": true,
+        "diagnosis_type": "Provisional",
+        "normality": "Abnormal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+      "label": "Investigation",
+      "properties": {
+        "text": "Chest X-Ray ordered",
+        "details": "To rule out pneumonia or other lung conditions",
+        "date": "2025-12-02T00:00:00",
+        "category": "Imaging",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Normal",
+        "priority": "Medium",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    },
+    {
+      "id": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+      "label": "Symptom",
+      "properties": {
+        "text": "HPI: Persistent cough and fatigue",
+        "details": "Symptoms are cough is dry, has lasted for 2 weeks and fatigue is moderate.",
+        "date": "2025-12-01T00:00:00",
+        "category": "Consultation",
+        "is_diagnosis": false,
+        "diagnosis_type": "None",
+        "normality": "Abnormal",
+        "priority": "High",
+        "eoc_id": "eoc-4c6444dc-4b19-4467-84cf-71b67833987e"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+      "to": "enc-78fdbce6-41ef-4b67-8d86-3e9737db396b",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-21T00:00:00"
+      }
+    },
+    {
+      "from": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+      "to": "enc-217fd29f-51ca-42c5-a081-3a8b8fecc266",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-11T00:00:00"
+      }
+    },
+    {
+      "from": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+      "to": "enc-024e551d-110e-4c55-ac07-d2bc66e8ef20",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-10T00:00:00"
+      }
+    },
+    {
+      "from": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+      "to": "enc-81323a4e-0f87-4bea-83fa-addca75855f2",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-09T00:00:00"
+      }
+    },
+    {
+      "from": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+      "to": "enc-f4ce6b6f-8ca1-4f19-8685-52bcd3115115",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-08T00:00:00"
+      }
+    },
+    {
+      "from": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+      "to": "enc-2d4b2345-4fc0-4b8d-bd11-49e6935af917",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-07T00:00:00"
+      }
+    },
+    {
+      "from": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+      "to": "enc-90a18ecf-c418-41a0-b5ea-7b9c47b6bf8c",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-04T00:00:00"
+      }
+    },
+    {
+      "from": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+      "to": "enc-8591cc8a-9ff3-4ac4-a10c-2cc907752538",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-03T00:00:00"
+      }
+    },
+    {
+      "from": "enc-911bc2c8-0548-42d2-97c7-c4af4dfc78e4",
+      "to": "enc-aa8da451-090d-4ddc-adf8-8019b2ba5912",
+      "type": "association",
+      "properties": {
+        "temporal_order": "2025-12-02T00:00:00"
+      }
+    }
+  ]
+}
