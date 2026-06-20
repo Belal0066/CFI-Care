@@ -6,7 +6,7 @@ Accepted (current implementation)
 ## Context
 The Clinical AI System needed to answer both patient-specific questions (grounded in that patient's own records) and general medical questions (drug safety, treatment guidelines — not necessarily patient-specific), through a single conversational entry point, while keeping citation-audit self-correction as a first-class part of the flow rather than exception-handling bolted on afterward.
 
-A predecessor implementation already existed: `src/agent/workflow.py` (`ClinicalWorkflow`, Ticket 2.2, June 2026 — see `git log` on that file), also LangGraph-based (`StateGraph`), with nodes `retrieve → reason → audit → format/reject`. **Both the old and new implementations use LangGraph** — the decision documented here is not "why LangGraph" (no alternatives-comparison for the graph library itself exists anywhere in the repo's history; treat that earlier choice as undocumented, not as evidence-backed), it's why the linear, single-purpose DDx graph was superseded by a multi-intent, multi-source routing graph.
+A second, narrower implementation exists in the same codebase: `src/agent/workflow.py` (`ClinicalWorkflow`, labeled "Ticket 2.2" in its own docstring), also LangGraph-based (`StateGraph`), with nodes `retrieve → reason → audit → format/reject`. **This is not a sequential evolution** — `git show --stat ef231ab` confirms both `src/agent/workflow.py` and `src/agent/graph/workflow.py` (plus `graph/nodes.py`, `graph/state.py`) were added in the *same* commit, dated 2026-05-30, not one replacing the other over time. Only `src/agent/graph/workflow.py` is wired into the active launch path (`dashboard.py`, `FastAPI_Backend.py`) — `src/agent/workflow.py` is imported solely by `scripts/test_ddx.py`. **Both old and new use LangGraph** — the decision documented here is not "why LangGraph" (no alternatives-comparison for the graph library itself exists anywhere in the repo's history; treat that earlier choice as undocumented, not as evidence-backed), it's why the multi-intent routing graph has the shape it does, compared to the narrower, single-purpose graph that was built alongside it but never wired in as the active path.
 
 ## Constraints
 - Must support both a manual mode toggle (`chat`/`local`/`mcp`) for testing/debugging and automatic intent-based routing.
@@ -48,7 +48,8 @@ This is a reconstructed engineering rationale based on capability deltas verifie
 
 ## Evidence
 - `src/agent/graph/workflow.py` — conditional edges, retry edge, `MAX_AUDIT_RETRIES`.
-- `src/agent/workflow.py` (superseded) — confirmed via direct read to be linear, no data-source routing.
+- `src/agent/workflow.py` (co-introduced, not wired into the active path) — confirmed via direct read to be linear, no data-source routing.
+- `git show --stat ef231ab` — confirms both files were added in the same commit, 2026-05-30, not sequentially.
 - `git show -s --format=%B ef231ab` — the introducing commit's message (feature list only, no alternatives discussion).
 
 ## Revisit Trigger

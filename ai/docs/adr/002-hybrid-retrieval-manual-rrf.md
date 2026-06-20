@@ -22,7 +22,7 @@ Not implemented or benchmarked anywhere in the repo — no evidence exists for o
 Pros: less custom code, fusion computed server-side. Cons: not evaluated — the pin to `1.7.0` predates this API, and there's no evidence in the repo of anyone testing whether upgrading was tried and rejected, or simply never attempted. Treat "why not upgrade" as genuinely undocumented, not as a considered-and-rejected option.
 
 ### Option D — Hybrid dense + sparse, fused client-side via manual RRF (chosen)
-`HybridRetriever` (`src/retrieval/service.py`) runs a dense query (BGE-base-en-v1.5) and a sparse query (`NamedSparseVector`, SPLADE `prithivida/Splade_PP_en_v1`) separately, then fuses ranks by hand using the RRF formula with a configurable rank constant (`rrf_rank_constant = 60`, `retrieval/config.py:38` area — see `optimization_results_2026-06-12.md` for the parameter sweep that arrived at this default).
+`HybridRetriever` (`src/retrieval/service.py`) runs a dense query (BGE-base-en-v1.5) and a sparse query (`NamedSparseVector`, SPLADE `prithivida/Splade_PP_en_v1`) separately, then fuses ranks by hand using the RRF formula with a configurable rank constant (`rrf_rank_constant = 60`, `retrieval/config.py:15` — see `optimization_results_2026-06-12.md` for the parameter sweep that arrived at this default).
 
 ## Decision
 Option D.

@@ -43,7 +43,7 @@ None specific to this decision beyond what's already tracked in the failure-mode
 
 ## Evidence
 - `OCR/OCRpipelie/app/option3_ui.py:29,293-300` — confirmed real `PaddleOCRVL` usage against a self-hosted vLLM backend.
-- `OCR/OCRpipelie/scripts/start_vllm_official_8118.sh:5,17` — model name and self-hosted serving confirmed.
+- `OCR/OCRpipelie/scripts/start_vllm_official_8118.sh:5` (self-hosted serving/port) and `:6` (model name, `MODEL_NAME="${MODEL_NAME:-PaddleOCR-VL-1.5-0.9B}"`) confirmed.
 - Absence of documented rationale confirmed by search across `README.md`, `DocOnFHIR_API_Spec.md`, `DOC2FHIR_AI_Context.md`, and `git log` on the introducing commit (`3c16f32` — message is informal, no design rationale).
 
 ## Revisit Trigger

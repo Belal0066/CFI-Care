@@ -76,7 +76,7 @@ Every row is a real running process, verified against its actual entry point and
 | Caller | Callee | Protocol | Timeout | Retries | Retry policy |
 |---|---|---|---:|---:|---|
 | Gateway | OCR (`/parse_api`) | HTTP multipart | 300s (`config.py:53`) | 3 (`ocr.py:77`) | Exponential backoff; timeout/network/5xx retryable, 4xx is not (`ocr.py:94-100`) |
-| Gateway | Mapper (`/v1/chat/completions`) | HTTP, OpenAI chat format | 600s (`config.py:54,65`) | 2 (`mapper.py:66`) | Same classification as OCR adapter |
+| Gateway | Mapper (`/v1/chat/completions`) | HTTP, OpenAI chat format | 600s (`config.py:54`; also the adapter's own default, `mapper.py:65`) | 2 (`mapper.py:66`) | Same classification as OCR adapter |
 | Gateway | Downstream (Node.js or HAPI FHIR) | HTTP POST | 30-60s (`config.py:55`, `downstream.py:56`) | 3 (`downstream.py:57`, `hapi_fhir.py:65`) | 5xx retryable, 4xx is not |
 | Gateway | Node.js callback | HTTP POST, `X-Internal-Secret` header | 10s (`callback.py:55`) | 3 (`config.py:59`) | Fixed backoff base 1.0s (`config.py:60`) |
 | Gateway (both stages) | GPU lock | `asyncio.Semaphore` | 5s acquire timeout (`config.py:52`) | — | Concurrency capped at 1 (`config.py:51`, `orchestrator.py:197`) — OCR and Mapper stages of *different* jobs cannot run concurrently even though they're separate processes |
@@ -111,18 +111,24 @@ Client polls GET /v1/documents/{job_id}/status and /result
 ```
 POST /chat (mode="auto")
   → classify_intent (IntentClassifier)
-  → route_intent: confidence < 0.70 → RAG (safe default);
-                  confidence ≥ 0.70 & non-RAG intent → MCP;
-                  is_mcp_query flag → MCP; visualization intent → visualize
+  → route_intent, checked in this order (workflow.py's route_intent):
+      1. visualization intent → visualize
+      2. is_mcp_query flag → MCP  (bypasses the confidence gate below entirely)
+      3. confidence < 0.70 → RAG (safe default)
+      4. confidence ≥ 0.70 & intent in the RAG-intent set → RAG
+      5. else → MCP
   → [RAG path] retrieve_patient_context: HybridRetriever (Qdrant, primary)
                → falls back to ContextRetriever (in-memory, PatientState-driven) on exception
              → run_deterministic_reasoning (ClinicalReasoner, bounded — no external knowledge)
+             → route_after_reason: needs_drug_check=True → MCP Server (drug-safety evidence), else → generate_response
   → [MCP path] classify_mcp_question_type → construct query → call MCP Server → synthesize
   → generate_response (polymorphic: RAG / MCP / chat)
   → audit_claims: checks each claim's source_node_ids against retrieved encounter_groups
       → failed, retries < 2 → back to generate_response
       → passed, or retries exhausted → compute_confidence → response
 ```
+
+Note step 2's precedence: an `is_mcp_query`-flagged query routes to MCP even at low confidence — the "low confidence falls back to the safer RAG path" behavior (step 3, and see [ADR-001](adr/001-multi-intent-routing-graph.md)) only applies once a query has already cleared the `is_mcp_query` check.
 
 **Known gap on this path**: `FastAPI_Backend.py`'s `_run_agent_graph` hardcodes `patient_id: None` and `patient_state: {}` into the state passed to the graph (`FastAPI_Backend.py:196-197`) — `ChatRequest` has no `patient_id` field at all. `retrieve_patient_context` correctly *accepts* a `patient_id` and resolves it from `patient_state.eoc_id` as a fallback, but neither is ever populated by this endpoint, so retrieval falls through to an unfiltered, all-patients Qdrant search.
 
@@ -146,9 +152,11 @@ Optional branches:
 
 ```
                 ┌→ visualize (chart generation, bypasses reasoning)
-route_intent ───┼→ RAG (HybridRetriever → ContextRetriever fallback → ClinicalReasoner)
-                └→ MCP (PubMed / OpenFDA / MedlinePlus / RxNav)
+route_intent ───┼→ RAG (HybridRetriever → ContextRetriever fallback → ClinicalReasoner) ──┐
+                └→ MCP (PubMed / OpenFDA / MedlinePlus / RxNav) ◄── needs_drug_check ─────┘
 ```
+
+The RAG path isn't a dead end into `generate_response` — `route_after_reason` can send it back out to MCP for external drug-safety evidence (`needs_drug_check`) before generation happens.
 
 ## 0.6 System Invariants
 
