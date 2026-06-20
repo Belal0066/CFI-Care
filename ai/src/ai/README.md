@@ -1,10 +1,32 @@
-# Clinical RAG System - Production Ready ✅
+# Clinical AI System (Clinical RAG / Clinical-Graph Copilot)
 
 **Status:** All 23 validation tests passing | Tickets 4-10 complete | Single-command launch
 
-A deterministic, citation-backed clinical reasoning system that processes longitudinal patient data and provides evidence-grounded clinical analysis.
+A deterministic, citation-backed clinical reasoning system that processes longitudinal patient data and provides evidence-grounded clinical analysis. Built as a HIPAA-compliant, graph-grounded AI copilot on the "Twin Engine" architecture (Qdrant for vector search + FalkorDB for graph queries).
 
-## 🚀 Quick Launch
+## Table of Contents
+- [Quick Launch](#quick-launch)
+- [Key Features](#key-features)
+  - [Deterministic Guarantees](#deterministic-guarantees)
+  - [Complete Pipeline (Tickets 4-10)](#complete-pipeline-tickets-4-10)
+  - [Safety Constraints](#safety-constraints)
+- [Validation Results](#validation-results)
+- [Architecture](#architecture)
+  - [Core Principles](#core-principles)
+- [Quick Start (Ticket 1.1)](#quick-start-ticket-11)
+- [Services](#services)
+- [Epic 1: Clinical Core](#epic-1-clinical-core)
+  - [Testing Epic 1](#testing-epic-1)
+- [Epic 2: Hybrid Retrieval (Current)](#epic-2-hybrid-retrieval-current)
+  - [Setup for Epic 2](#setup-for-epic-2)
+  - [Using the Hybrid Retriever](#using-the-hybrid-retriever)
+  - [Testing Epic 2](#testing-epic-2)
+  - [Experiment Tracking](#experiment-tracking)
+- [Project Structure](#project-structure)
+- [Development Guidelines](#development-guidelines)
+- [Roadmap](#roadmap)
+
+## Quick Launch
 
 ```bash
 # Start all services (Qdrant, MedGemma LLM, FastAPI, MCP)
@@ -19,15 +41,15 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 
 **Expected output:** `✅ ALL VALIDATION TESTS PASSED` (23/23)
 
-## 📋 Key Features
+## Key Features
 
-### ✅ Deterministic Guarantees
+### Deterministic Guarantees
 - All outputs grounded in provided JSON
-- All clinical claims traceable to encounters  
+- All clinical claims traceable to encounters
 - Longitudinal reasoning is reproducible
 - No hallucinated medical facts introduced
 
-### ✅ Complete Pipeline (Tickets 4-10)
+### Complete Pipeline (Tickets 4-10)
 1. **Preprocessing & Normalization** - Event tagging, diagnosis classification
 2. **Patient State Compilation** - Immutable frozen state with temporal priority
 3. **RAG Document Indexing** - Citation-ready documents with rich metadata
@@ -36,20 +58,20 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 6. **Clinical Reasoning** - Bounded reasoning (NO external knowledge)
 7. **Response Generation** - Mandatory citations for all claims + temporal summaries
 
-### ✅ Safety Constraints
+### Safety Constraints
 - Citation enforcement (100% coverage)
 - No speculation beyond documented facts
 - Data sufficiency validation
 - No guideline retrieval, no internet access, no autonomous advice
 
-## 📊 Validation Results
+## Validation Results
 
 ```
 Total Tests: 23/23 passed (100%)
 Duration: <1 second
 
 ✅ Preprocessing & Normalization (4 tests)
-✅ Patient State Compiler (3 tests)  
+✅ Patient State Compiler (3 tests)
 ✅ Document Indexing (3 tests)
 ✅ Query Understanding (1 test)
 ✅ Context Retrieval (2 tests)
@@ -59,12 +81,6 @@ Duration: <1 second
 ```
 
 See [SYSTEM_READY.md](SYSTEM_READY.md) for full details.
-
----
-
-# Clinical-Graph Copilot
-
-A HIPAA-compliant, graph-grounded AI copilot for clinical reasoning built on the "Twin Engine" architecture (Qdrant + FalkorDB).
 
 ## Architecture
 
@@ -115,7 +131,9 @@ python scripts/seed_fhir_test.py
 | FalkorDB | redis://localhost:6379 | Graph queries |
 | Ollama (MedGemma 4B) | http://localhost:11434 | Medical reasoning LLM |
 
-## Epic 1: Clinical Core 
+See [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) for how HAPI FHIR here relates to the `ai/src/DOC2FHIR/` pipeline, and for the full cross-subsystem port map (this system's `:8001` FastAPI Backend and `:8002` MCP Server each have a same-numbered counterpart in DOC2FHIR).
+
+## Epic 1: Clinical Core
 
 The foundational "Twin Engine" infrastructure is operational.
 
@@ -200,20 +218,12 @@ python scripts/test_ddx.py
 ```
 
 ### Experiment Tracking
-Results are logged to `experiments/ddx_runs.jsonl` for analysis and iteration.
-
-## Services
-
-| Service | URL | Purpose |
-| :--- | :--- | :--- |
-| HAPI FHIR | http://localhost:8080/fhir | Clinical data source |
-| Qdrant | http://localhost:6333/dashboard | Vector search |
-| FalkorDB | redis://localhost:6379 | Graph queries |
+Results are logged to `experiments/ddx_runs.jsonl` for analysis and iteration. (Note: this `experiments/` directory does not currently exist in the repo — the logging path is aspirational/not yet wired up.)
 
 ## Project Structure
 
 ```
-AI_System/
+ai/src/ai/
 ├── docker-compose.yml          # Infrastructure definition (Epic 1 + 2)
 ├── requirements.txt            # Python dependencies
 ├── .env.example               # Configuration template
@@ -245,16 +255,17 @@ AI_System/
     └── sync_check.py         # Twin Engine consistency check
 ```
 
+*(This tree was originally written as `AI_System/` — corrected to the path this subsystem actually lives at in this repo: `ai/src/ai/`.)*
+
 ## Development Guidelines
 
-See [.github/instructions/copilot-instructions.md](.github/instructions/copilot-instructions.md) for:
-- Twin Engine compliance rules
-- Error handling patterns
-- Audit trail requirements
+Twin Engine compliance rules, error handling patterns, and audit trail requirements were originally documented at `.github/instructions/copilot-instructions.md`, but that path does not exist in this repo — it wasn't carried over when this subsystem was merged in. Treat those guidelines as currently undocumented here pending recovery from wherever that file originated.
 
 ## Roadmap
 
-### Epic 1: Clinical Core 
+> **Note:** this roadmap uses an older Epic/Ticket numbering (1.x / 2.x) that predates the "Tickets 4-10" scheme referenced in [Key Features](#key-features) above. The status banner at the top of this doc claims all of Tickets 4-10 are complete with 23/23 tests passing, while this section (unmodified from the source doc) still shows Epic 2's later tickets as in-progress. Left as-is rather than guessed-at — whoever owns this subsystem should reconcile which is current.
+
+### Epic 1: Clinical Core
 - [x] **Ticket 1.1**: Infrastructure deployment (HAPI FHIR, Qdrant, FalkorDB)
 - [x] **Ticket 1.2**: TOON normalization layer
 - [x] **Ticket 1.3**: Temporal graph schema
@@ -265,4 +276,4 @@ See [.github/instructions/copilot-instructions.md](.github/instructions/copilot-
 - [ ] **Ticket 2.2**: LangGraph Orchestrator & Differential Diagnosis (Ready for Testing)
 - [ ] **Ticket 2.3**: MCP-1 Deterministic Vitals Tool
 
-See [.github/Backlog.md](.github/Backlog.md) for the complete roadmap.
+(The complete roadmap was originally linked from `.github/Backlog.md`, which also does not exist in this repo — same gap as the Development Guidelines link above.)
