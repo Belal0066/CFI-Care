@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 ENV/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -23,9 +24,10 @@ wheels/
 .installed.cfg
 *.egg
 
-# Environment
+# Environment / Secrets
 .env
 .env.local
+.env.production
 
 # IDE
 .vscode/
@@ -33,9 +35,6 @@ wheels/
 *.swp
 *.swo
 *~
-
-# Docker volumes
-data/
 
 # Logs
 *.log
@@ -45,6 +44,28 @@ logs/
 .DS_Store
 Thumbs.db
 
-# models
+# Models (large binary files)
 *.safetensors
 *.gguf
+models/
+
+# llama.cpp build artifacts
+llama.cpp/
+
+# MCPs virtualenv
+mcps/medmcp/
+mcps/.venv/
+
+# Results logs (timestamped directories with raw log output)
+results/logs_*/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# pytest
+.pytest_cache/
+
+# Misc
+*.bak
+*.tmp
+*.cache
