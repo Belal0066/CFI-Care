@@ -2,13 +2,13 @@
 
 > AI-powered medical document OCR + FHIR conversion pipeline.
 > Upload a PDF → get back structured health data as FHIR R5 bundles.
-> No authentication required.
+> No authentication required on almost every endpoint — see the note below.
 
-**Base URL:** `http://<server-ip>:8001`
+**Base URL:** `http://<server-ip>:8001` — the current dev deployment runs on a Tailscale address; set it via your own environment/config rather than hardcoding it in client code.
 
-- <AI SKIP THIS LINE> rn ana 3aml server-ip 100.117.76.20 3la tailscale, 5lo f env var
+**Auth reality check:** `GET /v1/documents/{job_id}/status` optionally checks an `X-Internal-Secret` header, but only *if the header is present* — omitting it bypasses the check entirely, so this isn't real authentication. `POST /v1/internal/callback`, despite its name, has no auth check at all. Treat every endpoint in this doc as unauthenticated in practice.
 
-> Full OpenAPI spec available at [`DocOnFHIR_API_Spec.md`](./DocOnFHIR_API_Spec.md) — AI agents should reference it for exact schema details.
+> Full OpenAPI spec available at [`DocOnFHIR_API_Spec.md`](./DocOnFHIR_API_Spec.md) — AI agents should reference it for exact schema details (note: response schemas there are currently placeholders; real shapes are in `gateway/models.py`).
 
 ---
 
@@ -20,7 +20,7 @@
 3. GET  /v1/documents/{job_id}/result  ──→  fetch the data
 ```
 
-> **Mock data available** at [`mock/`](./mock/) — realistic JSON responses to develop against without running the pipeline. See [mock section](#mock-data) below.
+> **Mock data available** at [`../../tests/mock/`](../../tests/mock/) — realistic JSON responses to develop against without running the pipeline. See [mock section](#mock-data) below.
 
 ---
 
@@ -111,7 +111,9 @@ def upload_document(file_path: str) -> str:
 }
 ```
 
-**State machine:** `PENDING` → `OCR_PROCESSING` → `MAPPING` → `COMPLETED` | `FAILED`
+**State machine:** `PENDING` → (`SERVER_BUSY` on queue-full/GPU-lock-timeout) → `OCR_PROCESSING` → `MAPPING` → `COMPLETED` | `FAILED`
+
+`SERVER_BUSY` is currently a genuine dead end, not a transient/retryable state — no code anywhere requeues or re-attempts a job once it lands there (confirmed by searching `orchestrator.py`/`app.py`/`job_queue.py` for any requeue logic). A client polling status on a `SERVER_BUSY` job will see that status forever; submit a new job instead of waiting.
 
 
 ### Dart (Flutter) Check only when pressed
@@ -276,7 +278,11 @@ The `div` contains HTML — render in a webview or strip tags for plain text.
 
 ---
 
-## Error Response (all endpoints)
+## Error Response
+
+Two different response shapes carry error information — don't conflate them.
+
+**1. Immediate HTTP error response** (returned directly by a failing request, e.g. a bad upload):
 
 ```json
 {
@@ -291,22 +297,27 @@ The `div` contains HTML — render in a webview or strip tags for plain text.
 |---|---|
 | `validation_error` | Bad request data |
 | `job_not_found` | Invalid job_id |
-| `server_busy` | Queue full — retry later |
-| `stage_timeout` | OCR/Mapper/downstream timed out |
-| `internal_error` | Unexpected server failure |
+| `internal_error` | Unexpected server failure (uncaught exception) |
+| `http_error` | Any other `HTTPException` the app raises — e.g. the 503 "queue full" response on upload. **This is the actual code returned for queue-full, not `server_busy`** — that value only appears in the status-polling response below. |
+
+**2. Job-status polling response** (`GET /v1/documents/{job_id}/status` → `JobStatusResponse.error_code`, set once a job has already been accepted and is progressing/failed):
+
+| error_code | Meaning |
+|---|---|
+| `server_busy` | Job's `state` is `SERVER_BUSY` — GPU-lock timeout or queue was full when this job was being picked up. Currently a dead end, see the state-machine note above. |
+| `stage_timeout` | OCR/Mapper/downstream stage exceeded its configured timeout |
 
 ---
 
 ## Mock Data
 
-Pre-built JSON responses at [`mock/responses/`](./mock/responses/) for testing without the pipeline.
+Pre-built JSON responses at [`../../tests/mock/responses/`](../../tests/mock/responses/) for testing without the pipeline.
 
-**Run the mock server:**
+**Run the mock server** (path is relative to the repo root, not this directory):
 ```bash
-cd ai/src/DOC2FHIR
-python mock/scripts/serve_mock.py          # port 8001
-# or with custom port:
-MOCK_PORT=8002 python mock/scripts/serve_mock.py
+python3 ai/tests/mock/scripts/serve_mock.py          # port 8001 by default — same as the real Gateway
+# to avoid colliding with a real Gateway running alongside it:
+MOCK_PORT=8002 python3 ai/tests/mock/scripts/serve_mock.py
 ```
 
 **Available files:**

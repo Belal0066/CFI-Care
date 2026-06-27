@@ -117,8 +117,8 @@ components:
   responses: {}
   securitySchemes: {}
 servers:
-  - url: http://100.117.76.20:8001
-    description: DocOnFHIR
+  - url: http://<gateway-host>:8001
+    description: DocOnFHIR — set via the deployment's own host/Tailscale address, not hardcoded here
 security: []
 
 ```
@@ -190,8 +190,8 @@ components:
   responses: {}
   securitySchemes: {}
 servers:
-  - url: http://100.117.76.20:8001
-    description: DocOnFHIR
+  - url: http://<gateway-host>:8001
+    description: DocOnFHIR — set via the deployment's own host/Tailscale address, not hardcoded here
 security: []
 
 ```
@@ -260,8 +260,8 @@ components:
   responses: {}
   securitySchemes: {}
 servers:
-  - url: http://100.117.76.20:8001
-    description: DocOnFHIR
+  - url: http://<gateway-host>:8001
+    description: DocOnFHIR — set via the deployment's own host/Tailscale address, not hardcoded here
 security: []
 
 ```

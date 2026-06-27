@@ -10,17 +10,7 @@ Gemma 4 requires a `llama.cpp` build that includes `gemma4` architecture support
 
 ## 1) Download model
 
-```bash
-cd /home/belal/CFI-Care/ai/src/DOC2FHIR/Mapper
-bash scripts/download_unsloth_gemma4.sh
-```
-
-If the repository requires auth, set token:
-
-```bash
-export HF_TOKEN=...
-bash scripts/download_unsloth_gemma4.sh
-```
+**`scripts/download_unsloth_gemma4.sh` does not currently exist in this repo.** Until it's added, download the model manually — see `models/unsloth-gemma-4-e4b-it-gguf/Modelfile` for the exact repo/quantization (`unsloth/gemma-4-E4B-it-GGUF`, Q4_K_M) and point `MODEL_DIR`/`MODEL_FILE` (step 2 below) at wherever you place it. If the repository requires auth, set `HF_TOKEN` before downloading.
 
 ## 2) Configure runtime
 
@@ -58,10 +48,10 @@ The launcher will:
 - Start the server with runtime parameters from config
 
 
-Use the sample OCR markdown to test the Markdown-to-FHIR workflow:
+Use a sample OCR markdown file to test the Markdown-to-FHIR workflow. **`Mapper/data/OCR/` does not currently exist** — `Mapper/data/` only has `FHIR/` (reference bundles) and `pdf/` (source PDFs); generate your own markdown from the OCR service's output, or run the full pipeline via the Gateway instead of testing the Mapper standalone.
 
 ```bash
-INPUT=/home/belal/CFI-Care/ai/src/DOC2FHIR/Mapper/data/OCR/cfi\ care\ scanner-1.md
+INPUT=/path/to/your/ocr-output.md
 PROMPT=$(cat /home/belal/CFI-Care/ai/src/DOC2FHIR/Mapper/prompts/gemma4-fhir-medical.txt)
 
 # The request structure for llama-server (OpenAI-compatible chat):
@@ -86,7 +76,7 @@ This checks:
 - JSON structure is valid (`resourceType: "Bundle"`, correct `type`, `entry` array)
 - All resources have required fields (`id`, `resourceType`, `status`)
 - All references are logically consistent
-- Bundle passes FHIR R4 validator
+- Bundle passes FHIR R5 validator (this pipeline targets R5 throughout — `gateway/config.py:38`, `fhir_version = "5.0"`; not R4)
 
 Example with the reference bundle:
 
@@ -96,18 +86,11 @@ python3 scripts/validate_fhir_output.py data/FHIR/cfi\ care\ scanner-1.json
 
 ## 7) Run readiness check
 
-Create or edit `release/checklist-input.json` from the example, then:
+**Neither `scripts/release_readiness.py` nor a `release/` directory currently exist in this repo.** This step is aspirational — if you're adding a release-readiness check, the criteria this section originally intended to cover were: medical prompt file versioned and loads without error, FHIR validation tool tested against sample data, sample eval bundle validates successfully, prompt safety checks in place. Until then, use step 6's manual validation.
 
-```bash
-cd /home/belal/CFI-Care/ai/src/DOC2FHIR/Mapper
-python3 scripts/release_readiness.py --input release/checklist-input.example.json
-```
+## Also available: `scripts/run_streamlit_web.sh`
 
-The readiness score now includes:
-- Medical prompt file versioned and loads without error
-- FHIR validation tool tested against sample data
-- Sample eval bundle validates successfully
-- Prompt safety checks in place
+A Streamlit web UI for the Mapper (`web/app.py`, default port 8501) — undocumented elsewhere in this file; run it the same way as `run_llama_server.sh` once the server from step 4 is up.
 
 ## Notes for medical data residency
 - Keep inference fully self-hosted.
