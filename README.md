@@ -1,18 +1,25 @@
 <h1 align="center" style="border-bottom: none">
-
-
-  
   <br>
-  <img width="1254" height="1254" alt="CFI-Care_logo" src="https://github.com/user-attachments/assets/f67a4598-f50b-4685-8b2e-8d8548df3ca2" />
-  🇨 🇫 🇮➖ 🇨 🇦 🇷 🇪
-
+  <img width="250" height="250" alt="CFI-Care_logo" src="https://github.com/user-attachments/assets/f67a4598-f50b-4685-8b2e-8d8548df3ca2" />
+  <br>
+  🇨 🇫 🇮 ➖ 🇨 🇦 🇷 🇪
 </h1>
-<h2 align="center" style="border-bottom: none">Collaborative Flow of Intelligence for Care</h2>
+
+<h3 align="center">Collaborative Flow of Intelligence for Care</h3>
+
 <p align="center">
-CFI-Care is an <b>AI-powered, patient-centric health record platform</b> designed to streamline healthcare workflows, reduce administrative burden, and empower both patients and providers.  
-It unifies fragmented medical data into a secure, collaborative, and version-controlled environment, enabling real-time monitoring, interoperability, and intelligent clinical decision support. 
+  <strong>Tired of repeating your medical history? We're here to fix that.</strong>
 </p>
 
+<!-- ================= BADGES ================= -->
+<p align="center">
+  <!-- Project Status & Info -->
+  <img src="https://img.shields.io/badge/Project-Graduation%20Project-blueviolet?style=flat-square" alt="Project Type" />
+  <img src="https://img.shields.io/badge/Platform-Web%20%7C%20Mobile-blue?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/Version-v1.0.0--beta-orange?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red?style=flat-square" alt="License" />
+
+</p>
 
 
 ---
