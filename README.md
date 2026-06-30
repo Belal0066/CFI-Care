@@ -3,9 +3,11 @@
 
   
   <br>
+  <img width="1254" height="1254" alt="CFI-Care_logo" src="https://github.com/user-attachments/assets/f67a4598-f50b-4685-8b2e-8d8548df3ca2" />
   🇨 🇫 🇮➖ 🇨 🇦 🇷 🇪
+
 </h1>
-<h2 align="center" style="border-bottom: none">🇨ollaborative 🇫low of 🇮ntelligence for 🇨are</h2>
+<h2 align="center" style="border-bottom: none">Collaborative Flow of Intelligence for Care</h2>
 <p align="center">
 CFI-Care is an <b>AI-powered, patient-centric health record platform</b> designed to streamline healthcare workflows, reduce administrative burden, and empower both patients and providers.  
 It unifies fragmented medical data into a secure, collaborative, and version-controlled environment, enabling real-time monitoring, interoperability, and intelligent clinical decision support. 
