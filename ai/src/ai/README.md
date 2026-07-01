@@ -1,189 +1,136 @@
-# Clinical AI System (Clinical RAG / Clinical-Graph Copilot)
+# Clinical AI System
 
-**Status:** All 23 validation tests passing | Tickets 4-10 complete | Single-command launch
+**A deterministic, citation-backed clinical reasoning copilot** — an agentic RAG system that reasons over longitudinal patient data using hybrid (dense + sparse) vector search, routes between local and internet-sourced evidence via a self-correcting LangGraph agent, and never emits a clinical claim without a traceable source.
 
-A deterministic, citation-backed clinical reasoning system that processes longitudinal patient data and provides evidence-grounded clinical analysis. Built as a HIPAA-compliant AI copilot on hybrid (dense + sparse) vector search over Qdrant.
+**Status:** deterministic pipeline (23/23 tests passing) is stable; the agentic LangGraph layer runs end-to-end via the dashboard but has no dedicated automated test suite yet — see [Honest Status](#honest-status).
 
 ## Table of Contents
-- [Quick Launch](#quick-launch)
-- [Key Features](#key-features)
-  - [Deterministic Guarantees](#deterministic-guarantees)
-  - [Complete Pipeline (Tickets 4-10)](#complete-pipeline-tickets-4-10)
-  - [Safety Constraints](#safety-constraints)
-- [Validation Results](#validation-results)
+- [What This Solves](#what-this-solves)
 - [Architecture](#architecture)
-  - [Core Principles](#core-principles)
-- [Quick Start (Ticket 1.1)](#quick-start-ticket-11)
-- [Services](#services)
-- [Epic 1: Clinical Core](#epic-1-clinical-core)
-  - [Testing Epic 1](#testing-epic-1)
-- [Epic 2: Hybrid Retrieval (Current)](#epic-2-hybrid-retrieval-current)
-  - [Setup for Epic 2](#setup-for-epic-2)
-  - [Using the Hybrid Retriever](#using-the-hybrid-retriever)
-  - [Testing Epic 2](#testing-epic-2)
-  - [Experiment Tracking](#experiment-tracking)
+- [Honest Status](#honest-status)
+- [Key Technical Decisions](#key-technical-decisions)
+- [Results](#results)
+- [Quick Start](#quick-start)
+- [Using the System](#using-the-system)
 - [Project Structure](#project-structure)
-- [Development Guidelines](#development-guidelines)
+- [Testing](#testing)
 - [Roadmap](#roadmap)
 
-## Quick Launch
+## What This Solves
 
-```bash
-# Start all services (Qdrant, MedGemma LLM, FastAPI, MCP)
-./launch.sh
+Naive RAG over clinical records fails in two specific ways: it retrieves documents that are topically similar but temporally irrelevant (an old resolved diagnosis outranking a current one), and it lets the LLM fill gaps with plausible-sounding but unsupported claims. This system addresses both:
 
-# Launch web interface (http://localhost:8511)
-./launch_dashboard.sh
-
-# Validate system (23 tests)
-PYTHONPATH=$PWD python3 scripts/validate_system.py
-```
-
-**Expected output:** `✅ ALL VALIDATION TESTS PASSED` (23/23)
-
-## Key Features
-
-### Deterministic Guarantees
-- All outputs grounded in provided JSON
-- All clinical claims traceable to encounters
-- Longitudinal reasoning is reproducible
-- No hallucinated medical facts introduced
-
-### Complete Pipeline (Tickets 4-10)
-1. **Preprocessing & Normalization** - Event tagging, diagnosis classification
-2. **Patient State Compilation** - Immutable frozen state with temporal priority
-3. **RAG Document Indexing** - Citation-ready documents with rich metadata
-4. **Query Understanding** - Intent classification (10 types) + query rewriting
-5. **Context Retrieval** - Intent-based filtering with 10 specialized strategies
-6. **Clinical Reasoning** - Bounded reasoning (NO external knowledge)
-7. **Response Generation** - Mandatory citations for all claims + temporal summaries
-
-### Safety Constraints
-- Citation enforcement (100% coverage)
-- No speculation beyond documented facts
-- Data sufficiency validation
-- No guideline retrieval, no internet access, no autonomous advice
-
-## Validation Results
-
-```
-Total Tests: 23/23 passed (100%)
-Duration: <1 second
-
-✅ Preprocessing & Normalization (4 tests)
-✅ Patient State Compiler (3 tests)
-✅ Document Indexing (3 tests)
-✅ Query Understanding (1 test)
-✅ Context Retrieval (2 tests)
-✅ Clinical Reasoning & Response (5 tests)
-✅ Deterministic Guarantees (3 tests)
-✅ Non-Goals Verification (2 tests)
-```
-
-See [SYSTEM_READY.md](SYSTEM_READY.md) for full details.
+- **Temporal + intent-aware retrieval** — queries are classified into one of 10 intents (differential, medication history, treatment progression, etc.) before retrieval, and results are filtered/ranked accordingly, not just nearest-neighbor.
+- **Citation enforcement** — every claim in a generated response is checked against the retrieved documents by a dedicated `ClaimAuditor` node before the response is returned. Claims that fail the audit trigger a bounded retry (max 2) before falling through.
 
 ## Architecture
 
-### Core Principles
-1. **HL7 FHIR R4 Compliance**: All clinical data structures follow FHIR R4 standards.
-2. **Hybrid Retrieval**: Dense + sparse vector search over Qdrant, fused via reciprocal rank fusion.
-3. **Strict Typing**: Pydantic V2 for all data validation.
+```mermaid
+graph TD
+    Clinician([Clinician]) <--> Dashboard[Streamlit Dashboard]
+    Dashboard <--> FastAPI[FastAPI Backend :8001]
 
-## Quick Start (Ticket 1.1)
+    FastAPI --> LGA{LangGraph Agent}
+    LGA --> IC[Intent Classifier]
+    IC --> RLogic{route_intent<br/>confidence gate @ 0.70}
 
-### 1. Start Infrastructure
-```bash
-# Start all services
-docker-compose up -d
+    RLogic -- "patient-context intent" --> RPC[retrieve_patient_context]
+    RLogic -- "general/drug-safety intent" --> MCP[MCP Client]
 
-# Wait ~30 seconds for initialization
-docker-compose ps
+    subgraph Ingestion
+        JSON[Patient JSON / FHIR R4] --> Preproc[ClinicalPreprocessor]
+        Preproc --> Chunk[DocumentChunker]
+        Chunk --> Embed["Embed: bge-base-en-v1.5 (dense)<br/>+ SPLADE PP (sparse)"]
+        Embed --> Qdrant[(Qdrant)]
+        Preproc --> PSC[PatientStateCompiler] --> PS[(Immutable PatientState)]
+    end
+
+    RPC -- "primary" --> HR[HybridRetriever<br/>Qdrant dense+sparse+RRF]
+    RPC -- "fallback, on exception" --> CTX[ContextRetriever<br/>in-memory, intent-strategy]
+    Qdrant <--> HR
+    PS --> CTX
+    HR --> Reason[ClinicalReasoner<br/>bounded, cited reasoning]
+    CTX --> Reason
+
+    MCP <--> MCPServer[MCP Server :8002<br/>PubMed / OpenFDA / MedlinePlus / RxNav]
+
+    Reason --> Gen[generate_response]
+    MCPServer --> Gen
+    Gen --> Audit[audit_claims<br/>ClaimAuditor]
+    Audit -- failed, retries < 2 --> Gen
+    Audit -- passed / exhausted --> Response([Cited response])
 ```
 
-### 2. Install Dependencies
+Full annotated diagrams (including the LangGraph state machine with its confidence-gated routing) live in [`docs/diagrams/`](docs/diagrams/). Cross-subsystem port map: [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+
+## Honest Status
+
+| Layer | State |
+|---|---|
+| Deterministic pipeline (preprocessing → patient state → indexing → retrieval → reasoning) | ✅ **Implemented & tested** — 23/23 tests, see [Results](#results) |
+| Hybrid retrieval (dense + sparse, RRF fusion) | ✅ **Implemented** — `src/retrieval/service.py`, tested |
+| LangGraph agent (`src/agent/graph/`) — intent routing, self-correcting citation audit | ✅ **Implemented, runs end-to-end** — exercised via the dashboard; no dedicated automated test suite yet |
+| MCP internet retrieval (PubMed / OpenFDA / MedlinePlus) | ✅ **Implemented & tested** — `mcps/`, unit + integration tests |
+| FHIR R4 ingestion | ⚠️ **Code exists, not the active data source** — production data currently comes from a JSON/Redis path; HAPI FHIR is defined in `docker-compose.yml` but not started by `launch.sh` |
+| `src/agent/workflow.py` (older LangGraph DDx workflow) | ❌ **Superseded** by `src/agent/graph/workflow.py`, kept only because a test script still imports it |
+| Rate limiting, audit logging, monitoring | ❌ **Not implemented** |
+| Per-patient isolation on `/chat` (`mode="auto"`) | ⚠️ **Gap** — `FastAPI_Backend.py`'s agentic path hardcodes `patient_id: None` and `patient_state: {}` into the graph's initial state; `HybridRetriever` then falls back to an unfiltered search across the whole Qdrant collection rather than one patient's data. The retrieval code itself (`retrieve_patient_context` in `src/agent/graph/nodes.py`) correctly *accepts* a `patient_id`, this endpoint just never supplies one — safe only under the "one patient per collection" deployment assumption noted elsewhere in this doc, not enforced by the code. |
+
+This table is kept honest on purpose — see [`context.md`](context.md) for the full module-by-module breakdown, known bugs, and dead code, maintained as a living index rather than aspirational documentation.
+
+## Key Technical Decisions
+
+- **Manual RRF instead of Qdrant's native fusion API** — `qdrant-client==1.7.0` predates `Prefetch`/`FusionQuery`, so `HybridRetriever` (`src/retrieval/service.py`) implements Reciprocal Rank Fusion by hand over separate dense and `NamedSparseVector` sparse queries.
+- **SPLADE sparse + BGE dense, not dense-only** — sparse vectors (`prithivida/Splade_PP_en_v1`) catch exact clinical terms (drug names, lab codes) that dense embeddings alone under-rank; fused via RRF rather than either search running alone.
+- **Confidence-gated routing, biased toward the safer failure mode** — `route_intent` sends *low*-confidence intent classifications (< 0.70) to broad local RAG rather than to MCP — a wrong guess stays grounded in the patient's own data instead of triggering an ungrounded internet search. Only *high*-confidence classifications outside the RAG-intent set (drug-safety/guideline-style questions) route to MCP. See `src/agent/graph/workflow.py::route_intent`.
+- **Two-path retrieval with automatic fallback** — `retrieve_patient_context` tries `HybridRetriever` (Qdrant, primary) first; on any exception it falls back to `ContextRetriever`, a separate in-memory, intent-strategy-based retriever driven by the compiled `PatientState` rather than vector search. Both paths converge on the same `EncounterGroup` shape before reasoning, so a Qdrant outage degrades retrieval quality instead of taking the agent down.
+- **Citation audit as a graph node, not a prompt instruction** — `audit_claims` structurally checks each claim's `source_node_ids` against the IDs actually present in the retrieved `encounter_groups`, and can force a bounded regeneration (max 2 retries), rather than relying on the LLM to self-police citations.
+- **Deterministic reasoning is intentionally bounded** — `ClinicalReasoner` never calls out to general medical knowledge; it only reasons over documents it was actually given. External medical knowledge only enters through the explicit, separately-routed MCP path.
+
+## Results
+
+From the most recent benchmark run against the deterministic + MedGemma pipeline (see [`results/`](results/) for full reports):
+
+| Metric | Value | Target | Status |
+|---|---|---|---|
+| Faithfulness (claim support) | 1.000 | > 0.95 | ✅ |
+| Hallucination rate | 0.000 | < 0.05 | ✅ |
+| Deterministic pipeline P95 latency | 0.18 ms | < 12000 ms | ✅ |
+| Retrieval Recall@3 | 0.408 | > 0.90 | ❌ below target |
+| Retrieval Recall@10 | 0.875 | > 0.95 | ❌ below target |
+| Mean MRR | 0.675 | — | reference |
+
+The recall numbers are reported as-is, not smoothed over: they were measured against a 10-document corpus, which is too small to be a meaningful recall benchmark at these targets — see [`results/optimization_results_2026-06-12.md`](results/optimization_results_2026-06-12.md) for the full analysis and the plan to re-run against a 100+ document corpus.
+
+## Quick Start
+
 ```bash
+# 1. Start infrastructure (Qdrant + optional HAPI FHIR)
+docker-compose up -d
+
+# 2. Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Configure Environment
-```bash
-cp .env.example .env
-# Edit .env if needed (defaults work with docker-compose)
-```
+# 3. Configure environment
+cp .env.example .env   # defaults work with docker-compose
 
-### 4. Verify Infrastructure
-```bash
-python scripts/verify_infra.py
-```
-
-### 5. Test FHIR Ingestion
-```bash
-python scripts/seed_fhir_test.py
-```
-
-## Services
-
-| Service | URL | Purpose |
-| :--- | :--- | :--- |
-| HAPI FHIR | http://localhost:8080/fhir | Clinical data source |
-| Qdrant | http://localhost:6333/dashboard | Vector search |
-| Ollama (MedGemma 4B) | http://localhost:11434 | Medical reasoning LLM |
-
-See [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) for how HAPI FHIR here relates to the `ai/src/DOC2FHIR/` pipeline, and for the full cross-subsystem port map (this system's `:8001` FastAPI Backend and `:8002` MCP Server each have a same-numbered counterpart in DOC2FHIR).
-
-## Epic 1: Clinical Core
-
-The foundational vector-search infrastructure is operational.
-
-### Testing Epic 1
-```bash
-# 1. Verify infrastructure health
+# 4. Verify infrastructure
 python scripts/verify_infra.py
 
-# 2. Test FHIR ingestion
-python scripts/test_ingestion.py
+# 5. Launch everything (Qdrant, LLM backend, FastAPI, MCP server)
+./launch.sh --local        # llama.cpp MedGemma 4B, local GPU
+# or: ./launch.sh --lightning   # MedGemma 27B via Lightning AI (remote)
+
+# 6. Launch the dashboard
+./launch_dashboard.sh      # http://localhost:8511
 ```
 
-## Epic 2: Hybrid Retrieval (Current)
-
-**Goal**: Implement hybrid retrieval combining dense and sparse vector search.
-
-### Setup for Epic 2
-
-#### 1. Configure API Keys
-```bash
-cp .env.example .env
-# Edit .env and add:
-# - HF_TOKEN: Your Hugging Face token
-# - GROQ_API_KEY: Your Groq API key
-```
-
-#### 2. Start Ollama (MedGemma)
-```bash
-# Ensure Ollama is running
-ollama serve
-
-# Verify the model is available
-ollama list | grep medgemma
-
-# If not present, pull it:
-# ollama pull medgemma:4b
-```
-
-#### 3. Start Docker Services
-```bash
-docker-compose up -d
-```
-
-### Using the Hybrid Retriever
+## Using the System
 
 ```python
 from src.retrieval.service import HybridRetriever
 
-# Initialize
 retriever = HybridRetriever()
-
-# Query
 results = retriever.search(
     patient_id="patient-123",
     query="elevated glucose levels",
@@ -191,75 +138,63 @@ results = retriever.search(
 )
 
 for ctx in results:
-    print(f"Anchor: {ctx.anchor_content}")
-    print(f"Score: {ctx.score}")
+    print(ctx.anchor_content, ctx.score)
 ```
 
-### Testing Epic 2
+Or via the FastAPI backend directly:
 
-#### Ticket 2.1: Hybrid Retrieval
 ```bash
-python scripts/test_retrieval.py
+curl -X POST http://localhost:8001/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What was the treatment progression?", "mode": "auto"}'
 ```
 
-#### Ticket 2.2: Clinical Reasoning (DDx)
-```bash
-# Ensure Ollama is running
-ollama serve
-
-# Run the DDx workflow test
-python scripts/test_ddx.py
-```
-
-### Experiment Tracking
-Results are logged to `experiments/ddx_runs.jsonl` for analysis and iteration. (Note: this `experiments/` directory does not currently exist in the repo — the logging path is aspirational/not yet wired up.)
+`ChatRequest` (`src/api/FastAPI_Backend.py`) takes `query`, `history`, `mode` (`"rag"` / `"mcp"` / `"auto"`), `score_threshold`, `top_k`, and `temperature` — **not** `patient_id`; see the isolation gap noted in [Honest Status](#honest-status). `FastAPI_Backend.py` also exposes `/health`, `/ingest`, and `/patient/{patient_id}` (the last takes `patient_id` as a path parameter, for direct Redis lookup — unrelated to `/chat`).
 
 ## Project Structure
 
 ```
 ai/src/ai/
-├── docker-compose.yml          # Infrastructure definition (Epic 1 + 2)
-├── requirements.txt            # Python dependencies
-├── .env.example               # Configuration template
-├── docs/
-│   └── specs/                    # Technical specifications
-│       └── Ticket-1.1-Infra-Spec.md
+├── docker-compose.yml       # Qdrant + HAPI FHIR
+├── launch.sh                 # Full stack launcher (--local | --lightning)
 ├── src/
-│   ├── shared/                # Shared utilities
-│   │   ├── models.py         # Pydantic data models
-│   │   ├── config.py         # Configuration management
-│   │   └── db_clients.py     # Database connection handlers
-│   ├── ingestion/            # FHIR ETL pipeline
-│   │   ├── service.py        # Qdrant ingestion orchestrator
-│   │   └── toon.py           # TOON normalization
-│   ├── retrieval/            # Hybrid retrieval (Epic 2)
-│   │   └── service.py        # HybridRetriever implementation
-│   └── api/                  # API layer (future)
-└── scripts/
-    ├── verify_infra.py       # Infrastructure validation
-    ├── seed_fhir_test.py     # Test data seeding
-    ├── test_ingestion.py     # Ingestion pipeline tests
-    └── test_retrieval.py     # Retrieval service tests
+│   ├── shared/                # Config, DB clients, Pydantic models
+│   ├── ingestion/              # Preprocessing, patient-state compilation, Qdrant indexing
+│   ├── retrieval/               # HybridRetriever, query understanding, context assembly
+│   ├── agent/
+│   │   └── graph/                 # Active LangGraph agent (state, nodes, workflow)
+│   ├── api/                    # FastAPI_Backend.py (active)
+│   └── ui/                     # Streamlit dashboard
+├── mcps/                     # MCP server: PubMed / OpenFDA / MedlinePlus adapters
+├── scripts/                  # Validation, evaluation, and seeding scripts
+├── docs/diagrams/            # Mermaid architecture + agent-workflow diagrams
+├── results/                  # Dated benchmark reports
+└── context.md                 # Full module-by-module index, kept current by hand
 ```
 
-*(This tree was originally written as `AI_System/` — corrected to the path this subsystem actually lives at in this repo: `ai/src/ai/`.)*
+## Testing
 
-## Development Guidelines
+```bash
+# 23 deterministic pipeline tests
+PYTHONPATH=$PWD python3 scripts/validate_system.py
 
-Data-consistency rules, error handling patterns, and audit trail requirements were originally documented at `.github/instructions/copilot-instructions.md`, but that path does not exist in this repo — it wasn't carried over when this subsystem was merged in. Treat those guidelines as currently undocumented here pending recovery from wherever that file originated.
+# MCP internet-retrieval flow
+PYTHONPATH=$PWD python3 test_mcp_flow.py
+
+# Retrieval / ingestion / DDx (see context.md §10 for the full matrix and prerequisites)
+python scripts/test_retrieval.py
+python scripts/test_ingestion.py
+python scripts/test_ddx.py        # requires a running LLM backend
+```
+
+The agentic LangGraph layer (`src/agent/graph/`) is currently only exercised through manual dashboard interaction — it has no automated test suite. That's the single largest testing gap in the system; see [Honest Status](#honest-status).
 
 ## Roadmap
 
-> **Note:** this roadmap uses an older Epic/Ticket numbering (1.x / 2.x) that predates the "Tickets 4-10" scheme referenced in [Key Features](#key-features) above. The status banner at the top of this doc claims all of Tickets 4-10 are complete with 23/23 tests passing, while this section (unmodified from the source doc) still shows Epic 2's later tickets as in-progress. Left as-is rather than guessed-at — whoever owns this subsystem should reconcile which is current.
+- [ ] Dedicated test suite for the LangGraph agent (`src/agent/graph/`)
+- [ ] MCP-1: deterministic vitals-chart tool from FHIR Observation arrays
+- [ ] Larger (100+ doc) retrieval-recall benchmark corpus
+- [ ] PII-scrubbing sub-agent for internet search queries
+- [ ] Rate limiting, audit logging, monitoring
 
-### Epic 1: Clinical Core
-- [x] **Ticket 1.1**: Infrastructure deployment (HAPI FHIR, Qdrant)
-- [x] **Ticket 1.2**: TOON normalization layer
-- [x] **Ticket 1.4**: Qdrant ingestion service
-
-### Epic 2: Agentic RAG (Current)
-- [x] **Ticket 2.1**: Hybrid Retrieval Service (Dense + Sparse Fusion)
-- [ ] **Ticket 2.2**: LangGraph Orchestrator & Differential Diagnosis (Ready for Testing)
-- [ ] **Ticket 2.3**: MCP-1 Deterministic Vitals Tool
-
-(The complete roadmap was originally linked from `.github/Backlog.md`, which also does not exist in this repo — same gap as the Development Guidelines link above.)
+See [`context.md §11`](context.md) for the complete, unfiltered backlog.

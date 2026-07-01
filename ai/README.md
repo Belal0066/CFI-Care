@@ -4,7 +4,7 @@ Two subsystems make up CFI-Care's AI capabilities. They aren't wired together in
 
 ## Table of Contents
 - [DOC2FHIR — Document to FHIR Pipeline](#doc2fhir--document-to-fhir-pipeline)
-- [Clinical AI System — RAG / Graph Copilot](#clinical-ai-system--rag--graph-copilot)
+- [Clinical AI System — Agentic RAG Copilot](#clinical-ai-system--agentic-rag-copilot)
 - [Architecture & Port Map](#architecture--port-map)
 - [Testing](#testing)
 
@@ -17,9 +17,9 @@ Scanned medical reports (PDF) → OCR → structured extraction → deterministi
 - **Developer/AI reference:** [src/DOC2FHIR/DOC2FHIR_AI_Context.md](src/DOC2FHIR/DOC2FHIR_AI_Context.md)
 - **Mapper component** (llama.cpp + Gemma-4 GGUF, does the structured-to-FHIR reasoning): [src/DOC2FHIR/Mapper/README.md](src/DOC2FHIR/Mapper/README.md)
 
-## Clinical AI System — RAG / Graph Copilot
+## Clinical AI System — Agentic RAG Copilot
 
-Deterministic, citation-backed clinical reasoning over longitudinal patient data, built on hybrid (dense + sparse) vector search over Qdrant.
+Deterministic, citation-backed clinical reasoning over longitudinal patient data, built on hybrid (dense + sparse) vector search over Qdrant, routed by a self-correcting LangGraph agent.
 
 - **Start here:** [src/ai/README.md](src/ai/README.md)
 - **Launch guide:** [src/ai/LAUNCH.md](src/ai/LAUNCH.md)
