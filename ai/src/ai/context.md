@@ -8,7 +8,7 @@
 
 | Property | Value |
 |----------|-------|
-| **Name** | Clinical AI System (Clinical-Graph Copilot) |
+| **Name** | Clinical AI System |
 | **Tagline** | Deterministic, citation-backed clinical reasoning system |
 | **Domain** | Clinical Decision Support System (CDSS) |
 | **Data Standard** | HL7 FHIR R4 |
@@ -152,7 +152,7 @@ flowchart LR
 ## 3. Directory Tree (Annotated)
 
 ```
-/home/belal/AI_System/
+ai/src/ai/
 ├── .env.example                     # Template for environment variables
 ├── .gitignore
 ├── docker-compose.yml               # Qdrant + HAPI FHIR + PostgreSQL
@@ -230,7 +230,7 @@ flowchart LR
 │       ├── medlineplus.py           #     MedlinePlus search
 │       └── rxnav.py                 #     RxNorm drug name normalizer
 │
-├── scripts/                         # 29 utility/test scripts
+├── scripts/                         # Utility/test scripts
 │   ├── validate_system.py           #   23-test suite (Tickets 4-10)
 │   ├── test_preprocessor.py         #   Preprocessor unit tests
 │   ├── test_integration_tickets_4_7.py
@@ -281,7 +281,7 @@ flowchart LR
 
 | File | Key Exports | Lines | Status |
 |------|-------------|-------|--------|
-| `preprocessor.py` | `ClinicalPreprocessor`, `NormalizedNode`, `ClinicalCategory`, `DiagnosisType`, `EventTag` | 477 | ✅ Active. Deterministic normalization of clinical JSON nodes. Parses timestamps, classifies diagnoses, tags events (6 types). Method: `preprocess_timeline(data)`. |
+| `preprocessor.py` | `ClinicalPreprocessor`, `NormalizedNode`, `ClinicalCategory`, `DiagnosisType`, `EventTag` | 477 | ✅ Active. Deterministic normalization of clinical JSON nodes — no ML/LLM involved, for reproducibility. Parses/normalizes timestamps, preserves father/child graph structure (root detection + children-map adjacency), classifies diagnoses (Provisional / Differential / Final, by keyword), and tags each node with one of 6 event types: `Symptom`, `Diagnosis`, `Medication`, `Allergy/Adverse`, `FollowUp/Outcome`, `Investigation`. Failures are per-node (`PreprocessingError`) — one bad node doesn't block the rest. Method: `preprocess_timeline(data)`. |
 | `patient_state.py` | `PatientStateCompiler`, `PatientState` | 463 | ✅ Active. Compiles sorted timeline → immutable patient snapshot (active/resolved/differential diagnoses, medications, allergies, clinical status). Method: `compile_state(nodes, eoc_id)`. |
 | `toon.py` | `ToonNormalizer` | ~200 | ✅ Active. FHIR R4 resources → TOON (Token-Oriented Object Notation) natural language strings. Methods: `normalize_patient()`, `normalize_encounter()`, `normalize_observation()`, `normalize_condition()`. |
 | `service.py` | `IngestionService`, `IngestionError` | 278 | ✅ Active. Ingestion: accepts FHIR Bundle/resource/dict → FastEmbed dense (bge-base-en-v1.5) + sparse (SPLADE) → upsert to Qdrant. Key methods: `get_embedding()`, `get_sparse_embedding()`, `ingest_resource()`. Data source can be Redis or file. |
@@ -290,7 +290,7 @@ flowchart LR
 
 | File | Key Exports | Lines | Status |
 |------|-------------|-------|--------|
-| `query_understanding.py` | `QueryIntent` (enum, 10 intents), `QueryContext`, `IntentClassifier`, `QueryRewriter` | 448 | ✅ Active. Rule-based intent classification using regex (10 clinical intents + UNKNOWN). `QueryContext` has `original_query`, `intent`, `rewritten_query`, `confidence`, retrieval hints. **No `query_normalized` field** (see §8 Bug #3). |
+| `query_understanding.py` | `QueryIntent` (enum, 10 clinical intents + VISUALIZATION + UNKNOWN), `QueryContext`, `IntentClassifier`, `QueryRewriter` | 448 | ✅ Active. Rule-based intent classification using regex. `QueryContext` has `original_query`, `intent`, `rewritten_query`, `query_normalized`, `confidence`, and retrieval hints (`requires_diagnosis_filter`, `requires_temporal_ordering`, `requires_graph_expansion`). |
 | `indexing.py` | `DocumentBuilder`, `ClinicalDocument`, `ContextualRetriever` | ~400 | ✅ Active. Converts NormalizedNode → ClinicalDocument with rich metadata (15+ fields). `ContextualRetriever` provides query-scoped bounded retrieval. |
 | `context_retrieval.py` | `ContextRetriever`, `RetrievalStrategy`, `RetrievalContext` | 526 | ✅ Active. Intent-based retrieval with 8 strategies: SUMMARY, DIAGNOSIS, DIFFERENTIAL, MEDICATION, CHANGE_TRACKING, TREND_ANALYSIS, RATIONALE, TIMELINE, OUTCOME. Each has a strategy method. |
 | `service.py` | `HybridRetriever` | 125 | ✅ Active. Qdrant hybrid search (dense + sparse with RRF). Method: `search(patient_id, query, limit)`. Returns `List[RetrievedContext]`. Falls back to dense-only if fusion fails. |
@@ -311,15 +311,20 @@ flowchart LR
 
 | File | Key Exports | Lines | Description |
 |------|-------------|-------|-------------|
-| `state.py` | `ClinicalAgentState` (TypedDict) | 39 | State schema: `messages`, `patient_id`, `patient_state`, `documents`, `intent`, `retrieved_docs`, `internet_evidence`, `clinical_response`, `mode` (auto/local/mcp/chat). |
-| `nodes.py` | `classify_intent`, `retrieve_patient_context`, `run_deterministic_reasoning`, `query_mcp`, `generate_response` | 844 | Agent function nodes. `query_mcp` classifies question type (drug_contraindications/interactions/side_effects/treatment_guidelines/general) fetches MCP data. **Broken** at line 341-346 (see §8 Bug #3). |
-| `workflow.py` | `app` (compiled LangGraph) | 93 | StateGraph: `classify` → `route_intent` (conditional) → `rag_retrieve`/`mcp_search` → `reason`/`generate` → END. Entry point: `classify`. |
+| `state.py` | `ClinicalAgentState` (TypedDict) | 51 | State schema: `messages`, `patient_id`, `patient_state`, `documents`, `intent`, `intent_confidence`, `encounter_groups` (replaces an earlier `retrieved_docs` field), `internet_evidence`, `clinical_response`, `mode`, `audit_passed`, `audit_retry_count`, `retrieval_confidence`, `generation_confidence`, `validation_confidence`, `viz_result`. |
+| `nodes.py` | `classify_intent`, `retrieve_patient_context`, `run_deterministic_reasoning`, `query_mcp`, `generate_response`, `audit_claims`, `generate_visualization`, `check_safety` | 1622 | Agent function nodes, 8 registered as graph nodes (`workflow.py`). `query_mcp` classifies question type (drug_contraindications/interactions/side_effects/treatment_guidelines/general) and fetches MCP data. `retrieve_patient_context` tries `HybridRetriever` (Qdrant) first, falls back to `ContextRetriever` (in-memory) on exception. `audit_claims` checks each claim's `source_node_ids` against `encounter_groups`. |
+| `workflow.py` | `app` (compiled LangGraph) | 198 | StateGraph: `classify` → `route_intent` (conditional) → `rag_retrieve`/`mcp_search`/`visualize`/`generate` → `reason` → (`route_after_reason`: `needs_drug_check` → `mcp_search`, else → `generate`) → `generate` → `audit_claims` → (failed, retries < `MAX_AUDIT_RETRIES=2` → back to `generate`; else → `compute_confidence`) → END. Entry point: `classify`. |
 
-**Routing Logic** (`route_intent` in `workflow.py:24-67`):
-- `mode == "chat"` → skip retrieval, generate only
-- `mode == "local"` → force RAG path
-- `mode == "mcp"` → force MCP path
-- `mode == "auto"` → if patient data available + intent in rag_intents → RAG, else → MCP
+**Routing Logic** (`route_intent` in `workflow.py`), checked in this exact order:
+1. `mode == "chat"` → skip retrieval, generate only
+2. `mode == "local"` → force RAG path; `mode == "mcp"` → force MCP path
+3. (auto mode) `intent == "visualization"` → visualize
+4. `is_mcp_query` flag → MCP — **this bypasses the confidence gate below entirely**
+5. `intent_confidence < 0.70` (`routing_fallback_threshold`, `retrieval/config.py:38`) → RAG (safe default — low-confidence classifications stay grounded in the patient's own data rather than triggering an internet search)
+6. `intent_confidence ≥ 0.70` and `intent` in the RAG-intent set → RAG
+7. else → MCP
+
+See [`../../docs/adr/001-multi-intent-routing-graph.md`](../../docs/adr/001-multi-intent-routing-graph.md) for why this shape was chosen.
 
 #### 4.4.3 Dead / Superseded Files
 
@@ -332,7 +337,7 @@ flowchart LR
 
 | File | Key Exports | Lines | Port | Status |
 |------|-------------|-------|------|--------|
-| `FastAPI_Backend.py` | `app` (FastAPI) | 428 | 8001 | ✅ Active. Endpoints: `GET /health`, `POST /ingest` (Redis → Qdrant), `GET /patient/{id}`, `POST /chat` (?mode=rag/mcp). Uses `AsyncOpenAI` client against llama.cpp. Has hardcoded Redis credentials (lines 52-54). |
+| `FastAPI_Backend.py` | `app` (FastAPI) | 428 | 8001 | ✅ Active. Endpoints: `GET /health`, `POST /ingest` (Redis → Qdrant), `GET /patient/{id}`, `POST /chat` (mode: rag/mcp/auto/chat), plus an undocumented, unauthenticated `POST /testFetch`. Uses `AsyncOpenAI` client against llama.cpp. Has a hardcoded Redis password as the `os.getenv` fallback default (**lines 73-75** — security concern). |
 | `medgemma_rag_api.py` | `app` (FastAPI) | 179 | 8001 | ❌ **Broken.** `line 79`: `from shared.db_clients import qdrant_client` — missing `src.` prefix, will raise `ModuleNotFoundError`. |
 
 ### 4.6 `src/ui/` — Streamlit Frontends
@@ -350,9 +355,9 @@ flowchart LR
 | File | Key Exports | Lines | Description |
 |------|-------------|-------|-------------|
 | `main.py` | `app` (FastAPI + FastMCP) | 96 | Entrypoint port 8002. Exposes `POST /mcp/query` (REST) + `GET /mcp/sse` (MCP protocol). Wraps `run_medical_flow`. |
-| `router.py` | `run_medical_flow()` | 242 | LangGraph workflow: `guardrail_node` (blocks pseudoscience) → `classification_node` (LLM classifies A-G + extracts entities + optimizes query) → `retriever_node` (routes to PubMed/OpenFDA/MedlinePlus) → `summarizer_node` (optional LLM summarization). |
+| `router.py` | `run_medical_flow()` | 242 | LangGraph workflow: `guardrail_node` (blocks non-medical/pseudoscience queries, classifies as `G`) → `classification_node` (LLM classifies into `A`=general medical, `B`=reference ranges, `C`=drug interactions, `D`=treatment guidelines, `E`=differential diagnosis, `F`=patient education, `G`=insufficient evidence/off-topic/harmful; also extracts entities and optimizes the search query) → `retriever_node` (routes by class: `C`→OpenFDA then PubMed, `B`→MedlinePlus, `A`/`D`→PubMed+MedlinePlus) → `summarizer_node` (LLM writes a 2-3 sentence summary per source, addressing the user's query). |
 | `schemas.py` | `RetrievalDataSchema`, `MedicalResponseSchema` | 20 | Pydantic response models. |
-| `adapters/pubmed.py` | `search_pubmed()`, `search_pubmed_interactions()` | 91 | NCBI E-utilities: esearch + efetch with XML abstract extraction. |
+| `adapters/pubmed.py` | `search_pubmed()`, `search_pubmed_interactions()` | 91 | NCBI E-utilities: esearch + efetch, with `<AbstractText>` extraction (including structured abstracts with Background/Methods/Results/Conclusions labels) — returns full abstracts, not just titles, so MCP synthesis has actual clinical content (dosing, alternatives, guideline specifics) to work with rather than a bare citation. |
 | `adapters/openfda.py` | `get_drug_interactions()` | 33 | openFDA drug/label endpoint. Returns interactions + contraindications. |
 | `adapters/medlineplus.py` | `search_medlineplus()` | ~30 | NIH NLM search URL construction. |
 | `adapters/rxnav.py` | `normalize_drug_name()` | ~40 | RxNorm drug name normalization via approximate term API. |
@@ -453,8 +458,8 @@ sequenceDiagram
 | **Lightning AI / MedGemma 27B** | remote | ❌ | ✅ `launch.sh --lightning` step 2 (connectivity check) | ✅ **Remote backend.** 128K context, SGLang serving. Model: `google/medgemma-27b-it`. Used when `LLM_BACKEND=lightning`. |
 | **FastAPI Backend** | 8001 | ❌ | ✅ `launch.sh` step 3 (`uv run uvicorn`) | ✅ **Fully wired.** Hub-and-Spoke. `/health`, `/ingest`, `/chat`, `/patient/{id}`. |
 | **MCP Server** | 8002 | ❌ | ✅ `launch.sh` step 4 (`uv run uvicorn`) | ✅ **Fully wired.** LangGraph medical internet retrieval. PubMed/OpenFDA/MedlinePlus. |
-| **HAPI FHIR** | 8080 | ✅ `hapi-fhir` + `fhir-db` (PostgreSQL) | ❌ **Not started by launch.sh** | ❄️ **Defined but unused.** Actual data source is hardcoded Redis cloud instance (`FastAPI_Backend.py:52-54`). FHIR parsing code exists but data comes from JSON files / Redis. |
-| **Redis Cloud** | 19534 | ❌ | N/A (external) | ⚠️ **Production data source.** Hardcoded credentials in `FastAPI_Backend.py:52-54` — security concern. |
+| **HAPI FHIR** | 8080 | ✅ `hapi-fhir` + `fhir-db` (PostgreSQL) | ❌ **Not started by launch.sh** | ❄️ **Defined but unused.** Actual data source is hardcoded Redis cloud instance (`FastAPI_Backend.py:73-75`). FHIR parsing code exists but data comes from JSON files / Redis. |
+| **Redis Cloud** | 19534 | ❌ | N/A (external) | ⚠️ **Production data source.** Hardcoded credentials in `FastAPI_Backend.py:73-75` — security concern. |
 | **Ollama** | 11434 | ❌ | ❌ Not started | ⚠️ **Alternative LLM backend.** `src/agent/llm_client.py` targets Ollama, but `launch.sh` uses llama.cpp. Config has `use_llamacpp=True` by default. |
 | **Streamlit (dashboard.py)** | 8511 | ❌ | ✅ `launch_dashboard.sh` | ✅ **Active.** Agentic RAG + Deterministic modes. |
 | **Streamlit (streamlit_rag_app.py)** | 8501 | ❌ | ❌ Not in launch chain | ⚠️ Legacy, redundant with dashboard.py. |
@@ -563,22 +568,18 @@ graph TD
 
 ---
 
-## 8. Known Broken Code (3 HIGH Severity)
+## 8. Known Broken Code
 
-### Bug #1: `src/api/medgemma_rag_api.py:79` — Missing `src.` prefix
+> This section shrinks over time as bugs get fixed — re-verify line numbers before trusting them; `nodes.py` alone has roughly doubled in size since this section was first written. A bug once listed here (`QueryContext` missing a `query_normalized` field) has since been fixed in code and removed from this list.
+
+### Bug #1: `src/api/medgemma_rag_api.py:79` — Missing `src.` prefix (narrower impact than it looks)
 
 ```python
-# Line 79: BROKEN
+# Line 79
 from shared.db_clients import qdrant_client
 ```
 
-This will raise `ModuleNotFoundError: No module named 'shared'`. Should be:
-
-```python
-from src.shared.db_clients import qdrant_client
-```
-
-**Impact:** `medgemma_rag_api.py` cannot start. This file is a simplified RAG API on port 8001 — it's a **second** FastAPI app that conflicts with `FastAPI_Backend.py` (which runs on the same port). The launch script starts `FastAPI_Backend.py`, so this bug is dormant but blocks any attempt to use `medgemma_rag_api.py`.
+This raises `ModuleNotFoundError: No module named 'shared'` — but **this import is inside a `try/except` block inside the `/health` endpoint handler**, not at module level. The module itself imports and runs fine; only `/health`'s Qdrant sub-check degrades to an error string. This file is a simplified RAG API on port 8001 — it's a **second** FastAPI app that conflicts with `FastAPI_Backend.py` (which runs on the same port). The launch script starts `FastAPI_Backend.py`, so this file isn't on the active path regardless.
 
 ### Bug #2: `src/agent/mcp_client.py:20` — Undefined config attribute
 
@@ -590,23 +591,7 @@ def __init__(self, server_url: Optional[str] = None):
 
 `InfraConfig` (in `src/shared/config.py`) has no `mcp_server_url` field. Available URL fields: `ollama_base_url`, `sglang_base_url`, `llamacpp_base_url`, `fhir_base_url`. This will raise `AttributeError: 'InfraConfig' object has no attribute 'mcp_server_url'`.
 
-**Impact:** Any code path that instantiates `MCPToolManager()` will crash. This file is also dead code (not imported by active workflow), but would block future use.
-
-### Bug #3: `src/agent/graph/nodes.py:341-346` — Non-existent field in QueryContext
-
-```python
-# Lines 341-346: BROKEN
-query_context = QueryContext(
-    original_query=prompt,
-    intent=QueryIntent(intent),
-    rewritten_query=prompt,
-    query_normalized=prompt.lower()  # ← Field does not exist
-)
-```
-
-`QueryContext` (defined in `src/retrieval/query_understanding.py:40-58`) has fields: `original_query`, `intent`, `rewritten_query`, `requires_diagnosis_filter`, `requires_temporal_ordering`, `requires_graph_expansion`, `date_range`, `patient_state_summary`, `confidence`. No `query_normalized` field.
-
-**Impact:** When the agentic graph runs the `retrieve_patient_context` node with a stored `patient_state`, this `QueryContext(...)` constructor will raise `ValidationError`. This is on the active code path in `dashboard.py`.
+**Impact:** Any code path that instantiates `MCPToolManager()` will crash. This file is also dead code (not imported by active workflow), but would block future use. The active MCP call path is `nodes.py`'s `_call_mcp_endpoint`, which is unaffected by this bug.
 
 ---
 
@@ -671,7 +656,7 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 
 ## 11. Future Work
 
-### From Backlog.md (`.github/Backlog.md`)
+### From Backlog.md (`.github/Backlog.md` — **this file doesn't exist in this repo**; the content below is retained as a plausible roadmap snapshot, but the citation itself is unverifiable)
 
 #### Epic 2: Core Agentic RAG (Current Milestone)
 | Ticket | Status | Description |
@@ -695,7 +680,7 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 | 4.3 WORM Audit Log | ❌ Not started | Write-Once-Read-Many log for HIPAA traceability |
 | 4.4 MCP-3 FHIR Document Factory | ❌ Not started | Bundle final note + reasoning + visualizations into FHIR Composition |
 
-### From SYSTEM_READY.md "Next Steps"
+### Production Hardening Next Steps
 - ❌ **Rate limiting + caching + audit logging + monitoring**
 
 ### From Code Comments
@@ -751,6 +736,6 @@ OLLAMA_BASE_URL                            # Alternative LLM backend
 ```
 
 ### Python Path Requirements
-- Always run with `PYTHONPATH=/home/belal/AI_System` or `PYTHONPATH=$PWD`
+- Always run with `PYTHONPATH=$PWD` from `ai/src/ai/`
 - The `dashboard.py` does `sys.path.insert(0, str(project_root))` at startup
 - No `__init__.py` in `src/`, `src/shared/`, `src/ingestion/`, `src/api/`, `src/ui/`, `mcps/` — this means `pip install -e .` will NOT work; only `PYTHONPATH` approach is supported
