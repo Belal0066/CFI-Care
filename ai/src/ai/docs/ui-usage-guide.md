@@ -1,209 +1,36 @@
-# Web UI Usage Guide
+# Dashboard Usage Guide
 
-## Overview
+Covers the real, active UI — `src/ui/dashboard.py`, launched via `./launch_dashboard.sh` on **http://localhost:8511**. (`README_DASHBOARD.md` and an earlier version of this doc described a 4-page UI that's since been deprecated — see `context.md`'s dead-code table for `pages_disabled/`. This doc replaces both.)
 
-The Clinical RAG System has a Streamlit web interface with 4 main pages:
+## Layout
 
-## Pages
+The dashboard is a single page with a **sidebar** (configuration, always visible) and **3 tabs**: **Chat**, **Retrieval Test**, **Data Browser**.
 
-### 1. System Status
-Monitor health of all services:
-- Qdrant (Vector DB)
-- MedGemma LLM Server
-- Backend API
+## Sidebar
 
-### 2. Data Ingestion
-**For FHIR Bundles Only**
+- **Service Status** — live health check for Qdrant and the active LLM backend (llama.cpp local, or Lightning AI if `LLM_BACKEND=lightning`).
+- **Patient Data** — either click **Load Default** (loads `Data/data.json`) or upload your own JSON matching that format. This runs the real deterministic pipeline in-process (`ClinicalPreprocessor` → `PatientStateCompiler` → `DocumentBuilder`) and populates session state — nothing works in the Chat tab's Deterministic mode until this step completes. Once loaded, a **Patient State** expander shows active diagnoses, allergies, recent medications, and clinical status.
+- **Reasoning Mode** — a radio choice between two genuinely different code paths:
+  - **Agentic RAG** — invokes `src/agent/graph/workflow.py`'s compiled LangGraph in-process. A second radio then picks the agent's `mode`: **Auto-Pilot** (`auto` — confidence-gated routing between RAG and MCP, see `context.md` §4.4.2), **Local RAG** (`local` — forces patient-record retrieval only), **Internet MCP** (`mcp` — forces the internet-search path only), or **Chat Only** (`chat` — skips retrieval entirely).
+  - **Deterministic Reasoning (Legacy)** — runs the Tickets 4-10 rule-based pipeline (`ClinicalReasoner`) directly, no LLM-driven routing.
+- **Temperature** — a real slider (0.0-1.0, default 0.1, or 0.7 for Chat-only mode).
 
-Upload FHIR JSON bundles (resourceType: "Bundle") for standard FHIR resource ingestion.
+**One thing worth knowing if you're extending this file**: the "RAG Settings" block that would show a Top-K slider and a Patient ID filter text input (for Local RAG/Auto/Deterministic modes) is currently wrapped in a Python triple-quoted string in `dashboard.py` — meaning it never actually executes. `top_k` and `patient_filter` are hardcoded to `5` and `""` instead of coming from the UI. If you see this block in the source and assume the controls are live, they aren't.
 
-**⚠️ Important:** If you have a clinical timeline JSON file (like `Data/data.json`), **DO NOT** use this tab. Use **Page 4: Clinical Reasoning** instead.
+## Tab 1: Chat
 
-**Supported Formats:**
-- FHIR Bundle with entries
-- FHIR Resource arrays
-- Single FHIR resources
+The main interaction surface. Ask a question; the response comes from whichever Reasoning Mode is selected in the sidebar. Each assistant message has 👍/👎 feedback buttons — a rating (and optional comment) gets appended to `Data/feedback.jsonl` for later RLHF use. You can also upload a file directly in this tab for one-off document analysis.
 
-**Not Supported Here:**
-- Clinical timeline JSON (nodes + eocId format)
-  → Use **Clinical Reasoning** page
+## Tab 2: Retrieval Test
 
-### 3. Clinical Assistant (Legacy)
-MedGemma RAG interface with two modes:
-- **Local RAG**: Query Qdrant vector database
-- **Internet MCP**: Query PubMed, OpenFDA, NIH
+Runs `HybridRetriever.search()` directly, without generation — useful for checking what the dense+sparse fusion actually returns for a given query before trusting it in Chat. Takes a search query and an optional patient ID filter; shows the raw retrieved contexts with scores.
 
-**Use cases:**
-- General medical knowledge queries
-- Literature search
-- Drug interaction checks
+## Tab 3: Data Browser
 
-### 4. Clinical Reasoning ⭐ **RECOMMENDED**
+Inspects the Qdrant collection directly — sample a configurable number of points, or look up one by point ID. Useful for confirming ingestion actually wrote what you expect.
 
-**Deterministic, Citation-Backed Clinical Analysis**
+## Related
 
-This is the **NEW** integrated pipeline (Tickets 4-10) for patient timeline analysis.
-
-#### How to Use:
-
-**Step 1: Load Patient Data**
-- Click "📁 Load Default Data" button in sidebar
-  - Loads `Data/data.json` automatically
-- OR upload your own clinical timeline JSON file
-  - Must have `nodes` array and `eocId` field
-
-**Step 2: Verify Patient State**
-After loading, sidebar shows:
-- EOC ID
-- Total encounters
-- Date range
-- Active diagnoses
-- Allergies
-- Recent medications
-- Clinical status
-
-**Step 3: Ask Questions**
-
-**Quick Questions (Buttons):**
-- "What diagnoses were considered?"
-- "What medications were prescribed?"
-- "What was the final outcome?"
-
-**Custom Queries:**
-Type any clinical question in the text box:
-- "Why was Mycoplasma Pneumonia diagnosed over Bronchitis?"
-- "How did symptoms change over time?"
-- "Are there any drug allergies?"
-- "Show me the timeline of events"
-- "Explain the rationale for the final diagnosis"
-
-**Step 4: View Response**
-
-Each response includes:
-- **Intent Classification**: What type of question (diagnosis, medication, etc.)
-- **Confidence Score**: How confident the system is
-- **Clinical Analysis**: Evidence-based explanation
-- **Timeline View**: Chronological context
-- **Citations**: Every claim linked to source events with node IDs
-- **Safety Flags**: Warnings if data insufficient or speculation detected
-
-#### Three Tabs:
-
-**💬 Clinical Chat**
-- Main Q&A interface
-- Conversation history
-- Expandable responses with full citations
-
-**📊 Patient Timeline**
-- Chronological event visualization
-- Statistics (diagnoses, medications, symptoms)
-- Event type filtering
-
-**🔍 Query Analysis**
-- Test how queries are classified
-- See which documents are retrieved
-- Debug query understanding
-
-## Expected Data Format
-
-### Clinical Timeline JSON (Page 4)
-
-```json
-{
-  "nodes": [
-    {
-      "id": "enc-123...",
-      "text_1": "Primary text",
-      "father": "parent-id or null",
-      "relationshipType": "association",
-      "category": "Consultation|Prescription|Imaging|etc",
-      "priority": "High|Medium|Low",
-      "normality": "Normal|Abnormal",
-      "dateIssued": "2025-12-01",
-      "details": "Additional details",
-      "isDiagnosis": true|false,
-      "isManualBranch": true|false,
-      "relatedResourceIds": {},
-      "createdAt": "ISO timestamp",
-      "updatedAt": "ISO timestamp"
-    }
-  ],
-  "eocId": "eoc-uuid-here"
-}
-```
-
-### FHIR Bundle (Page 2)
-
-```json
-{
-  "resourceType": "Bundle",
-  "entry": [
-    {
-      "resource": {
-        "resourceType": "Patient",
-        "id": "patient-123",
-        ...
-      }
-    }
-  ]
-}
-```
-
-## Common Issues
-
-### Issue 1: "Failed to ingest resource: Resource must have an ID"
-**Solution:** You're trying to ingest a clinical timeline in the FHIR ingestion tab.
-- Navigate to **Page 4: Clinical Reasoning**
-- Use the file uploader there instead
-
-### Issue 2: "Please load patient data from the sidebar"
-**Solution:** Click "📁 Load Default Data" button in the left sidebar first.
-
-### Issue 3: No questions appearing in chat history
-**Solution:** 
-1. Verify patient data is loaded (check sidebar shows patient state)
-2. Type question and click "🔍 Analyze" button
-3. Wait for processing (may take 1-2 seconds)
-
-### Issue 4: Citations not showing
-**Solution:** All citations are in expandable sections:
-- Click "Citations (X claims)" expander
-- Each claim shows source node IDs
-
-## Performance
-
-- **Data Loading:** <1 second for 10 nodes
-- **Query Processing:** <300ms average
-- **Citation Generation:** 100% coverage (all claims cited)
-
-## Quick Start
-
-```bash
-# Terminal 1: Start all services
-./launch.sh
-
-# Terminal 2: Start dashboard  
-./launch_dashboard.sh
-
-# Browser: Open http://localhost:8511
-```
-
-**Then:**
-1. Navigate to **Clinical Reasoning** (Page 4)
-2. Click "📁 Load Default Data"
-3. Click any quick question button or type your own
-4. View response with citations
-
-## Validation
-
-To verify system is working correctly:
-
-```bash
-PYTHONPATH=$PWD python3 scripts/validate_system.py
-```
-
-Expected: `✅ ALL VALIDATION TESTS PASSED (23/23)`
-
-## Support
-
-See [SYSTEM_READY.md](SYSTEM_READY.md) for full system documentation.
+- [`data-reference.md`](data-reference.md) — the input JSON format and the internal data-model attributes (`NormalizedNode`, `ClinicalDocument`) this UI works with.
+- [`../context.md`](../context.md) §4.4.2 — the full agent routing logic behind Auto-Pilot mode.
+- [`../README.md`](../README.md) — how to launch the dashboard in the first place.
