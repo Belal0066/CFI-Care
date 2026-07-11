@@ -15,15 +15,16 @@ MedGemma 1.5 supports multimodal input (text + images) for medical image analysi
 
 ---
 
-## ️ Using in Streamlit UI
+## ️ Using in the Dashboard
 
 ### 1. Start the System
 ```bash
-./scripts/launch_medgemma_rag.sh
+./launch.sh --local        # or --lightning for the remote 27B backend
+./launch_dashboard.sh
 ```
 
 ### 2. Open Browser
-Navigate to: **http://localhost:8501/chat** or **https://bws.taild935b3.ts.net/chat**
+Navigate to: **http://localhost:8511**
 
 ### 3. Upload Image
 1. Click "**Upload medical image**" in the Chat tab
@@ -116,7 +117,7 @@ llama.cpp server must be started with `--mmproj` flag:
     --host 0.0.0.0 --port 8000
 ```
 
-The launcher script (`launch_medgemma_rag.sh`) already includes this.
+`launch.sh` already starts the local backend with this flag.
 
 ---
 
@@ -230,16 +231,16 @@ identify image.jpg  # requires ImageMagick
 
 ##  Related Documentation
 
-- [MedGemma RAG Quickstart](medgemma-rag-quickstart.md)
-- [Streamlit UI Guide](complete-system-guide.md)
-- [API Documentation](medgemma-rag-quickstart.md#api-reference)
+- [Dashboard Usage Guide](ui-usage-guide.md)
+- [Data Reference](data-reference.md)
+- [../README.md](../README.md) — launch instructions
 
 ---
 
 ##  Quick Start Example
 
-1. **Start system**: `./scripts/launch_medgemma_rag.sh`
-2. **Open UI**: http://localhost:8501/chat
+1. **Start system**: `./launch.sh --local && ./launch_dashboard.sh`
+2. **Open UI**: http://localhost:8511
 3. **Upload image**: Click "Upload medical image"
 4. **Select file**: Choose X-ray/CT/MRI image
 5. **Ask question**: "What abnormalities are visible?"

@@ -63,6 +63,7 @@ graph TB
         FD["OpenFDA<br/>drug/label endpoint"]
         GR["Groq API<br/>llama-3.1-8b-instant"]
         RX["RxNorm<br/>drug name normalization"]
+        MLP["MedlinePlus<br/>NIH NLM search"]
     end
 
     %% WAN connection (lightning backend)
@@ -74,6 +75,7 @@ graph TB
     MC -->|"HTTPS"| FD
     MC -->|"HTTPS"| GR
     MC -->|"HTTPS"| RX
+    MC -->|"HTTPS"| MLP
 ```
 
 ---
@@ -110,6 +112,7 @@ graph LR
 | MCP Server | OpenFDA | HTTPS | 443 | No |
 | MCP Server | Groq | HTTPS | 443 | No |
 | MCP Server | RxNorm | HTTPS | 443 | No |
+| MCP Server | MedlinePlus | HTTPS | 443 | No |
 | dashboard.py | Agent Graph | in-process | — | No |
 | dashboard.py | Deterministic Pipeline | in-process | — | No |
 | streamlit_rag_app.py | FastAPI Backend | HTTP SSE | 8001 | No |
