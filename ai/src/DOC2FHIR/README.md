@@ -2,6 +2,8 @@
 
 Scanned medical reports (PDF) → OCR → structured extraction → FHIR mapping → delivery.
 
+System-wide docs spanning both AI subsystems (architecture, failure modes, decisions) live in [`../../docs/`](../../docs/) — see the full documentation map in [`../../README.md`](../../README.md).
+
 **Two FHIR-mapping strategies exist; the default is not deterministic.** Out of the box (`structured_pipeline_enabled=False`), the Mapper LLM emits the entire FHIR bundle directly, then a regex/structural repair pass patches known mistakes — non-deterministic sampling (`temperature=0.7`), no schema-validation gate. A genuinely deterministic, no-LLM-at-mapping-time path exists (`structured_pipeline_enabled=True`) but is opt-in. See [`../../docs/adr/004-fhir-mapping-strategy.md`](../../docs/adr/004-fhir-mapping-strategy.md).
 
 ## Quick Start

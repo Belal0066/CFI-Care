@@ -172,6 +172,8 @@ ai/src/ai/
 └── context.md                 # Full module-by-module index, kept current by hand
 ```
 
+**Also in this directory:** [`LAUNCH.md`](LAUNCH.md) (step-by-step launch instructions), [`API.md`](API.md) (full API reference). **In `docs/`:** [`ui-usage-guide.md`](docs/ui-usage-guide.md) (the real 3-tab dashboard), [`data-reference.md`](docs/data-reference.md) (input JSON format + internal model attributes), [`component_diagram.md`](docs/component_diagram.md) (deployment/connection diagram), [`vision-support.md`](docs/vision-support.md) (image/vision capability). System-wide docs spanning both AI subsystems live in [`../../docs/`](../../docs/) — see the full documentation map in [`../../README.md`](../../README.md).
+
 ## Testing
 
 ```bash
