@@ -67,8 +67,7 @@ def main():
     print(" Examples complete!")
     print("\nNext steps:")
     print("  • Run: python scripts/test_medgemma_rag.py --interactive")
-    print("  • Or: ./scripts/start_medgemma_api.sh")
-    print("  • Docs: docs/medgemma-rag-quickstart.md")
+    print("  • Docs: README.md, context.md")
 
 if __name__ == "__main__":
     try:
