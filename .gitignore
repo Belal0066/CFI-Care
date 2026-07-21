@@ -76,3 +76,4 @@ ai/pytest.ini
 *.cache
 
 ai/reports/*
+video/
