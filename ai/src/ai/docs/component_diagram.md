@@ -6,6 +6,8 @@
 
 ## Deployment Architecture
 
+> A condensed version of this diagram, with LangGraph routing/audit-loop detail added, is adapted into [ai/README.md](../../../README.md)'s Clinical AI System section — this file remains the full deployment/config reference.
+
 ```mermaid
 graph TB
     subgraph BWS["BWS Cloud GPU (System Host)"]

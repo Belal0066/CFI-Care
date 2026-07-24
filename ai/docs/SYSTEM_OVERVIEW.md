@@ -52,6 +52,8 @@ flowchart LR
     CAI --> EXT
 ```
 
+> This diagram is duplicated verbatim in [ai/README.md](../README.md); keep both in sync if it changes.
+
 The dashed edge is not a simplification — it's the actual state of the code. [`ARCHITECTURE.md`](ARCHITECTURE.md) documents this in full: nothing in either codebase imports, calls, or tests against the other; the only evidence connecting them is that their HAPI FHIR port defaults now agree (`:8080`). Both subsystems' own docker-compose/config default the Node.js downstream, not HAPI FHIR, as DOC2FHIR's actual delivery target (`DOC2FHIR/gateway/config.py`: `downstream_type` defaults to `"nodejs"`) — HAPI FHIR delivery exists but is opt-in, reached via a manual `/v1/document/{job_id}/push-to-hapi` call.
 
 ## 0.3 Container / Service Map
