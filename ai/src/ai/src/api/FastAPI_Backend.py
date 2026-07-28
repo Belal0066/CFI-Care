@@ -72,7 +72,9 @@ from src.shared.config import config
 # Connect to Remote Redis (Cloud)
 REDIS_HOST = os.getenv("REDIS_HOST", "redis-19534.c275.us-east-1-4.ec2.cloud.redislabs.com") 
 REDIS_PORT = int(os.getenv("REDIS_PORT", 19534))
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "yIFQU6QWucdTKlfNsy9hbVKDNBkXSdbl")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+if not REDIS_PASSWORD:
+    logger.warning("REDIS_PASSWORD is not set — connecting to Redis without a password.")
 
 # LLM Backend — uses config singleton (set by launch.sh --local / --lightning)
 LLAMA_API_BASE = config.active_llm_base_url + "/v1" if not config.active_llm_base_url.endswith("/v1") else config.active_llm_base_url
@@ -138,6 +140,7 @@ class ChatRequest(BaseModel):
     query: str
     history: Optional[List[Dict[str, str]]] = []
     mode: str = "rag"  # "rag" for local Qdrant, "mcp" for internet MCP
+    patient_id: Optional[str] = None  # scopes retrieval to one patient's data
     score_threshold: float = 0.65 # Adaptive-K: Score-based filtering
     top_k: int = 10 # Safety cap
     temperature: float = 0.2
@@ -193,7 +196,7 @@ async def _run_agent_graph(request: "ChatRequest") -> StreamingResponse:
 
     state_input = {
         "messages": messages,
-        "patient_id": None,
+        "patient_id": request.patient_id,
         "patient_state": {},
         "documents": [],
         "intent": "",
