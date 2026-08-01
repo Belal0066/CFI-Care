@@ -35,6 +35,12 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
     settings = settings or GatewaySettings.from_env()
     settings.ensure_directories()
 
+    if not settings.internal_secret:
+        logger.warning(
+            "DOC2FHIR_INTERNAL_SECRET is not set — the X-Internal-Secret check on "
+            "internal endpoints will reject any caller that sends that header."
+        )
+
     repository = JobRepository(settings.db_path)
     repository.bootstrap()
 

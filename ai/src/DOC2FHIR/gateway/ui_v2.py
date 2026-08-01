@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -31,6 +31,31 @@ GATEWAY_URL = os.getenv("DOC2FHIR_GATEWAY_URL", "http://127.0.0.1:8001")
 OCR_URL = os.getenv("DOC2FHIR_OCR_URL", "http://127.0.0.1:7862")
 MAPPER_URL = os.getenv("DOC2FHIR_MAPPER_URL", "http://127.0.0.1:8070")
 HAPI_FHIR_URL = os.getenv("DOC2FHIR_HAPI_FHIR_URL", "http://127.0.0.1:8080/fhir")
+
+# Local-only by default — this debug UI is not meant to be exposed cross-origin.
+UI_V2_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "DOC2FHIR_UI_V2_ALLOWED_ORIGINS",
+        "http://127.0.0.1:8503,http://localhost:8503",
+    ).split(",")
+    if origin.strip()
+]
+
+# Shared secret guarding destructive endpoints (history/FHIR resource deletion).
+# Unset by default — deletion is disabled until an operator explicitly sets it.
+UI_V2_INTERNAL_SECRET = os.getenv("DOC2FHIR_INTERNAL_SECRET", "")
+
+
+def _require_internal_secret(request: Request) -> None:
+    """Fail-closed guard for destructive endpoints: no secret configured means no deletes."""
+    if not UI_V2_INTERNAL_SECRET:
+        raise HTTPException(
+            status_code=403,
+            detail="Destructive operations are disabled: DOC2FHIR_INTERNAL_SECRET is not configured.",
+        )
+    if request.headers.get("X-Internal-Secret") != UI_V2_INTERNAL_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid or missing X-Internal-Secret.")
 VLLM_LOG_PATH = ROOT / ".." / "OCR" / "OCRpipelie" / "vLLM_8118_lowvram.log"
 DB_PATH = ROOT / ".ui_v2_history.db"
 
@@ -1384,7 +1409,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 app = FastAPI(title="DOC2FHIR Command Center", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=UI_V2_ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1609,7 +1634,7 @@ async def api_history():
     return {"runs": _get_runs(50)}
 
 
-@app.delete("/api/history/{run_id}")
+@app.delete("/api/history/{run_id}", dependencies=[Depends(_require_internal_secret)])
 async def api_delete_run(run_id: str):
     _delete_run(run_id)
     return {"status": "deleted"}
@@ -1664,7 +1689,7 @@ async def api_fhir_get(resource_type: str, resource_id: str):
             raise HTTPException(status_code=502, detail="HAPI FHIR unreachable or timed out")
 
 
-@app.delete("/api/fhir/{resource_type}/{resource_id}")
+@app.delete("/api/fhir/{resource_type}/{resource_id}", dependencies=[Depends(_require_internal_secret)])
 async def api_fhir_delete(resource_type: str, resource_id: str):
     async with httpx.AsyncClient(timeout=15.0) as c:
         try:

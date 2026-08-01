@@ -55,7 +55,7 @@ class GatewaySettings:
     downstream_stage_timeout_sec: int = 60
     default_correlation_prefix: str = "job"
     nodejs_callback_url: str = "http://127.0.0.1:3000/v1/internal/jobs/callback"
-    internal_secret: str = "high_performance_cluster_secure_token_abc123"
+    internal_secret: str = ""
     callback_retry_max: int = 3
     callback_retry_backoff: float = 1.0
 
