@@ -40,6 +40,9 @@ class InfraConfig(BaseSettings):
     sglang_base_url: str = Field(default="http://localhost:30000", description="SGLang API base URL")
     sglang_model: str = Field(default="/home/belal/AI_System/models/medgemma-1.5-4b-it", description="SGLang model path")
     
+    # MCP Server (SSE endpoint used by MCPToolManager)
+    mcp_server_url: str = Field(default="http://localhost:8002/mcp/sse", description="MCP server SSE URL")
+
     # LLM Backend Selector (local or lightning)
     llm_backend: str = Field(default="local", description="LLM backend: 'local' for llama.cpp 4B, 'lightning' for Lightning AI 27B")
 
