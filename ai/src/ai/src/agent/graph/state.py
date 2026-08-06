@@ -35,6 +35,7 @@ class ClinicalAgentState(TypedDict):
     audit_passed: bool
     audit_failures: List[Dict[str, Any]]
     audit_retry_count: int
+    abstained: bool
 
     # Generation & validation confidence
     generation_confidence: float

@@ -170,7 +170,9 @@ workflow.add_edge("generate", "audit_claims")
 
 
 def route_after_audit(state):
-    """Route back to generate for correction on audit failure, up to MAX_AUDIT_RETRIES."""
+    """Route back to generate for correction on audit failure, up to MAX_AUDIT_RETRIES.
+    If the retry budget is exhausted without passing, fail closed instead of
+    returning a response whose claims never verified against evidence."""
     if state.get("audit_passed", True):
         logger.info("Audit passed — computing confidence")
         return "compute_confidence"
@@ -180,9 +182,31 @@ def route_after_audit(state):
         logger.info(f"Audit failed — retry {retries + 1}/{MAX_AUDIT_RETRIES}")
         return "retry_generate"
 
-    logger.warning(f"Audit failed after {MAX_AUDIT_RETRIES} retries — finishing with errors")
-    return "compute_confidence"
+    logger.warning(f"Audit failed after {MAX_AUDIT_RETRIES} retries — abstaining rather than returning unverified content")
+    return "abstain"
 
+
+def _abstain_on_failed_audit(state: ClinicalAgentState) -> Dict[str, Any]:
+    """
+    Fail-closed exit for the self-correction loop: the audit could not verify
+    the response's claims within the retry budget. Replace the response with
+    an explicit abstention instead of silently returning content that failed
+    its grounding check.
+    """
+    abstention = (
+        "I don't have enough verified evidence in this patient's record to "
+        "answer that confidently. Please rephrase the question or consult "
+        "the full chart."
+    )
+    messages = state.get("messages", [])
+    if messages:
+        last_msg = messages[-1]
+        if hasattr(last_msg, "content"):
+            last_msg.content = abstention
+    return {"abstained": True}
+
+
+workflow.add_node("abstain", _abstain_on_failed_audit)
 
 workflow.add_conditional_edges(
     "audit_claims",
@@ -190,9 +214,11 @@ workflow.add_conditional_edges(
     {
         "retry_generate": "generate",
         "compute_confidence": "compute_confidence",
+        "abstain": "abstain",
     }
 )
 
+workflow.add_edge("abstain", "compute_confidence")
 workflow.add_edge("compute_confidence", END)
 
 app = workflow.compile()
