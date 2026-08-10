@@ -12,6 +12,7 @@ from src.retrieval.context_retrieval import RetrievalContext
 from src.retrieval.service import HybridRetriever
 from src.retrieval.config import retriever_config
 from src.agent.clinical_reasoning import ClinicalReasoner
+from src.agent.verification import ClaimVerifier
 from src.agent.confidence import (
     compute_generation_confidence,
     compute_validation_confidence,
@@ -291,33 +292,62 @@ MAX_AUDIT_RETRIES = 2
 
 def audit_claims(state: ClinicalAgentState) -> Dict[str, Any]:
     """
-    Validates that all claims in the generated response cite real document IDs.
-    Returns a graded validation_confidence alongside the binary pass/fail.
+    Two-tier claim audit, deliberately kept as two distinct questions:
+
+    Tier 1 (citation attribution): does every cited ID actually exist among
+    the retrieved evidence? Cheap, deterministic, always on — unchanged from
+    before.
+
+    Tier 2 (semantic support): does the text at that citation actually
+    entail the claim, rather than merely existing? Runs a local NLI model
+    (see src/agent/verification.py) only if
+    retriever_config.semantic_verification_enabled is set, and only affects
+    audit_passed/validation_confidence if
+    retriever_config.semantic_verification_gating_enabled is also set —
+    otherwise it runs in shadow mode: computed and returned via
+    claim_verifications for observability, without changing pass/fail.
+
     Forms a self-correction loop with the generate node.
     """
     clinical_resp = state.get("clinical_response")
     encounter_groups = state.get("encounter_groups", [])
 
     if not clinical_resp or not encounter_groups:
-        return {"audit_passed": True, "audit_failures": [], "validation_confidence": 1.0}
+        return {
+            "audit_passed": True,
+            "audit_failures": [],
+            "validation_confidence": 1.0,
+            "claim_verifications": [],
+        }
 
-    # Build valid IDs from encounter groups
+    # Build valid IDs (tier 1) and evidence text lookup (tier 2) from encounter groups
     valid_ids = set()
+    evidence_by_id: Dict[str, str] = {}
     for eg in encounter_groups:
         valid_ids.add(eg.encounter_id)
         for chunk in eg.chunks:
             valid_ids.add(chunk.anchor_id)
+            evidence_by_id[chunk.anchor_id] = chunk.anchor_content
 
     if not valid_ids:
-        return {"audit_passed": True, "audit_failures": [], "validation_confidence": 1.0}
+        return {
+            "audit_passed": True,
+            "audit_failures": [],
+            "validation_confidence": 1.0,
+            "claim_verifications": [],
+        }
 
     failures = []
+    claim_verifications = []
     claims = clinical_resp.get("claims", [])
+    verifier = ClaimVerifier() if retriever_config.semantic_verification_enabled else None
 
     for i, claim in enumerate(claims):
         if isinstance(claim, dict):
+            claim_text = claim.get("claim", "")
             cited = claim.get("source_node_ids", [])
         else:
+            claim_text = getattr(claim, "claim", "")
             cited = claim.source_node_ids if hasattr(claim, "source_node_ids") else []
 
         for cid in cited:
@@ -325,14 +355,29 @@ def audit_claims(state: ClinicalAgentState) -> Dict[str, Any]:
                 failures.append({
                     "claim_index": i,
                     "cited_id": cid,
+                    "type": "citation_missing",
                     "message": f"Claim {i} cites non-existent ID: {cid}",
+                })
+
+        if verifier is not None:
+            result = verifier.verify_claim(i, claim_text, cited, evidence_by_id)
+            claim_verifications.append(result.model_dump())
+            if (
+                retriever_config.semantic_verification_gating_enabled
+                and result.semantically_supported is False
+            ):
+                failures.append({
+                    "claim_index": i,
+                    "cited_ids": cited,
+                    "type": "unsupported_by_evidence",
+                    "message": f"Claim {i}: {result.reason}",
                 })
 
     passed = len(failures) == 0
     if passed:
         logger.info("Audit passed: all claim citations reference valid documents")
     else:
-        logger.warning(f"Audit failed: {len(failures)} citation error(s) found")
+        logger.warning(f"Audit failed: {len(failures)} citation/support error(s) found")
 
     total_claims = len(claims)
     supported_claims = total_claims - len(set(f["claim_index"] for f in failures))
@@ -342,6 +387,7 @@ def audit_claims(state: ClinicalAgentState) -> Dict[str, Any]:
         "audit_passed": passed,
         "audit_failures": failures,
         "validation_confidence": validation_confidence,
+        "claim_verifications": claim_verifications,
     }
 
 def classify_intent(state: ClinicalAgentState) -> Dict[str, Any]:

@@ -39,6 +39,15 @@ class RetrieverConfig(BaseSettings):
     retrieval_gatekeeper_threshold: float = 0.15
     generation_entropy_warning_threshold: float = 0.30
 
+    # ---- Adaptive retrieval (bounded, deterministic — no model call) ----
+    # If the first retrieval pass scores below the gatekeeper threshold,
+    # retry once with a relaxed threshold before proceeding to reasoning on
+    # thin evidence. Hard-bounded by max_retrieval_retries; the decision to
+    # retry and how to relax the threshold are both deterministic, not
+    # model-controlled.
+    max_retrieval_retries: int = 1
+    retrieval_retry_threshold_factor: float = 0.5
+
     # ---- Confidence Weights for Unified Formula ----
     confidence_weight_routing: float = 0.15
     confidence_weight_retrieval: float = 0.25
@@ -48,6 +57,17 @@ class RetrieverConfig(BaseSettings):
     # ---- Overall confidence labels ----
     confidence_low_max: float = 0.50
     confidence_medium_max: float = 0.75
+
+    # ---- Evidence Verification (semantic grounding, distinct from citation-ID audit) ----
+    # Both default off: this is a new, unevaluated capability. Turn on
+    # `semantic_verification_enabled` to compute NLI entailment scores in
+    # shadow mode (logged via claim_verifications, not gating audit_passed).
+    # Turn on `semantic_verification_gating_enabled` only after evaluating
+    # verifier precision/recall against a held-out claim/evidence set.
+    semantic_verification_enabled: bool = False
+    semantic_verification_gating_enabled: bool = False
+    nli_model_name: str = "cross-encoder/nli-deberta-v3-base"
+    nli_entailment_threshold: float = 0.5
 
 
 retriever_config = RetrieverConfig()

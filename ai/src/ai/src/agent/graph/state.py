@@ -25,6 +25,7 @@ class ClinicalAgentState(TypedDict):
     retrieval_confidence: float
     retrieval_avg_top3: float
     has_insufficient_data: bool
+    retrieval_iterations: int
 
     # Configurable threshold for this query
     retrieval_threshold: float
@@ -36,6 +37,10 @@ class ClinicalAgentState(TypedDict):
     audit_failures: List[Dict[str, Any]]
     audit_retry_count: int
     abstained: bool
+
+    # Tier-2 semantic verification (shadow-mode by default — see
+    # retriever_config.semantic_verification_enabled/_gating_enabled)
+    claim_verifications: List[Dict[str, Any]]
 
     # Generation & validation confidence
     generation_confidence: float
