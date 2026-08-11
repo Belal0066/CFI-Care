@@ -42,6 +42,10 @@ class RetrievedContext(BaseModel):
     parent_node_id: Optional[str] = Field(None, description="Encounter/node ID this chunk belongs to")
     father_id: Optional[str] = Field(None, description="Parent encounter ID for encounter-level grouping")
     date_issued: Optional[str] = Field(None, description="ISO-8601 date of the encounter")
+    # Cosine similarity between the query and this chunk's dense vector,
+    # computed for every fused hit (dense-list or sparse-only alike) so
+    # relevance gating never depends on which list a hit came from.
+    dense_cosine: Optional[float] = Field(None, description="Query/chunk dense cosine similarity")
 
 
 class EncounterGroup(BaseModel):

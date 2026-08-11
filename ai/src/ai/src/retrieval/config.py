@@ -22,6 +22,31 @@ class RetrieverConfig(BaseSettings):
     default_top_k: int = 10
     agent_max_docs: int = 15
 
+    # ---- Relevance gating (see ai/docs/SYSTEM_CARD.md, fix F1) ----
+    # RRF scores are rank-based: with k=60 each list contributes at most
+    # 1/61, so they carry no relevance meaning and no threshold on them is
+    # principled. "dense_topk" takes the top-k resources after fusion and
+    # gates sufficiency on the max dense cosine of those k (computed for
+    # every fused hit, including sparse-only ones). "legacy_rrf_threshold"
+    # keeps the old per-intent thresholds on RRF scores, only so the fix
+    # can be measured before/after; do not use it for serving.
+    retrieval_gating_mode: str = "dense_topk"
+    retrieval_top_k: int = 5
+    # "hybrid" (dense + sparse, RRF), "dense" or "sparse"; single-list modes
+    # exist for the retrieval ablation (E002).
+    retrieval_search_mode: str = "hybrid"
+    # Dense cosine scale (bge-base-en-v1.5). Placeholder values: calibrate
+    # on the dev split and record the ROC in ai/docs/EVAL.md.
+    relevance_gate_threshold: float = 0.60
+    relevance_gate_ambiguous_threshold: float = 0.50
+    # A retry widens the search (k * multiplier, intent filter dropped)
+    # instead of lowering a score bar.
+    retry_top_k_multiplier: int = 2
+    # Payload-flag filters per intent (src/retrieval/service.py). On FHIR
+    # data these flags can exclude whole resource types; decided by the
+    # retrieval study (fix F7).
+    intent_filter_enabled: bool = True
+
     # ---- Temporal ----
     temporal_window_days: int = 7
     summary_window_days: int = 30
@@ -33,6 +58,10 @@ class RetrieverConfig(BaseSettings):
     llm_timeout_seconds: int = 60
     llm_max_tokens_rag: int = 1024
     llm_max_tokens_chat: int = 5000
+    # Evaluation controls (fix F3). When set, every LLM call in the graph
+    # uses this temperature and seed instead of its per-call default.
+    llm_temperature_override: Optional[float] = None
+    llm_seed: Optional[int] = None
 
     # ---- Confidence Thresholds (Multi-Layer) ----
     routing_fallback_threshold: float = 0.70
@@ -60,7 +89,7 @@ class RetrieverConfig(BaseSettings):
     #                                                 retry — the "Agentic
     #                                                 RAG" branch)
     #   <  retrieval_insufficient_threshold       -> insufficient (deterministic
-    #                                                 corrective fallback —
+    #                                                 corrective fallback, 
     #                                                 the "Corrective RAG"
     #                                                 branch)
     # retrieval_insufficient_threshold defaults to the same number the

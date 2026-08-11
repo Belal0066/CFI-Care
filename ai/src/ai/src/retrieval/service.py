@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 import logging
+import math
 
 from qdrant_client.models import (
     Filter,
@@ -76,9 +77,27 @@ _INTENT_FILTER_MAP: Dict[str, Optional[List[FieldCondition]]] = {
 
 def _build_intent_should(intent: Optional[str]) -> Optional[List[FieldCondition]]:
     """Return SHOULD conditions for a clinical intent, or None if no filter needed."""
-    if not intent:
+    if not intent or not retriever_config.intent_filter_enabled:
         return None
     return _INTENT_FILTER_MAP.get(intent)
+
+
+def _cosine(a: List[float], b: List[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    if na == 0.0 or nb == 0.0:
+        return 0.0
+    return dot / (na * nb)
+
+
+def _hit_dense_vector(hit: Any, vector_name: str) -> Optional[List[float]]:
+    vec = getattr(hit, "vector", None)
+    if isinstance(vec, dict):
+        return vec.get(vector_name)
+    if isinstance(vec, list):
+        return vec
+    return None
 
 
 def _reciprocal_rank_fusion(
@@ -131,7 +150,14 @@ class HybridRetriever:
         limit: Optional[int] = None,
         score_threshold: Optional[float] = None,
         intent: Optional[str] = None,
+        use_intent_filter: bool = True,
+        mode: str = "hybrid",
     ) -> List[RetrievedContext]:
+        """
+        mode: "hybrid" (dense + sparse, RRF), "dense" or "sparse". The
+        single-list modes exist for the retrieval study (R1); the agent
+        always uses "hybrid".
+        """
         logger.info(f"Hybrid Search for Patient {patient_id}: '{query}'")
 
         limit = limit or self.config.default_top_k
@@ -152,23 +178,30 @@ class HybridRetriever:
             must_conditions.append(
                 FieldCondition(key="patient_id", match=MatchValue(value=patient_id))
             )
-        should_conditions = _build_intent_should(intent)
+        should_conditions = _build_intent_should(intent) if use_intent_filter else None
         if should_conditions:
             logger.info(f"Applied intent filter '{intent}': {should_conditions}")
             query_filter = Filter(must=must_conditions or None, should=should_conditions) if must_conditions else Filter(should=should_conditions)
         else:
             query_filter = Filter(must=must_conditions) if must_conditions else None
 
+        # Dense vectors come back with every hit so the query/chunk cosine can
+        # be computed uniformly, including for hits only the sparse list found.
+        with_vectors = [self.config.dense_vector_name]
+
         try:
-            dense_results = q_client.search(
-                collection_name=collection,
-                query_vector=(self.config.dense_vector_name, dense_vector),
-                limit=prefetch_k,
-                query_filter=query_filter,
-            )
+            dense_results = []
+            if mode in ("hybrid", "dense"):
+                dense_results = q_client.search(
+                    collection_name=collection,
+                    query_vector=(self.config.dense_vector_name, dense_vector),
+                    limit=prefetch_k,
+                    query_filter=query_filter,
+                    with_vectors=with_vectors,
+                )
 
             sparse_results = []
-            if sparse_data:
+            if sparse_data and mode in ("hybrid", "sparse"):
                 sparse_results = q_client.search(
                     collection_name=collection,
                     query_vector=NamedSparseVector(
@@ -180,38 +213,42 @@ class HybridRetriever:
                     ),
                     limit=prefetch_k,
                     query_filter=query_filter,
+                    with_vectors=with_vectors,
                 )
 
-            if sparse_results:
-                merged = _reciprocal_rank_fusion(
+            # (hit, score) pairs: the RRF score for fused results, the
+            # engine's own score for single-list results.
+            if mode == "sparse":
+                scored_hits = [(h, h.score) for h in sparse_results[:limit]]
+            elif sparse_results and dense_results:
+                scored_hits = _reciprocal_rank_fusion(
                     dense_results,
                     sparse_results,
                     limit=limit,
                     rank_constant=rrf_k,
                     score_threshold=self.config.fusion_score_threshold,
                 )
-                search_results = []
-                for hit, rrf_score in merged:
-                    hit._score_override = rrf_score
-                    search_results.append(hit)
             else:
-                search_results = dense_results[:limit]
+                scored_hits = [(h, h.score) for h in dense_results[:limit]]
 
         except Exception as e:
             logger.warning(f"Hybrid search failed ({e}), falling back to Dense-only.")
-            search_results = q_client.search(
+            fallback_hits = q_client.search(
                 collection_name=collection,
                 query_vector=(self.config.dense_vector_name, dense_vector),
                 limit=limit,
                 score_threshold=fallback_threshold,
                 query_filter=query_filter,
+                with_vectors=with_vectors,
             )
+            scored_hits = [(h, h.score) for h in fallback_hits]
 
         results = []
         rrf_scores = []
-        for hit in search_results:
-            score = getattr(hit, "_score_override", None) or hit.score
+        for hit, score in scored_hits:
             original_id = hit.payload.get("id", str(hit.id))
+            hit_vector = _hit_dense_vector(hit, self.config.dense_vector_name)
+            dense_cosine = _cosine(dense_vector, hit_vector) if hit_vector else None
             results.append(
                 RetrievedContext(
                     anchor_id=str(original_id),
@@ -220,6 +257,7 @@ class HybridRetriever:
                     parent_node_id=hit.payload.get("parent_node_id"),
                     father_id=hit.payload.get("father_id"),
                     date_issued=hit.payload.get("date_issued"),
+                    dense_cosine=dense_cosine,
                 )
             )
             rrf_scores.append(score)
@@ -228,6 +266,61 @@ class HybridRetriever:
         self._last_rrf_scores = rrf_scores
 
         return results
+
+    def search_topk_resources(
+        self,
+        patient_id: str,
+        query: str,
+        k: Optional[int] = None,
+        intent: Optional[str] = None,
+        use_intent_filter: bool = True,
+        mode: str = "hybrid",
+    ) -> List["EncounterGroup"]:
+        """
+        Top-k retrieval after fusion, at resource level (fix F1).
+
+        Chunks are grouped by parent_node_id (the source FHIR resource id,
+        or the encounter id for node-list data) in fused rank order, and the
+        first k distinct groups are returned. There is no score threshold
+        here: a group's score is the max dense cosine of its chunks, a real
+        relevance score the caller gates on, never the RRF rank score.
+        """
+        from src.shared.models import EncounterGroup
+
+        k = k or self.config.retrieval_top_k
+        # Over-fetch chunks so that k distinct resources survive de-duplication.
+        raw_results = self.search(
+            patient_id,
+            query,
+            limit=k * 4,
+            intent=intent,
+            use_intent_filter=use_intent_filter,
+            mode=mode,
+        )
+
+        order: List[str] = []
+        grouped: Dict[str, List[RetrievedContext]] = defaultdict(list)
+        for ctx in raw_results:
+            group_id = ctx.parent_node_id or ctx.anchor_id
+            if group_id not in grouped:
+                if len(order) >= k:
+                    continue
+                order.append(group_id)
+            grouped[group_id].append(ctx)
+
+        groups = []
+        for group_id in order:
+            chunks = grouped[group_id]
+            cosines = [c.dense_cosine for c in chunks if c.dense_cosine is not None]
+            best = max(chunks, key=lambda c: c.dense_cosine if c.dense_cosine is not None else -1.0)
+            groups.append(EncounterGroup(
+                encounter_id=group_id,
+                score=max(cosines) if cosines else 0.0,
+                chunks=chunks,
+                father_id=best.father_id,
+                date_issued=best.date_issued,
+            ))
+        return groups
 
     def search_by_encounter(
         self,
