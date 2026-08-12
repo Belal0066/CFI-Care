@@ -76,12 +76,27 @@ def _prepare_retrieval_retry(state: ClinicalAgentState) -> Dict[str, Any]:
     threshold rather than proceeding to reasoning on thin evidence.
 
     Deliberately deterministic, not model-controlled: the retrieval score
-    is already a sufficient signal to decide "try again, more broadly" —
+    is already a sufficient signal to decide "try again, more broadly", 
     no LLM call is needed to make or act on that decision, and the retry
     count is a hard, code-enforced bound regardless of what any later
     model-assisted step might otherwise "want."
     """
     iterations = state.get("retrieval_iterations", 0) + 1
+    if retriever_config.retrieval_gating_mode == "dense_topk":
+        # A cosine gate is a relevance judgement, so lowering it would just
+        # accept weaker evidence. Search wider instead: more resources and no
+        # intent filter (which can exclude whole FHIR resource types).
+        current_k = state.get("retrieval_top_k") or retriever_config.retrieval_top_k
+        widened_k = current_k * retriever_config.retry_top_k_multiplier
+        logger.info(
+            f"Retrieval insufficient (retry {iterations}/{retriever_config.max_retrieval_retries}) — "
+            f"widening top-k {current_k} -> {widened_k}, intent filter off"
+        )
+        return {
+            "retrieval_iterations": iterations,
+            "retrieval_top_k": widened_k,
+            "retrieval_use_intent_filter": False,
+        }
     current_threshold = state.get("retrieval_threshold", retriever_config.retrieval_gatekeeper_threshold)
     relaxed_threshold = current_threshold * retriever_config.retrieval_retry_threshold_factor
     logger.info(

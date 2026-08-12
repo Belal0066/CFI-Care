@@ -143,10 +143,69 @@ def classify_mcp_question_type(query: str) -> str:
 
 def get_llm_client():
     """Get a fresh LLM client connection."""
-    return OpenAI(
+    client = OpenAI(
         base_url=LLAMA_API_BASE,
-        api_key="sk-no-key"
+        api_key=config.active_llm_api_key or "sk-no-key",
     )
+    # The graph calls the raw OpenAI client, which LangGraph callbacks don't
+    # see; wrap it so LangSmith traces the LLM calls too. (Phoenix captures
+    # them through openinference-instrumentation-openai instead.)
+    if os.getenv("LANGSMITH_TRACING", "").strip().lower() in ("1", "true", "yes", "on"):
+        try:
+            from langsmith.wrappers import wrap_openai
+            client = wrap_openai(client)
+        except ImportError:
+            pass
+    return client
+
+
+def format_encounter_context(encounter_groups) -> str:
+    """
+    The patient-record context block given to the generator. Shared with the
+    naive-RAG evaluation baseline so both see identically formatted evidence.
+    """
+    context_parts = []
+    for eg in encounter_groups:
+        context_parts.append(f"\n--- Encounter {eg.encounter_id} (relevance: {eg.score:.3f}) ---")
+        for chunk in eg.chunks:
+            context_parts.append(chunk.anchor_content)
+    return "\n".join(context_parts) if context_parts else ""
+
+
+def _sampling(temperature: float) -> Dict[str, Any]:
+    """
+    Sampling kwargs for one chat.completions call (fix F3). Evaluation runs
+    set retriever_config.llm_temperature_override / llm_seed so every call
+    in the graph decodes with the same temperature and seed.
+    """
+    override = retriever_config.llm_temperature_override
+    kwargs: Dict[str, Any] = {"temperature": temperature if override is None else override}
+    if retriever_config.llm_seed is not None:
+        kwargs["seed"] = retriever_config.llm_seed
+    return kwargs
+
+
+def _last_human_content(state: ClinicalAgentState) -> str:
+    for msg in reversed(state.get("messages") or []):
+        if isinstance(msg, HumanMessage):
+            return msg.content
+    messages = state.get("messages") or []
+    return messages[-1].content if messages else ""
+
+
+def _user_query(state: ClinicalAgentState) -> str:
+    """
+    The user's question for this turn (fix F2). Read from state["query"],
+    set once by classify_intent, never from messages[-1]: generate_response
+    appends its answer to messages, so on an audit retry messages[-1] is
+    the previous answer, not the question.
+    """
+    return state.get("query") or _last_human_content(state)
+
+
+def _retrieval_query(state: ClinicalAgentState) -> str:
+    """The text sent to the retriever: a reformulation if one was made, else the user's query."""
+    return state.get("retrieval_query") or _user_query(state)
 
 
 def _extract_drug_name(query: str) -> str:
@@ -272,7 +331,7 @@ def _run_async_from_sync(coro):
     Every node in this module is a plain `def`, but the compiled graph is
     invoked both synchronously (app.invoke, from Streamlit) and
     asynchronously (app.ainvoke, from FastAPI_Backend.py's /chat). LangGraph
-    is expected to run sync nodes in a worker thread even under ainvoke —
+    is expected to run sync nodes in a worker thread even under ainvoke, 
     but that's an assumption about LangGraph's internals, not something
     verified here against a live server. Guard it explicitly instead of
     letting an unverified assumption crash the /chat path: if this thread
@@ -296,7 +355,7 @@ def _call_mcp_endpoint(original_query: str, optimized_query: str) -> Dict[str, A
     Extracted for reuse in both drug safety and general query paths.
 
     Uses the real MCP protocol by default (MCPToolManager, an SSE-based
-    mcp.ClientSession calling the MedMCP server's get_medical_data tool) —
+    mcp.ClientSession calling the MedMCP server's get_medical_data tool), 
     this is a genuine host/client call, not a REST bypass of the protocol
     the server actually exposes. Set MCP_TRANSPORT=rest to roll back to the
     previous direct-HTTP call if the protocol path misbehaves; that path is
@@ -430,7 +489,7 @@ def audit_claims(state: ClinicalAgentState) -> Dict[str, Any]:
     (see src/agent/verification.py) only if
     retriever_config.semantic_verification_enabled is set, and only affects
     audit_passed/validation_confidence if
-    retriever_config.semantic_verification_gating_enabled is also set —
+    retriever_config.semantic_verification_gating_enabled is also set, 
     otherwise it runs in shadow mode: computed and returned via
     claim_verifications for observability, without changing pass/fail.
 
@@ -524,10 +583,8 @@ def classify_intent(state: ClinicalAgentState) -> Dict[str, Any]:
     """
     from src.retrieval.query_understanding import IntentClassifier, QueryRewriter
 
-    messages = state["messages"]
-    last_message = messages[-1]
-    prompt = last_message.content
-    
+    prompt = _user_query(state)
+
     classifier = IntentClassifier()
     intent, confidence = classifier.classify(prompt)
     
@@ -551,6 +608,7 @@ def classify_intent(state: ClinicalAgentState) -> Dict[str, Any]:
     return {
         "intent": intent.value,
         "intent_confidence": confidence,
+        "query": prompt,
         "rewritten_query": prompt,
         "retrieval_threshold": retrieval_threshold,
         "needs_drug_check": needs_drug_check,
@@ -575,20 +633,62 @@ def route_retrieval(state: ClinicalAgentState) -> Dict[str, Any]:
     return {}
 
 
-def _grade_retrieval(avg_top3: float) -> Optional[str]:
+def _grade_retrieval(score: float) -> Optional[str]:
     """
     Grades a retrieval score into sufficient/ambiguous/insufficient when
     retriever_config.graded_retrieval_evaluator_enabled is on; returns None
     when off (route_after_retrieval then falls back to the plain
     has_insufficient_data threshold check, unchanged from before).
+
+    With dense_topk gating the score is the max dense cosine of the top-k
+    and the bands are relevance_gate_threshold / _ambiguous_threshold;
+    with legacy gating it is the old RRF avg-top3 and legacy bands.
     """
     if not retriever_config.graded_retrieval_evaluator_enabled:
         return None
-    if avg_top3 >= retriever_config.retrieval_gatekeeper_threshold:
+    if retriever_config.retrieval_gating_mode == "dense_topk":
+        sufficient = retriever_config.relevance_gate_threshold
+        ambiguous = retriever_config.relevance_gate_ambiguous_threshold
+    else:
+        sufficient = retriever_config.retrieval_gatekeeper_threshold
+        ambiguous = retriever_config.retrieval_insufficient_threshold
+    if score >= sufficient:
         return "sufficient"
-    if avg_top3 >= retriever_config.retrieval_insufficient_threshold:
+    if score >= ambiguous:
         return "ambiguous"
     return "insufficient"
+
+
+def _retrieve_dense_topk(state: ClinicalAgentState, patient_id: str, query: str, intent: str) -> Dict[str, Any]:
+    """
+    Fix F1: top-k resources after fusion, sufficiency gated on the max dense
+    cosine of those k. No threshold is ever applied to RRF scores.
+    """
+    k = state.get("retrieval_top_k") or retriever_config.retrieval_top_k
+    use_filter = state.get("retrieval_use_intent_filter", True)
+    groups = HybridRetriever().search_topk_resources(
+        patient_id=patient_id,
+        query=query,
+        k=k,
+        intent=intent,
+        use_intent_filter=use_filter,
+        mode=retriever_config.retrieval_search_mode,
+    )
+    max_cosine = max((g.score for g in groups), default=0.0)
+    top3 = [g.score for g in sorted(groups, key=lambda g: g.score, reverse=True)[:3]]
+    avg_top3 = sum(top3) / len(top3) if top3 else 0.0
+    insufficient = max_cosine < retriever_config.relevance_gate_threshold
+    logger.info(
+        f"Top-{k} retrieval: {len(groups)} resources, max_cosine={max_cosine:.3f}, "
+        f"intent_filter={use_filter}, insufficient={insufficient}"
+    )
+    return {
+        "encounter_groups": groups,
+        "retrieval_confidence": max_cosine,
+        "retrieval_avg_top3": avg_top3,
+        "has_insufficient_data": insufficient,
+        "retrieval_grade": _grade_retrieval(max_cosine),
+    }
 
 
 def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
@@ -599,7 +699,7 @@ def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
     from src.shared.models import EncounterGroup
 
     intent = state["intent"]
-    prompt = state["messages"][-1].content
+    prompt = _retrieval_query(state)
     documents = state["documents"]
     patient_state_data = state["patient_state"]
     
@@ -614,43 +714,54 @@ def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
     has_insufficient_data = False
 
     # ── Path A: Qdrant HybridRetriever (primary) ──
-    try:
-        hybrid = HybridRetriever()
-        encounter_groups = hybrid.search_by_encounter(
-            patient_id=patient_id,
-            query=prompt,
-            threshold=threshold,
-            intent=intent,
-        )
+    if retriever_config.retrieval_gating_mode == "dense_topk":
+        try:
+            result = _retrieve_dense_topk(state, patient_id, prompt, intent)
+            if result["encounter_groups"] or not documents:
+                return result
+        except Exception as e:
+            logger.warning(f"HybridRetriever failed ({e}), falling back to ContextRetriever")
 
-        # Compute retrieval confidence from encounter scores
-        if encounter_groups:
-            scores = [eg.score for eg in encounter_groups]
-            retrieval_confidence = max(scores) if scores else 0.0
-            top3 = scores[:3]
-            retrieval_avg_top3 = sum(top3) / len(top3) if top3 else 0.0
+    # Legacy gating (RRF scores against per-intent thresholds). Kept only so
+    # fix F1 can be measured before/after; see retrieval_gating_mode.
+    if retriever_config.retrieval_gating_mode != "dense_topk":
+        try:
+            hybrid = HybridRetriever()
+            encounter_groups = hybrid.search_by_encounter(
+                patient_id=patient_id,
+                query=prompt,
+                threshold=threshold,
+                intent=intent,
+            )
+
+            # Compute retrieval confidence from encounter scores
+            if encounter_groups:
+                scores = [eg.score for eg in encounter_groups]
+                retrieval_confidence = max(scores) if scores else 0.0
+                top3 = scores[:3]
+                retrieval_avg_top3 = sum(top3) / len(top3) if top3 else 0.0
         
-        has_insufficient_data = (
-            retrieval_avg_top3 < retriever_config.retrieval_gatekeeper_threshold
-        )
-        logger.info(
-            f"Encounter retrieval: {len(encounter_groups)} groups, "
-            f"confidence: max={retrieval_confidence:.3f}, "
-            f"avg_top3={retrieval_avg_top3:.3f}, "
-            f"insufficient={has_insufficient_data}"
-        )
+            has_insufficient_data = (
+                retrieval_avg_top3 < retriever_config.retrieval_gatekeeper_threshold
+            )
+            logger.info(
+                f"Encounter retrieval: {len(encounter_groups)} groups, "
+                f"confidence: max={retrieval_confidence:.3f}, "
+                f"avg_top3={retrieval_avg_top3:.3f}, "
+                f"insufficient={has_insufficient_data}"
+            )
 
-        if encounter_groups:
-            return {
-                "encounter_groups": encounter_groups,
-                "retrieval_confidence": retrieval_confidence,
-                "retrieval_avg_top3": retrieval_avg_top3,
-                "has_insufficient_data": has_insufficient_data,
-                "retrieval_grade": _grade_retrieval(retrieval_avg_top3),
-            }
+            if encounter_groups:
+                return {
+                    "encounter_groups": encounter_groups,
+                    "retrieval_confidence": retrieval_confidence,
+                    "retrieval_avg_top3": retrieval_avg_top3,
+                    "has_insufficient_data": has_insufficient_data,
+                    "retrieval_grade": _grade_retrieval(retrieval_avg_top3),
+                }
 
-    except Exception as e:
-        logger.warning(f"HybridRetriever failed ({e}), falling back to ContextRetriever")
+        except Exception as e:
+            logger.warning(f"HybridRetriever failed ({e}), falling back to ContextRetriever")
 
     # ── Path B: ContextRetriever fallback (requires local documents) ──
     if documents:
@@ -733,7 +844,7 @@ def reformulate_query(state: ClinicalAgentState) -> Dict[str, Any]:
     counter the threshold-retry path uses — no separate, additional budget.
     """
     iterations = state.get("retrieval_iterations", 0) + 1
-    original_query = state["messages"][-1].content
+    original_query = _user_query(state)
     encounter_groups = state.get("encounter_groups", [])
 
     weak_evidence_summary = "; ".join(
@@ -758,8 +869,8 @@ def reformulate_query(state: ClinicalAgentState) -> Dict[str, Any]:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.2,
             max_tokens=120,
+            **_sampling(0.2),
         )
         candidate = (response.choices[0].message.content or "").strip()
         if candidate:
@@ -769,12 +880,10 @@ def reformulate_query(state: ClinicalAgentState) -> Dict[str, Any]:
 
     logger.info(f"Agentic retrieval reformulation (attempt {iterations}): {original_query!r} -> {reformulated!r}")
 
-    messages = list(state.get("messages", []))
-    if messages:
-        messages[-1] = HumanMessage(content=reformulated)
-
+    # The reformulation only changes what is searched; the user's question
+    # (state["query"]) and the message history stay as they were.
     return {
-        "messages": messages,
+        "retrieval_query": reformulated,
         "retrieval_iterations": iterations,
     }
 
@@ -817,7 +926,7 @@ def run_deterministic_reasoning(state: ClinicalAgentState) -> Dict[str, Any]:
     
     encounter_groups = state.get("encounter_groups", [])
     intent = state["intent"]
-    prompt = state["messages"][-1].content
+    prompt = _user_query(state)
     patient_state_data = state["patient_state"]
 
     patient_state_obj = patient_state_data
@@ -962,8 +1071,8 @@ def _mcp_react_decide(query: str, steps: List[MCPReActStep]) -> MCPReActStep:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.1,
             max_tokens=300,
+            **_sampling(0.1),
         )
         raw = (response.choices[0].message.content or "").strip()
         raw = raw.strip("`")
@@ -999,7 +1108,7 @@ def _run_mcp_react_loop(state: ClinicalAgentState) -> Dict[str, Any]:
     circuit breakers all still apply per call; this loop only decides
     whether and how many times to call it.
     """
-    original_query = state["messages"][-1].content
+    original_query = _user_query(state)
     steps: List[MCPReActStep] = []
     internet_evidence: List[Dict[str, Any]] = []
 
@@ -1050,7 +1159,7 @@ def query_mcp(state: ClinicalAgentState) -> Dict[str, Any]:
         return _run_mcp_react_loop(state)
 
     messages = state["messages"]
-    raw_query = messages[-1].content
+    raw_query = _user_query(state)
     patient_state_data = state.get("patient_state")
 
     # STEP 0: Extract actual drug names from RAG results + conversation history.
@@ -1217,8 +1326,8 @@ Think about what medical condition or topic they're referring to, then provide t
         response = llm_client.chat.completions.create(
             model=LLAMA_MODEL_NAME,
             messages=conversation_messages,
-            temperature=0.1,
-            max_tokens=200  # Allow for thinking + query
+            max_tokens=200,  # Allow for thinking + query
+            **_sampling(retriever_config.temperature_mcp),
         )
         
         llm_output = response.choices[0].message.content.strip()
@@ -1320,7 +1429,7 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
     3. Chat (General Conversation)
     """
     mode = state.get("mode", "auto")
-    query = state["messages"][-1].content
+    query = _user_query(state)
     
     final_output = ""
     citations_text = ""
@@ -1373,8 +1482,8 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
             response = llm_client.chat.completions.create(
                 model=LLAMA_MODEL_NAME,
                 messages=messages_payload,
-                temperature=0.7,
-                max_tokens=5000
+                max_tokens=retriever_config.llm_max_tokens_chat,
+                **_sampling(retriever_config.temperature_chat),
             )
             final_output = response.choices[0].message.content
         except Exception as e:
@@ -1468,8 +1577,8 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.1,
                 max_tokens=2000,
+                **_sampling(retriever_config.temperature_rag),
                 logprobs=True,
             )
             final_output = response.choices[0].message.content
@@ -1504,13 +1613,7 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
             explanation = clinical_resp.get('explanation', '')
 
             # Build encounter-aware context
-            context_parts = []
-            for eg in encounter_groups:
-                context_parts.append(f"\n--- Encounter {eg.encounter_id} (relevance: {eg.score:.3f}) ---")
-                for chunk in eg.chunks:
-                    context_parts.append(chunk.anchor_content)
-            
-            encounter_context = "\n".join(context_parts) if context_parts else ""
+            encounter_context = format_encounter_context(encounter_groups)
 
             system_prompt = (
                 "You are an advanced Clinical AI Assistant. "
@@ -1534,8 +1637,8 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    temperature=0.1,
-                    max_tokens=1024,
+                    max_tokens=retriever_config.llm_max_tokens_rag,
+                    **_sampling(retriever_config.temperature_rag),
                     logprobs=True,
                 )
                 final_output = response.choices[0].message.content
@@ -1619,8 +1722,8 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    temperature=0.1,
                     max_tokens=policy["max_tokens"],
+                    **_sampling(retriever_config.temperature_mcp),
                     logprobs=True,
                 )
                 final_output = response.choices[0].message.content
@@ -1659,8 +1762,14 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
     if 'generation_confidence' not in dir():
         generation_confidence = 0.0
 
+    # Keep the conversation up to this turn's question and append the answer.
+    # An audit retry replaces this turn's previous answer instead of stacking it.
+    history = list(state.get("messages") or [])
+    last_human = max((i for i, m in enumerate(history) if isinstance(m, HumanMessage)), default=-1)
+    turn_messages = history[: last_human + 1] + [AIMessage(content=final_output)]
+
     return {
-        "messages": [AIMessage(content=final_output)],
+        "messages": turn_messages,
         "audit_retry_count": audit_retry_count if 'audit_retry_count' in dir() else state.get("audit_retry_count", 0),
         "generation_confidence": generation_confidence,
     }
@@ -1682,7 +1791,7 @@ def generate_visualization(state: ClinicalAgentState) -> Dict[str, Any]:
     """
     import asyncio
 
-    query = state["messages"][-1].content
+    query = _user_query(state)
     patient_id = state.get("patient_id")
     documents = state.get("documents")
     patient_state_data = state.get("patient_state")
@@ -2006,8 +2115,8 @@ def _generate_caption(
         response = client.chat.completions.create(
             model=LLAMA_MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
             max_tokens=200,
+            **_sampling(0.1),
         )
         return response.choices[0].message.content.strip()
 

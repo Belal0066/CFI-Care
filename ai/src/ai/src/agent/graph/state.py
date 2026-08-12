@@ -8,7 +8,18 @@ class ClinicalAgentState(TypedDict):
     Tracks the conversation, patient context, reasoning artifacts, and flags.
     """
     messages: List[BaseMessage]
-    
+
+    # The user's question for this turn, set once by classify_intent and
+    # never overwritten (nodes read it instead of messages[-1], which holds
+    # the previous answer during an audit retry).
+    query: str
+    # Search text override set by reformulate_query; None means use `query`.
+    retrieval_query: Optional[str]
+    # Retry widening (dense_topk gating): top-k for the next retrieval pass
+    # and whether the intent filter is still applied.
+    retrieval_top_k: Optional[int]
+    retrieval_use_intent_filter: bool
+
     patient_id: Optional[str]
     patient_state: Optional[Dict[str, Any]]
     documents: Optional[List[Any]]
@@ -63,7 +74,7 @@ class ClinicalAgentState(TypedDict):
     # Visualization result (from clinical_viz MCP)
     viz_result: Optional[Dict[str, Any]] = None
 
-    # Bounded ReAct loop over MedMCP evidence-gathering (off by default —
+    # Bounded ReAct loop over MedMCP evidence-gathering (off by default, 
     # see retriever_config.mcp_react_loop_enabled). Structured, auditable
     # trace of each decided action, not hidden free-form reasoning.
     mcp_react_steps: List[Dict[str, Any]]
