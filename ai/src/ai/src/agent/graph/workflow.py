@@ -67,8 +67,31 @@ def _compute_confidence(state: ClinicalAgentState) -> Dict[str, Any]:
 
 workflow = StateGraph(ClinicalAgentState)
 
+def _prepare_retrieval_retry(state: ClinicalAgentState) -> Dict[str, Any]:
+    """
+    Bounded adaptive retrieval: the first retrieval pass scored below the
+    sufficiency gate (has_insufficient_data). Retry once with a relaxed
+    threshold rather than proceeding to reasoning on thin evidence.
+
+    Deliberately deterministic, not model-controlled: the retrieval score
+    is already a sufficient signal to decide "try again, more broadly" —
+    no LLM call is needed to make or act on that decision, and the retry
+    count is a hard, code-enforced bound regardless of what any later
+    model-assisted step might otherwise "want."
+    """
+    iterations = state.get("retrieval_iterations", 0) + 1
+    current_threshold = state.get("retrieval_threshold", retriever_config.retrieval_gatekeeper_threshold)
+    relaxed_threshold = current_threshold * retriever_config.retrieval_retry_threshold_factor
+    logger.info(
+        f"Retrieval insufficient (retry {iterations}/{retriever_config.max_retrieval_retries}) — "
+        f"relaxing threshold {current_threshold:.3f} -> {relaxed_threshold:.3f}"
+    )
+    return {"retrieval_iterations": iterations, "retrieval_threshold": relaxed_threshold}
+
+
 workflow.add_node("classify", classify_intent)
 workflow.add_node("rag_retrieve", retrieve_patient_context)
+workflow.add_node("retry_retrieval", _prepare_retrieval_retry)
 workflow.add_node("reason", run_deterministic_reasoning)
 workflow.add_node("mcp_search", query_mcp)
 workflow.add_node("visualize", generate_visualization)
@@ -141,8 +164,23 @@ workflow.add_conditional_edges(
     }
 )
 
-# RAG Path
-workflow.add_edge("rag_retrieve", "reason")
+# RAG Path — bounded adaptive retry before reasoning on insufficient evidence
+def route_after_retrieval(state):
+    """One bounded retry if retrieval scored below the sufficiency gate."""
+    if (
+        state.get("has_insufficient_data", False)
+        and state.get("retrieval_iterations", 0) < retriever_config.max_retrieval_retries
+    ):
+        return "retry_retrieval"
+    return "reason"
+
+
+workflow.add_conditional_edges(
+    "rag_retrieve",
+    route_after_retrieval,
+    {"retry_retrieval": "retry_retrieval", "reason": "reason"},
+)
+workflow.add_edge("retry_retrieval", "rag_retrieve")
 
 
 def route_after_reason(state):
