@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Seeds the evaluation corpus (3 cohorts) into Qdrant and verifies payload flags.
-Wipes the existing clinical_embeddings collection and rebuilds it.
+Wipes the configured collection (QDRANT_COLLECTION_NAME) and rebuilds it.
 """
 
 import json
@@ -27,7 +27,8 @@ from fastembed import TextEmbedding, SparseTextEmbedding
 def run_system_seeding():
     print("Connecting to local Qdrant engine on port 6333...")
     client = QdrantClient(url="http://localhost:6333")
-    collection_name = "clinical_embeddings"
+    from src.shared.config import config
+    collection_name = config.qdrant_collection_name
 
     print("Initializing embedding models (bge-base-en-v1.5 + SPLADE)...")
     dense_embedder = TextEmbedding(model_name="BAAI/bge-base-en-v1.5")

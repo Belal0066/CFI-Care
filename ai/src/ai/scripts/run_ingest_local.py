@@ -38,7 +38,7 @@ def run_manual_ingest():
             client = qdrant_client.connect()
             # We can't use HybridRetriever easily without mocking/setup, but we can check the point directly
             points = client.retrieve(
-                collection_name="clinical_embeddings",
+                collection_name=qdrant_client.collection_name,
                 ids=[enc.id]
             )
             

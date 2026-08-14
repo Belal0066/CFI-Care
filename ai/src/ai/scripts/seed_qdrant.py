@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed clinical data into Qdrant clinical_embeddings collection.
+Seed clinical data into the configured Qdrant collection (QDRANT_COLLECTION_NAME).
 Uses IngestionService.ingest_resource() with the custom node list format.
 """
 import sys
@@ -36,8 +36,8 @@ def main():
     # Verify
     from src.shared.db_clients import qdrant_client
     qdrant_client.connect()
-    coll = qdrant_client.client.get_collection('clinical_embeddings')
-    logger.info(f"\nDone! clinical_embeddings: {coll.points_count} points")
+    coll = qdrant_client.client.get_collection(qdrant_client.collection_name)
+    logger.info(f"\nDone! {qdrant_client.collection_name}: {coll.points_count} points")
     logger.info(f"Result: {result}")
     return 0
 

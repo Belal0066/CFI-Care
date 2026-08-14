@@ -4,7 +4,12 @@ from qdrant_client import QdrantClient
 # Configuration
 QDRANT_HOST = "localhost"
 QDRANT_PORT = 6333
-COLLECTION_NAME = "clinical_embeddings"
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from src.shared.config import config
+
+COLLECTION_NAME = config.qdrant_collection_name
 
 def reset_qdrant():
     print(f"Connecting to Qdrant at {QDRANT_HOST}:{QDRANT_PORT}...")

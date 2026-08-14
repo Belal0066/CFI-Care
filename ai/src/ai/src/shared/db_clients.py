@@ -129,6 +129,58 @@ class QdrantVectorClient:
             logger.error(f"Qdrant upsert failed for {point_id}: {e}")
             raise
     
+    @staticmethod
+    def point_uuid(point_id: Any) -> str:
+        """Same id rule as upsert_point: UUIDs kept, other strings mapped via uuid5."""
+        import uuid
+        if isinstance(point_id, str):
+            try:
+                if "-" in point_id and len(point_id) == 36:
+                    return str(uuid.UUID(point_id))
+            except ValueError:
+                pass
+            return str(uuid.uuid5(uuid.NAMESPACE_DNS, point_id))
+        return str(point_id)
+
+    def upsert_points(self, points: list[Dict[str, Any]]):
+        """
+        Batch upsert. Each item: point_id, vector, sparse_indices,
+        sparse_values, payload (same fields as upsert_point).
+        """
+        from qdrant_client import models
+        client = self.connect()
+        structs = []
+        for p in points:
+            vec_input = {"text-dense": p["vector"]}
+            if p.get("sparse_indices") is not None and p.get("sparse_values") is not None:
+                vec_input[self.sparse_vector_name] = models.SparseVector(
+                    indices=p["sparse_indices"], values=p["sparse_values"]
+                )
+            structs.append(PointStruct(
+                id=self.point_uuid(p["point_id"]), vector=vec_input, payload=p.get("payload")
+            ))
+        client.upsert(collection_name=self.collection_name, points=structs, wait=True)
+
+    def ensure_payload_indexes(self):
+        """
+        Keyword indexes on the fields every agent query filters or groups on.
+        Without them a patient_id filter scans every point.
+        """
+        from qdrant_client.models import PayloadSchemaType
+        client = self.connect()
+        for field in ("patient_id", "parent_node_id", "resource_type"):
+            client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name=field,
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
+        for field in ("is_diagnosis", "is_medication", "is_allergy", "is_symptom", "is_outcome"):
+            client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name=field,
+                field_schema=PayloadSchemaType.BOOL,
+            )
+
     def health_check(self) -> bool:
         """Verify Qdrant is accessible."""
         try:
