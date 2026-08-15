@@ -6,6 +6,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Evaluation runs: block every outbound host outside EVAL_EGRESS_ALLOWLIST.
+# egress_guard.py is copied next to this file in the eval image; outside
+# EVAL_MODE it is a no-op, and its absence is fine.
+import os
+try:
+    import egress_guard
+    egress_guard.install()
+except ImportError:
+    if os.getenv("EVAL_MODE", "").strip().lower() in ("1", "true", "yes", "on"):
+        raise
+
+# Record/replay of PubMed/OpenFDA/RxNav responses (no-op unless
+# MCP_HTTP_CACHE_DIR is set). Installed after the guard so cache misses that
+# go live are still checked against the allowlist.
+import http_cache
+http_cache.install()
+
 from schemas import RetrievalDataSchema, VizRenderRequest, VizRenderResponse
 from router import run_medical_flow
 from adapters.clinical_viz import render_chart
@@ -104,8 +121,11 @@ async def viz_render_endpoint(request: VizRenderRequest):
 
 
 # Mount FastMCP SSE handles at /mcp
-# This enables the standard MCP protocol over SSE for VS Code
-mcp_app = mcp.http_app(transport="sse", path="/")
+# This enables the standard MCP protocol over SSE for VS Code.
+# path="/sse" puts the stream at /mcp/sse, the URL the agent's MCP client
+# (config.mcp_server_url) and the docs use; with path="/" it was served at
+# /mcp/ and every protocol call to /mcp/sse returned 404.
+mcp_app = mcp.http_app(transport="sse", path="/sse")
 app.mount("/mcp", mcp_app)
 
 if __name__ == "__main__":

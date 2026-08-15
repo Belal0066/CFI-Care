@@ -1,9 +1,16 @@
+import os
 import httpx
 import xml.etree.ElementTree as ET
 from typing import List, Dict
 
 # Public Entrez API endpoint
 BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+
+
+def _keyed(params: dict) -> dict:
+    """Adds NCBI_API_KEY when set (raises the E-utilities limit from 3 to 10 requests/s)."""
+    key = os.getenv("NCBI_API_KEY")
+    return {**params, "api_key": key} if key else params
 
 async def search_pubmed(query: str, max_results: int = 3) -> List[Dict[str, str]]:
     """Searches PubMed and returns articles with titles, PMIDs, and URLs."""
@@ -19,7 +26,7 @@ async def search_pubmed(query: str, max_results: int = 3) -> List[Dict[str, str]
                 "retmax": max_results,
                 "sort": "relevance"  # Use relevance instead of date
             }
-            resp = await client.get(f"{BASE_URL}/esearch.fcgi", params=params, timeout=15.0)
+            resp = await client.get(f"{BASE_URL}/esearch.fcgi", params=_keyed(params), timeout=15.0)
             resp.raise_for_status()
             data = resp.json()
             id_list = data.get("esearchresult", {}).get("idlist", [])
@@ -28,7 +35,7 @@ async def search_pubmed(query: str, max_results: int = 3) -> List[Dict[str, str]
                 return [{"title": "No direct authoritative guidelines found on PubMed for this query.", "pmid": "", "url": ""}]
 
             fetch_params = {"db": "pubmed", "id": ",".join(id_list), "retmode": "xml"}
-            summary_resp = await client.get(f"{BASE_URL}/efetch.fcgi", params=fetch_params, timeout=15.0)
+            summary_resp = await client.get(f"{BASE_URL}/efetch.fcgi", params=_keyed(fetch_params), timeout=15.0)
             summary_resp.raise_for_status()
             
             root = ET.fromstring(summary_resp.content)
@@ -74,12 +81,12 @@ async def search_pubmed_interactions(drug1: str, drug2: str) -> List[str]:
     async with httpx.AsyncClient(trust_env=True) as client:
         try:
             params = {"db": "pubmed", "term": query, "retmode": "json", "retmax": 3}
-            resp = await client.get(f"{BASE_URL}/esearch.fcgi", params=params, timeout=15.0)
+            resp = await client.get(f"{BASE_URL}/esearch.fcgi", params=_keyed(params), timeout=15.0)
             resp.raise_for_status()
             ids = resp.json().get("esearchresult", {}).get("idlist", [])
             if not ids: return []
 
-            fetch_resp = await client.get(f"{BASE_URL}/efetch.fcgi", params={"db":"pubmed", "id":",".join(ids), "retmode":"xml"}, timeout=15.0)
+            fetch_resp = await client.get(f"{BASE_URL}/efetch.fcgi", params=_keyed({"db":"pubmed", "id":",".join(ids), "retmode":"xml"}), timeout=15.0)
             root = ET.fromstring(fetch_resp.content)
             results = []
             for art in root.findall(".//Article"):

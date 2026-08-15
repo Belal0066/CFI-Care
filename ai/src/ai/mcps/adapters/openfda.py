@@ -1,3 +1,4 @@
+import os
 import httpx
 import json
 from typing import List, Optional, Dict, Union
@@ -14,6 +15,8 @@ async def get_drug_interactions(drug_name: str) -> Union[str, Dict]:
         async with httpx.AsyncClient(trust_env=True, follow_redirects=True) as client:
             q = f'(generic_name:"{search_term}"+OR+openfda.generic_name:"{search_term}"+OR+brand_name:"{search_term}")+AND+_exists_:drug_interactions'
             params = {"search": q, "limit": 2}
+            if os.getenv("OPENFDA_API_KEY"):
+                params["api_key"] = os.getenv("OPENFDA_API_KEY")
             resp = await client.get(BASE_URL, params=params, timeout=15.0)
             
             if resp.status_code == 404:

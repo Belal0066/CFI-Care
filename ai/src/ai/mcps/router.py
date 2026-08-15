@@ -45,9 +45,23 @@ CATEGORIES = {
 llm_api_key = os.getenv("LLAMACPP_API_KEY", os.getenv("GROQ_API_KEY", "sk-no-token"))
 llm_base_url = os.getenv("LLAMACPP_API_BASE")
 llm_model = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
+# Evaluation controls: same temperature/seed as the agent's LLM calls.
+llm_temperature = float(os.getenv("MCP_LLM_TEMPERATURE", "0.1"))
+llm_seed = os.getenv("MCP_LLM_SEED")
+
+if os.getenv("EVAL_MODE", "").strip().lower() in ("1", "true", "yes", "on") and not llm_base_url:
+    # During an eval every LLM call must reach the one inference server under
+    # test; falling back to Groq would silently change the model.
+    raise RuntimeError("EVAL_MODE requires LLAMACPP_API_BASE; the Groq fallback is disabled during evaluation")
 
 if llm_base_url:
-    llm = ChatOpenAI(model=llm_model, openai_api_key=llm_api_key, openai_api_base=llm_base_url, temperature=0.1)
+    llm = ChatOpenAI(
+        model=llm_model,
+        openai_api_key=llm_api_key,
+        openai_api_base=llm_base_url,
+        temperature=llm_temperature,
+        **({"seed": int(llm_seed)} if llm_seed else {}),
+    )
 else:
     from langchain_groq import ChatGroq
     llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=os.getenv("GROQ_API_KEY", "dummy"))
