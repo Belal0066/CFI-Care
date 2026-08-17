@@ -1900,6 +1900,11 @@ def generate_visualization(state: ClinicalAgentState) -> Dict[str, Any]:
     }
 
 
+# Upper bound on points read for one patient's charts (the largest MIMIC demo
+# patient has tens of thousands of chart events).
+VIZ_MAX_POINTS = 60000
+
+
 def _extract_patient_data_for_viz(
     patient_id: Optional[str],
     documents: Optional[List[Any]],
@@ -1924,18 +1929,31 @@ def _extract_patient_data_for_viz(
         q_cli = qdrant_client.connect()
         collection = qdrant_client.collection_name
 
-        scroll_filter = (
-            Filter(must=[FieldCondition(key="patient_id", match=MatchValue(value=patient_id))])
-            if patient_id else None
-        )
+        from qdrant_client.models import MatchAny
 
-        all_points, _ = q_cli.scroll(
-            collection_name=collection,
-            scroll_filter=scroll_filter,
-            limit=200,
-            with_payload=True,
-            with_vectors=False,
-        )
+        # Only the resource types the charts use, paged through the whole
+        # patient record: a single 200-point page of every type (the old
+        # behaviour) usually held no labs for a patient with thousands of
+        # ICU chart events.
+        must = [FieldCondition(key="resource_type", match=MatchAny(any=["Observation", "Encounter"]))]
+        if patient_id:
+            must.append(FieldCondition(key="patient_id", match=MatchValue(value=patient_id)))
+        scroll_filter = Filter(must=must)
+
+        all_points: List[Any] = []
+        offset = None
+        while len(all_points) < VIZ_MAX_POINTS:
+            page, offset = q_cli.scroll(
+                collection_name=collection,
+                scroll_filter=scroll_filter,
+                limit=1000,
+                offset=offset,
+                with_payload=["resource_type", "toon_content", "date_issued"],
+                with_vectors=False,
+            )
+            all_points.extend(page)
+            if offset is None:
+                break
 
         for point in all_points:
             payload = point.payload or {}
@@ -2036,8 +2054,10 @@ def _parse_encounter_for_gantt(toon_content: str) -> Optional[Dict[str, Any]]:
     if not toon_content:
         return None
 
-    # Date: Encounters use actualPeriod.start
+    # Date: R5 Encounters use actualPeriod.start, R4 (e.g. MIMIC) period.start
     dt_m = re.search(r'actualPeriod:.*?start:\s*"([^"]+)"', toon_content, re.DOTALL)
+    if not dt_m:
+        dt_m = re.search(r'^period:\s*\n(?:\s+end:.*\n)?\s+start:\s*"([^"]+)"', toon_content, re.MULTILINE)
     if not dt_m:
         return None
     timestamp = dt_m.group(1)
@@ -2046,7 +2066,7 @@ def _parse_encounter_for_gantt(toon_content: str) -> Optional[Dict[str, Any]]:
     desc_m = re.search(r'Encounter:\s*([^<\n]+)', toon_content)
     event = desc_m.group(1).strip() if desc_m else ""
     if not event:
-        return None
+        return _encounter_from_class(toon_content, timestamp)
     event = event.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"')
 
     event_lower = event.lower()
@@ -2072,6 +2092,38 @@ def _parse_encounter_for_gantt(toon_content: str) -> Optional[Dict[str, Any]]:
         "event": event,
         "phase": phase,
         "clinical_status": clinical_status,
+        "measurements": {},
+        "text_summary": event,
+    }
+
+
+# Encounter class (v3 ActCode) -> gantt phase and status, for encounters with
+# no narrative label (standard FHIR such as MIMIC).
+_ENCOUNTER_CLASS_PHASES = {
+    "EMER": ("Emergency", "Escalation"),
+    "ACUTE": ("ICU / Acute", "Escalation"),
+    "IMP": ("Inpatient", "Active"),
+    "OBSENC": ("Observation", "Active"),
+    "SS": ("Short Stay", "Active"),
+    "AMB": ("Ambulatory", "Recovery"),
+}
+
+
+def _encounter_from_class(toon_content: str, timestamp: str) -> Optional[Dict[str, Any]]:
+    import re
+
+    cls = re.search(r'^class:\s*\n(?:\s+\S.*\n)*?\s+code:\s*"?([A-Z]+)"?', toon_content, re.MULTILINE)
+    code = cls.group(1) if cls else ""
+    phase, status = _ENCOUNTER_CLASS_PHASES.get(code, ("Encounter", "Active"))
+    type_m = re.search(r'^type\[\d+\]:\s*\n\s+- coding\[\d+\]\{[^}]*\}:\s*(.+)$', toon_content, re.MULTILINE)
+    type_label = type_m.group(1).rsplit(",", 1)[-1].strip().strip('"') if type_m else ""
+    event = f"{phase} encounter" + (f": {type_label}" if type_label else "")
+    return {
+        "timestamp": timestamp,
+        "type": "encounter",
+        "event": event,
+        "phase": phase,
+        "clinical_status": status,
         "measurements": {},
         "text_summary": event,
     }

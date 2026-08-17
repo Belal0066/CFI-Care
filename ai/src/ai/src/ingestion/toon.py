@@ -234,6 +234,13 @@ def extract_observation_values(toon_content: str) -> dict:
     if not toon_content:
         return {}
 
+    # --- Step 0: a standard FHIR Observation (top-level code + valueQuantity) --
+    # is authoritative: its own code names the measurement. Without this, MIMIC
+    # labs yielded nothing (the value is not next to the name in the text).
+    structured = _extract_fhir_observation_quantity(toon_content)
+    if structured:
+        return structured
+
     # --- Step 1: extract valueString narrative (where most data lives) ----------
     vs_match = re.search(r'valueString:\s*"(.+?)"', toon_content, re.DOTALL)
     search_text = vs_match.group(1) if vs_match else toon_content
@@ -269,6 +276,79 @@ def extract_observation_values(toon_content: str) -> dict:
         measurements = _extract_values_from_yaml_toon(toon_content)
 
     return measurements
+
+
+# Exact lab names (lowercased code display/text) -> chart measurement key.
+# Exact matching on purpose: "Creatinine, Urine" or "Albumin/Creatinine, Urine"
+# must not be plotted as serum creatinine.
+FHIR_LAB_KEYS = {
+    "creatinine": "creatinine",
+    "creatinine, serum": "creatinine",
+    "estimated gfr (mdrd equation)": "egfr",
+    "egfr": "egfr",
+    "estimated gfr": "egfr",
+    "ntprobnp": "bnp",
+    "nt-probnp": "bnp",
+    "bnp": "bnp",
+    "b-type natriuretic peptide": "bnp",
+    "potassium": "potassium",
+    "urea nitrogen": "bun",
+    "bun": "bun",
+    "% hemoglobin a1c": "hba1c",
+    "hemoglobin a1c": "hba1c",
+    "hba1c": "hba1c",
+    "lvef": "lvef",
+    "left ventricular ejection fraction": "lvef",
+}
+
+
+def _top_level_block(lines: list, key: str) -> list:
+    """Indented lines under an unindented `key:` line of a TOON document."""
+    for i, line in enumerate(lines):
+        if line.rstrip() == f"{key}:":
+            block = []
+            for nxt in lines[i + 1:]:
+                if nxt and not nxt[0].isspace():
+                    break
+                block.append(nxt.strip())
+            return block
+    return []
+
+
+def _extract_fhir_observation_quantity(toon_content: str) -> dict:
+    """
+    {key: value} for an Observation whose top-level `code` names a known lab
+    and whose top-level `valueQuantity` holds the number; {} otherwise.
+    """
+    import re
+
+    lines = toon_content.split("\n")
+    code_block = _top_level_block(lines, "code")
+    value_block = _top_level_block(lines, "valueQuantity")
+    if not code_block or not value_block:
+        return {}
+    names = []
+    for line in code_block:
+        m = re.match(r'coding\[\d+\]\{[^}]*display\}:\s*(.+)$', line)
+        if m:
+            names.append(m.group(1).rsplit(",", 1)[-1].strip().strip('"'))
+        m = re.match(r'-?\s*display:\s*"?([^"]+)"?$', line)
+        if m:
+            names.append(m.group(1).strip())
+        m = re.match(r'text:\s*"?([^"]+)"?$', line)
+        if m:
+            names.append(m.group(1).strip())
+    key = next((FHIR_LAB_KEYS[n.lower()] for n in names if n.lower() in FHIR_LAB_KEYS), None)
+    if not key:
+        return {}
+    for line in value_block:
+        m = re.match(r'value:\s*(-?[\d.]+)', line)
+        if m:
+            try:
+                return {key: float(m.group(1))}
+            except ValueError:
+                return {}
+    return {}
 
 
 def _extract_values_from_yaml_toon(toon_content: str) -> dict:
