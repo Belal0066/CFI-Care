@@ -113,13 +113,13 @@ def execute_query(query: str, patient_id: str) -> dict:
     generated_answer = msgs[-1].content if msgs else ""
 
     # Extract retrieved TOON contexts
-    retrieved = result.get("retrieved_docs", [])
-    contexts = []
-    for r in retrieved:
-        if isinstance(r, dict):
-            contexts.append(r.get("anchor_content", r.get("toon_content", str(r))))
-        else:
-            contexts.append(str(r))
+    # The generator's context is every chunk of every encounter group (the
+    # state field replaced retrieved_docs); read it the same way generate does.
+    contexts = [
+        chunk.anchor_content
+        for eg in result.get("encounter_groups", [])
+        for chunk in eg.chunks
+    ]
 
     print(f"  Query: {query[:60]}...")
     print(f"  Answer: {len(generated_answer)} chars")

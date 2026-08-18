@@ -122,7 +122,7 @@ def benchmark_query(
         msgs = result.get("messages", [])
         test(f"{label}: graph returns messages", len(msgs) > 0)
         test(f"{label}: message has content", bool(msgs[-1].content) if msgs else False)
-        test(f"{label}: retrieved_docs populated", len(result.get("retrieved_docs", [])) > 0)
+        test(f"{label}: encounter_groups populated", len(result.get("encounter_groups", [])) > 0)
 
     return {"label": label, "query": query, "latency_ms": stats}
 

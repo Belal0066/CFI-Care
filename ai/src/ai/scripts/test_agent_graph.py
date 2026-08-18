@@ -215,7 +215,7 @@ def test_graph_invoke() -> None:
     msgs = result.get("messages", [])
     test("RAG path: graph returns messages", len(msgs) > 0)
     test("RAG path: message has content", bool(msgs[-1].content))
-    test("RAG path: retrieved_docs populated", len(result.get("retrieved_docs", [])) > 0)
+    test("RAG path: encounter_groups populated", len(result.get("encounter_groups", [])) > 0)
     test("RAG path: clinical_response generated",
          result.get("clinical_response") is not None)
 
