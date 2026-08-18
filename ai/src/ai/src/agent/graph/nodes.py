@@ -1,7 +1,9 @@
 from typing import Dict, Any, List, Optional
+import asyncio
 import logging
 import json
 import os
+import time
 import httpx
 from openai import OpenAI
 from langchain_core.messages import HumanMessage, AIMessage
@@ -258,15 +260,139 @@ def _construct_drug_safety_query(raw_query: str, question_type: str) -> str:
     return f"{drug_name} pharmacology"
 
 
+MCP_MAX_RETRIES = 2
+MCP_RETRY_BACKOFF_BASE_SEC = 1.0
+
+
+def _run_async_from_sync(coro):
+    """
+    Runs an async coroutine from a sync graph node.
+
+    Every node in this module is a plain `def`, but the compiled graph is
+    invoked both synchronously (app.invoke, from Streamlit) and
+    asynchronously (app.ainvoke, from FastAPI_Backend.py's /chat). LangGraph
+    is expected to run sync nodes in a worker thread even under ainvoke —
+    but that's an assumption about LangGraph's internals, not something
+    verified here against a live server. Guard it explicitly instead of
+    letting an unverified assumption crash the /chat path: if this thread
+    already has a running loop, run the coroutine in its own thread instead
+    of calling asyncio.run() directly (which raises if a loop is running).
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
 def _call_mcp_endpoint(original_query: str, optimized_query: str) -> Dict[str, Any]:
     """
     Calls the MCP endpoint with the optimized query.
     Extracted for reuse in both drug safety and general query paths.
+
+    Uses the real MCP protocol by default (MCPToolManager, an SSE-based
+    mcp.ClientSession calling the MedMCP server's get_medical_data tool) —
+    this is a genuine host/client call, not a REST bypass of the protocol
+    the server actually exposes. Set MCP_TRANSPORT=rest to roll back to the
+    previous direct-HTTP call if the protocol path misbehaves; that path is
+    kept, unchanged, specifically for that rollback.
     """
+    if os.getenv("MCP_TRANSPORT", "mcp") == "rest":
+        return _call_mcp_endpoint_rest(original_query, optimized_query)
+    return _call_mcp_endpoint_protocol(original_query, optimized_query)
+
+
+def _call_mcp_endpoint_protocol(original_query: str, optimized_query: str) -> Dict[str, Any]:
+    from src.agent.mcp_client import mcp_manager
+
+    logger.info(f"Calling MedMCP tool 'get_medical_data' via MCP protocol for: {optimized_query[:80]}...")
+
+    last_error: Optional[Exception] = None
+    for attempt in range(MCP_MAX_RETRIES + 1):
+        try:
+            content = _run_async_from_sync(
+                mcp_manager.call_tool("get_medical_data", {"query": optimized_query})
+            )
+            data = _parse_mcp_tool_result(content)
+            logger.info(f"MCP returned classification: {data.get('classification', 'N/A')}")
+            data["original_query"] = original_query
+            data["optimized_query"] = optimized_query
+            return {"internet_evidence": [data]}
+        except Exception as e:
+            last_error = e
+            if attempt < MCP_MAX_RETRIES:
+                backoff = MCP_RETRY_BACKOFF_BASE_SEC * (2 ** attempt)
+                logger.warning(
+                    f"MCP tool call failed (attempt {attempt + 1}/{MCP_MAX_RETRIES + 1}): "
+                    f"{e} — retrying in {backoff:.1f}s"
+                )
+                time.sleep(backoff)
+            else:
+                logger.error(f"MCP tool call failed after {MCP_MAX_RETRIES + 1} attempts: {e}")
+
+    return {"internet_evidence": [{"error": f"MCP tool call failed: {last_error}"}]}
+
+
+def _parse_mcp_tool_result(content: Any) -> Dict[str, Any]:
+    """
+    Parses a CallToolResult.content list (what MCPToolManager.call_tool
+    returns) back into the same dict shape the REST endpoint used to
+    return (RetrievalDataSchema's fields), so callers don't need to know
+    which transport served the call.
+
+    FastMCP serializes a Pydantic-model tool return as a TextContent block
+    whose .text is the JSON-encoded model — this is the documented
+    behavior this parsing relies on. It has not been exercised against a
+    live server in this change; re-verify against the actual installed
+    mcp/fastmcp versions before removing the MCP_TRANSPORT=rest fallback.
+    """
+    if not content:
+        raise ValueError("MCP tool returned no content")
+
+    for block in content:
+        text = getattr(block, "text", None)
+        if text:
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                continue
+
+    raise ValueError(f"Could not parse MCP tool result content: {content!r}")
+
+
+async def _render_chart_protocol(patient_data: List[Dict[str, Any]], sub_query: str) -> Dict[str, Any]:
+    """VizMCP's render_clinical_viz tool, called via the real MCP protocol."""
+    from src.agent.mcp_client import mcp_manager
+
+    content = await mcp_manager.call_tool(
+        "render_clinical_viz", {"patient_data": patient_data, "query": sub_query}
+    )
+    return _parse_mcp_tool_result(content)
+
+
+async def _render_chart_rest(
+    client: httpx.AsyncClient, mcp_server_url: str, patient_data: List[Dict[str, Any]], sub_query: str
+) -> Dict[str, Any]:
+    """Rollback path — direct HTTP POST, bypassing the MCP protocol."""
+    resp = await client.post(
+        f"{mcp_server_url}/mcp/viz/render",
+        json={"patient_data": patient_data, "query": sub_query},
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"MCP error {resp.status_code}")
+    return resp.json()
+
+
+def _call_mcp_endpoint_rest(original_query: str, optimized_query: str) -> Dict[str, Any]:
+    """Rollback path — direct HTTP POST to the MCP server's REST wrapper, bypassing the MCP protocol."""
     MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8002/mcp/query")
-    
+
     logger.info(f"Querying MCP at {MCP_SERVER_URL} for: {optimized_query[:80]}...")
-    
+
     with httpx.Client() as client:
         try:
             resp = client.post(MCP_SERVER_URL, json={"query": optimized_query}, timeout=60.0)
@@ -1363,10 +1489,13 @@ def generate_visualization(state: ClinicalAgentState) -> Dict[str, Any]:
         (timeline_data, "clinical encounter timeline phases",      "Clinical Timeline"),
     ]
 
-    # ── Step 3: Render each chart via MCP ────────────────────────────────────
+    # ── Step 3: Render each chart via MCP (real protocol by default; set
+    #    MCP_TRANSPORT=rest to roll back to the direct HTTP call) ────────────
     async def _render_all():
         charts = []
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        use_rest = os.getenv("MCP_TRANSPORT", "mcp") == "rest"
+        rest_client = httpx.AsyncClient(timeout=60.0) if use_rest else None
+        try:
             for patient_data, sub_query, title in chart_configs:
                 if not patient_data:
                     charts.append({
@@ -1377,21 +1506,12 @@ def generate_visualization(state: ClinicalAgentState) -> Dict[str, Any]:
                     })
                     continue
                 try:
-                    resp = await client.post(
-                        f"{mcp_server_url}/mcp/viz/render",
-                        json={"patient_data": patient_data, "query": sub_query},
-                    )
-                    if resp.status_code == 200:
-                        result = resp.json()
-                        result["title"] = title
-                        charts.append(result)
+                    if use_rest:
+                        result = await _render_chart_rest(rest_client, mcp_server_url, patient_data, sub_query)
                     else:
-                        charts.append({
-                            "image_base64": None,
-                            "summary": f"MCP error {resp.status_code} for {title}.",
-                            "chart_type": "error",
-                            "title": title,
-                        })
+                        result = await _render_chart_protocol(patient_data, sub_query)
+                    result["title"] = title
+                    charts.append(result)
                 except Exception as e:
                     logger.error(f"Chart render failed for {title}: {e}")
                     charts.append({
@@ -1400,6 +1520,9 @@ def generate_visualization(state: ClinicalAgentState) -> Dict[str, Any]:
                         "chart_type": "error",
                         "title": title,
                     })
+        finally:
+            if rest_client is not None:
+                await rest_client.aclose()
         return charts
 
     try:

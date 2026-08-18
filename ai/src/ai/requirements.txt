@@ -31,6 +31,10 @@ langchain-core>=0.2.0
 langchain-openai>=0.2.0
 langchain-groq>=0.2.0
 
+# MCP client (src/agent/mcp_client.py) — was imported without ever being
+# declared here; installing from this file alone could not satisfy it.
+mcp>=1.0.0
+
 # API Framework (MedGemma RAG)
 fastapi>=0.104.0
 uvicorn>=0.24.0
