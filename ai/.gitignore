@@ -54,9 +54,12 @@ Thumbs.db
 # Environment files (keep examples in repo)
 .env
 llama-server.env
+src/ai/eval/docker/.env.eval
 
 # Model/data outputs (large files)
 data/
+# ...except the evaluation question set, which is small, versioned input
+!src/ai/eval/data/
 outputs/
 models/
 **/models/
@@ -80,3 +83,6 @@ models/
 # Personal files: keep on disk, never track
 src/ai/docs/myCV.latex
 src/ai/thesis.txt
+
+# Evaluation outputs (runs, scores, caches) stay on the eval host
+src/ai/results/eval-v1/
