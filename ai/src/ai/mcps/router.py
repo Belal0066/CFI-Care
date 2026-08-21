@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 from typing import Annotated, TypedDict, Union, List, Dict, Optional
@@ -11,6 +12,15 @@ load_dotenv()
 from adapters.pubmed import search_pubmed, search_pubmed_interactions
 from adapters.openfda import get_drug_interactions
 from adapters.medlineplus import search_medlineplus
+from adapters.circuit_breaker import CircuitBreaker, CircuitOpenError
+
+logger = logging.getLogger(__name__)
+
+# One breaker per external source — an outage on one (e.g. PubMed) should not
+# affect calls to another (e.g. MedlinePlus).
+_pubmed_breaker = CircuitBreaker("pubmed", failure_threshold=3, reset_timeout_sec=60.0)
+_medlineplus_breaker = CircuitBreaker("medlineplus", failure_threshold=3, reset_timeout_sec=60.0)
+_openfda_breaker = CircuitBreaker("openfda", failure_threshold=3, reset_timeout_sec=60.0)
 
 class GraphState(TypedDict):
     query: str
@@ -136,68 +146,98 @@ async def summarizer_node(state: GraphState):
     
     return {"raw_data": processed_data}
 
+async def _search_pubmed_safe(query: str, max_results: int) -> list:
+    """Breaker-guarded PubMed call. Returns [] on failure or an open
+    circuit — degrades this source gracefully instead of raising and
+    aborting the whole retrieval."""
+    try:
+        return await _pubmed_breaker.call(search_pubmed, query, max_results=max_results)
+    except CircuitOpenError:
+        logger.warning("PubMed circuit open — skipping this source for now")
+        return []
+    except Exception as e:
+        logger.error(f"PubMed search failed: {e}")
+        return []
+
+
+async def _search_medlineplus_safe(query: str) -> list:
+    try:
+        return await _medlineplus_breaker.call(search_medlineplus, query)
+    except CircuitOpenError:
+        logger.warning("MedlinePlus circuit open — skipping this source for now")
+        return []
+    except Exception as e:
+        logger.error(f"MedlinePlus search failed: {e}")
+        return []
+
+
 async def retriever_node(state: GraphState):
     c = state["classification"]
     q = state["query"]
     entities = state.get("entities", [])
     if c == "G": return {}
     raw_data = []
-    
-    try:
-        # Standard Search Path (PubMed + MedlinePlus)
-        if c in ["A", "D", "E", "F"]:
-            # 1. PubMed Search
-            search_query = " AND ".join(entities) if entities else q
-            results = await search_pubmed(search_query, max_results=5)
-            
-            found_pubmed = False
-            for r in results:
-                title = r.get("title", "")
-                if "No direct authoritative guidelines" in title: continue
-                found_pubmed = True
-                
-                abstract = r.get("abstract", "") if isinstance(r, dict) else ""
-                content = f"{title}\n\nAbstract: {abstract}" if abstract else title
-                
-                raw_data.append({
-                    "source": "PubMed",
-                    "content": content,
-                    "url": r.get("url", "") if isinstance(r, dict) else "",
-                    "pmid": r.get("pmid", "") if isinstance(r, dict) else "",
-                    "abstract": abstract
-                })
-            
-            # 2. MedlinePlus Search (Parallel Resource)
-            # Add if explicitly educational (F) or general (A), or as fallback
-            if c in ["A", "F"] or not found_pubmed or len(raw_data) < 3:
-                # Use the optimized query for the search link
-                mpl_results = await search_medlineplus(q)
-                raw_data.extend([{"source": "NIH/MedlinePlus", **res} for res in mpl_results])
 
-        elif c == "B":
-             # Reference Ranges -> MedlinePlus is primary
-            mpl_results = await search_medlineplus(q)
+    # Each source below is individually guarded — an outage or open circuit
+    # on one source degrades that source only, rather than the previous
+    # behavior of one exception anywhere aborting the entire retrieval.
+    if c in ["A", "D", "E", "F"]:
+        # 1. PubMed Search
+        search_query = " AND ".join(entities) if entities else q
+        results = await _search_pubmed_safe(search_query, 5)
+
+        found_pubmed = False
+        for r in results:
+            title = r.get("title", "")
+            if "No direct authoritative guidelines" in title: continue
+            found_pubmed = True
+
+            abstract = r.get("abstract", "") if isinstance(r, dict) else ""
+            content = f"{title}\n\nAbstract: {abstract}" if abstract else title
+
+            raw_data.append({
+                "source": "PubMed",
+                "content": content,
+                "url": r.get("url", "") if isinstance(r, dict) else "",
+                "pmid": r.get("pmid", "") if isinstance(r, dict) else "",
+                "abstract": abstract
+            })
+
+        # 2. MedlinePlus Search (Parallel Resource)
+        # Add if explicitly educational (F) or general (A), or as fallback
+        if c in ["A", "F"] or not found_pubmed or len(raw_data) < 3:
+            mpl_results = await _search_medlineplus_safe(q)
             raw_data.extend([{"source": "NIH/MedlinePlus", **res} for res in mpl_results])
-            
-        elif c == "C":
-            # 1. OpenFDA (Interactions)
-            terms = entities if entities else [q]
-            for term in terms:
-                res = await get_drug_interactions(term)
-                if isinstance(res, dict):
-                    raw_data.append({"source": "OpenFDA", "content": json.dumps(res)})
-                elif isinstance(res, str) and "Error" in res:
-                    raw_data.append({"source": "OpenFDA Error", "content": res})
-            
-            # 2. PubMed Fallback for Interactions
-            if not any(d["source"] == "OpenFDA" for d in raw_data) or len(terms) >= 2:
-                pm_query = f"{terms[0]} AND {terms[1]} AND Drug Interactions" if len(terms) >= 2 else f"{terms[0]} interactions"
-                pm_results = await search_pubmed(pm_query, max_results=3)
-                for r in pm_results:
-                     raw_data.append({"source": "PubMed Interaction", "content": str(r)})
-                     
-    except Exception as e:
-        return {"error": f"Retrieval Error: {str(e)}"}
+
+    elif c == "B":
+        # Reference Ranges -> MedlinePlus is primary
+        mpl_results = await _search_medlineplus_safe(q)
+        raw_data.extend([{"source": "NIH/MedlinePlus", **res} for res in mpl_results])
+
+    elif c == "C":
+        # 1. OpenFDA (Interactions)
+        terms = entities if entities else [q]
+        for term in terms:
+            try:
+                res = await _openfda_breaker.call(get_drug_interactions, term)
+            except CircuitOpenError:
+                logger.warning("OpenFDA circuit open — skipping this source for now")
+                continue
+            except Exception as e:
+                logger.error(f"OpenFDA lookup failed for '{term}': {e}")
+                continue
+            if isinstance(res, dict):
+                raw_data.append({"source": "OpenFDA", "content": json.dumps(res)})
+            elif isinstance(res, str) and "Error" in res:
+                raw_data.append({"source": "OpenFDA Error", "content": res})
+
+        # 2. PubMed Fallback for Interactions
+        if not any(d["source"] == "OpenFDA" for d in raw_data) or len(terms) >= 2:
+            pm_query = f"{terms[0]} AND {terms[1]} AND Drug Interactions" if len(terms) >= 2 else f"{terms[0]} interactions"
+            pm_results = await _search_pubmed_safe(pm_query, 3)
+            for r in pm_results:
+                 raw_data.append({"source": "PubMed Interaction", "content": str(r)})
+
     return {"raw_data": raw_data}
 
 async def synthesizer_node(state: GraphState):
