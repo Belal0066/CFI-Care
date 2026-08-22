@@ -1,0 +1,19 @@
+# A2 / reference system: the eval-v1 graph as it is served.
+# Graded evaluator + one bounded retry are on: they are what make the
+# relevance gate (fix F1) able to route to abstention.
+name: full
+pipeline: graph
+mode: auto
+env:
+  RETRIEVAL_GATING_MODE: dense_topk
+  RETRIEVAL_SEARCH_MODE: hybrid
+  RETRIEVAL_TOP_K: "5"
+  # Set from the dev-split ROC (results/eval-v1/retrieval_study/gate_calibration.json)
+  RELEVANCE_GATE_THRESHOLD: "0.60"
+  RELEVANCE_GATE_AMBIGUOUS_THRESHOLD: "0.50"
+  # Decided by retrieval-study ablation R3 (fix F7)
+  INTENT_FILTER_ENABLED: "false"
+  GRADED_RETRIEVAL_EVALUATOR_ENABLED: "true"
+  MAX_RETRIEVAL_RETRIES: "1"
+  LLM_TEMPERATURE_OVERRIDE: "0"
+  LLM_SEED: "0"

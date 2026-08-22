@@ -1,0 +1,8 @@
+# E001 baseline: same retriever (top-5), same model, one generation call,
+# no graph, no MCP tools, no abstention gate. See eval/naive_rag.py.
+name: naive_rag
+pipeline: naive_rag
+env:
+  RETRIEVAL_SEARCH_MODE: hybrid
+  LLM_TEMPERATURE_OVERRIDE: "0"
+  LLM_SEED: "0"

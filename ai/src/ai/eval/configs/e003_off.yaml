@@ -1,0 +1,16 @@
+# E003: combined toggle, retry AND graded evaluator both off (compare with
+# full.yaml where both are on). Reported as one combined toggle.
+name: e003_off
+pipeline: graph
+mode: auto
+env:
+  RETRIEVAL_GATING_MODE: dense_topk
+  RETRIEVAL_SEARCH_MODE: hybrid
+  RETRIEVAL_TOP_K: "5"
+  RELEVANCE_GATE_THRESHOLD: "0.60"
+  RELEVANCE_GATE_AMBIGUOUS_THRESHOLD: "0.50"
+  INTENT_FILTER_ENABLED: "false"
+  GRADED_RETRIEVAL_EVALUATOR_ENABLED: "false"
+  MAX_RETRIEVAL_RETRIES: "0"
+  LLM_TEMPERATURE_OVERRIDE: "0"
+  LLM_SEED: "0"

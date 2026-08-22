@@ -1,0 +1,15 @@
+# E002: full graph with dense-only retrieval (compare with full.yaml = hybrid).
+name: e002_dense
+pipeline: graph
+mode: auto
+env:
+  RETRIEVAL_GATING_MODE: dense_topk
+  RETRIEVAL_SEARCH_MODE: dense
+  RETRIEVAL_TOP_K: "5"
+  RELEVANCE_GATE_THRESHOLD: "0.60"
+  RELEVANCE_GATE_AMBIGUOUS_THRESHOLD: "0.50"
+  INTENT_FILTER_ENABLED: "false"
+  GRADED_RETRIEVAL_EVALUATOR_ENABLED: "true"
+  MAX_RETRIEVAL_RETRIES: "1"
+  LLM_TEMPERATURE_OVERRIDE: "0"
+  LLM_SEED: "0"
