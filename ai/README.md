@@ -35,6 +35,7 @@ Every doc in `ai/` in one table, organized by what you're trying to do — not b
 | Know what can fail and what actually happens when it does (both subsystems) | [`docs/FAILURE_MODES.md`](docs/FAILURE_MODES.md) |
 | Understand why a specific technical decision was made, and what alternatives were rejected | [`docs/adr/`](docs/adr/) |
 | See the cross-subsystem port map and how DOC2FHIR/Clinical AI relate | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| See what changed in the `ai-code-updates` architecture redesign, and why | [`docs/ARCHITECTURE_REDESIGN_BRIEF.md`](docs/ARCHITECTURE_REDESIGN_BRIEF.md) |
 | **Clinical AI System** | |
 | Run it, see its architecture/status/results | [`src/ai/README.md`](src/ai/README.md) |
 | Step-by-step launch instructions | [`src/ai/LAUNCH.md`](src/ai/LAUNCH.md) |
