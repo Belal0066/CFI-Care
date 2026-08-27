@@ -1,0 +1,13 @@
+**/__pycache__
+**/*.pyc
+**/.venv
+**/.env
+**/.env.*
+!**/.env.example
+Data
+docs
+results
+examples
+ChatEndpoint
+thesis.txt
+eval/data/*.tar

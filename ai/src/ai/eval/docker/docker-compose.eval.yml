@@ -1,0 +1,175 @@
+# clinical-eval-v1 stack for a Lightning AI Studio (or any single GPU host).
+#
+#   cp eval/docker/.env.eval.example eval/docker/.env.eval   # fill in
+#   docker compose -f eval/docker/docker-compose.eval.yml --env-file eval/docker/.env.eval build
+#
+# Profiles:
+#   prep   CPU machine: qdrant + indexer (ingest MIMIC, snapshot) + retrieval study
+#   eval   GPU machine: sglang + qdrant + mcp + phoenix + runner
+#   score  after the session, CPU: scorer (judge API; NOT in eval mode)
+# See ai/docs/EVAL.md for the runbook.
+#
+# Everything stateful lives under ${EVAL_HOME} on the Studio's persistent disk.
+
+x-app-env: &app-env
+  QDRANT_HOST: qdrant
+  QDRANT_PORT: "6333"
+  QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-mimic_demo_fhir}
+  FASTEMBED_CACHE_PATH: /cache/fastembed
+  HF_HOME: /cache/hf
+  EVAL_FHIR_DIR: /data/mimic/fhir
+  EVAL_AGENTBENCH_CSV: /data/FHIR-AgentBench/final_dataset/questions_answers_sql_fhir.csv
+  EVAL_RESULTS_DIR: /results/eval-v1
+
+x-eval-mode: &eval-mode
+  EVAL_MODE: "1"
+  EVAL_EGRESS_ALLOWLIST: sglang,qdrant,mcp,phoenix,eutils.ncbi.nlm.nih.gov,api.fda.gov,rxnav.nlm.nih.gov
+  EVAL_EGRESS_LOG: /results/eval-v1/egress_violations.jsonl
+
+services:
+  sglang:
+    profiles: ["eval"]
+    image: ${SGLANG_IMAGE:-lmsysorg/sglang:v0.5.20-runtime}
+    command: >
+      python3 -m sglang.launch_server
+      --model-path ${MODEL:-google/medgemma-27b-text-it}
+      --served-model-name ${SERVED:-medgemma-27b}
+      --dtype bfloat16
+      --context-length ${CONTEXT_LENGTH:-16384}
+      --random-seed 0
+      --host 0.0.0.0 --port 30000
+      ${SGLANG_EXTRA_ARGS:-}
+    environment:
+      HF_TOKEN: ${HF_TOKEN:?set HF_TOKEN (MedGemma is gated)}
+      HF_HOME: /cache/hf
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-1}
+    volumes:
+      - ${EVAL_HOME:?set EVAL_HOME}/cache/hf:/cache/hf
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:30000/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+      start_period: 120s
+
+  qdrant:
+    profiles: ["prep", "eval"]
+    image: qdrant/qdrant:v1.7.4   # matches qdrant-client 1.7.0 in the lock file
+    volumes:
+      - ${EVAL_HOME}/qdrant/storage:/qdrant/storage
+      - ${EVAL_HOME}/qdrant/snapshots:/qdrant/snapshots
+    ports:
+      - "6333:6333"
+
+  phoenix:
+    profiles: ["eval", "score"]
+    image: arizephoenix/phoenix:version-20.16.0
+    environment:
+      PHOENIX_WORKING_DIR: /phoenix
+    volumes:
+      - ${EVAL_HOME}/phoenix:/phoenix
+    ports:
+      - "6006:6006"
+
+  mcp:
+    profiles: ["eval"]
+    build:
+      context: ../..
+      dockerfile: eval/docker/Dockerfile.mcp
+    image: clinical-eval-mcp:eval-v1
+    environment:
+      <<: *eval-mode
+      LLAMACPP_API_BASE: http://sglang:30000/v1
+      LLAMACPP_API_KEY: sk-no-key
+      MODEL_NAME: ${SERVED:-medgemma-27b}
+      MCP_LLM_TEMPERATURE: "0"
+      MCP_LLM_SEED: "0"
+      MCP_HTTP_CACHE_DIR: /cache/mcp_http
+      MCP_HTTP_CACHE_MODE: ${MCP_HTTP_CACHE_MODE:-replay}
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      OPENFDA_API_KEY: ${OPENFDA_API_KEY:-}
+      EVAL_EGRESS_LOG: /results/eval-v1/egress_violations.jsonl
+    volumes:
+      - ${EVAL_HOME}/cache/mcp_http:/cache/mcp_http
+      - ${EVAL_HOME}/results:/results
+    depends_on:
+      sglang:
+        condition: service_healthy
+
+  runner:
+    profiles: ["eval"]
+    build:
+      context: ../..
+      dockerfile: eval/docker/Dockerfile.runner
+      args:
+        GIT_SHA: ${GIT_SHA:-unknown}
+    image: clinical-eval-runner:eval-v1
+    environment:
+      <<: [*app-env, *eval-mode]
+      # Embedding models must already be in /cache/fastembed (downloaded by
+      # the indexer during prep); nothing is fetched during the eval.
+      HF_HUB_OFFLINE: "1"
+      LLM_BACKEND: local
+      LLAMACPP_BASE_URL: http://sglang:30000
+      LLAMACPP_MODEL: ${SERVED:-medgemma-27b}
+      MCP_SERVER_URL: http://mcp:8002/mcp/sse
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://phoenix:6006}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-clinical-eval-v1}
+      EVAL_DATASET_LICENSE: open   # MIMIC-IV demo on FHIR is ODbL open data
+      EVAL_CONCURRENCY: ${EVAL_CONCURRENCY:-8}
+    volumes:
+      - ${EVAL_HOME}/data:/data:ro
+      - ${EVAL_HOME}/cache/fastembed:/cache/fastembed
+      - ${EVAL_HOME}/results:/results
+      - ../data:/app/eval/data:ro   # reviewed question set from the repo checkout
+    depends_on:
+      sglang:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      mcp:
+        condition: service_started
+
+  indexer:
+    profiles: ["prep"]
+    image: clinical-eval-runner:eval-v1
+    build:
+      context: ../..
+      dockerfile: eval/docker/Dockerfile.runner
+    environment:
+      <<: *app-env
+    volumes:
+      - ${EVAL_HOME}/data:/data
+      - ${EVAL_HOME}/cache/fastembed:/cache/fastembed
+      - ${EVAL_HOME}/results:/results
+      - ../data:/app/eval/data
+    depends_on:
+      - qdrant
+    command: >
+      scripts/ingest_fhir_ndjson.py --fhir-dir /data/mimic/fhir
+      --batch-size 512 --embed-batch-size 64 --parallel 0 --no-raw --resume --snapshot
+
+  scorer:
+    profiles: ["score"]
+    image: clinical-eval-runner:eval-v1
+    environment:
+      <<: *app-env
+      JUDGE_API_KEY: ${JUDGE_API_KEY:-}
+      JUDGE_MODEL: ${JUDGE_MODEL:-openai/gpt-oss-120b}
+      JUDGE_BASE_URL: ${JUDGE_BASE_URL:-https://api.groq.com/openai/v1}
+      JUDGE_REASONING_EFFORT: ${JUDGE_REASONING_EFFORT:-medium}
+      PHOENIX_URL: http://phoenix:6006   # eval/phoenix_scores.py
+    volumes:
+      - ${EVAL_HOME}/results:/results
+      - ../data:/app/eval/data:ro
+    command: eval/score.py

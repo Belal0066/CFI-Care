@@ -1,0 +1,22 @@
+# Eval runner: the agent graph, harness, loader and retrieval study.
+# Build context: ai/src/ai   (docker compose -f eval/docker/docker-compose.eval.yml build)
+FROM python:3.12-slim
+ARG GIT_SHA=unknown
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app \
+    GIT_SHA=${GIT_SHA}
+
+WORKDIR /app
+COPY eval/requirements-eval.lock.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+
+COPY src ./src
+COPY prompts ./prompts
+COPY scripts ./scripts
+COPY eval ./eval
+
+ENTRYPOINT ["python"]
+CMD ["eval/docker/preflight.py"]
