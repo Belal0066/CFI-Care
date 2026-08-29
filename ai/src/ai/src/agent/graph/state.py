@@ -27,6 +27,13 @@ class ClinicalAgentState(TypedDict):
     has_insufficient_data: bool
     retrieval_iterations: int
 
+    # Graded retrieval evaluator (off by default — see
+    # retriever_config.graded_retrieval_evaluator_enabled). None when the
+    # flag is off; "sufficient"/"ambiguous"/"insufficient" when on.
+    retrieval_grade: Optional[str]
+    general_knowledge_fallback: bool
+    abstain_reason: Optional[str]
+
     # Configurable threshold for this query
     retrieval_threshold: float
 
@@ -55,3 +62,8 @@ class ClinicalAgentState(TypedDict):
 
     # Visualization result (from clinical_viz MCP)
     viz_result: Optional[Dict[str, Any]] = None
+
+    # Bounded ReAct loop over MedMCP evidence-gathering (off by default —
+    # see retriever_config.mcp_react_loop_enabled). Structured, auditable
+    # trace of each decided action, not hidden free-form reasoning.
+    mcp_react_steps: List[Dict[str, Any]]

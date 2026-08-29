@@ -15,6 +15,7 @@ from src.retrieval.service import HybridRetriever
 from src.retrieval.config import retriever_config
 from src.agent.clinical_reasoning import ClinicalReasoner
 from src.agent.verification import ClaimVerifier
+from src.agent.react import MCPReActStep
 from src.agent.confidence import (
     compute_generation_confidence,
     compute_validation_confidence,
@@ -571,7 +572,24 @@ def route_retrieval(state: ClinicalAgentState) -> Dict[str, Any]:
     # IntentRouter --> |General Med Info| MCP
     
     # We'll default to RAG for clinical intents.
-    return {} 
+    return {}
+
+
+def _grade_retrieval(avg_top3: float) -> Optional[str]:
+    """
+    Grades a retrieval score into sufficient/ambiguous/insufficient when
+    retriever_config.graded_retrieval_evaluator_enabled is on; returns None
+    when off (route_after_retrieval then falls back to the plain
+    has_insufficient_data threshold check, unchanged from before).
+    """
+    if not retriever_config.graded_retrieval_evaluator_enabled:
+        return None
+    if avg_top3 >= retriever_config.retrieval_gatekeeper_threshold:
+        return "sufficient"
+    if avg_top3 >= retriever_config.retrieval_insufficient_threshold:
+        return "ambiguous"
+    return "insufficient"
+
 
 def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
     """
@@ -628,6 +646,7 @@ def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
                 "retrieval_confidence": retrieval_confidence,
                 "retrieval_avg_top3": retrieval_avg_top3,
                 "has_insufficient_data": has_insufficient_data,
+                "retrieval_grade": _grade_retrieval(retrieval_avg_top3),
             }
 
     except Exception as e:
@@ -688,6 +707,7 @@ def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
             "retrieval_confidence": retrieval_confidence,
             "retrieval_avg_top3": retrieval_avg_top3,
             "has_insufficient_data": has_insufficient_data,
+            "retrieval_grade": _grade_retrieval(retrieval_avg_top3),
         }
 
     return {
@@ -695,7 +715,99 @@ def retrieve_patient_context(state: ClinicalAgentState) -> Dict[str, Any]:
         "retrieval_confidence": 0.0,
         "retrieval_avg_top3": 0.0,
         "has_insufficient_data": True,
+        "retrieval_grade": _grade_retrieval(0.0),
     }
+
+
+def reformulate_query(state: ClinicalAgentState) -> Dict[str, Any]:
+    """
+    The model-controlled branch of the graded retrieval evaluator ("Agentic
+    RAG" in the narrow, defensible sense): reached only when
+    retriever_config.graded_retrieval_evaluator_enabled is on and
+    retrieval_grade == "ambiguous". Asks the LLM to produce an actual
+    reformulated search query given the original question and the weak
+    matches found, rather than just relaxing a score threshold (which is
+    what the plain retry_retrieval path still does when this flag is off).
+
+    Bounded by the same retrieval_iterations / max_retrieval_retries
+    counter the threshold-retry path uses — no separate, additional budget.
+    """
+    iterations = state.get("retrieval_iterations", 0) + 1
+    original_query = state["messages"][-1].content
+    encounter_groups = state.get("encounter_groups", [])
+
+    weak_evidence_summary = "; ".join(
+        f"{eg.encounter_id} (score={eg.score:.2f})" for eg in encounter_groups[:3]
+    ) or "no matching encounters found"
+
+    system_prompt = (
+        "You are a clinical search query reformulator. The following patient-"
+        "record search returned only low-confidence matches. Rewrite the "
+        "query to be more likely to match relevant clinical documentation — "
+        "broaden or rephrase medical terminology, but do not change what is "
+        "being asked.\nRespond with ONLY the reformulated query text."
+    )
+    user_prompt = f"Original query: {original_query}\nWeak matches found: {weak_evidence_summary}"
+
+    reformulated = original_query
+    try:
+        llm_client = get_llm_client()
+        response = llm_client.chat.completions.create(
+            model=LLAMA_MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+            max_tokens=120,
+        )
+        candidate = (response.choices[0].message.content or "").strip()
+        if candidate:
+            reformulated = candidate
+    except Exception as e:
+        logger.warning(f"Query reformulation failed, retrying with the original query: {e}")
+
+    logger.info(f"Agentic retrieval reformulation (attempt {iterations}): {original_query!r} -> {reformulated!r}")
+
+    messages = list(state.get("messages", []))
+    if messages:
+        messages[-1] = HumanMessage(content=reformulated)
+
+    return {
+        "messages": messages,
+        "retrieval_iterations": iterations,
+    }
+
+
+def handle_insufficient_evidence(state: ClinicalAgentState) -> Dict[str, Any]:
+    """
+    The deterministic branch of the graded retrieval evaluator ("Corrective
+    RAG" in the sense of a genuine corrective action per grade, not just
+    "try harder"): reached when retrieval_grade == "insufficient" — the
+    query plainly doesn't match this patient's record, and another
+    same-patient retrieval attempt is unlikely to help.
+
+    This decision itself is deterministic. If the query's intent could be
+    answered from general medical knowledge instead of this patient's
+    record, route onward to mcp_search with general_knowledge_fallback set,
+    so the eventual answer is labeled as general guidance rather than
+    blended with patient-specific claims. Otherwise, route to the existing
+    abstain node — reusing the one abstention message format already
+    built, not inventing a second one.
+    """
+    intent = state.get("intent", "unknown")
+    general_knowledge_intents = {"diagnosis", "differential", "medication", "rationale", "allergy"}
+
+    if intent in general_knowledge_intents:
+        logger.info(
+            f"Retrieval insufficient for intent={intent} — falling back to "
+            "general medical knowledge via MCP (no matching patient record found)"
+        )
+        return {"general_knowledge_fallback": True, "is_mcp_query": True}
+
+    logger.info(f"Retrieval insufficient for intent={intent} — no general-knowledge fallback applies, abstaining")
+    return {"abstain_reason": "no_matching_patient_data"}
+
 
 def run_deterministic_reasoning(state: ClinicalAgentState) -> Dict[str, Any]:
     """
@@ -811,16 +923,132 @@ def _extract_drugs_from_state(state: Dict) -> List[str]:
     return sorted(drugs)
 
 
+MAX_REACT_ITERATIONS = retriever_config.mcp_react_max_iterations
+
+
+def _mcp_react_decide(query: str, steps: List[MCPReActStep]) -> MCPReActStep:
+    """
+    One reasoning step of the bounded MCP ReAct loop: ask the LLM what to
+    do next given the original question and prior steps' observations.
+
+    Uses prompted JSON (the same convention already used by
+    mcps/router.py's classification_node — "respond in strict JSON
+    format"), not grammar-constrained decoding; this codebase has none of
+    that anywhere, and this doesn't introduce it.
+    """
+    history_text = "\n".join(
+        f"Step {s.step_index}: thought={s.thought!r} action={s.action} "
+        f"input={s.action_input} observation={s.observation_summary}"
+        for s in steps
+    ) or "(no steps yet)"
+
+    system_prompt = (
+        "You are a clinical evidence-gathering assistant deciding the next "
+        "action in a bounded loop. You may call get_medical_data to look up "
+        "external medical literature, guidelines, or drug interactions, or "
+        "choose finish once you have enough evidence to answer the question.\n"
+        "Respond in strict JSON only, no other text:\n"
+        '{"thought": "why you are taking this action", '
+        '"action": "get_medical_data" or "finish", '
+        '"action_input": {"query": "the lookup to run, if action is get_medical_data"}}'
+    )
+    user_prompt = f"Original question: {query}\n\nSteps so far:\n{history_text}"
+
+    try:
+        llm_client = get_llm_client()
+        response = llm_client.chat.completions.create(
+            model=LLAMA_MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.1,
+            max_tokens=300,
+        )
+        raw = (response.choices[0].message.content or "").strip()
+        raw = raw.strip("`")
+        if raw[:4].lower() == "json":
+            raw = raw[4:].strip()
+        parsed = json.loads(raw)
+        action = parsed.get("action")
+        if action not in ("get_medical_data", "finish"):
+            raise ValueError(f"model returned an action outside the allowlist: {action!r}")
+        return MCPReActStep(
+            step_index=len(steps),
+            thought=str(parsed.get("thought", "")),
+            action=action,
+            action_input=parsed.get("action_input") or {},
+        )
+    except Exception as e:
+        # Fail toward stopping, not toward looping further on a malformed
+        # response — the deterministic cap below is a backstop, not the
+        # only line of defense.
+        logger.warning(f"MCP ReAct decision step failed ({e}) — finishing loop early")
+        return MCPReActStep(step_index=len(steps), thought="decision step failed, stopping", action="finish")
+
+
+def _run_mcp_react_loop(state: ClinicalAgentState) -> Dict[str, Any]:
+    """
+    Bounded ReAct loop over MedMCP's get_medical_data tool: observe -> the
+    model decides an action -> act -> observe -> ... -> finish.
+
+    Hard-capped at MAX_REACT_ITERATIONS regardless of what the model
+    requests — the deterministic control plane owns the bound, not the
+    model. Every actual tool call still goes through _call_mcp_endpoint,
+    so the existing MCP-protocol client, retry+backoff, and (server-side)
+    circuit breakers all still apply per call; this loop only decides
+    whether and how many times to call it.
+    """
+    original_query = state["messages"][-1].content
+    steps: List[MCPReActStep] = []
+    internet_evidence: List[Dict[str, Any]] = []
+
+    for _ in range(MAX_REACT_ITERATIONS):
+        step = _mcp_react_decide(original_query, steps)
+
+        if step.action == "finish":
+            steps.append(step)
+            break
+
+        lookup_query = step.action_input.get("query") or original_query
+        result = _call_mcp_endpoint(original_query, lookup_query)
+        evidence_items = result.get("internet_evidence", [])
+        internet_evidence.extend(evidence_items)
+
+        observation = evidence_items[0] if evidence_items else {}
+        step.observation_summary = (
+            f"classification={observation.get('classification', 'N/A')}, "
+            f"{len(observation.get('raw_data', []))} raw_data item(s)"
+            if evidence_items else "no evidence returned"
+        )
+        steps.append(step)
+    else:
+        logger.info(f"MCP ReAct loop hit MAX_REACT_ITERATIONS={MAX_REACT_ITERATIONS} without the model finishing")
+
+    logger.info(f"MCP ReAct loop completed in {len(steps)} step(s)")
+    return {
+        "internet_evidence": internet_evidence,
+        "mcp_react_steps": [s.model_dump() for s in steps],
+    }
+
+
 def query_mcp(state: ClinicalAgentState) -> Dict[str, Any]:
     """
     Queries the MCP server for external evidence (DrugBank, PubMed, etc.)
-    
+
     Flow:
     1. Classify the question type (drug safety vs guidelines vs general)
     2. For drug-specific queries, use deterministic query construction
     3. For general queries, use LLM-based query optimization
     4. Call MCP with the optimized query
+
+    When retriever_config.mcp_react_loop_enabled is set, this becomes a
+    bounded ReAct loop (_run_mcp_react_loop) instead of the single-call
+    flow below — off by default; with it off, behavior is unchanged.
     """
+    if retriever_config.mcp_react_loop_enabled:
+        return _run_mcp_react_loop(state)
+
     messages = state["messages"]
     raw_query = messages[-1].content
     patient_state_data = state.get("patient_state")
@@ -1362,7 +1590,20 @@ def generate_response(state: ClinicalAgentState) -> Dict[str, Any]:
             system_prompt = policy["system_prompt"]
             if policy["forbidden_output"]:
                 system_prompt += f"\n\nCRITICAL: DO NOT include: {', '.join(policy['forbidden_output'])}."
-            
+
+            if state.get("general_knowledge_fallback"):
+                # Reached via handle_insufficient_evidence: no matching data
+                # was found in this patient's own record, so this is general
+                # literature guidance, not a patient-specific claim — the
+                # response must say so plainly rather than reading as if it
+                # were grounded in this patient's chart.
+                system_prompt += (
+                    "\n\nCRITICAL: No matching data was found in this patient's own "
+                    "record for this question. Begin your response by stating that "
+                    "explicitly, then provide general medical guidance from the "
+                    "literature below — do not imply it is specific to this patient."
+                )
+
             user_prompt = (
                 f"**Clinical Query:** {original_query}\n\n"
                 f"**Literature Evidence:**\n{evidence_str}\n\n"

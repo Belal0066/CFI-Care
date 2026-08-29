@@ -6,6 +6,8 @@ from src.agent.graph.state import ClinicalAgentState
 from src.agent.graph.nodes import (
     classify_intent,
     retrieve_patient_context,
+    reformulate_query,
+    handle_insufficient_evidence,
     run_deterministic_reasoning,
     query_mcp,
     generate_response,
@@ -92,6 +94,8 @@ def _prepare_retrieval_retry(state: ClinicalAgentState) -> Dict[str, Any]:
 workflow.add_node("classify", classify_intent)
 workflow.add_node("rag_retrieve", retrieve_patient_context)
 workflow.add_node("retry_retrieval", _prepare_retrieval_retry)
+workflow.add_node("reformulate_query", reformulate_query)
+workflow.add_node("handle_insufficient_evidence", handle_insufficient_evidence)
 workflow.add_node("reason", run_deterministic_reasoning)
 workflow.add_node("mcp_search", query_mcp)
 workflow.add_node("visualize", generate_visualization)
@@ -166,21 +170,55 @@ workflow.add_conditional_edges(
 
 # RAG Path — bounded adaptive retry before reasoning on insufficient evidence
 def route_after_retrieval(state):
-    """One bounded retry if retrieval scored below the sufficiency gate."""
-    if (
-        state.get("has_insufficient_data", False)
-        and state.get("retrieval_iterations", 0) < retriever_config.max_retrieval_retries
-    ):
-        return "retry_retrieval"
+    """
+    When retriever_config.graded_retrieval_evaluator_enabled is off
+    (default), this is the plain single-threshold retry: unchanged from
+    before.
+
+    When on, retrieval_grade (set by _grade_retrieval in nodes.py) selects
+    among three branches: proceed (sufficient), a model-controlled
+    reformulation retry (ambiguous — the "Agentic RAG" branch), or a
+    deterministic corrective fallback (insufficient — the "Corrective RAG"
+    branch). Both branches remain bounded by the same
+    retrieval_iterations / max_retrieval_retries counter as the plain path.
+    """
+    if not retriever_config.graded_retrieval_evaluator_enabled:
+        if (
+            state.get("has_insufficient_data", False)
+            and state.get("retrieval_iterations", 0) < retriever_config.max_retrieval_retries
+        ):
+            return "retry_retrieval"
+        return "reason"
+
+    grade = state.get("retrieval_grade")
+    iterations = state.get("retrieval_iterations", 0)
+
+    if grade == "insufficient":
+        return "handle_insufficient_evidence"
+    if grade == "ambiguous" and iterations < retriever_config.max_retrieval_retries:
+        return "reformulate_query"
     return "reason"
 
 
 workflow.add_conditional_edges(
     "rag_retrieve",
     route_after_retrieval,
-    {"retry_retrieval": "retry_retrieval", "reason": "reason"},
+    {
+        "retry_retrieval": "retry_retrieval",
+        "reformulate_query": "reformulate_query",
+        "handle_insufficient_evidence": "handle_insufficient_evidence",
+        "reason": "reason",
+    },
 )
 workflow.add_edge("retry_retrieval", "rag_retrieve")
+workflow.add_edge("reformulate_query", "rag_retrieve")
+
+
+def route_after_insufficient_evidence(state):
+    """Deterministic dispatch after the Corrective-RAG fallback decision."""
+    if state.get("general_knowledge_fallback", False):
+        return "mcp_search"
+    return "abstain"
 
 
 def route_after_reason(state):
@@ -224,18 +262,30 @@ def route_after_audit(state):
     return "abstain"
 
 
-def _abstain_on_failed_audit(state: ClinicalAgentState) -> Dict[str, Any]:
-    """
-    Fail-closed exit for the self-correction loop: the audit could not verify
-    the response's claims within the retry budget. Replace the response with
-    an explicit abstention instead of silently returning content that failed
-    its grounding check.
-    """
-    abstention = (
+ABSTENTION_MESSAGES = {
+    "no_matching_patient_data": (
+        "I couldn't find relevant data in this patient's record for that "
+        "question. Please rephrase the question or consult the full chart."
+    ),
+    "default": (
         "I don't have enough verified evidence in this patient's record to "
         "answer that confidently. Please rephrase the question or consult "
         "the full chart."
-    )
+    ),
+}
+
+
+def _abstain_on_failed_audit(state: ClinicalAgentState) -> Dict[str, Any]:
+    """
+    Fail-closed exit, reached from two places: the self-correction loop
+    exhausting its retry budget without the audit passing, or the graded
+    retrieval evaluator's Corrective-RAG branch finding no relevant patient
+    data at all with no general-knowledge fallback available. One
+    mechanism, one node — the message varies by reason rather than
+    duplicating the abstention machinery.
+    """
+    reason = state.get("abstain_reason") or "default"
+    abstention = ABSTENTION_MESSAGES.get(reason, ABSTENTION_MESSAGES["default"])
     messages = state.get("messages", [])
     if messages:
         last_msg = messages[-1]
@@ -254,6 +304,12 @@ workflow.add_conditional_edges(
         "compute_confidence": "compute_confidence",
         "abstain": "abstain",
     }
+)
+
+workflow.add_conditional_edges(
+    "handle_insufficient_evidence",
+    route_after_insufficient_evidence,
+    {"mcp_search": "mcp_search", "abstain": "abstain"},
 )
 
 workflow.add_edge("abstain", "compute_confidence")

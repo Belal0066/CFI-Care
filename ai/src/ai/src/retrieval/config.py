@@ -48,6 +48,34 @@ class RetrieverConfig(BaseSettings):
     max_retrieval_retries: int = 1
     retrieval_retry_threshold_factor: float = 0.5
 
+    # ---- Graded retrieval evaluator (Corrective RAG-style grading) ----
+    # Off by default, same rollout posture as the NLI verifier below: a real,
+    # working mechanism that isn't live until explicitly enabled and
+    # evaluated. When off, route_after_retrieval behaves exactly as the
+    # single-threshold retry above. When on, retrieval_avg_top3 is graded
+    # into three bands instead of a binary check:
+    #   >= retrieval_gatekeeper_threshold        -> sufficient
+    #   >= retrieval_insufficient_threshold       -> ambiguous (model-
+    #      and < retrieval_gatekeeper_threshold      controlled reformulation
+    #                                                 retry — the "Agentic
+    #                                                 RAG" branch)
+    #   <  retrieval_insufficient_threshold       -> insufficient (deterministic
+    #                                                 corrective fallback —
+    #                                                 the "Corrective RAG"
+    #                                                 branch)
+    # retrieval_insufficient_threshold defaults to the same number the
+    # existing retry already relaxes to (gatekeeper * retry_threshold_factor)
+    # so grading and the pre-existing retry math stay consistent.
+    graded_retrieval_evaluator_enabled: bool = False
+    retrieval_insufficient_threshold: float = 0.075
+
+    # ---- Bounded ReAct loop (MedMCP evidence-gathering only) ----
+    # Off by default. Scoped deliberately to MedMCP's read-only external
+    # lookups (get_medical_data) — never to patient-record reasoning, which
+    # stays fully deterministic (ClinicalReasoner). See src/agent/react.py.
+    mcp_react_loop_enabled: bool = False
+    mcp_react_max_iterations: int = 3
+
     # ---- Confidence Weights for Unified Formula ----
     confidence_weight_routing: float = 0.15
     confidence_weight_retrieval: float = 0.25
