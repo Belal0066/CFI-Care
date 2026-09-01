@@ -232,33 +232,72 @@ class OCRAdapter:
             OCRError: If output format is invalid
         """
         try:
-            # PaddleOCR-VL typically returns structured layout data
-            # Normalize to common format: extracted text + layout metadata
             extracted_text = ""
-            layouts = []
+            layouts: list[dict[str, Any]] = []
 
-            # Handle different response formats
             if isinstance(raw_output, dict):
-                # If service returns text directly
-                if "text" in raw_output:
+                # The real /parse_api response shape (OCR/OCRpipelie/app/option3_ui.py):
+                # {"raw_markdown": str, "raw_json": <JSON-encoded string of
+                #  {"pages": [{"parsing_res_list": [{"block_content", "block_bbox",
+                #  "block_label", "block_order", ...}, ...]}, ...]}>, ...}.
+                # This previously matched none of the branches below, so
+                # extracted_text always fell through to str(raw_output) — a
+                # stringified dict including the base64 original_file_url —
+                # and layouts was always empty.
+                if "raw_markdown" in raw_output:
+                    extracted_text = str(raw_output.get("raw_markdown") or "")
+
+                raw_json_value = raw_output.get("raw_json")
+                if raw_json_value:
+                    try:
+                        parsed = (
+                            json.loads(raw_json_value)
+                            if isinstance(raw_json_value, str)
+                            else raw_json_value
+                        )
+                        for page_idx, page in enumerate(parsed.get("pages", []), start=1):
+                            for block in page.get("parsing_res_list", []):
+                                # PaddleOCR-VL reports block_bbox as [x1, y1, x2, y2]
+                                # (pixel corners); convert to [x, y, w, h] here so it
+                                # matches what ocr_normalizer._normalize_bbox assumes
+                                # for a 4-element list — leaving that function's
+                                # existing assumption alone rather than guessing at
+                                # two conventions there.
+                                raw_bbox = block.get("block_bbox")
+                                bbox = None
+                                if isinstance(raw_bbox, (list, tuple)) and len(raw_bbox) == 4:
+                                    x1, y1, x2, y2 = raw_bbox
+                                    bbox = [x1, y1, x2 - x1, y2 - y1]
+                                layouts.append({
+                                    "text": block.get("block_content", ""),
+                                    "page": page_idx,
+                                    "bbox": bbox,
+                                    "label": block.get("block_label"),
+                                    "order": block.get("block_order"),
+                                })
+                    except (json.JSONDecodeError, AttributeError, TypeError) as parse_exc:
+                        # Layout/bbox grounding is best-effort — a malformed
+                        # raw_json shouldn't fail the whole OCR stage over it,
+                        # only degrade to text-only (as before this fix).
+                        pass
+
+                # Fallback shapes, kept for any other OCR engine/response shape
+                # (ocr_engine_name is configurable) — unchanged from before.
+                if not extracted_text and "text" in raw_output:
                     extracted_text = str(raw_output.get("text", ""))
-                # If service returns layout/page data
-                if "pages" in raw_output:
+                if not extracted_text and "pages" in raw_output:
                     for page in raw_output.get("pages", []):
                         layouts.append({
                             "page": page.get("page_number", 0),
                             "content": page.get("content", ""),
                             "blocks": page.get("blocks", []),
                         })
-                    # Combine all page content for full text
                     extracted_text = "\n".join(
                         p.get("content", "") for p in raw_output.get("pages", [])
                     )
-                # If service returns blocks/layout directly
-                if "blocks" in raw_output:
-                    layouts.append({"blocks": raw_output.get("blocks", [])})
-                    # Extract text from blocks
+                if not extracted_text and "blocks" in raw_output:
                     blocks = raw_output.get("blocks", [])
+                    layouts.append({"blocks": blocks})
                     if isinstance(blocks, list):
                         texts = [b.get("text", "") for b in blocks if isinstance(b, dict)]
                         extracted_text = " ".join(texts)

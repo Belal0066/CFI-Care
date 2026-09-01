@@ -13,7 +13,7 @@ from .doc_classifier import DocumentTypeClassifier
 from .fhir_mapper import MappingContext, map_to_fhir
 from .fhir_validator import FhirValidator
 from .intermediate_schema import IntermediateDocument
-from .ocr_normalizer import normalize_ocr_output
+from .ocr_normalizer import ground_evidence_span, normalize_ocr_output
 from .provenance_builder import build_provenance
 from .reference_resolver import ReferenceResolver
 from .safety_logger import SafetyLogger
@@ -65,6 +65,42 @@ def _confidence_policy(extraction: IntermediateDocument) -> tuple[bool, list[str
         inspect("procedure", getattr(proc, "confidence", 0.0), getattr(proc, "text", None))
 
     return review_required, warnings
+
+
+def _iter_entities_with_evidence(extraction: IntermediateDocument):
+    for field in ("conditions", "medications", "observations", "allergies", "procedures"):
+        for item in getattr(extraction, field, None) or []:
+            yield item
+
+
+def _ground_extraction_evidence(
+    extraction: IntermediateDocument,
+    layout_blocks: list[dict[str, Any]],
+    clean_text: str,
+) -> None:
+    """
+    Overwrites each entity's evidence.start/end/page/bbox with values
+    deterministically grounded against the real OCR layout blocks, in
+    place of whatever the LLM extractor reported for those fields (it can
+    report which text supports a claim; it cannot know real offsets or
+    page coordinates). evidence.text — the LLM's own account of which
+    span it used — is left untouched; only the geometry is replaced.
+    """
+    if not layout_blocks:
+        return
+    for item in _iter_entities_with_evidence(extraction):
+        evidence = getattr(item, "evidence", None)
+        if evidence is None or not evidence.text:
+            continue
+        grounded = ground_evidence_span(evidence.text, layout_blocks, clean_text)
+        if grounded is None:
+            continue
+        evidence.start = grounded["start"]
+        evidence.end = grounded["end"]
+        if grounded["page"] is not None:
+            evidence.page = grounded["page"]
+        if grounded["bbox"] is not None:
+            evidence.bbox = grounded["bbox"]
 
 
 def _extract_ids(resources: list[dict[str, Any]]) -> tuple[str | None, str | None]:
@@ -159,6 +195,8 @@ class StructuredPipeline:
                 extraction.document_summary = summary
         except Exception as exc:
             logger.warning("pipeline: summarize raised unexpectedly: %s: %s", type(exc).__name__, exc)
+
+        _ground_extraction_evidence(extraction, normalized.layout_blocks, normalized.clean_text)
 
         review_required, warnings = _confidence_policy(extraction)
         for warn in warnings:

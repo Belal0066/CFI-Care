@@ -112,3 +112,52 @@ def _enrich_layout_blocks(blocks: list[dict[str, Any]], clean_text: str) -> list
             cursor = end
 
     return enriched
+
+
+def ground_evidence_span(
+    evidence_text: str,
+    layout_blocks: list[dict[str, Any]],
+    clean_text: str,
+) -> dict[str, Any] | None:
+    """
+    Deterministically locates an extracted evidence text within the real,
+    OCR-derived layout blocks (already positioned against clean_text by
+    _enrich_layout_blocks above), and returns the grounded
+    {start, end, page, bbox} — or None if the text can't be matched to
+    anything.
+
+    Why this exists, not just an LLM-reported offset: the structured
+    extractor's LLM is asked to report which text span supports each
+    claim, which it can do reasonably well, but it has no way to know real
+    character offsets or page coordinates — those require actually
+    searching the OCR output, which only this deterministic step can do.
+    This is intentionally the same substring-matching approach
+    _enrich_layout_blocks already uses, applied to one entity's text
+    instead of one block's text, so both stay consistent with each other.
+    """
+    text = (evidence_text or "").strip()
+    if not text:
+        return None
+
+    start = _find_next_substring(clean_text, text)
+    if start == -1:
+        return None
+    end = start + len(text)
+
+    # The block whose own span contains where this evidence text starts.
+    match = next(
+        (b for b in layout_blocks if b["start"] != -1 and b["start"] <= start < b["end"]),
+        None,
+    )
+
+    bbox_list = None
+    if match and match.get("bbox"):
+        b = match["bbox"]
+        bbox_list = [b["x"], b["y"], b["w"], b["h"]]
+
+    return {
+        "start": start,
+        "end": end,
+        "page": match["page"] if match else None,
+        "bbox": bbox_list,
+    }
