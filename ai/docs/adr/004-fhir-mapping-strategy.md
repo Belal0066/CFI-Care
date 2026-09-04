@@ -3,6 +3,8 @@
 ## Status
 Accepted as implemented, but **flagged for reconsideration** — see Consequences.
 
+**Update:** at the time this ADR was written, Option B's `FhirValidator` result was computed but never actually gated delivery — a failure was logged as "non-fatal" and the bundle was delivered anyway, the same fail-open gap this ADR calls out for Option A below. That's since been fixed: Option B now holds the job (`JobStatus.NEEDS_REVIEW`) instead of delivering when validation fails or any extracted entity's confidence is below 0.6, with a manual `POST /v1/document/{job_id}/approve-and-deliver` to resume. Option A still has no such gate — the negative consequence below remains accurate for the default path.
+
 ## Context
 Turning OCR'd document text into valid FHIR resources needs some kind of mapping step. Two genuinely different strategies exist side by side in this codebase, not as a historical migration (one replacing the other) but as two live, selectable code paths, controlled by a single config flag (`structured_pipeline_enabled`, `gateway/config.py:39`, defaults to `False`).
 

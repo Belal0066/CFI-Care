@@ -57,7 +57,7 @@ Not indexed above — present but not engineering documentation: `src/ai/docs/th
 
 Scanned medical reports (PDF) → OCR → structured extraction → FHIR mapping → delivery. (The default mapping path is LLM-generated, not deterministic — see [`docs/adr/004-fhir-mapping-strategy.md`](docs/adr/004-fhir-mapping-strategy.md).)
 
-The pipeline has two mutually exclusive Mapper paths, selected by `DOC2FHIR_STRUCTURED_PIPELINE_ENABLED` (default off) — shown below. Both GPU-bound stages (OCR, Mapper) share a single concurrency-1 lock.
+The pipeline has two mutually exclusive Mapper paths, selected by `DOC2FHIR_STRUCTURED_PIPELINE_ENABLED` (default off) — shown below. Both GPU-bound stages (OCR, Mapper) share a single concurrency-1 lock. On the structured path, a low-confidence extraction or a failed FHIR validation now holds the job for manual review instead of delivering it.
 
 ```mermaid
 flowchart TB
@@ -83,7 +83,7 @@ flowchart TB
                 CLS["DocumentTypeClassifier<br/>(opt-in path)"]
                 STRUCTEX["StructuredExtractor (LLM)<br/>intermediate schema, not FHIR"]
                 MAP["fhir_mapper.map_to_fhir<br/>deterministic, hardcoded LOINC table"]
-                VAL["FhirValidator"]
+                VAL{{"FhirValidator +<br/>low-confidence check<br/>fail-closed gate"}}
                 CLS --> STRUCTEX --> MAP --> VAL
             end
         end
@@ -92,6 +92,7 @@ flowchart TB
             style Delivery fill:#0d1b3e,color:#fff
             NODEJS[("Node.js downstream<br/>default, downstream_type=nodejs")]
             HAPIOPT[("HAPI FHIR<br/>opt-in, manual push-to-hapi")]
+            REVIEW[("NEEDS_REVIEW<br/>bundle held, not delivered<br/>manual approve-and-deliver")]
         end
     end
 
@@ -103,7 +104,8 @@ flowchart TB
     GW -.->|"opt-in"| CLS
     DEFAULT -. holds .-> LOCK
     DEFAULT --> NODEJS
-    VAL --> NODEJS
+    VAL -->|"pass"| NODEJS
+    VAL -.->|"low confidence or<br/>failed validation"| REVIEW
     GW -.->|"fallback only, manual call"| HAPIOPT
     CLIENT -->|"poll GET /status, /result"| GW
 ```
@@ -111,7 +113,7 @@ flowchart TB
 - **Start here:** [src/DOC2FHIR/README.md](src/DOC2FHIR/README.md)
 - **API contract:** [src/DOC2FHIR/DocOnFHIR_API_Spec.md](src/DOC2FHIR/DocOnFHIR_API_Spec.md)
 - **Developer/AI reference:** [src/DOC2FHIR/DOC2FHIR_AI_Context.md](src/DOC2FHIR/DOC2FHIR_AI_Context.md)
-- **Mapper component** (llama.cpp + Gemma-4 GGUF, does the structured-to-FHIR reasoning): [src/DOC2FHIR/Mapper/README.md](src/DOC2FHIR/Mapper/README.md)
+- **Mapper component** (llama.cpp + Gemma-4 GGUF) — its role differs by path: on the **default** path it writes the entire FHIR bundle directly; on the **opt-in structured** path it only extracts fields into an intermediate schema (explicitly told not to produce FHIR) — a separate, deterministic Python step builds the actual FHIR resources. See [src/DOC2FHIR/Mapper/README.md](src/DOC2FHIR/Mapper/README.md)
 
 ## Clinical AI System — Agentic RAG Copilot
 

@@ -4,7 +4,7 @@ Scanned medical reports (PDF) → OCR → structured extraction → FHIR mapping
 
 System-wide docs spanning both AI subsystems (architecture, failure modes, decisions) live in [`../../docs/`](../../docs/) — see the full documentation map in [`../../README.md`](../../README.md).
 
-**Two FHIR-mapping strategies exist; the default is not deterministic.** Out of the box (`structured_pipeline_enabled=False`), the Mapper LLM emits the entire FHIR bundle directly, then a regex/structural repair pass patches known mistakes — non-deterministic sampling (`temperature=0.7`), no schema-validation gate. A genuinely deterministic, no-LLM-at-mapping-time path exists (`structured_pipeline_enabled=True`) but is opt-in. See [`../../docs/adr/004-fhir-mapping-strategy.md`](../../docs/adr/004-fhir-mapping-strategy.md).
+**Two FHIR-mapping strategies exist; the default is not deterministic.** Out of the box (`structured_pipeline_enabled=False`), the Mapper LLM's one job is to emit the entire FHIR bundle directly from OCR text (`temperature=0.1` — low, but still LLM sampling, not deterministic construction), then a regex/structural repair pass patches known mistakes; there is no schema-validation gate on this path. A genuinely deterministic path exists (`structured_pipeline_enabled=True`, opt-in): there, the LLM's only job is extracting fields into an intermediate schema (explicitly instructed not to produce FHIR) — a separate, no-LLM Python step (`fhir_mapper.map_to_fhir`) builds the actual FHIR resources, and a validation gate now holds the job for review rather than delivering on a failure. See [`../../docs/adr/004-fhir-mapping-strategy.md`](../../docs/adr/004-fhir-mapping-strategy.md).
 
 ## Quick Start
 
