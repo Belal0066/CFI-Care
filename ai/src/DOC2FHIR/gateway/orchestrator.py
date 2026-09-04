@@ -336,6 +336,32 @@ class JobOrchestrator:
             fhir_dir = self.settings.runtime_dir / "fhir_outputs"
             fhir_path = self.repository.save_fhir_output(job_id, fhir_dir, fhir_output["fhir_bundle"])
 
+            # Structured-pipeline-only gate: a low-confidence extraction or a
+            # failed FHIR validation stops here instead of proceeding to
+            # delivery. The bundle above is already fully assembled and saved
+            # (composition/PDF/cross-references included), so a reviewer sees
+            # exactly what would have been delivered; POST
+            # /v1/document/{job_id}/approve-and-deliver resumes from here.
+            # fhir_output only carries "needs_review" on the structured path
+            # (the default LLM-direct path's dict never sets it), so this is
+            # a no-op for the default path by construction, not by branching
+            # on structured_pipeline_enabled here.
+            if fhir_output.get("needs_review"):
+                reasons = fhir_output.get("review_reasons") or []
+                detail = "Needs review: " + "; ".join(reasons[:3]) if reasons else "Needs review"
+                self.repository.update_job_stage(
+                    job_id,
+                    state=JobStatus.NEEDS_REVIEW,
+                    detail=detail[:500],
+                    fhir_output_path=str(fhir_path),
+                    progress=progress,
+                    finished_at=datetime.now(timezone.utc).isoformat(),
+                    extra_payload={"review_reasons": reasons},
+                )
+                self._publish(job_id, "NEEDS_REVIEW", progress, detail[:500])
+                log.warning("Job held for review, not delivered", reasons=reasons)
+                return
+
             # Store path immediately (before delivery sets COMPLETED) so the UI can find it
             self.repository.update_job_stage(
                 job_id,
@@ -668,6 +694,8 @@ class JobOrchestrator:
             classification_path = self.repository.save_classification_output(job_id, classification_dir, output.classification)
             extraction_path = self.repository.save_intermediate_output(job_id, extraction_dir, output.extraction)
 
+            needs_review = output.review_required or not output.validation_ok
+
             self.repository.update_job_stage(
                 job_id,
                 state=JobStatus.MAPPING,
@@ -679,12 +707,20 @@ class JobOrchestrator:
                     "extraction_output_path": str(extraction_path),
                     "review_required": output.review_required,
                     "warnings": output.warnings,
+                    "validation_ok": output.validation_ok,
+                    "validation_errors": output.validation_errors,
+                    "needs_review": needs_review,
                 },
             )
 
             return {
                 "fhir_bundle": output.bundle,
                 "raw_response": output.extraction,
+                "needs_review": needs_review,
+                "review_reasons": (
+                    (["low-confidence extraction"] if output.review_required else [])
+                    + (output.validation_errors if not output.validation_ok else [])
+                ),
             }
 
         except StructuredPipelineError as exc:

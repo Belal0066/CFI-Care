@@ -666,6 +666,79 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                 "retry_allowed": exc.retry_allowed,
             }
 
+    @app.post(
+        "/v1/document/{job_id}/approve-and-deliver",
+        tags=["Documents"],
+        responses={404: {"model": ErrorResponse}},
+    )
+    async def approve_and_deliver(job_id: str, repo: JobRepository = Depends(get_repository)):
+        """Resume delivery for a job the structured pipeline held in NEEDS_REVIEW.
+
+        The bundle was already fully assembled and saved before the job
+        stopped short of delivery (low-confidence extraction and/or failed
+        FHIR validation) — this delivers exactly that saved bundle to the
+        normally-configured downstream target (Node.js or HAPI FHIR,
+        whichever `downstream_type` selects), the same adapter selection
+        process_job itself uses. It does not re-run OCR, extraction, or
+        mapping.
+        """
+        from .adapters.hapi_fhir import HapiFhirDownstreamAdapter, HapiFhirDownstreamError
+        from .adapters.downstream import DownstreamError
+
+        job = repo.get_job_by_id(job_id)
+
+        if job.state != JobStatus.NEEDS_REVIEW:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Job is in state {job.state.value}, not NEEDS_REVIEW — nothing to approve.",
+            )
+
+        if not job.fhir_output_path:
+            raise HTTPException(
+                status_code=400,
+                detail="No FHIR bundle available for this job.",
+            )
+
+        fhir_path = Path(job.fhir_output_path)
+        if not fhir_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"FHIR output file not found: {fhir_path}",
+            )
+
+        try:
+            fhir_bundle = json.loads(fhir_path.read_text())
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to parse FHIR bundle: {exc}",
+            )
+
+        dead_letter_dir = str(settings.runtime_dir / "dead_letters")
+        adapter = JobOrchestrator._build_downstream_adapter(settings, dead_letter_dir)
+
+        try:
+            if isinstance(adapter, HapiFhirDownstreamAdapter):
+                result = await adapter.deliver_fhir_bundle(job_id=job_id, fhir_bundle=fhir_bundle)
+            else:
+                result = adapter.deliver_fhir_bundle(job_id=job_id, fhir_bundle=fhir_bundle)
+        except (HapiFhirDownstreamError, DownstreamError) as exc:
+            return {"success": False, "error": exc.message, "retry_allowed": getattr(exc, "retry_allowed", None)}
+
+        repo.update_job_stage(
+            job_id,
+            state=JobStatus.COMPLETED,
+            detail="Approved and delivered after manual review",
+            progress=100.0,
+            finished_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+        return {
+            "success": True,
+            "status_code": getattr(result, "status_code", None),
+            "created_resources": getattr(result, "created_resources", []),
+        }
+
     @app.get("/v1/metrics", tags=["System"])
     async def get_runtime_metrics():
         return _get_metrics_payload()

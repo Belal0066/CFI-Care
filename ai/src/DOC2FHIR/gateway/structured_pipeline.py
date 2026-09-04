@@ -29,6 +29,8 @@ class StructuredPipelineOutput:
     extraction: dict[str, Any]
     review_required: bool
     warnings: list[str]
+    validation_ok: bool
+    validation_errors: list[str]
 
 
 class StructuredPipelineError(RuntimeError):
@@ -244,7 +246,7 @@ class StructuredPipeline:
         validation = self.validator.validate_bundle(bundle)
         if not validation.ok:
             self.safety_logger.log_validation_errors(validation.errors)
-            logger.warning("FHIR validation failed (non-fatal): %s", "; ".join(validation.errors[:3]))
+            logger.warning("FHIR validation failed: %s", "; ".join(validation.errors[:3]))
 
         return StructuredPipelineOutput(
             bundle=bundle,
@@ -257,4 +259,6 @@ class StructuredPipeline:
             extraction=extraction.model_dump(),
             review_required=review_required,
             warnings=warnings,
+            validation_ok=validation.ok,
+            validation_errors=validation.errors,
         )
