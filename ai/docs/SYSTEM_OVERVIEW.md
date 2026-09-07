@@ -4,6 +4,8 @@ Scope: both subsystems under `ai/` — **DOC2FHIR** (document → FHIR pipeline)
 
 This doc complements, and doesn't repeat, [`ARCHITECTURE.md`](ARCHITECTURE.md) (port map, the DOC2FHIR↔Clinical-AI relationship hypothesis) and each subsystem's own README/`context.md`. Every claim below was checked against source, not copied from existing docs — file:line citations are given so you can re-verify.
 
+**Written before a later round of architecture work** (semantic evidence verification, a graded/corrective retrieval evaluator, a bounded ReAct loop for MCP evidence-gathering, the real MCP protocol client, per-source circuit breakers, and DOC2FHIR's fail-closed review gate and evidence-to-page grounding). Those are documented as [ADRs 008–015](adr/README.md) rather than folded into this document's data-flow traces — §0.4 and §0.6 below describe the system as it stood before that work except where a specific line has since been corrected inline.
+
 ## Table of Contents
 - [0.1 Problem Statement](#01-problem-statement)
 - [0.2 System Context](#02-system-context)
@@ -83,9 +85,9 @@ Every row is a real running process, verified against its actual entry point and
 | Gateway | Node.js callback | HTTP POST, `X-Internal-Secret` header | 10s (`callback.py:55`) | 3 (`config.py:59`) | Fixed backoff base 1.0s (`config.py:60`) |
 | Gateway (both stages) | GPU lock | `asyncio.Semaphore` | 5s acquire timeout (`config.py:52`) | — | Concurrency capped at 1 (`config.py:51`, `orchestrator.py:197`) — OCR and Mapper stages of *different* jobs cannot run concurrently even though they're separate processes |
 | Clinical AI Agent | HybridRetriever (Qdrant) | in-process Python call | none (no network) | — | Falls back to `ContextRetriever` on any exception (`nodes.py:461-464`), not a retry — a different code path entirely |
-| Clinical AI Agent | MCP Server (`/mcp/query`) | HTTP POST | 60s (`nodes.py:271`) | **0** | **No retry** — any exception is caught, logged, and returned as an error payload in `internet_evidence` (`nodes.py:280-286`); the request is not retried |
+| Clinical AI Agent | MCP Server, via the real MCP protocol client by default (`MCP_TRANSPORT=rest` for the superseded direct-HTTP path) | MCP/SSE (protocol) or HTTP POST (REST fallback) | 60s | 2, exponential backoff (`MCP_MAX_RETRIES`, `nodes.py`) | Since [ADR-012](adr/012-mcp-protocol-adoption.md) — previously 0 retries over a raw HTTP call; this row is superseded, kept only for the retry-policy comparison below |
 
-The DOC2FHIR adapter layer (typed exceptions, retry-eligibility classified by error type, exponential backoff) is materially more resilient than the Clinical AI System's MCP call path, which has none of that — worth knowing if you're deciding where to invest hardening effort next.
+DOC2FHIR's adapter layer and the Clinical AI System's MCP call path now both classify errors and retry with backoff — see [ADR-012](adr/012-mcp-protocol-adoption.md) for what changed and why a REST fallback was kept rather than removing the old path outright.
 
 ## 0.4 End-to-End Data Flow
 

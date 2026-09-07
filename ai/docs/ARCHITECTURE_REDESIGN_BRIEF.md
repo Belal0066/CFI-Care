@@ -4,6 +4,8 @@
 
 This brief covers the implementation phase that followed an evidence-based audit of the Clinical AI System's actual architecture (as opposed to its documentation's framing). The audit's finding, in one line: the system is a deterministic LangGraph workflow with one bounded LLM-regenerate loop, real hybrid retrieval, and a real but structural-only citation check — not the "agentic RAG" / "MCP-native" system its own docs implied. Every change below is scoped to something the audit identified as a genuine correctness, safety, or grounding gap — nothing was added because a pattern is fashionable (see the constraints in `docs/adr/` and this brief's own "explicitly not done" section).
 
+**This brief covers commits 1–9 only** (`86421ce..85da43a`). Later work on the same branch — the graded retrieval evaluator, the bounded ReAct loop, DOC2FHIR's fail-closed review gate, and OCR-to-page evidence grounding — is documented directly as ADRs [008](adr/008-local-model-serving-clinical-ai.md), [010](adr/010-graded-retrieval-evaluator.md), [011](adr/011-bounded-react-mcp-evidence-gathering.md), [014](adr/014-fail-closed-review-gate-doc2fhir.md), and [015](adr/015-evidence-page-grounding-doc2fhir.md), rather than being retrofitted into this document's per-commit structure.
+
 ## Summary table
 
 | # | Commit | Date | Area | One-line change |
@@ -48,6 +50,8 @@ With both off (today's default), the system's behavior is unchanged. With the fi
 
 **Verification performed:** unit-tested the aggregation logic against a mocked NLI model — entailment, contradiction, neutral, mixed-evidence (any-entailment-wins), and partial-missing-citation cases all resolve correctly (5/5 cases). Not tested against a live NLI model's actual output distribution — see §7.
 
+See [ADR-009](adr/009-two-tier-evidence-verification.md) for the full design rationale, options considered, and edge cases.
+
 ## 3. Bounded adaptive retrieval (commit 6)
 
 `retrieve_patient_context` already computed `has_insufficient_data` on every call — a real, already-existing signal — but nothing consumed it. A query scoring below the retrieval gatekeeper threshold went straight to reasoning on thin evidence anyway.
@@ -57,6 +61,8 @@ With both off (today's default), the system's behavior is unchanged. With the fi
 **Deliberately not an LLM decision.** The retrieval score is already a sufficient signal to decide "try again, more broadly" — no model call is involved in deciding to retry or how. This was a considered choice, not an oversight: an LLM-driven query rewrite (reusing the existing `query_rewriter.py`, built for coreference resolution) was considered and rejected for this purpose, since it would add an unevaluated model call where a deterministic threshold check is sufficient and strictly easier to reason about and bound.
 
 **Verification performed:** the bound was tested directly against realistic state transitions — retries exactly once under persistent insufficiency, never retries on a sufficient first pass, and the iteration counter correctly halts a hypothetical indefinite-insufficiency case.
+
+This mechanism was later extended into a three-way graded evaluator with a model-controlled reformulation branch — see [ADR-010](adr/010-graded-retrieval-evaluator.md), a separate, later decision built on top of this one.
 
 ## 4. MCP protocol migration (commit 7)
 
@@ -70,6 +76,8 @@ With both off (today's default), the system's behavior is unchanged. With the fi
 
 **Also fixed:** `mcp` was imported directly by `src/agent/mcp_client.py` but never declared in `requirements.txt` — added.
 
+See [ADR-012](adr/012-mcp-protocol-adoption.md) for the full design rationale. The evidence-gathering path this protocol now serves was later extended with a bounded ReAct loop — see [ADR-011](adr/011-bounded-react-mcp-evidence-gathering.md).
+
 ## 5. Reliability — circuit breakers (commit 8)
 
 **The gap.** `retriever_node` (`mcps/router.py`) wrapped PubMed, MedlinePlus, and OpenFDA calls in one blanket `try/except`: any single source raising an exception discarded whatever the *other* sources had already returned for that query.
@@ -79,6 +87,8 @@ With both off (today's default), the system's behavior is unchanged. With the fi
 **Scoping note.** This was deliberately scoped to the MedMCP → external-API hop only, not the Clinical-AI-agent → MCP-server hop. The latter is a co-located, non-rate-limited dependency where a breaker adds complexity without a corresponding benefit; the former is three independent third-party APIs outside this system's control, which is the actual justification the redesign required before adding this pattern.
 
 **Verification performed:** the state machine was tested for all real transitions, including the easy-to-get-wrong case — a half-open trial that fails must reopen immediately, not require the full failure threshold again. Also verified end-to-end (via a mocked failing PubMed call) that a source failing no longer blanks out a working source's results, which was the actual behavioral defect being fixed, not just a theoretical resilience improvement.
+
+See [ADR-013](adr/013-per-source-circuit-breakers-medmcp.md) for the full design rationale, including why this was deliberately *not* extended to the agent→MCP-server hop.
 
 ## 6. Evaluation harness (commit 9)
 
