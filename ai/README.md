@@ -57,7 +57,7 @@ Not indexed above — present but not engineering documentation: `src/ai/docs/th
 
 Scanned medical reports (PDF) → OCR → structured extraction → FHIR mapping → delivery. (The default mapping path is LLM-generated, not deterministic — see [`docs/adr/004-fhir-mapping-strategy.md`](docs/adr/004-fhir-mapping-strategy.md).)
 
-The pipeline has two mutually exclusive Mapper paths, selected by `DOC2FHIR_STRUCTURED_PIPELINE_ENABLED` (default off) — shown below. Both GPU-bound stages (OCR, Mapper) share a single concurrency-1 lock. On the structured path, a low-confidence extraction or a failed FHIR validation now holds the job for manual review instead of delivering it.
+The pipeline has two mutually exclusive Mapper paths, selected by `DOC2FHIR_STRUCTURED_PIPELINE_ENABLED` (default off) — shown below. Both GPU-bound stages (OCR, Mapper) share a single concurrency-1 lock. On the structured path, a low-confidence extraction or a failed FHIR validation now holds the job for manual review instead of delivering it ([ADR-014](docs/adr/014-fail-closed-review-gate-doc2fhir.md)), and each extracted field's evidence is grounded to a real page location instead of an unpopulated bbox ([ADR-015](docs/adr/015-evidence-page-grounding-doc2fhir.md)).
 
 ```mermaid
 flowchart TB
@@ -82,7 +82,7 @@ flowchart TB
                 DEFAULT["Default (flag=False):<br/>LLM direct FHIR generation<br/>llama.cpp Gemma-4 GGUF, port 8070<br/>+ regex/structural repair"]
                 CLS["DocumentTypeClassifier<br/>(opt-in path)"]
                 STRUCTEX["StructuredExtractor (LLM)<br/>intermediate schema, not FHIR"]
-                MAP["fhir_mapper.map_to_fhir<br/>deterministic, hardcoded LOINC table"]
+                MAP["fhir_mapper.map_to_fhir<br/>deterministic, hardcoded LOINC table<br/>evidence grounded to real OCR bbox"]
                 VAL{{"FhirValidator +<br/>low-confidence check<br/>fail-closed gate"}}
                 CLS --> STRUCTEX --> MAP --> VAL
             end
@@ -119,7 +119,7 @@ flowchart TB
 
 Deterministic, citation-backed clinical reasoning over longitudinal patient data, built on hybrid (dense + sparse) vector search over Qdrant, routed by a self-correcting LangGraph agent.
 
-Adapted from the deployment diagram in [`src/ai/docs/component_diagram.md`](src/ai/docs/component_diagram.md) with the LangGraph routing/audit logic added and the MCP server's two tools (MedMCP / VizMCP) distinguished — see that doc for the full deployment/config reference.
+Adapted from the deployment diagram in [`src/ai/docs/component_diagram.md`](src/ai/docs/component_diagram.md) with the LangGraph routing/audit logic added and the MCP server's two tools (MedMCP / VizMCP) distinguished — see that doc for the full deployment/config reference, and [`docs/adr/`](docs/adr/) (008–015) for the design rationale behind each mechanism below.
 
 ```mermaid
 graph TB
@@ -133,7 +133,7 @@ graph TB
 
         subgraph API["API Layer"]
             style API fill:#16213e,color:#fff
-            FB["FastAPI Backend<br/>port 8001<br/>/chat /health /ingest"]
+            FB["FastAPI Backend<br/>port 8001<br/>/chat (patient_id-scoped) /health /ingest"]
         end
 
         subgraph Agent["LangGraph Agent — workflow.py"]
@@ -141,20 +141,31 @@ graph TB
             CLASSIFY["classify<br/>regex IntentClassifier"]
             ROUTE{{"route_intent<br/>viz intent → visualize<br/>is_mcp_query → mcp_search<br/>confidence&lt;0.70 → rag_retrieve<br/>else by intent"}}
             RAG["rag_retrieve<br/>HybridRetriever (Qdrant)"]
+            RETRY["retry_retrieval<br/>relaxed threshold, bounded x1<br/>(default adaptive retry)"]
+            REFORM["reformulate_query<br/>model-controlled rewrite<br/>[off by default — graded_retrieval_evaluator_enabled]"]
+            INSUFF["handle_insufficient_evidence<br/>→ mcp_search or abstain<br/>[off by default]"]
             REASON["reason<br/>ClinicalReasoner<br/>deterministic, cited claims"]
-            MCPCALL["mcp_search"]
+            MCPCALL["mcp_search<br/>single call by default;<br/>bounded ReAct loop (max 3) if<br/>mcp_react_loop_enabled"]
             VIZ["visualize"]
             GEN["generate<br/>LLM phrasing only"]
-            AUDIT{{"audit_claims<br/>checks source_node_ids<br/>max 2 retries"}}
+            AUDIT{{"audit_claims<br/>tier 1: source_node_ids exist (always on)<br/>tier 2: NLI entailment [off by default]<br/>max 2 retries"}}
+            ABSTAIN["abstain<br/>fail-closed: exhausted retries or<br/>no relevant patient data"]
             CONF["compute_confidence → END"]
 
             CLASSIFY --> ROUTE
-            ROUTE --> RAG --> REASON --> GEN
+            ROUTE --> RAG
+            RAG -->|"sufficient"| REASON
+            RAG -.->|"insufficient (default)"| RETRY --> RAG
+            RAG -.->|"ambiguous [flag]"| REFORM --> RAG
+            RAG -.->|"insufficient [flag]"| INSUFF -.-> MCPCALL
+            INSUFF -.-> ABSTAIN
+            REASON --> GEN
             ROUTE --> MCPCALL --> GEN
             ROUTE --> VIZ --> GEN
             REASON -.->|"needs_drug_check"| MCPCALL
             GEN --> AUDIT
             AUDIT -.->|"claim fails, retry ≤2"| GEN
+            AUDIT -.->|"retries exhausted"| ABSTAIN --> CONF
             AUDIT --> CONF
         end
 
@@ -165,32 +176,32 @@ graph TB
 
         subgraph MCPServer["Medical MCP Server — mcps/main.py, port 8002"]
             style MCPServer fill:#16213e,color:#fff
-            MEDMCP["get_medical_data (MedMCP)<br/>PubMed / OpenFDA / MedlinePlus / RxNav"]
+            MEDMCP["get_medical_data (MedMCP)<br/>PubMed / OpenFDA / MedlinePlus / RxNav<br/>circuit breaker per source"]
             VIZMCP["render_clinical_viz (VizMCP)<br/>Groq normalize + matplotlib/seaborn"]
         end
 
         subgraph LocalLLM["Local LLM Backend"]
             style LocalLLM fill:#2d1a3e,color:#fff,stroke:#4a1a6e
-            LOC["llama.cpp / MedGemma 4B (Q6_K)<br/>port 8000"]
+            LOC["llama.cpp / MedGemma 4B (Q6_K)<br/>port 8000<br/>default — see ADR-008"]
         end
 
         DASH -->|"in-process invoke"| CLASSIFY
         FB -->|"/chat request"| CLASSIFY
         RAG --> QD
-        MCPCALL -->|"HTTP POST"| MEDMCP
-        VIZ -->|"HTTP POST"| VIZMCP
+        MCPCALL -->|"MCP protocol (SSE), retry+backoff<br/>REST fallback: MCP_TRANSPORT=rest"| MEDMCP
+        VIZ -->|"MCP protocol (SSE)<br/>REST fallback"| VIZMCP
         GEN -->|"HTTP POST /v1/chat/completions"| LOC
     end
 
     subgraph LAI["Lightning AI (GPU Cloud)"]
         style LAI fill:#1a3a1a,color:#fff,stroke:#2d5a2d
-        LLM["SGLang / MedGemma 27B<br/>128k context"]
+        LLM["SGLang / MedGemma 27B<br/>128k context — opt-in, see ADR-008"]
     end
 
     GEN -.->|"WAN, when llm_backend=lightning"| LLM
 ```
 
-Known gaps: the agentic `/chat` path doesn't thread `patient_id` through retrieval, and MCP calls have no retry logic (unlike DOC2FHIR's adapters) — see [`src/ai/context.md`](src/ai/context.md).
+`patient_id` now threads from `/chat` through to retrieval (fixed — see [`docs/ARCHITECTURE_REDESIGN_BRIEF.md`](docs/ARCHITECTURE_REDESIGN_BRIEF.md)). MCP calls go through a real protocol client with retry+backoff by default ([ADR-012](docs/adr/012-mcp-protocol-adoption.md)); the direct-HTTP path is kept only as an explicit, flagged fallback. Known gaps that remain: the semantic (NLI) evidence-verification tier and the graded retrieval evaluator both ship off by default, pending evaluation ([ADR-009](docs/adr/009-two-tier-evidence-verification.md), [ADR-010](docs/adr/010-graded-retrieval-evaluator.md)) — see [`src/ai/context.md`](src/ai/context.md) for further detail.
 
 - **Start here:** [src/ai/README.md](src/ai/README.md)
 - **Launch guide:** [src/ai/LAUNCH.md](src/ai/LAUNCH.md)
