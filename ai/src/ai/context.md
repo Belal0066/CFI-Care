@@ -62,10 +62,11 @@ graph TB
     end
 
     subgraph "MCP Internet Engine<br/>mcps/"
-        MC[MCP Server<br/>port 8002]
-        PA[PubMed Adapter]
-        OF[OpenFDA Adapter]
-        ML[MedlinePlus Adapter]
+        MC[get_medical_data — MedMCP<br/>port 8002]
+        VZ[render_clinical_viz — VizMCP<br/>port 8002]
+        PA[PubMed Adapter<br/>circuit breaker]
+        OF[OpenFDA Adapter<br/>circuit breaker]
+        ML[MedlinePlus Adapter<br/>circuit breaker]
     end
 
     subgraph "LLM"
@@ -88,7 +89,8 @@ graph TB
     FB --> HR
     FB --> MR
     FB --> U
-    FB --> MC
+    FB -.->|"direct REST, mode=mcp<br/>not migrated"| MC
+    FB -.->|"direct REST, not migrated"| VZ
 
     DB --> AG
     DB --> CL
@@ -99,7 +101,8 @@ graph TB
     MC --> ML
 
     AG --> CL
-    AG --> MC
+    AG -->|"MCP protocol (SSE)<br/>retry+backoff, REST fallback"| MC
+    AG -->|"MCP protocol (SSE)"| VZ
     AG --> LL
 
     FB --> LL
@@ -126,9 +129,9 @@ flowchart LR
         direction LR
         A2[User Query] --> B2[FastAPI /chat?mode=mcp]
         B2 --> C2[QueryRewriter Groq]
-        C2 --> D2[MCP Server port 8002]
-        D2 --> E2[LangGraph Workflow<br/>Guardrail→Classify→Retrieve]
-        E2 --> F2[PubMed / OpenFDA / MedlinePlus]
+        C2 --> D2["MedMCP (get_medical_data)<br/>direct REST — not migrated to protocol client"]
+        D2 --> E2[LangGraph Workflow<br/>Guardrail→Classify→Retrieve→Summarize]
+        E2 --> F2[PubMed / OpenFDA / MedlinePlus<br/>each behind a circuit breaker]
         F2 --> G2[Raw Data Back]
         G2 --> H2[llama.cpp synthesizes]
         H2 --> I2[UI]
@@ -137,13 +140,16 @@ flowchart LR
     subgraph "Agentic Graph Mode"
         direction LR
         A3[User Query] --> B3[LangGraph Agent<br/>src/agent/graph/workflow.py]
-        B3 --> C3[classify_intent]
+        B3 --> C3[classify]
         C3 --> D3{route_intent}
-        D3 -->|Has patient data| E3[RAG retrieve + reason]
-        D3 -->|No data / unknown| F3[MCP search]
-        E3 --> G3[generate_response]
+        D3 -->|Has patient data| E3[rag_retrieve + reason<br/>adaptive retry/reformulate — ADR-010]
+        D3 -->|No data / unknown| F3["mcp_search — MCP protocol (SSE)<br/>bounded ReAct loop optional — ADR-011"]
+        D3 -->|visualization intent| Z3[visualize — VizMCP]
+        E3 --> G3[generate]
         F3 --> G3
+        Z3 --> G3
         D3 -->|chat mode| G3
+        G3 --> H3[audit_claims → compute_confidence]
     end
 ```
 
@@ -431,7 +437,7 @@ sequenceDiagram
     participant LLM as llama.cpp / MedGemma
 
     UI->>FB: POST /chat {query, mode: "mcp"}
-    FB->>MCP: POST /mcp/query
+    FB->>MCP: POST /mcp/query<br/>(direct REST, not migrated to MCP protocol client — ADR-012)
     MCP->>LG: run_medical_flow(query)
     LG->>LG: guardrail_node<br/>(block pseudoscience)
     LG->>LG: classification_node<br/>(LLM: classify A-G, extract entities)
@@ -489,11 +495,13 @@ graph TD
         AUDITOR[src/agent/auditor.py]
         LLMCLI[src/agent/llm_client.py]
         QREWRI[src/agent/query_rewriter.py]
-        MCPCLI[src/agent/mcp_client.py]
         OLDWF[src/agent/workflow.py]
         AGSTATE[src/agent/graph/state.py]
         AGNODES[src/agent/graph/nodes.py]
+        AGREACT[src/agent/graph/react.py<br/>bounded ReAct loop — ADR-011]
+        AGVERIF[src/agent/graph/verification.py<br/>NLI ClaimVerifier — ADR-009]
         AGWF[src/agent/graph/workflow.py]
+        MCPCLIENT[src/agent/mcp_client.py<br/>MCPToolManager — protocol client]
         FAPI[src/api/FastAPI_Backend.py]
         MGDAPI[src/api/medgemma_rag_api.py]
         DASH[src/ui/dashboard.py]
@@ -502,6 +510,7 @@ graph TD
         MCPSRV[mcps/main.py]
         MCPROUT[mcps/router.py]
         MCPSCH[mcps/schemas.py]
+        MCPCB[mcps/adapters/circuit_breaker.py<br/>ADR-013]
         PUBA[mcps/adapters/pubmed.py]
         OFDA[mcps/adapters/openfda.py]
         MLPA[mcps/adapters/medlineplus.py]
@@ -544,15 +553,19 @@ graph TD
     AGSTATE --> AGNODES
     AGSTATE --> AGWF
     AGNODES --> AGWF
+    AGNODES --> AGREACT
+    AGNODES --> AGVERIF
+    AGNODES --> MCPCLIENT
     AGWF --> DASH
 
-    FAPI -.-> |HTTP port 8002| MCPSRV
-    AGNODES -.-> |HTTP port 8002| MCPSRV
+    FAPI -.-> |"direct REST, port 8002<br/>not migrated — ADR-012"| MCPSRV
+    MCPCLIENT -.-> |"MCP protocol (SSE), retry+backoff<br/>REST fallback: MCP_TRANSPORT=rest"| MCPSRV
 
     MCPSRV --> MCPROUT
     MCPROUT --> PUBA
     MCPROUT --> OFDA
     MCPROUT --> MLPA
+    MCPROUT --> MCPCB
     OFDA --> RXNA
     MCPROUT --> MCPSCH
 
@@ -561,7 +574,7 @@ graph TD
 ```
 
 ### Key Connection Rules
-- **`src/` → `mcps/`**: No direct Python imports. Connected via HTTP (`POST localhost:8002/mcp/query`).
+- **`src/` → `mcps/`**: No direct Python imports. `FastAPI_Backend.py`'s `mode=mcp` path uses direct REST (`POST localhost:8002/mcp/query`, not migrated); the Agent Graph (`src/agent/mcp_client.py`) uses the real MCP protocol client over SSE with retry+backoff and a `MCP_TRANSPORT=rest` fallback ([ADR-012](../../docs/adr/012-mcp-protocol-adoption.md)).
 - **`src/ui/` → `src/api/`**: Both HTTP (`streamlit_rag_app.py` calls FastAPI) **and** in-process LangGraph invocation (`dashboard.py` imports and calls `app` directly).
 - **`src/` internal**: All imports use `src.` prefix (e.g., `from src.shared.db_clients import qdrant_client`). **Exception:** `medgemma_rag_api.py:79` uses `shared.db_clients` (missing `src.`) — see §8 Bug #1.
 - **No `__init__.py`** in `src/`, `src/shared/`, `src/ingestion/`, `src/api/`, `src/ui/`, `mcps/`. Packages work via `PYTHONPATH=$PWD` or `sys.path` manipulation (done in `dashboard.py:12-13` and test scripts).
@@ -581,17 +594,9 @@ from shared.db_clients import qdrant_client
 
 This raises `ModuleNotFoundError: No module named 'shared'` — but **this import is inside a `try/except` block inside the `/health` endpoint handler**, not at module level. The module itself imports and runs fine; only `/health`'s Qdrant sub-check degrades to an error string. This file is a simplified RAG API on port 8001 — it's a **second** FastAPI app that conflicts with `FastAPI_Backend.py` (which runs on the same port). The launch script starts `FastAPI_Backend.py`, so this file isn't on the active path regardless.
 
-### Bug #2: `src/agent/mcp_client.py:20` — Undefined config attribute
+### Bug #2 (fixed): `src/agent/mcp_client.py:20` — previously an undefined config attribute
 
-```python
-# Line 19-20
-def __init__(self, server_url: Optional[str] = None):
-    self.server_url = server_url or config.mcp_server_url  # AttributeError
-```
-
-`InfraConfig` (in `src/shared/config.py`) has no `mcp_server_url` field. Available URL fields: `ollama_base_url`, `sglang_base_url`, `llamacpp_base_url`, `fhir_base_url`. This will raise `AttributeError: 'InfraConfig' object has no attribute 'mcp_server_url'`.
-
-**Impact:** Any code path that instantiates `MCPToolManager()` will crash. This file is also dead code (not imported by active workflow), but would block future use. The active MCP call path is `nodes.py`'s `_call_mcp_endpoint`, which is unaffected by this bug.
+**Status: fixed** — `InfraConfig` (`src/shared/config.py:44`) now defines `mcp_server_url: str = "http://localhost:8002/mcp/sse"`. `MCPToolManager` is no longer dead code: it's imported and used directly by `src/agent/graph/nodes.py` (`mcp_search`, ReAct loop) as the real MCP protocol client (SSE, retry+backoff, `MCP_TRANSPORT=rest` fallback) — see [ADR-012](../../docs/adr/012-mcp-protocol-adoption.md). Retained here as a record that this bug existed and was resolved.
 
 ---
 

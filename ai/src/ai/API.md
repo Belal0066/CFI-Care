@@ -36,7 +36,10 @@ graph TB
 
     subgraph "HTTP API Layer"
         FB["FastAPI Backend<br/>port 8001<br/>/health, /chat, /ingest<br/>/patient/{id}"]
-        MC["MCP Server<br/>port 8002<br/>/mcp/query, /mcp/sse"]
+        subgraph MCPServer["Medical MCP Server — port 8002"]
+            MEDMCP["get_medical_data (MedMCP)<br/>circuit breaker per external source"]
+            VIZMCP["render_clinical_viz (VizMCP)"]
+        end
     end
 
     subgraph "In-Process Python API"
@@ -59,6 +62,7 @@ graph TB
         FD["OpenFDA"]
         GR["Groq API"]
         RX["RxNorm"]
+        MLP["MedlinePlus"]
     end
 
     S1 -->|"in-process<br/>app.invoke()"| AG
@@ -68,25 +72,30 @@ graph TB
     S2 -->|"POST /chat (SSE)"| FB
 
     FX -->|"POST /chat (SSE)"| FB
-    FX -->|"POST /mcp/query"| MC
+    FX -.->|"direct REST — same caveat as FastAPI Backend below"| MEDMCP
 
     FB -->|"/v1/chat/completions"| LL
     FB -.->|"/v1/chat/completions<br/>(WAN, --lightning)"| LAI
     FB -->|"gRPC/HTTP"| QD
     FB -->|"Redis protocol"| RD
-    FB -->|"POST /mcp/query"| MC
+    FB -.->|"direct REST — mode=mcp requests<br/>bypass the agent graph, NOT migrated<br/>to the protocol client"| MEDMCP
+    FB -.->|"direct REST — same caveat"| VIZMCP
 
     AG -->|"/v1/chat/completions"| LL
     AG -.->|"/v1/chat/completions<br/>(WAN, --lightning)"| LAI
-    AG -->|"POST /mcp/query"| MC
+    AG -->|"MCP protocol (SSE), retry+backoff<br/>REST fallback: MCP_TRANSPORT=rest"| MEDMCP
+    AG -->|"MCP protocol (SSE)<br/>REST fallback"| VIZMCP
 
-    MC -->|"PubMed esearch/efetch"| PM
-    MC -->|"OpenFDA drug/label"| FD
-    MC -->|"Groq ChatCompletions"| GR
-    MC -->|"RxNorm approximateTerm"| RX
+    MEDMCP -->|"HTTPS, circuit breaker"| PM
+    MEDMCP -->|"HTTPS, circuit breaker"| FD
+    MEDMCP -->|"HTTPS"| GR
+    MEDMCP -->|"HTTPS"| RX
+    MEDMCP -->|"HTTPS, circuit breaker"| MLP
 
     DP -->|"Local only<br/>no network"| QD
 ```
+
+See [ADR-012](../../docs/adr/012-mcp-protocol-adoption.md) for the protocol-client migration and [ADR-013](../../docs/adr/013-per-source-circuit-breakers-medmcp.md) for the circuit breakers — both apply to the Agent Graph's MCP path only. `FastAPI_Backend.py`'s own direct calls for explicit `mode=mcp` requests were not part of that migration and still use the original REST endpoints shown as dotted edges above.
 
 ### Connection Patterns Available
 
@@ -95,7 +104,8 @@ graph TB
 | **HTTP SSE** — `POST /chat` with `stream=True` | HTTP 1.1 SSE | `streamlit_rag_app.py`, custom frontends | Streaming (real-time tokens) |
 | **Direct LangGraph** — `app.invoke(state)` | In-process Python call | `dashboard.py` | Synchronous (full response) |
 | **Direct Pipeline** — `ClinicalReasoner.reason()` | In-process Python call | `dashboard.py` deterministic mode | <300ms |
-| **MCP REST** — `POST /mcp/query` | HTTP 1.1 | Backend, agent graph, custom frontends | 5-30s (internet fetch) |
+| **MCP REST** — `POST /mcp/query` | HTTP 1.1 | FastAPI Backend's `mode=mcp` path, custom frontends — NOT migrated to the protocol client | 5-30s (internet fetch) |
+| **MCP protocol (SSE)** — `MCPToolManager.call_tool` | MCP protocol over SSE, retry+backoff; `MCP_TRANSPORT=rest` fallback ([ADR-012](../../docs/adr/012-mcp-protocol-adoption.md)) | Agent Graph (`mode=auto`/`local` MCP calls) | 5-30s (internet fetch) |
 
 ---
 
@@ -423,10 +433,12 @@ flowchart LR
     B -->|"pseudoscience?"| C{Block?}
     C -->|Yes| G["classification: G<br/>return error"]
     C -->|No| D[classification_node<br/>LLM classifies A-G<br/>extracts entities<br/>optimizes query]
-    D --> E[retriever_node<br/>routes to adapters]
+    D --> E[retriever_node<br/>routes to adapters<br/>PubMed/OpenFDA/MedlinePlus each behind own circuit breaker]
     E --> F[summarizer_node<br/>optional LLM summary]
     F --> H["RetrievalDataSchema"]
 ```
+
+See [ADR-013](../../docs/adr/013-per-source-circuit-breakers-medmcp.md) for the per-source circuit breakers (`_pubmed_breaker`, `_medlineplus_breaker`, `_openfda_breaker` in `mcps/router.py`) — Groq and RxNorm calls are not behind a breaker.
 
 Nodes:
 - **guardrail_node** (`mcps/router.py:45`): Blocks homeopathy, chakra, crystal healing

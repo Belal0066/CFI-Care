@@ -22,12 +22,17 @@ graph TB
         subgraph API["API Layer"]
             style API fill:#16213e,color:#fff
             FB["FastAPI Backend<br/>port 8001<br/>/chat /health /ingest"]
-            MC["MCP Server<br/>port 8002<br/>/mcp/query"]
+        end
+
+        subgraph MCPServer["Medical MCP Server — port 8002"]
+            style MCPServer fill:#16213e,color:#fff
+            MEDMCP["get_medical_data (MedMCP)<br/>circuit breaker per external source"]
+            VIZMCP["render_clinical_viz (VizMCP)"]
         end
 
         subgraph Python["In-Process Python API"]
             style Python fill:#1a1a4e,color:#fff
-            AG["Agentic Graph<br/>src/agent/graph/workflow.py<br/>LangGraph"]
+            AG["Agentic Graph<br/>src/agent/graph/workflow.py<br/>LangGraph — mode=auto only"]
             DP["Deterministic Pipeline<br/>ClinicalReasoner<br/>Tickets 4-10"]
         end
 
@@ -47,8 +52,10 @@ graph TB
         SRAG -->|"HTTP SSE"| FB
         FB -->|"gRPC/HTTP"| QD
         FB -->|"Redis protocol"| RD
-        AG -->|"HTTP POST"| MC
-        FB -->|"HTTP POST"| MC
+        AG -->|"MCP protocol (SSE), retry+backoff<br/>REST fallback: MCP_TRANSPORT=rest"| MEDMCP
+        AG -->|"MCP protocol (SSE)<br/>REST fallback"| VIZMCP
+        FB -.->|"direct REST — mode=mcp requests<br/>bypass the agent graph, NOT migrated<br/>to the protocol client"| MEDMCP
+        FB -.->|"direct REST — same caveat"| VIZMCP
         AG -->|"HTTP POST /v1/chat/completions"| LOC
         FB -->|"HTTP POST /v1/chat/completions"| LOC
         DP -.->|"optional Qdrant"| QD
@@ -72,13 +79,15 @@ graph TB
     AG -.->|"WAN: HTTP POST /v1/chat/completions<br/>(when LLM_BACKEND=lightning)"| LLM
     FB -.->|"WAN: HTTP POST /v1/chat/completions<br/>(when LLM_BACKEND=lightning)"| LLM
 
-    %% MCP internet connections
-    MC -->|"HTTPS"| PM
-    MC -->|"HTTPS"| FD
-    MC -->|"HTTPS"| GR
-    MC -->|"HTTPS"| RX
-    MC -->|"HTTPS"| MLP
+    %% MCP internet connections — PubMed/OpenFDA/MedlinePlus each behind their own circuit breaker (ADR-013)
+    MEDMCP -->|"HTTPS, circuit breaker"| PM
+    MEDMCP -->|"HTTPS, circuit breaker"| FD
+    MEDMCP -->|"HTTPS"| GR
+    MEDMCP -->|"HTTPS"| RX
+    MEDMCP -->|"HTTPS, circuit breaker"| MLP
 ```
+
+See [ADR-012](../../../docs/adr/012-mcp-protocol-adoption.md) for the protocol-client migration and [ADR-013](../../../docs/adr/013-per-source-circuit-breakers-medmcp.md) for the circuit breakers — both apply to the Agentic Graph's MCP path only; `FastAPI_Backend.py`'s own direct calls for explicit `mode=mcp` requests were not part of that migration and still use the original REST endpoints.
 
 ---
 
@@ -108,13 +117,13 @@ graph LR
 | Agent Graph | LLM (local or Lightning) | HTTP POST | 8000 or remote | Yes — URL changes |
 | FastAPI Backend | Qdrant | gRPC/HTTP | 6333 | No |
 | FastAPI Backend | Redis Cloud | Redis protocol | 19534 | No |
-| FastAPI Backend | MCP Server | HTTP POST | 8002 | No |
-| Agent Graph | MCP Server | HTTP POST | 8002 | No |
-| MCP Server | PubMed | HTTPS | 443 | No |
-| MCP Server | OpenFDA | HTTPS | 443 | No |
-| MCP Server | Groq | HTTPS | 443 | No |
-| MCP Server | RxNorm | HTTPS | 443 | No |
-| MCP Server | MedlinePlus | HTTPS | 443 | No |
+| FastAPI Backend | MedMCP / VizMCP | HTTP POST (REST, not migrated) | 8002 | No |
+| Agent Graph | MedMCP / VizMCP | MCP protocol (SSE), retry+backoff; `MCP_TRANSPORT=rest` fallback — [ADR-012](../../../docs/adr/012-mcp-protocol-adoption.md) | 8002 | No |
+| MedMCP | PubMed | HTTPS, circuit breaker — [ADR-013](../../../docs/adr/013-per-source-circuit-breakers-medmcp.md) | 443 | No |
+| MedMCP | OpenFDA | HTTPS, circuit breaker | 443 | No |
+| MedMCP | Groq | HTTPS | 443 | No |
+| MedMCP | RxNorm | HTTPS | 443 | No |
+| MedMCP | MedlinePlus | HTTPS, circuit breaker | 443 | No |
 | dashboard.py | Agent Graph | in-process | — | No |
 | dashboard.py | Deterministic Pipeline | in-process | — | No |
 | streamlit_rag_app.py | FastAPI Backend | HTTP SSE | 8001 | No |

@@ -28,14 +28,15 @@ Naive RAG over clinical records fails in two specific ways: it retrieves documen
 ```mermaid
 graph TD
     Clinician([Clinician]) <--> Dashboard[Streamlit Dashboard]
-    Dashboard <--> FastAPI[FastAPI Backend :8001]
+    Dashboard <--> FastAPI["FastAPI Backend :8001<br/>(patient_id-scoped)"]
 
     FastAPI --> LGA{LangGraph Agent}
-    LGA --> IC[Intent Classifier]
-    IC --> RLogic{route_intent<br/>confidence gate @ 0.70}
+    LGA --> IC[Intent Classifier — regex]
+    IC --> RLogic{route_intent<br/>viz intent → visualize<br/>is_mcp_query → MCP first<br/>confidence gate @ 0.70}
 
-    RLogic -- "patient-context intent" --> RPC[retrieve_patient_context]
-    RLogic -- "general/drug-safety intent" --> MCP[MCP Client]
+    RLogic -- "patient-context intent" --> RPC[rag_retrieve]
+    RLogic -- "general/drug-safety intent,<br/>or is_mcp_query" --> MCP[MCPToolManager<br/>MCP protocol, retry+backoff<br/>REST fallback: MCP_TRANSPORT=rest]
+    RLogic -- "visualization intent" --> Viz[visualize]
 
     subgraph Ingestion
         JSON[Patient JSON / FHIR R4] --> Preproc[ClinicalPreprocessor]
@@ -47,21 +48,24 @@ graph TD
 
     RPC -- "primary" --> HR[HybridRetriever<br/>Qdrant dense+sparse+RRF]
     RPC -- "fallback, on exception" --> CTX[ContextRetriever<br/>in-memory, intent-strategy]
+    RPC -.-> RGate{{"adaptive retry<br/>default: relaxed threshold, x1<br/>graded reformulate/abstain: off by default"}}
     Qdrant <--> HR
     PS --> CTX
     HR --> Reason[ClinicalReasoner<br/>bounded, cited reasoning]
     CTX --> Reason
 
-    MCP <--> MCPServer[MCP Server :8002<br/>PubMed / OpenFDA / MedlinePlus / RxNav]
+    MCP <--> MCPServer["Medical MCP Server :8002<br/>get_medical_data (MedMCP): PubMed/OpenFDA/MedlinePlus/RxNav,<br/>circuit breaker per source<br/>render_clinical_viz (VizMCP)"]
 
     Reason --> Gen[generate_response]
     MCPServer --> Gen
-    Gen --> Audit[audit_claims<br/>ClaimAuditor]
+    Viz --> Gen
+    Gen --> Audit["audit_claims<br/>tier 1: citation IDs exist (always on)<br/>tier 2: NLI entailment (off by default)"]
     Audit -- failed, retries < 2 --> Gen
-    Audit -- passed / exhausted --> Response([Cited response])
+    Audit -- passed --> Response([Cited response])
+    Audit -- retries exhausted --> Abstain([Fail-closed abstention]) --> Response
 ```
 
-Full annotated diagrams (including the LangGraph state machine with its confidence-gated routing) live in [`docs/diagrams/`](docs/diagrams/). Cross-subsystem port map: [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+Full annotated diagrams (including the LangGraph state machine with its confidence-gated routing, adaptive retry, and bounded ReAct loop) live in [`docs/diagrams/LangGraph-Agent-Workflow.mmd`](docs/diagrams/LangGraph-Agent-Workflow.mmd). Design rationale: [`../../docs/adr/`](../../docs/adr/) (008–013). Cross-subsystem port map: [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
 
 ## Honest Status
 

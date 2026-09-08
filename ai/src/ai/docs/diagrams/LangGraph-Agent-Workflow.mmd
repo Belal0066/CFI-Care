@@ -1,72 +1,87 @@
 ---
-title: LangGraph Agent Workflow — StateGraph with Self-Correction
+title: LangGraph Agent Workflow — StateGraph with Bounded Self-Correction
 ---
 
 graph TD
     Start(( ))
     End((( )))
 
-    CI[classify_intent<br/>IntentClassifier → Intent + Confidence]
+    CLASSIFY[classify<br/>IntentClassifier — regex pattern-match, not an LLM call]
 
-    subgraph Routing ["Routing Logic (route_intent)"]
+    subgraph Routing ["route_intent — deterministic, precedence-ordered"]
         RM{Mode Select<br/>chat / local / mcp / auto}
-        CF{Confidence Gate<br/>< 0.70 threshold?}
-        PD{Patient Data<br/>Available?}
-        MQ{is_mcp_query<br/>Flag?}
-        IG{Intent in<br/>RAG Intents?}
+        VZ{intent ==<br/>visualization?}
+        MQ{is_mcp_query<br/>flag?}
+        CF{confidence <<br/>0.70 threshold?}
+        IG{intent in<br/>RAG-intent set?}
     end
 
-    subgraph RAG ["Local RAG Path"]
-        RR[rag_retrieve<br/>HybridRetriever<br/>Qdrant: dense + sparse + RRF<br/>PatientState context]
-        REAS[reason<br/>run_deterministic_reasoning<br/>ClinicalReasoner<br/>→ ClinicalResponse with CitedClaim[]]
+    subgraph RAGPath ["Adaptive RAG Path"]
+        RR[rag_retrieve<br/>HybridRetriever — Qdrant<br/>dense bge-base + sparse SPLADE, manual RRF]
+        RGATE{retrieval grade}
+        RETRY[retry_retrieval<br/>relaxed threshold, bounded x1<br/>default behavior — always on]
+        REFORM[reformulate_query<br/>model-controlled rewrite<br/>off by default — ADR-010]
+        INSUFF[handle_insufficient_evidence<br/>→ mcp_search or abstain<br/>off by default — ADR-010]
+        REAS[reason<br/>run_deterministic_reasoning<br/>ClinicalReasoner — zero LLM/HTTP imports<br/>→ Claim + source_node_ids]
     end
 
-    subgraph MCPath ["MCP Search Path"]
-        QT[Classify MCP Question Type<br/>drug_safety / guidelines / general]
-        DS[Construct Drug Safety Query<br/>Deterministic + Safety Policies]
-        LO[LLM Query Optimization<br/>Conversation + Patient Context]
-        MCPC[Call MCP Endpoint<br/>→ MCP Server<br/>PubMed / OpenFDA / MedlinePlus]
-        SYNTH[Synthesize<br/>Summarize Evidence]
+    subgraph MCPath ["mcp_search — internal steps, one graph node"]
+        QT[classify_mcp_question_type<br/>drug_safety / guidelines / general]
+        DS[Deterministic query construction<br/>drug-safety questions]
+        LO[LLM query optimization<br/>general questions]
+        MCPC[MCPToolManager.call_tool<br/>MCP protocol — SSE, retry+backoff<br/>REST fallback: MCP_TRANSPORT=rest — ADR-012]
+        REACT[[Bounded ReAct loop — observe/decide/act<br/>max 3 iterations, actions: get_medical_data or finish<br/>off by default — ADR-011]]
+        QT --> DS --> MCPC
+        QT --> LO --> MCPC
+        MCPC -.->|"if mcp_react_loop_enabled"| REACT
     end
 
-    GEN[generate<br/>generate_response<br/>Polymorphic: RAG / MCP / Chat]
+    VIZ[visualize<br/>generate_visualization → render_clinical_viz VizMCP]
 
-    AUDIT[audit_claims<br/>Claim → source_node_ids<br/>→ valid retrieved_docs?]
+    GEN[generate<br/>generate_response — LLM phrasing only<br/>polymorphic: RAG / MCP / Chat]
 
-    CONF[compute_confidence<br/>Overall Confidence Block<br/>routing + retrieval +<br/>generation + validation]
+    AUDIT{audit_claims<br/>tier 1: source_node_ids exist — always on<br/>tier 2: NLI entailment — off by default, ADR-009<br/>max 2 retries}
 
-    Start --> CI
-    CI --> RM
+    ABSTAIN[abstain<br/>fail-closed: retries exhausted, or<br/>no relevant patient data found]
+
+    CONF[compute_confidence<br/>routing + retrieval +<br/>generation + validation]
+
+    Start --> CLASSIFY
+    CLASSIFY --> RM
 
     RM -- chat --> GEN
     RM -- local --> RR
-    RM -- auto --> MQ
     RM -- mcp --> QT
+    RM -- auto --> VZ
 
-    MQ -- yes --> QT
-    MQ -- no --> PD
-    PD -- no --> QT
-    PD -- yes --> CF
-    CF -- below 0.70 --> RR
-    CF -- above 0.70 --> IG
+    VZ -- yes --> VIZ
+    VZ -- no --> MQ
+    MQ -- yes, checked before<br/>the confidence gate --> QT
+    MQ -- no --> CF
+    CF -- below 0.70,<br/>safe default --> RR
+    CF -- 0.70 or above --> IG
     IG -- yes --> RR
     IG -- no --> QT
 
-    RR --> REAS
+    RR --> RGATE
+    RGATE -- sufficient --> REAS
+    RGATE -- insufficient<br/>default --> RETRY --> RR
+    RGATE -- ambiguous<br/>flag on --> REFORM --> RR
+    RGATE -- insufficient<br/>flag on --> INSUFF
+    INSUFF -.-> QT
+    INSUFF -.-> ABSTAIN
+    REAS -- needs_drug_check --> QT
     REAS --> GEN
 
-    QT --> DS
-    QT --> LO
-    DS --> MCPC
-    LO --> MCPC
-    MCPC --> SYNTH
-    SYNTH --> GEN
+    MCPC --> GEN
+    REACT --> GEN
+    VIZ --> GEN
 
     GEN --> AUDIT
-
     AUDIT -- passed --> CONF
-    AUDIT -- failed + retries < 2 --> GEN
-    AUDIT -- failed + retries >= 2 --> CONF
+    AUDIT -- failed, retries < 2,<br/>feedback injected --> GEN
+    AUDIT -- retries exhausted --> ABSTAIN
+    ABSTAIN --> CONF
 
     CONF --> End
 
@@ -74,13 +89,14 @@ graph TD
     style End fill:#E6E6FA,stroke:#8A2BE2,stroke-width:2px
 
     classDef purpleNode fill:#E6E6FA,stroke:#8A2BE2,stroke-width:1px
-    class CI,RR,REAS,GEN,AUDIT,CONF,QT,DS,LO,MCPC,SYNTH purpleNode
+    class CLASSIFY,RR,REAS,GEN,CONF,QT,DS,LO,MCPC,VIZ,RETRY,ABSTAIN purpleNode
 
     classDef orangeNode fill:#FFF3E0,stroke:#FB8C00,stroke-width:1px
-    class RM,CF,PD,MQ,IG orangeNode
+    class RM,VZ,MQ,CF,IG,RGATE,AUDIT orangeNode
 
-    style RAG fill:#F3F3FF,stroke:#8A2BE2,stroke-width:1px
+    classDef flagNode fill:#FFEBEE,stroke:#E53935,stroke-width:1px,stroke-dasharray: 4 2
+    class REFORM,INSUFF,REACT flagNode
+
+    style RAGPath fill:#F3F3FF,stroke:#8A2BE2,stroke-width:1px
     style MCPath fill:#F3F3FF,stroke:#8A2BE2,stroke-width:1px
     style Routing fill:#FFF8E1,stroke:#FB8C00,stroke-width:1px
-
-    linkStyle 13,14 stroke:#E53935,stroke-width:1px

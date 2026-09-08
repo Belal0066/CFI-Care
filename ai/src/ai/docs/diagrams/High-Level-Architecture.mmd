@@ -21,7 +21,7 @@ graph TD
         subgraph IL [Ingestion Layer]
             direction TB
             DS[Data Sources]
-            JSN[Custom JSON<br/>data.json / nodes[]]
+            JSN["Custom JSON<br/>data.json / nodes[]"]
             FHIR[FHIR R4<br/>HAPI Server / Bundles]
             CPP[ClinicalPreprocessor<br/>Parse → Normalize → Classify<br/>Tag → Sort → Build Graph]
             TN[ToonNormalizer<br/>FHIR → TOON String<br/>30-50% Token Reduction]
@@ -50,13 +50,14 @@ graph TD
 
         subgraph REAS [Reasoning Layer]
             CR[ClinicalReasoner<br/>Deterministic Reasoning<br/>CitedClaim · Data Sufficiency]
-            MCP[MCP Client]
-            MCPS[MCP Server<br/>PubMed · OpenFDA · MedlinePlus]
+            MCP[MCP Client<br/>MCPToolManager — protocol client, ADR-012]
+            MCPS[get_medical_data — MedMCP<br/>PubMed · OpenFDA · MedlinePlus<br/>circuit breaker per source, ADR-013]
+            VIZ[render_clinical_viz — VizMCP]
             LLM[MedGemma<br/>Local: llama.cpp 4B GGUF<br/>Remote: Lightning AI 27B]
         end
     end
 
-    GC[Generation & Citation<br/>generate_response + audit_claims<br/>Self-Correction Loop]
+    GC[Generation & Citation<br/>generate + audit_claims<br/>Self-Correction Loop]
 
     FastAPI --> LGA
     LGA --> IC
@@ -64,6 +65,7 @@ graph TD
 
     RLogic -- Patient Query --> HR
     RLogic -- General Med Query --> MCP
+    RLogic -- Visualization Intent --> VIZ
 
     QDB <--> HR
     PS --> CA
@@ -72,8 +74,10 @@ graph TD
     CR --> LLM
 
     MCP <--> MCPS
+    MCP <--> VIZ
     MCPS --> LLM
     MCP --> LLM
+    VIZ --> GC
 
     LLM --> GC
     GC --> LGA
@@ -86,6 +90,7 @@ graph TD
 
     style MCP stroke-dasharray: 5 5
     style MCPS stroke-dasharray: 5 5
+    style VIZ stroke-dasharray: 5 5
 
     style Clinician fill:#E0F7FA,stroke:#00838F,stroke-width:2px
     style Dashboard fill:#E3F2FD,stroke:#1E88E5,stroke-width:2px
@@ -112,5 +117,6 @@ graph TD
     style CR fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
     style MCP fill:#ECEFF1,stroke:#37474F,stroke-width:2px
     style MCPS fill:#ECEFF1,stroke:#37474F,stroke-width:2px
+    style VIZ fill:#ECEFF1,stroke:#37474F,stroke-width:2px
     style LLM fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
     style GC fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px
