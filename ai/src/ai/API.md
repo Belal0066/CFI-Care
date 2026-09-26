@@ -893,17 +893,17 @@ resp = httpx.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi", pa
 
 All internal FastAPI endpoints (`/health`, `/ingest`, `/chat`, `/patient/{id}`, `/mcp/query`) have **zero authentication**. These are intended for local network access only.
 
-### 9.2 Hardcoded Credentials
+### 9.2 Redis Credentials
 
-**File:** `src/api/FastAPI_Backend.py:52-54`
+**File:** `src/api/FastAPI_Backend.py:73-75`
 
 ```python
-REDIS_HOST = os.getenv("REDIS_HOST", "redis-19534.c275.us-east-1-4.ec2.cloud.redislabs.com")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis-19534.c275.us-east-1-4.ec2.cloud.redislabs.com")  # host default still in source
 REDIS_PORT = int(os.getenv("REDIS_PORT", 19534))
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "yIFQU6QWucdTKlfNsy9hbVKDNBkXSdbl")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")  # no default: must be set via the environment
 ```
 
-Cloud Redis credentials are hardcoded as defaults. Override via environment variables.
+The Redis password is read from the environment only; there is no default in source. The Redis Cloud host still has a default. Any credential that was ever committed must be treated as compromised and rotated, since it remains in git history.
 
 ### 9.3 External API Keys
 

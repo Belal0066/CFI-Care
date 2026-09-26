@@ -159,7 +159,7 @@ with tab4:
                     # Use the same credentials as the backend
                     REDIS_HOST = os.getenv("REDIS_HOST", "redis-19534.c275.us-east-1-4.ec2.cloud.redislabs.com") 
                     REDIS_PORT = int(os.getenv("REDIS_PORT", 19534))
-                    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "yIFQU6QWucdTKlfNsy9hbVKDNBkXSdbl")
+                    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
                     
                     r = redis.Redis(
                         host=REDIS_HOST, 
