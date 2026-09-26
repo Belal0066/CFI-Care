@@ -26,7 +26,7 @@
 
 ## Key Features
 - **Collaborative Health Records**: Git-like version control for medical data with branching and merging.  
-- **AI-Powered Intelligence**: Retrieval-Augmented Generation (RAG), NLP for clinical notes, OCR pipelines, and anomaly detection.  
+- **AI-Powered Intelligence**: A citation-verified clinical RAG copilot (hybrid retrieval, claim auditing, abstains when evidence is missing) and a document-to-FHIR pipeline (VLM-based OCR, LLM extraction, optional human-review gate). Core patient-data models run locally by default; see [ai/README.md](./ai/README.md).  
 - **Cross-Platform Access**: Web and mobile applications for patients, doctors, and caregivers.  
 - **Secure Infrastructure**: Role-based access control (RBAC), encryption, and compliance with FHIR/HL7 standards.  
 - **IoT & Wearables Integration**: Continuous health monitoring via Apple HealthKit, Google Health Connect, and smart devices.  
@@ -40,7 +40,7 @@ CFI-Care/
 ├── backend/        # APIs, authentication, medical records logic
 ├── frontend/       # Web application
 ├── mobile/         # Mobile app (Flutter)
-├── ai/             # AI models, pipelines, embeddings, RAG
+├── ai/             # DOC2FHIR (scanned docs → FHIR) + Clinical AI (agentic RAG copilot)
 ├── infra/          # DevOps, CI/CD, Kubernetes, Docker
 ├── docs/           # Technical documentation
 ├── scripts/        # Developer helper scripts
