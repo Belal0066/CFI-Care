@@ -262,5 +262,75 @@ class TestClinicalVizFullPipeline(unittest.TestCase):
         self.assertIn("image_base64", result)
 
 
+class TestGroqNormalizerResidency(unittest.TestCase):
+    """Patient observations must not reach a third-party API unless explicitly opted in.
+
+    Guards the residency claim in ai/README.md ("Data Residency"). ChatGroq is
+    replaced by a spy, so no network call is ever made in these tests.
+    """
+
+    FLAG = "VIZ_USE_GROQ_NORMALIZER"
+    GROQ_REPLY = json.dumps({
+        "normalized_data": [], "chart_type": "line", "variables": ["lvef"],
+        "annotations": [], "summary": "spy reply", "missing_fields": [],
+    })
+    QUERY = "renal trend"
+
+    def _normalize(self, *, flag, key, invoke_error=None):
+        """Run _groq_normalize under a flag/key combination with ChatGroq spied on."""
+        import asyncio
+        from unittest import mock
+        from mcps.adapters import clinical_viz
+
+        spy = mock.MagicMock()
+        spy.return_value.invoke.return_value.content = self.GROQ_REPLY
+        if invoke_error:
+            spy.return_value.invoke.side_effect = invoke_error
+        with mock.patch.dict(os.environ):
+            os.environ.pop(self.FLAG, None)
+            if flag is not None:
+                os.environ[self.FLAG] = flag
+            with mock.patch.object(clinical_viz, "ChatGroq", spy), \
+                 mock.patch.object(clinical_viz, "GROQ_API_KEY", key), \
+                 mock.patch.object(clinical_viz, "SystemMessage", lambda content: content, create=True), \
+                 mock.patch.object(clinical_viz, "HumanMessage", lambda content: content, create=True):
+                result = asyncio.run(
+                    clinical_viz._groq_normalize(RENAL_TOXICITY_DATA, self.QUERY)
+                )
+        expected_fallback = clinical_viz._rule_based_fallback(RENAL_TOXICITY_DATA, self.QUERY)
+        return result, spy, expected_fallback
+
+    def test_default_sends_nothing_even_with_a_key(self):
+        result, spy, fallback = self._normalize(flag=None, key="test-key")
+        spy.assert_not_called()
+        self.assertEqual(result, fallback)
+
+    def test_falsy_flag_values_send_nothing(self):
+        for value in ("", "false", "0", "no", "off"):
+            with self.subTest(flag=value):
+                result, spy, fallback = self._normalize(flag=value, key="test-key")
+                spy.assert_not_called()
+                self.assertEqual(result, fallback)
+
+    def test_opt_in_without_a_key_sends_nothing(self):
+        result, spy, fallback = self._normalize(flag="true", key="")
+        spy.assert_not_called()
+        self.assertEqual(result, fallback)
+
+    def test_opt_in_with_a_key_does_call_groq_with_the_patient_data(self):
+        result, spy, _ = self._normalize(flag="true", key="test-key")
+        spy.assert_called_once()
+        prompt = spy.return_value.invoke.call_args[0][0][1]
+        self.assertIn("Enalapril started", prompt)  # the observations really are in the payload
+        self.assertEqual(result["summary"], "spy reply")
+
+    def test_opt_in_failure_falls_back_to_rule_based(self):
+        result, spy, fallback = self._normalize(
+            flag="true", key="test-key", invoke_error=RuntimeError("boom")
+        )
+        spy.assert_called_once()
+        self.assertEqual(result, fallback)
+
+
 if __name__ == "__main__":
     unittest.main()

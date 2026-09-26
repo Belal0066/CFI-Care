@@ -19,7 +19,7 @@ This part of the repository solves two related but separately-deployable problem
 
 2. **Answering a clinician's question about a patient's history, or about general drug/medical information, with an answer that's traceable to real evidence, not ai hallucination.** The input is a natural-language query, optionally scoped to a specific patient; the output is a generated answer plus the evidence it was built from. The system tries to guarantee that every claim in a generated answer references evidence that was actually retrieved, and that when it cannot find or verify that evidence within its retry budget, it declines to answer rather than fabricating one, an AI that say I don't know. we used the Openwieght model MedGemma.
 
-The models that do the core patient-data work (DOC2FHIR's OCR and Mapper, and the Clinical AI System's reasoning and answer generation) run on infrastructure the deployment controls by default, see [ADR-006](docs/adr/006-local-model-serving-mapper.md) and [ADR-008](docs/adr/008-local-model-serving-clinical-ai.md). **This is not a blanket "no third-party APIs" guarantee:** three auxiliary Clinical AI calls go to Groq, a third-party API, when it is configured. See [Data Residency](#data-residency).
+The models that do the core patient-data work (DOC2FHIR's OCR and Mapper, and the Clinical AI System's reasoning and answer generation) run on infrastructure the deployment controls by default, see [ADR-006](docs/adr/006-local-model-serving-mapper.md) and [ADR-008](docs/adr/008-local-model-serving-clinical-ai.md). **This is not a blanket "no third-party APIs" guarantee:** two auxiliary Clinical AI calls send query text to Groq, a third-party API, when it is configured, and a third (chart data) is opt-in. See [Data Residency](#data-residency).
 
 ## System Context
 
@@ -86,7 +86,7 @@ Properties that hold across both subsystems, more load-bearing than any single t
 3. **A DOC2FHIR job with a low-confidence extraction or a failed FHIR validation is held for manual review, never auto-delivered**,  `JobStatus.NEEDS_REVIEW`, resumed only via `POST /v1/document/{job_id}/approve-and-deliver` ([ADR-014](docs/adr/014-fail-closed-review-gate-doc2fhir.md)).
 4. **The two GPU-resident DOC2FHIR stages (OCR, Mapper) never run concurrently beyond 1, host-wide**,  a single `asyncio.Semaphore(1)` shared across both stages ([ADR-007](docs/adr/007-gpu-concurrency-one.md)).
 5. **MCP tool calls default to a retry+backoff protocol client; the unretried direct-REST path only runs as an explicit, environment-flagged rollback** (`MCP_TRANSPORT=rest`), never as the default ([ADR-012](docs/adr/012-mcp-protocol-adoption.md)).
-6. **The models that do core patient-data processing (DOC2FHIR OCR/Mapper, Clinical AI reasoning/generation) run on infrastructure the deployment controls by default**, local or a dedicated cloud GPU instance, for patient-data confidentiality ([ADR-006](docs/adr/006-local-model-serving-mapper.md), [ADR-008](docs/adr/008-local-model-serving-clinical-ai.md)). Scope: this does **not** cover the three optional Groq calls listed under [Data Residency](#data-residency).
+6. **The models that do core patient-data processing (DOC2FHIR OCR/Mapper, Clinical AI reasoning/generation) run on infrastructure the deployment controls by default**, local or a dedicated cloud GPU instance, for patient-data confidentiality ([ADR-006](docs/adr/006-local-model-serving-mapper.md), [ADR-008](docs/adr/008-local-model-serving-clinical-ai.md)). Scope: this does **not** cover the Groq calls listed under [Data Residency](#data-residency) (two send query text when configured; chart data is opt-in).
 
 **Not guaranteed, stated plainly:** retrieval is patient-scoped only when the caller supplies `patient_id` on the `/chat` request,  nothing currently rejects a request that omits it, so an unscoped request still performs an all-patients search (see [`docs/FAILURE_MODES.md`](docs/FAILURE_MODES.md)).
 
@@ -98,10 +98,12 @@ Where patient-related data can leave the deployment's own infrastructure. Everyt
 |---|---|---|---|---|
 | Clinical AI answer generation | Prompt with retrieved patient evidence | Lightning AI (dedicated cloud GPU) | Only if `llm_backend=lightning`; default is local llama.cpp | [ADR-008](docs/adr/008-local-model-serving-clinical-ai.md) |
 | Query rewriter | The clinician's query and the chat history | Groq | `/chat` request carries `history`, the query contains a pronoun/coreference word, and `GROQ_API_KEY` is set; skipped otherwise | `src/ai/src/api/FastAPI_Backend.py:392-394`, `src/ai/src/agent/query_rewriter.py` |
-| VizMCP chart normalizer | The patient observations to be plotted, plus the query | Groq | A chart is requested and Groq is available; on failure it falls back to rule-based charting | `src/ai/mcps/adapters/clinical_viz.py:61-100` |
+| VizMCP chart normalizer | The patient observations to be plotted, plus the query | Groq | **Opt-in only:** `VIZ_USE_GROQ_NORMALIZER=true` **and** `GROQ_API_KEY` set. Default is deterministic rule-based normalization; nothing leaves the host. Enforced by `TestGroqNormalizerResidency` | `src/ai/mcps/adapters/clinical_viz.py`, `src/ai/mcps/test_clinical_viz.py` |
 | MedMCP query classifier/summarizer | The search query text (derived from the clinician's question) and retrieved public-source snippets | Groq | Unless `LLAMACPP_API_BASE` points it at a local model | `src/ai/mcps/router.py:44-53` |
 
-**Known gap:** no single setting currently guarantees zero third-party calls. Gating the chart normalizer behind an explicit opt-in (or a local model) is the highest-value fix, since it is the only one of the three that sends structured patient observations.
+**What is guaranteed:** structured patient observations do not leave the host by default. The chart normalizer, the only path that sent them, is opt-in and covered by tests that fail if it is called without the flag and a key.
+
+**Known gap:** the two query-text paths (query rewriter, MedMCP router) still call Groq whenever it is configured, and no single setting yet guarantees zero third-party calls. Leaving `GROQ_API_KEY` unset skips the rewriter; pointing `LLAMACPP_API_BASE` at a local model moves the MedMCP router on-host.
 
 ## Critical Path
 

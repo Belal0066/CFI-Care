@@ -1,9 +1,14 @@
 """
-Clinical Visualization Adapter — Layer 2 Chart Renderer.
-Takes structured patient observations + query, normalizes via Groq,
-generates matplotlib/seaborn chart, returns base64 PNG + summary.
+Clinical Visualization Adapter,  Layer 2 Chart Renderer.
+Takes structured patient observations + query, normalizes them, generates a
+matplotlib/seaborn chart, returns base64 PNG + summary.
 
-Chart types (Groq-selected):
+Normalization is deterministic and rule-based by default, so patient
+observations never leave the host. Sending them to Groq (third-party API) for
+LLM normalization is opt-in: set VIZ_USE_GROQ_NORMALIZER=true AND provide
+GROQ_API_KEY. See "Data Residency" in ai/README.md.
+
+Chart types (rule-based, or Groq-selected when opted in):
   - dual_line: creatinine (left) + eGFR (right) renal function
   - line:      single variable (LVEF, HbA1c) with reference lines
   - gantt:     diagnostic escalation timeline by phase
@@ -39,6 +44,15 @@ except ImportError:
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_VIZ_MODEL", "llama-3.3-70b-versatile")
 
+
+def _groq_normalizer_opted_in() -> bool:
+    """True only when the operator explicitly allowed sending patient data to Groq.
+
+    Read at call time (not import time) so it can be toggled without a restart
+    of the importing process and is easy to test.
+    """
+    return os.getenv("VIZ_USE_GROQ_NORMALIZER", "").strip().lower() in ("1", "true", "yes", "on")
+
 # ---------------------------------------------------------------------------
 # Reference constants
 # ---------------------------------------------------------------------------
@@ -68,7 +82,9 @@ async def _groq_normalize(
       - Determine chart type + variables + annotations
       - Produce a short clinical summary
     """
-    if not ChatGroq:
+    # Residency gate: patient observations are sent to a third party only when
+    # explicitly opted in AND a key is configured. Otherwise nothing leaves the host.
+    if not _groq_normalizer_opted_in() or not ChatGroq or not GROQ_API_KEY:
         return _rule_based_fallback(patient_data, query)
 
     prompt = (
@@ -114,7 +130,7 @@ async def _groq_normalize(
 def _rule_based_fallback(
     patient_data: List[Dict[str, Any]], query: str
 ) -> Dict[str, Any]:
-    """Fallback when Groq is unavailable — deterministic normalization."""
+    """Default normalization (deterministic, on-host); also the fallback if the opt-in Groq call fails."""
     all_measurements = set()
     has_phase = any(p.get("phase") for p in patient_data)
     annotations = []
@@ -248,7 +264,7 @@ def _render_dual_line(
         first_dt = creatinine_vals[0][0]
         ax1.axvspan(first_dt, peak_dt, alpha=0.08, color="#e74c3c", label="Deterioration period")
 
-    # Event markers — stagger labels to avoid overlap
+    # Event markers,  stagger labels to avoid overlap
     events_sorted = sorted(events, key=lambda x: x[0])
     label_y_positions = []
     last_dt = None
@@ -474,7 +490,7 @@ async def render_chart(
 ) -> Dict[str, Any]:
     """
     Full rendering pipeline:
-      1. Groq normalizes data
+      1. Normalize data (rule-based by default; Groq only if opted in, see module docstring)
       2. Chart rendering
       3. Base64 encoding
     Returns: { image_base64, summary, chart_type }
