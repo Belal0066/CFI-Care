@@ -44,11 +44,12 @@ def test_E1_downstream_payload_contract(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr("gateway.adapters.downstream.httpx.Client", FakeClient)
 
-    adapter = DownstreamAdapter("http://downstream")
+    # The adapter posts to the configured URL with any trailing slash stripped (DownstreamAdapter.__init__).
+    adapter = DownstreamAdapter("http://downstream/v1/docfhir/")
     response = adapter.deliver_fhir_bundle("job_e1", {"resourceType": "Bundle"}, {"source": "gateway"})
 
     assert response.success is True
-    assert captured["url"].endswith("/v1/docfhir/")
+    assert captured["url"] == "http://downstream/v1/docfhir"
     assert captured["json"]["job_id"] == "job_e1"
     assert "bundle" in captured["json"]
     assert captured["json"]["metadata"]["source"] == "gateway"

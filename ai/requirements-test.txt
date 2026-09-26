@@ -1,0 +1,13 @@
+# Everything needed to run both test suites from a clean checkout (Python 3.12):
+#   python -m venv .venv && .venv/bin/pip install -r requirements-test.txt
+#   .venv/bin/python -m pytest tests                                            # DOC2FHIR, 91 tests
+#   cd src/ai && PYTHONPATH=$PWD ../../.venv/bin/python scripts/validate_system.py   # Clinical AI, 29 checks
+# Versions are the ones both suites were verified against in a fresh virtualenv.
+fastapi==0.141.1
+uvicorn==0.54.0
+httpx==0.28.1
+pydantic==2.13.5
+python-multipart==0.0.32
+jsonschema==4.26.0
+pytest==9.1.1
+pytest-asyncio==1.4.0

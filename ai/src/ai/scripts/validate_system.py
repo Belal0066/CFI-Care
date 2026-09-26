@@ -185,7 +185,8 @@ class SystemValidator:
             ("What symptoms changed over time?", "change_tracking"),
             ("What patterns do we see in vitals?", "trend_analysis"),
             ("Explain the rationale for this treatment", "rationale"),
-            ("Show timeline of events", "timeline"),
+            ("Show the patient timeline", "timeline"),
+            ("Show timeline of events", "visualization"),  # "timeline of ..." is deliberately a chart request
             ("What was the clinical outcome?", "outcome"),
             ("What about unrelated topic?", "unknown"),
         ]

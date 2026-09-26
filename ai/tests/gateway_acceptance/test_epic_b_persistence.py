@@ -38,7 +38,7 @@ def test_B2_repository_create_update_fetch_and_events(repo, tmp_path):
         upload_path=str(upload_path),
         correlation_id="corr-1",
     )
-    assert created.state == JobStatus.QUEUED
+    assert created.state == JobStatus.PENDING
 
     updated = repo.update_job_stage(
         "job_repo_test",
@@ -54,7 +54,7 @@ def test_B2_repository_create_update_fetch_and_events(repo, tmp_path):
     assert fetched.correlation_id == "corr-1"
     events = repo.list_job_events("job_repo_test")
     assert len(events) >= 2
-    assert events[0]["state"] == JobStatus.QUEUED.value
+    assert events[0]["state"] == JobStatus.PENDING.value
     assert events[-1]["payload"]["stage"] == "mapping"
 
     with pytest.raises(JobNotFoundError):
@@ -69,7 +69,7 @@ def test_B3_upload_returns_immediately_and_persists_metadata(client, repo):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["state"] == JobStatus.QUEUED.value
+    assert body["state"] == JobStatus.PENDING.value
 
     record = repo.get_job_by_id(body["job_id"])
     assert record.filename == "note.pdf"

@@ -27,8 +27,8 @@ This doc complements, and doesn't repeat, [`ARCHITECTURE.md`](ARCHITECTURE.md) (
 
 - **Input:** a natural-language clinical query, scoped (intendedly) to one patient's data, or a general medical question.
 - **Output:** a generated response whose claims are checked against retrieved source documents before being returned.
-- **Guarantees attempted:** every claim in a generated response is checked against retrieved evidence (`audit_claims`, bounded to 2 retries); the deterministic pipeline (Tickets 4-10) is fully tested (23/23).
-- **Deliberately not guaranteed:** the agentic `/chat` (`mode="auto"`) path does not currently enforce per-patient retrieval isolation — see [Honest Status](../src/ai/README.md#honest-status) and the failure-mode table. Faithfulness/recall metrics in [Results](../src/ai/README.md#results) were measured against a 10-document corpus, too small to be conclusive at the stated targets.
+- **Guarantees attempted:** every claim in a generated response is checked against retrieved evidence (`audit_claims`, bounded to 2 retries); the deterministic pipeline (Tickets 4-10) is fully tested (29/29 checks).
+- **Deliberately not guaranteed:** the agentic `/chat` (`mode="auto"`) path does not currently enforce per-patient retrieval isolation,  see [Honest Status](../src/ai/README.md#honest-status) and the failure-mode table. Faithfulness/recall metrics in [Results](../src/ai/README.md#results) were measured against a 10-document corpus, too small to be conclusive at the stated targets.
 
 ## 0.2 System Context
 

@@ -34,7 +34,7 @@ def test_A2_upload_and_status_response_contract(client):
     assert upload.status_code == 200
     body = upload.json()
     assert {"job_id", "state", "detail", "created_at"}.issubset(body.keys())
-    assert body["state"] == JobStatus.QUEUED.value
+    assert body["state"] == JobStatus.PENDING.value
 
     status = client.get(f"/v1/document/status/{body['job_id']}")
     assert status.status_code == 200

@@ -2,7 +2,7 @@
 
 **A deterministic, citation-backed clinical reasoning copilot** — an agentic RAG system that reasons over longitudinal patient data using hybrid (dense + sparse) vector search, routes between local and internet-sourced evidence via a self-correcting LangGraph agent, and never emits a clinical claim without a traceable source.
 
-**Status:** deterministic pipeline (23/23 tests passing) is stable; the agentic LangGraph layer runs end-to-end via the dashboard but has no dedicated automated test suite yet — see [Honest Status](#honest-status).
+**Status:** deterministic pipeline (29/29 checks passing) is stable; the agentic LangGraph layer runs end-to-end via the dashboard but has no dedicated automated test suite yet — see [Honest Status](#honest-status).
 
 ## Table of Contents
 - [What This Solves](#what-this-solves)
@@ -71,7 +71,7 @@ Full annotated diagrams (including the LangGraph state machine with its confiden
 
 | Layer | State |
 |---|---|
-| Deterministic pipeline (preprocessing → patient state → indexing → retrieval → reasoning) | ✅ **Implemented & tested** — 23/23 tests, see [Results](#results) |
+| Deterministic pipeline (preprocessing → patient state → indexing → retrieval → reasoning) | ✅ **Implemented & tested** — 29/29 checks, see [Results](#results) |
 | Hybrid retrieval (dense + sparse, RRF fusion) | ✅ **Implemented** — `src/retrieval/service.py`, tested |
 | LangGraph agent (`src/agent/graph/`) — intent routing, self-correcting citation audit | ✅ **Implemented, runs end-to-end** — exercised via the dashboard; no dedicated automated test suite yet |
 | MCP internet retrieval (PubMed / OpenFDA / MedlinePlus) | ✅ **Implemented & tested** — `mcps/`, unit + integration tests |
@@ -100,9 +100,9 @@ From the most recent benchmark run against the deterministic + MedGemma pipeline
 | Faithfulness (claim support) | 1.000 | > 0.95 | ✅ |
 | Hallucination rate | 0.000 | < 0.05 | ✅ |
 | Deterministic pipeline P95 latency | 0.18 ms | < 12000 ms | ✅ |
-| Retrieval Recall@3 | 0.408 | > 0.90 | ❌ below target |
-| Retrieval Recall@10 | 0.875 | > 0.95 | ❌ below target |
-| Mean MRR | 0.675 | — | reference |
+| Retrieval Recall@3 | 0.575 | > 0.90 | ❌ below target |
+| Retrieval Recall@10 | 1.000 | > 0.95 | ✅ (near-trivial on a 10-document corpus) |
+| Mean MRR | 1.000 | — | reference (same caveat) |
 
 The recall numbers are reported as-is, not smoothed over: they were measured against a 10-document corpus, which is too small to be a meaningful recall benchmark at these targets — see [`results/optimization_results_2026-06-12.md`](results/optimization_results_2026-06-12.md) for the full analysis and the plan to re-run against a 100+ document corpus.
 
@@ -181,7 +181,7 @@ ai/src/ai/
 ## Testing
 
 ```bash
-# 23 deterministic pipeline tests
+# 29 deterministic pipeline checks (needs only pydantic; see ../../requirements-test.txt)
 PYTHONPATH=$PWD python3 scripts/validate_system.py
 
 # MCP internet-retrieval flow

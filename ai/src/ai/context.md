@@ -14,7 +14,7 @@
 | **Data Standard** | HL7 FHIR R4 |
 | **LLM** | MedGemma 1.5 4B (local llama.cpp) **or** MedGemma 27B (Lightning AI remote) |
 | **Vector DB** | Qdrant (dense + sparse hybrid search) |
-| **Current Phase** | Agentic RAG operational; Deterministic pipeline (Tickets 4-10) validated 23/23 |
+| **Current Phase** | Agentic RAG operational; Deterministic pipeline (Tickets 4-10) validated 29/29 |
 | **Launcher** | `./launch.sh --local` (llama.cpp 4B) or `./launch.sh --lightning` (Lightning AI 27B) |
 
 ---
@@ -621,7 +621,7 @@ This raises `ModuleNotFoundError: No module named 'shared'` — but **this impor
 
 ### 10.1 Deterministic Pipeline (Tickets 4-10)
 
-**23/23 tests passing** — run via:
+**29/29 checks passing** — run via:
 ```bash
 PYTHONPATH=$PWD python3 scripts/validate_system.py
 ```
@@ -636,6 +636,7 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 | 9-10 | Clinical Reasoning & Response | 5 | `scripts/test_integration_tickets_8_10.py` |
 | — | Deterministic Guarantees | 3 | `scripts/validate_system.py` |
 | — | Non-Goals Verification | 2 | `scripts/validate_system.py` |
+| — | Document Chunker | 6 | `scripts/validate_system.py` |
 
 ### 10.2 Agentic / MCP Tests
 
@@ -714,7 +715,7 @@ PYTHONPATH=$PWD python3 scripts/validate_system.py
 ./launch_dashboard.sh          # port 8511 (dashboard.py)
 
 # Run tests
-PYTHONPATH=$PWD python3 scripts/validate_system.py   # 23 deterministic tests
+PYTHONPATH=$PWD python3 scripts/validate_system.py   # 29 deterministic checks
 PYTHONPATH=$PWD python3 test_mcp_flow.py              # MCP flow test
 
 # CLI utilities
